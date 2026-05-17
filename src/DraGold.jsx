@@ -98,23 +98,18 @@ const SEALED=[
   {id:"etb-brs",  name:"Brilliant Stars ETB",            set:"swsh9", setName:"Brilliant Stars",    type:"ETB",    fmv:38, img:"https://images.pokemontcg.io/swsh9/logo.png"},
   {id:"bp-paf",   name:"Paldean Fates Booster Pack",     set:"sv4pt5",setName:"Paldean Fates",      type:"Booster",fmv:8,  img:"https://images.pokemontcg.io/sv4pt5/logo.png"},
 ];
+// Hero showcase: 1 Pokémon (front, middle) + 1 MTG (left) + 1 Yu-Gi-Oh! (right)
 const HERO_POOL=[
-  {img:"https://images.pokemontcg.io/base1/4.png",  glow:"rgba(251,191,36,.55)"},
-  {img:"https://images.pokemontcg.io/sv3pt5/6.png", glow:"rgba(244,114,182,.45)"},
-  {img:"https://images.pokemontcg.io/pop3/1.png",   glow:"rgba(167,139,250,.45)"},
-  {img:"https://images.pokemontcg.io/hgss4/1.png",  glow:"rgba(56,189,248,.45)"},
-  {img:"https://images.pokemontcg.io/xy7/11.png",   glow:"rgba(251,191,36,.45)"},
-  {img:"https://images.pokemontcg.io/swsh9/18.png", glow:"rgba(244,114,182,.4)"},
-  {img:"https://images.pokemontcg.io/sv3pt5/71.png",glow:"rgba(251,191,36,.5)"},
-  {img:"https://images.pokemontcg.io/sv3pt5/11.png",glow:"rgba(167,139,250,.45)"},
-  {img:"https://images.pokemontcg.io/swsh3/20.png", glow:"rgba(56,189,248,.4)"},
-  {img:"https://images.pokemontcg.io/xy1/12.png",   glow:"rgba(244,114,182,.45)"},
+  {tcg:'pokemon', img:"https://images.pokemontcg.io/sv3pt5/6_hires.png", glow:"rgba(251,191,36,.55)"},
+  {tcg:'mtg',     img:"https://cards.scryfall.io/normal/front/b/d/bd8fa327-dd41-4737-8f19-2cf5eb1f7cdd.jpg", glow:"rgba(56,189,248,.45)"},
+  {tcg:'ygo',     img:"https://images.ygoprodeck.com/images/cards/89631139.jpg", glow:"rgba(167,139,250,.5)"},
 ];
 function getDailyCards(pool,n=3){
-  const day=Math.floor(Date.now()/86400000);let s=day*1103515245+12345;
-  const out=[],used=new Set();
-  while(out.length<n){s=(s*1103515245+12345)&0x7fffffff;const i=s%pool.length;if(!used.has(i)){used.add(i);out.push(pool[i]);}}
-  return out;
+  // Force order [MTG-left, Pokémon-middle(front), YGO-right]
+  const pkm = pool.find(c=>c.tcg==='pokemon');
+  const mtg = pool.find(c=>c.tcg==='mtg');
+  const ygo = pool.find(c=>c.tcg==='ygo');
+  return [mtg, pkm, ygo].filter(Boolean);
 }
 const HOT_PICKS=[
   {id:"hp1",name:"Charizard ex",    set:"Scarlet & Violet 151",fmv:22,  fmvEUR:20.2,change:+23,reason:"Pokémon Day demand spike",      img:"https://images.pokemontcg.io/sv3pt5/6.png"},
@@ -286,7 +281,7 @@ img{display:block;}
 .nav::after{content:'';position:absolute;bottom:0;left:0;right:0;height:1px;
   background:linear-gradient(90deg,transparent,var(--purple),var(--blue),var(--pink),var(--amber),transparent);opacity:.28;}
 .nav-l{display:flex;align-items:center;gap:10px;}
-.logo-gem{width:30px;height:30px;border-radius:9px;flex-shrink:0;
+.logo-gem{width:36px;height:36px;border-radius:9px;flex-shrink:0;object-fit:contain;filter:drop-shadow(0 0 8px rgba(251,191,36,.5));
   background:linear-gradient(135deg,var(--amber),var(--pink));
   display:flex;align-items:center;justify-content:center;font-size:15px;
   box-shadow:0 0 20px rgba(251,191,36,.35),0 0 40px rgba(244,114,182,.18);}
@@ -1784,7 +1779,7 @@ export default function DraGold(){
       {/* NAV */}
       <nav className="nav">
         <div className="nav-l">
-          <div className="logo-gem">🐉</div>
+          <img className="logo-gem" src="/logo-gold.png" alt="DraGold logo" />
           <span className="logo-txt gt">DraGold</span>
         </div>
         <div className="nav-r">
@@ -2160,3 +2155,4 @@ export default function DraGold(){
     </div>
   );
 }
+                                                                                                                                                                                                                                                                                                       
