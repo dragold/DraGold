@@ -393,7 +393,7 @@ img{display:block;}
 
 /* FLOATING CARDS (desktop only) */
 .fc-wrap{position:relative;width:320px;height:400px;}
-.fcard{position:absolute;border-radius:12px;box-shadow:0 28px 60px rgba(0,0,0,.7);}
+.fcard{position:absolute;border-radius:12px;box-shadow:0 28px 60px rgba(0,0,0,.7);height:auto;object-fit:contain;max-width:170px;}
 .fcard:nth-child(1){width:150px;left:0;top:50px;transform:rotate(-10deg);animation:fl1 5s ease-in-out infinite;}
 .fcard:nth-child(2){width:165px;left:85px;top:0;z-index:3;transform:rotate(2deg);animation:fl2 6.5s ease-in-out infinite;}
 .fcard:nth-child(3){width:150px;right:0;top:50px;transform:rotate(10deg);animation:fl3 7.5s ease-in-out infinite;}
