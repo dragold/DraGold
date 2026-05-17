@@ -394,9 +394,9 @@ img{display:block;}
 /* FLOATING CARDS (desktop only) */
 .fc-wrap{position:relative;width:320px;height:400px;}
 .fcard{position:absolute;width:150px;height:210px;border-radius:12px;box-shadow:0 28px 60px rgba(0,0,0,.7);object-fit:cover;background:#000;}
-.fcard:nth-child(1){width:150px;left:0;top:50px;transform:rotate(-10deg);animation:fl1 5s ease-in-out infinite;}
-.fcard:nth-child(2){width:165px;height:231px;left:85px;top:0;z-index:3;transform:rotate(2deg);animation:fl2 6.5s ease-in-out infinite;}
-.fcard:nth-child(3){width:150px;right:0;top:50px;transform:rotate(10deg);animation:fl3 7.5s ease-in-out infinite;}
+.fcard:nth-of-type(1){width:150px;left:0;top:50px;transform:rotate(-10deg);animation:fl1 5s ease-in-out infinite;}
+.fcard:nth-of-type(2){width:165px;height:231px;left:85px;top:0;z-index:3;transform:rotate(2deg);animation:fl2 6.5s ease-in-out infinite;}
+.fcard:nth-of-type(3){width:150px;right:0;top:50px;transform:rotate(10deg);animation:fl3 7.5s ease-in-out infinite;}
 @keyframes fl1{0%,100%{transform:rotate(-12deg) translateY(0)}50%{transform:rotate(-12deg) translateY(-16px)}}
 @keyframes fl2{0%,100%{transform:rotate(1deg) translateY(-8px)}50%{transform:rotate(1deg) translateY(12px)}}
 @keyframes fl3{0%,100%{transform:rotate(14deg) translateY(5px)}50%{transform:rotate(14deg) translateY(-13px)}}
