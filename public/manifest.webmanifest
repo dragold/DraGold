@@ -1,0 +1,13 @@
+{
+  "name": "DraGold",
+  "short_name": "DraGold",
+  "description": "Fair Market Value per carte TCG. Pokemon, Magic, Yu-Gi-Oh.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#020208",
+  "theme_color": "#020208",
+  "icons": [
+    { "src": "/assets/logo-gold.png", "sizes": "any", "type": "image/png", "purpose": "any" },
+    { "src": "/assets/logo-gold.png", "sizes": "any", "type": "image/png", "purpose": "maskable" }
+  ]
+}
