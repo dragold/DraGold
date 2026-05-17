@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { supabase, supabaseReady, sendMagicLink, getSession, onAuth, signOut as sbSignOut } from "./supabase.js";
 
 // ─── CONFIG ───────────────────────────────────────────────────────────────────
 const EBAY_CAMP = "5339152703";
@@ -1193,8 +1194,16 @@ export default function DraGold(){
   },[q,tcg]);
   const changeTCG=id=>{setTcg(id);setCards([]);setSearched(false);setDemo(false);setQ("");};
 
+  // Real auth via Supabase magic link. Falls back to local mock if backend not configured.
   const doRegister=async()=>{
-    if(!authEmail||!authPass) return;
+    if(!authEmail) return;
+    if(supabaseReady){
+      const {error}=await sendMagicLink(authEmail);
+      if(error){alert("Magic link error: "+error.message);return;}
+      alert("Check your inbox: we just sent you a sign-in link.");
+      setAuthMode(null);setAuthName("");setAuthEmail("");setAuthPass("");
+      return;
+    }
     const u={name:authName||authEmail.split("@")[0],email:authEmail,at:Date.now()};
     setUser(u);try{await window.storage.set("dg_u1",JSON.stringify(u));}catch{}
     setAuthMode(null);
@@ -1203,13 +1212,37 @@ export default function DraGold(){
   };
   const doLogin=async()=>{
     if(!authEmail) return;
+    if(supabaseReady){
+      const {error}=await sendMagicLink(authEmail);
+      if(error){alert("Magic link error: "+error.message);return;}
+      alert("Check your inbox: we just sent you a sign-in link.");
+      setAuthMode(null);setAuthEmail("");setAuthPass("");
+      return;
+    }
     const u={name:authEmail.split("@")[0],email:authEmail,at:Date.now()};
     setUser(u);try{await window.storage.set("dg_u1",JSON.stringify(u));}catch{}
     setAuthMode(null);
     if(authPending){await addToCol(authPending.card,authPending.fmvObj,authPending.img,authPending.tcgType);setAuthPending(null);}
     setAuthEmail("");setAuthPass("");
   };
-  const doLogout=async()=>{setUser(null);try{await window.storage.delete("dg_u1");}catch{}};
+  const doLogout=async()=>{
+    if(supabaseReady){await sbSignOut();}
+    setUser(null);try{await window.storage.delete("dg_u1");}catch{}
+  };
+
+  // Listen to Supabase auth state (magic link callback)
+  useEffect(()=>{
+    if(!supabaseReady) return;
+    (async()=>{
+      const s=await getSession();
+      if(s?.user){setUser({name:s.user.email.split("@")[0],email:s.user.email,at:Date.now(),id:s.user.id});}
+    })();
+    const off=onAuth(s=>{
+      if(s?.user){setUser({name:s.user.email.split("@")[0],email:s.user.email,at:Date.now(),id:s.user.id});}
+      else setUser(null);
+    });
+    return off;
+  },[]);
 
   const getCardData=card=>{
     if(tcg==="pokemon"){
