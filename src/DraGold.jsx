@@ -1181,6 +1181,8 @@ export default function DraGold(){
       if(langKey){
         // Pokemon names differ by language (Charizard=リザードン in JP).
         // Strategy: search EN to get universal IDs, then resolve each localized version.
+        // If localized API is down (e.g. tcgdex 503), fall back to EN art with localized
+        // price multiplier and a clear visual badge so users know what's happening.
         try{
           const enR=await fetch(`https://api.tcgdex.net/v2/en/cards?name=like:${encodeURIComponent(q.trim())}`,{signal:AbortSignal.timeout(6000)});
           if(enR.ok){
@@ -1192,12 +1194,18 @@ export default function DraGold(){
                   .then(r=>r.ok?r.json():null).catch(()=>null)
               ));
               const valid=details.filter(c=>c&&c.image);
-              if(valid.length){
-                const mapped=valid.map(c=>({
-                  id:`tcgdex-${c.id}`,name:c.name,number:c.localId||"",rarity:c.rarity||"Localized",
-                  supertype:"Pokémon",set:{id:c.set?.id||"",name:c.set?.name||""},
+              const localized=valid.length>0;
+              const source=localized?valid:top.filter(c=>c.image);
+              if(source.length){
+                const mapped=source.map(c=>({
+                  id:`tcgdex-${c.id}-${clang}`,
+                  name:c.name,
+                  number:c.localId||"",
+                  rarity:c.rarity||(localized?"Localized":`${clang.toUpperCase()} print (art unavailable, EN shown)`),
+                  supertype:"Pokémon",
+                  set:{id:c.set?.id||(c.id||"").split("-")[0]||"",name:c.set?.name||((c.id||"").split("-")[0]||"").toUpperCase()},
                   images:{small:`${c.image}/low.webp`,large:`${c.image}/high.webp`},
-                  _localized:true,_lang:clang,
+                  _localized:localized,_lang:clang,_fallbackArt:!localized,
                 }));
                 setCards(mapped);found=true;
               }
