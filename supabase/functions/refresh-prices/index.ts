@@ -102,14 +102,26 @@ serve(async (_req) => {
     }
 
     if (tcg === 'onepiece') {
-      const SCRYDEX_KEY = Deno.env.get('SCRYDEX_API_KEY')
-      if (SCRYDEX_KEY) chain.push({
-        source: 'scrydex',
+      // One Piece via JustTCG on-demand only (no bulk catalog kept locally).
+      // JustTCG free tier: 20 results per call.
+      if (JUSTTCG_KEY) chain.push({
+        source: 'justtcg',
         fetcher: async () => {
-          const r = await loggedFetch(supabase, 'scrydex',
-            `https://api.scrydex.com/v1/onepiece/cards/${card_api_id}`,
-            { timeout: 8000, headers: { 'Authorization': `Bearer ${SCRYDEX_KEY}` }, cardId })
-          return { price: r.data?.prices?.market || null, raw: r.data?.prices }
+          const r = await loggedFetch(supabase, 'justtcg',
+            `https://api.justtcg.com/v1/cards?q=${encodeURIComponent(card_api_id)}&game=one-piece`,
+            { timeout: 8000, headers: { 'X-API-Key': JUSTTCG_KEY }, cardId })
+          const p = r.data?.data?.[0]?.variants?.[0]?.price
+          return { price: parseFloat(p) || null, raw: r.data }
+        }
+      })
+      // Fallback: TCG Price Lookup universal
+      if (TCGLOOKUP_KEY) chain.push({
+        source: 'tcglookup',
+        fetcher: async () => {
+          const r = await loggedFetch(supabase, 'tcglookup',
+            `https://www.tcgpricelookup.com/api/v1/cards?game=onepiece&query=${encodeURIComponent(card_api_id)}`,
+            { timeout: 8000, headers: { 'Authorization': `Bearer ${TCGLOOKUP_KEY}` }, cardId })
+          return { price: r.data?.results?.[0]?.market_price || null, raw: r.data }
         }
       })
     }

@@ -1178,9 +1178,108 @@ export default function DraGold(){
   const portData  = useMemo(()=>totalVal>0?mkPortChart(totalVal):null,[totalVal]);
   const portChg   = portData?portData[portData.length-1]-portData[0]:0;
 
-  const { data, error } = await supabase.rpc('search_cards', {
-  q: query.trim(), tcg_filter: tcg, lang_filter: clang, limit_n: 50
-});
+  // Hybrid search: try Supabase catalog first (fast, multi-lang, no rate limit).
+  // If Supabase returns nothing (or backend not configured), fall back to live APIs.
+  const doSearch=useCallback(async()=>{
+    if(!q.trim()) return;
+    setLoading(true);setSearched(true);setCards([]);setDemo(false);
+
+    // 1) Try Supabase catalog
+    if(supabaseReady){
+      try{
+        const {data,error}=await supabase.rpc('search_cards',{
+          q:q.trim(), tcg_filter:tcg, lang_filter:clang, limit_n:50,
+        });
+        if(!error && data && data.length){
+          // Map Supabase row -> shape consumed by the existing card UI
+          const mapped=data.map(r=>({
+            id:r.id,
+            name:r.name,
+            number:r.card_number||"",
+            rarity:r.rarity||"",
+            supertype:r.tcg==="pokemon"?"Pokémon":r.tcg==="mtg"?"Creature":"Monster",
+            set:{id:r.set_name,name:r.set_name||""},
+            set_name:r.set_name,
+            images:{small:r.image_url,large:r.image_url},
+            image_uris:{small:r.image_url,normal:r.image_url,large:r.image_url},
+            card_images:[{image_url:r.image_url,image_url_small:r.image_url}],
+            _supabase:true,_lang:r.lang,
+            _supabasePrice:r.price_usd,_priceSource:r.price_source,
+          }));
+          setCards(mapped);setLoading(false);return;
+        }
+      }catch(e){console.warn('Supabase search failed, falling back to live API',e);}
+    }
+
+    // 2) Fallback chain: live APIs (used when Supabase empty or not populated yet)
+    let found=false;
+    if(tcg==="pokemon"){
+      const TCGDEX_LANG={ja:"ja",ko:"ko",fr:"fr",de:"de",it:"it",es:"es",pt:"pt",zhs:"zh-tw"};
+      const langKey=TCGDEX_LANG[clang];
+      if(langKey){
+        try{
+          const enR=await fetch(`https://api.tcgdex.net/v2/en/cards?name=like:${encodeURIComponent(q.trim())}`,{signal:AbortSignal.timeout(6000)});
+          if(enR.ok){
+            const enArr=await enR.json();
+            if(Array.isArray(enArr)&&enArr.length){
+              const top=enArr.slice(0,12);
+              const details=await Promise.all(top.map(c=>
+                fetch(`https://api.tcgdex.net/v2/${langKey}/cards/${c.id}`,{signal:AbortSignal.timeout(5000)})
+                  .then(r=>r.ok?r.json():null).catch(()=>null)
+              ));
+              const valid=details.filter(c=>c&&c.image);
+              const localized=valid.length>0;
+              const source=localized?valid:top.filter(c=>c.image);
+              if(source.length){
+                setCards(source.map(c=>({
+                  id:`tcgdex-${c.id}-${clang}`,name:c.name,number:c.localId||"",
+                  rarity:c.rarity||(localized?"Localized":`${clang.toUpperCase()} print (art unavailable)`),
+                  supertype:"Pokémon",set:{id:(c.id||"").split("-")[0],name:c.set?.name||""},
+                  images:{small:`${c.image}/low.webp`,large:`${c.image}/high.webp`},
+                  _localized:localized,_lang:clang,
+                })));found=true;
+              }
+            }
+          }
+        }catch{}
+      }
+      if(!found){for(const qs of[`name:"${q.trim()}"`,`name:${q.trim()}*`]){
+        if(found) break;
+        try{const r=await fetch(`https://api.pokemontcg.io/v2/cards?q=${encodeURIComponent(qs)}&pageSize=50&orderBy=-set.releaseDate`,{signal:AbortSignal.timeout(5000)});
+          if(r.ok){const d=await r.json();if(d.data?.length){setCards(d.data);found=true;}}}catch{}
+      }}
+      if(!found){setDemo(true);setCards(MOCK_PKM);}
+    }else if(tcg==="mtg"){
+      try{const r=await fetch(`https://api.scryfall.com/cards/search?q=${encodeURIComponent(q.trim())}&unique=cards&order=released`,{signal:AbortSignal.timeout(6000)});
+        if(r.ok){const d=await r.json();setCards(d.data||[]);found=!!d.data?.length;}}catch{}
+      if(!found) setCards([]);
+    }else if(tcg==="ygo"){
+      try{const r=await fetch(`https://db.ygoprodeck.com/api/v7/cardinfo.php?fname=${encodeURIComponent(q.trim())}`,{signal:AbortSignal.timeout(6000)});
+        if(r.ok){const d=await r.json();setCards(d.data||[]);found=!!d.data?.length;}}catch{}
+      if(!found) setCards([]);
+    }else if(tcg==="onepiece"){
+      // One Piece via JustTCG on-demand (no bulk import - too expensive, lookup as needed)
+      const JUSTTCG_KEY=import.meta.env.VITE_JUSTTCG_API_KEY;
+      if(JUSTTCG_KEY){
+        try{
+          const r=await fetch(`https://api.justtcg.com/v1/cards?q=${encodeURIComponent(q.trim())}&game=one-piece&limit=20`,
+            {signal:AbortSignal.timeout(8000),headers:{'X-API-Key':JUSTTCG_KEY}});
+          if(r.ok){
+            const d=await r.json();
+            setCards((d.data||[]).map(c=>({
+              id:c.id||c.tcgplayerId,name:c.name,number:c.number||"",rarity:c.rarity||"",
+              supertype:"Character",set:{id:c.set?.id,name:c.set?.name||""},
+              images:{small:c.image||c.imageUrl,large:c.image||c.imageUrl},
+              _justtcgPrice:c.variants?.[0]?.price,
+            })));found=true;
+          }
+        }catch{}
+      }
+      if(!found) setCards([]);
+    }
+    setLoading(false);
+  },[q,tcg,clang]);
+
   const changeTCG=id=>{setTcg(id);setCards([]);setSearched(false);setDemo(false);setQ("");};
 
   const doRegister=async()=>{
