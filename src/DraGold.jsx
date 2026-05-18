@@ -1544,18 +1544,10 @@ export default function DraGold(){
           <span className="auth-brand gt">DraGold</span>
         </div>
         <div className="smod-hdr" style={{marginBottom:5}}><div className="smod-t">{authMode==="register"?"Join DraGold":"Welcome back"}</div></div>
-        {authMode==="register"&&<p className="smod-desc">Save your vault and receive price alerts. Always free.</p>}
-        {authMode==="register"&&(<>
-          <div style={{display:"flex",gap:7,marginBottom:12}}>
-            <button className="smod-soc">🍎 Apple</button><button className="smod-soc">G Google</button>
-          </div>
-          <div className="smod-div"><span>or email</span></div>
-          <input className="smod-in" type="text" placeholder="Your name" value={authName} onChange={e=>setAuthName(e.target.value)}/>
-        </>)}
-        <input className="smod-in" type="email" placeholder="Email address" value={authEmail} onChange={e=>setAuthEmail(e.target.value)}/>
-        <input className="smod-in" type="password" placeholder="Password" value={authPass} onChange={e=>setAuthPass(e.target.value)} style={{marginBottom:12}}/>
+        <p className="smod-desc">No password needed. Enter your email and we'll send you a magic sign-in link.</p>
+        <input className="smod-in" type="email" placeholder="Email address" value={authEmail} onChange={e=>setAuthEmail(e.target.value)} style={{marginBottom:12}} onKeyDown={e=>e.key==="Enter"&&(authMode==="register"?doRegister():doLogin())}/>
         <button className="smod-btn" onClick={authMode==="register"?doRegister:doLogin}>
-          {authMode==="register"?"Create Free Account":"Sign In"}
+          Send magic link
         </button>
         <div className="smod-switch">
           {authMode==="register"
