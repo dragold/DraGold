@@ -9,7 +9,7 @@ supabase/
 ├── functions/
 │   ├── _shared/fetch-with-log.ts   # Helper: logged fetch + fallback chain
 │   ├── bulk-import-pokemon/        # Import da TCGdex (multi-lingua)
-│   ├── bulk-import-onepiece/       # Import da Scrydex
+
 │   ├── bulk-import-mtg/            # Import da Scryfall bulk
 │   ├── bulk-import-ygo/            # Import da YGOPRODeck
 │   ├── refresh-prices/             # Refresh prezzi con fallback chain
@@ -28,7 +28,7 @@ Supabase Dashboard → SQL Editor → New query → incolla il contenuto di `mig
 |---|---|---|
 | **TCG Price Lookup** | 10.000 req/mese | Fallback universale prezzi |
 | **JustTCG** | gratis (20 risultati/call) | Pokémon prezzi primari |
-| **Scrydex** | 1.000 req/mese | One Piece (essenziale) |
+
 
 Aggiungi le API key come Edge Function secrets:
 - `TCGLOOKUP_API_KEY` = `xxx`
@@ -109,7 +109,7 @@ Questa query gira sul DB locale = millisecondi, niente rate limit, sempre dispon
 | TCG | Catena (in ordine) |
 |---|---|
 | **Pokémon** | JustTCG → Pokémon TCG API → TCG Price Lookup |
-| **One Piece** | Scrydex → TCG Price Lookup |
+| **One Piece** | JustTCG on-demand → TCG Price Lookup |
 | **Magic** | Scryfall daily bulk → TCG Price Lookup |
 | **Yu-Gi-Oh!** | YGOPRODeck (CM + TCGP + eBay) → TCG Price Lookup |
 

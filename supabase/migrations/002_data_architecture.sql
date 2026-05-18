@@ -84,7 +84,6 @@ insert into public.price_sources (id, name, base_url, free_limit_monthly, notes)
   ('pokemontcgio', 'Pokemon TCG API', 'https://api.pokemontcg.io', 0, 'Pokemon metadata + TCGPlayer prices'),
   ('scryfall', 'Scryfall', 'https://api.scryfall.com', 0, 'Magic, daily bulk data'),
   ('ygoprodeck', 'YGOPRODeck', 'https://db.ygoprodeck.com', 0, 'Yu-Gi-Oh prices from CM/TCGP/eBay'),
-  ('scrydex', 'Scrydex', 'https://api.scrydex.com', 1000, 'One Piece + Pokemon, paid for raw'),
   ('tcgdex', 'TCGdex', 'https://api.tcgdex.net', 0, 'Pokemon metadata only, multi-lang'),
   ('lorcast', 'Lorcast', 'https://api.lorcast.com', 0, 'Lorcana cards + prices'),
   ('fab', 'FaB Card API', 'https://api.fabdb.net', 0, 'Flesh and Blood, community'),
