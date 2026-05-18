@@ -263,7 +263,7 @@ img{display:block;}
   --lime:#a3e635;  --lime-b:rgba(163,230,53,.08);
   --gain:#34d399;  --gain-g:rgba(52,211,153,.12);
   --loss:#f87171;  --loss-g:rgba(248,113,113,.12);
-  --txt2:#a0a0c0;--muted:#5a5a78;--dim:#1e1e34;
+  --txt2:#b4b4cc;--muted:#8a8aa8;--dim:#3a3a52;
   --p:16px;
 }
 
@@ -281,17 +281,16 @@ img{display:block;}
 .nav::after{content:'';position:absolute;bottom:0;left:0;right:0;height:1px;
   background:linear-gradient(90deg,transparent,var(--purple),var(--blue),var(--pink),var(--amber),transparent);opacity:.28;}
 .nav-l{display:flex;align-items:center;gap:10px;}
-.logo-gem{width:36px;height:36px;border-radius:9px;flex-shrink:0;object-fit:contain;filter:drop-shadow(0 0 8px rgba(251,191,36,.5));
-  background:linear-gradient(135deg,var(--amber),var(--pink));
-  display:flex;align-items:center;justify-content:center;font-size:15px;
-  box-shadow:0 0 20px rgba(251,191,36,.35),0 0 40px rgba(244,114,182,.18);}
+.logo-gem{width:40px;height:40px;flex-shrink:0;object-fit:contain;background:transparent;border:none;
+  filter:drop-shadow(0 0 12px rgba(251,191,36,.45));}
 .logo-txt{font-family:'Fraunces',sans-serif;font-size:18px;font-weight:800;letter-spacing:-.5px;}
 .nav-r{display:flex;align-items:center;gap:6px;}
 .cur-row{display:none;}
 .curb{padding:4px 9px;border:none;background:none;color:var(--muted);font-size:10px;font-weight:700;
   cursor:pointer;border-radius:5px;transition:all .18s;font-family:'Space Mono',monospace;letter-spacing:.5px;}
 .curb.on{background:var(--amber-b);color:var(--amber);}
-.ldw{position:relative;}
+.ldw{display:none;}/* UI translation coming soon. Hidden until i18n is implemented. */
+.ldw-x{position:relative;}
 .ldb{display:flex;align-items:center;gap:4px;padding:5px 10px;background:var(--gl);border:1px solid var(--gb);
   border-radius:8px;color:var(--txt2);font-size:12px;font-weight:600;cursor:pointer;transition:all .2s;}
 .lch{font-size:9px;color:var(--muted);transition:transform .2s;}.lch.op{transform:rotate(180deg);}
@@ -423,9 +422,9 @@ img{display:block;}
 .feat{background:var(--s2);border:1px solid var(--gb);border-radius:18px;overflow:hidden;
   margin-bottom:18px;display:flex;flex-direction:column;position:relative;transition:all .3s;}
 .feat:hover{border-color:rgba(251,191,36,.22);}
-.feat-img{background:var(--s1);display:flex;align-items:center;justify-content:center;
+.feat-img{background:var(--s1);display:flex;align-items:center;justify-content:center;cursor:zoom-in;overflow:hidden;
   padding:20px;position:relative;overflow:hidden;cursor:pointer;min-height:180px;}
-.feat-img img{max-width:160px;border-radius:10px;box-shadow:0 14px 36px rgba(0,0,0,.5);}
+.feat-img img{max-width:180px;width:100%;height:auto;object-fit:contain;border-radius:10px;box-shadow:0 14px 36px rgba(0,0,0,.5);}
 .feat-holo{position:absolute;inset:-80%;width:260%;height:260%;
   background:conic-gradient(from 0deg at 50% 50%,rgba(255,0,100,.28),rgba(255,150,0,.28),rgba(255,255,0,.28),rgba(0,255,100,.28),rgba(0,150,255,.28),rgba(150,0,255,.28),rgba(255,0,100,.28));
   pointer-events:none;opacity:0;transition:opacity .4s;mix-blend-mode:color-dodge;}
@@ -449,9 +448,9 @@ img{display:block;}
   border-radius:10px;font-size:12px;font-weight:700;cursor:pointer;transition:all .2s;}
 .btn-ghost:hover{border-color:var(--gain);color:var(--gain);}
 .btn-ghost.in{background:var(--gain-g);border-color:rgba(52,211,153,.25);color:var(--gain);}
-.btn-heart{padding:10px 13px;background:var(--gl);border:1px solid var(--gb);
-  border-radius:10px;font-size:15px;cursor:pointer;transition:all .2s;}
-.btn-heart:hover,.btn-heart.on{border-color:var(--pink);background:var(--pink-b);}
+.btn-heart{padding:10px 13px;background:rgba(244,114,182,.08);border:1px solid rgba(244,114,182,.35);
+  border-radius:10px;font-size:17px;color:var(--pink);cursor:pointer;transition:all .2s;}
+.btn-heart:hover,.btn-heart.on{border-color:var(--pink);background:var(--pink-b);color:#fff;}
 
 /* PLATFORM REF */
 .pref{display:flex;gap:10px;flex-wrap:wrap;padding:6px 0;border-top:1px solid rgba(255,255,255,.05);margin-top:2px;}
@@ -777,8 +776,15 @@ img{display:block;}
 @keyframes slideup{from{transform:translateY(60px);opacity:0}to{transform:translateY(0);opacity:1}}
 .dmod-handle{width:36px;height:3px;background:rgba(255,255,255,.2);border-radius:2px;margin:10px auto 0;}
 .dmod-top{display:flex;background:var(--s1);position:relative;padding:16px;}
-.dmod-img{width:120px;flex-shrink:0;position:relative;overflow:hidden;border-radius:10px;}
-.dmod-img img{width:100%;border-radius:10px;box-shadow:0 10px 28px rgba(0,0,0,.6);}
+.dmod-img{width:220px;flex-shrink:0;position:relative;overflow:hidden;border-radius:14px;cursor:zoom-in;}
+.dmod-img img{width:100%;border-radius:14px;box-shadow:0 16px 44px rgba(0,0,0,.7),0 0 0 1px rgba(251,191,36,.15);transition:transform .2s;}
+.dmod-img:hover img{transform:scale(1.04);}
+.comp-prices{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:10px;}
+.comp-i{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:10px;}
+.comp-lbl{font-family:'Space Mono',monospace;font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px;}
+.comp-v{font-family:'Space Mono',monospace;font-size:14px;font-weight:700;color:var(--text);}
+.img-zoom-ov{position:fixed;inset:0;background:rgba(0,0,0,.92);display:flex;align-items:center;justify-content:center;z-index:9999;cursor:zoom-out;padding:20px;}
+.img-zoom-ov img{max-width:90vw;max-height:90vh;border-radius:14px;box-shadow:0 30px 80px rgba(0,0,0,.9);}
 .dmod-holo{position:absolute;inset:-80%;width:260%;height:260%;background:conic-gradient(from 0deg at 50% 50%,rgba(255,0,100,.28),rgba(255,150,0,.28),rgba(255,255,0,.28),rgba(0,255,100,.28),rgba(0,150,255,.28),rgba(150,0,255,.28),rgba(255,0,100,.28));mix-blend-mode:color-dodge;pointer-events:none;animation:hs 5s linear infinite;opacity:.55;}
 .dmod-info{flex:1;padding-left:14px;display:flex;flex-direction:column;gap:9px;justify-content:center;}
 .dmod-name{font-family:'Fraunces',sans-serif;font-size:17px;font-weight:800;letter-spacing:-.3px;line-height:1.2;}
@@ -1055,6 +1061,7 @@ export default function DraGold(){
   const [selCond,setSelCond] = useState("NM");
   const [user,setUser]       = useState(null);
   const [authMode,setAuthMode]     = useState(null);
+  const [zoomImg,setZoomImg]       = useState(null);
   const [authPending,setAuthPending] = useState(null);
   const [authName,setAuthName]   = useState("");
   const [authEmail,setAuthEmail] = useState("");
@@ -1215,7 +1222,7 @@ export default function DraGold(){
       }
       if(!found){for(const qs of[`name:"${q.trim()}"`,`name:${q.trim()}*`]){
         if(found) break;
-        try{const r=await fetch(`https://api.pokemontcg.io/v2/cards?q=${encodeURIComponent(qs)}&pageSize=20&orderBy=-set.releaseDate`,{signal:AbortSignal.timeout(5000)});
+        try{const r=await fetch(`https://api.pokemontcg.io/v2/cards?q=${encodeURIComponent(qs)}&pageSize=50&orderBy=-set.releaseDate`,{signal:AbortSignal.timeout(5000)});
           if(r.ok){const d=await r.json();if(d.data?.length){setCards(d.data);found=true;}}}catch{}
       }}
       if(!found){setDemo(true);setCards(MOCK_PKM);}
@@ -1381,7 +1388,7 @@ export default function DraGold(){
           <div className="dmod-handle"/>
           <div className="dmod-top">
             <button className="dmod-x" onClick={()=>setDetail(null)}>✕</button>
-            <div className="dmod-img"><div className="dmod-holo"/><img src={img} alt={card.name}/></div>
+            <div className="dmod-img" onClick={()=>img&&setZoomImg(img)}><div className="dmod-holo"/><img src={img} alt={card.name}/></div>
             <div className="dmod-info">
               <div>
                 <div className="dmod-name gt">{card.name}</div>
@@ -1401,7 +1408,11 @@ export default function DraGold(){
                 <div className="fmv-val gt">{fmvD}</div>
                 <div className="fmv-lbl">Fair Market Value   weighted avg</div>
                 {netD&&<div className="fmv-net">Net sell: {netD}</div>}
-                {tcgPrice&&<div className="fmv-ref">TCG ${tcgPrice.toFixed(2)}   CM ~€{(tcgPrice*EUR_RATE*0.88).toFixed(2)}   eBay ${(tcgPrice*1.06).toFixed(2)}</div>}
+                {tcgPrice&&<div className="comp-prices">
+                  <div className="comp-i"><div className="comp-lbl">TCGPlayer</div><div className="comp-v">${tcgPrice.toFixed(2)}</div></div>
+                  <div className="comp-i"><div className="comp-lbl">Cardmarket</div><div className="comp-v">€{(tcgPrice*EUR_RATE*0.88).toFixed(2)}</div></div>
+                  <div className="comp-i"><div className="comp-lbl">eBay</div><div className="comp-v">${(tcgPrice*1.06).toFixed(2)}</div></div>
+                </div>}
               </div>
               <a href={buyLink} target="_blank" rel="noopener noreferrer" className="btn-buy" style={{fontSize:12,padding:"9px 14px",alignSelf:"center"}}>
                 🛒 {region==="EU"?"EU eBay":"eBay"}
@@ -1410,16 +1421,14 @@ export default function DraGold(){
 
             {/* ACTIONS */}
             <div className="dmod-actions">
-              <button className={`btn-prim${already?" in":""}`}
-                onClick={()=>already?removeFromCol(card.id||card.name):null}>
-                {already?"✓ In Vault":null}
+              {already
+                ?<button className="btn-prim in" onClick={()=>removeFromCol(card.id||card.name)}>✓ In Vault — Remove</button>
+                :<button className="btn-prim" onClick={()=>addToCol(card,fmvObj,img,tcg)}>+ Add to Vault</button>}
+              <a href={sellLink} target="_blank" rel="noopener noreferrer" className="btn-sell">💰 Sell on eBay</a>
+              <button className={`btn-heart-d${watching?" on":""}`} onClick={()=>toggleWatch(card,fmvObj,img,tcg)} title="Watchlist">
+                {watching?"♥ Watching":"♡ Watch"}
               </button>
-              {!already&&<button className="btn-prim" onClick={()=>addToCol(card,fmvObj,img,tcg)}>+ Add to Vault</button>}
-              <a href={sellLink} target="_blank" rel="noopener noreferrer" className="btn-sell">💰 Sell</a>
-              <button className={`btn-heart-d${watching?" on":""}`} onClick={()=>toggleWatch(card,fmvObj,img,tcg)}>
-                {watching?"♥":"♡"}
-              </button>
-              <button className="btn-sec" onClick={()=>{setDetail(null);setAlertCard(card);setAlertSent(false);}}>🔔</button>
+              <button className="btn-sec" onClick={()=>{setDetail(null);setAlertCard(card);setAlertSent(false);}} title="Price alert">🔔 Alert</button>
             </div>
 
             {/* CONDITION + PAID */}
@@ -1640,7 +1649,7 @@ export default function DraGold(){
         <div style={{position:"relative"}}>
           <div className="hot-grid">
             {HOT_PICKS.map((c,i)=>(
-              <div key={c.id} className={`hot-card${i>=5?" locked":""}`} onClick={()=>i<5&&setTab("explore")}>
+              <div key={c.id} className={`hot-card${i>=5?" locked":""}`} onClick={()=>{if(i<5){setQ(c.name);setTab("explore");setTimeout(()=>doSearch(),100);}}}>
                 <img src={c.img} alt={c.name}/>
                 <div className="hc-info">
                   <div className="hc-name">{c.name}</div>
@@ -2160,6 +2169,7 @@ export default function DraGold(){
       </footer>
 
       {/* MODALS */}
+      {zoomImg    &&<div className="img-zoom-ov" onClick={()=>setZoomImg(null)}><img src={zoomImg} alt="zoom"/></div>}
       {article    &&<ArticleReader post={article}/>}
       {authMode   &&<AuthModal/>}
       {detail     &&<DetailModal card={detail}/>}
