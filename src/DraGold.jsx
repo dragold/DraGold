@@ -1179,17 +1179,28 @@ export default function DraGold(){
       const TCGDEX_LANG={ja:"ja",ko:"ko",fr:"fr",de:"de",it:"it",es:"es",pt:"pt",zhs:"zh-tw"};
       const langKey=TCGDEX_LANG[clang];
       if(langKey){
+        // Pokemon names differ by language (Charizard=リザードン in JP).
+        // Strategy: search EN to get universal IDs, then resolve each localized version.
         try{
-          const r=await fetch(`https://api.tcgdex.net/v2/${langKey}/cards?name=like:${encodeURIComponent(q.trim())}`,{signal:AbortSignal.timeout(6000)});
-          if(r.ok){const arr=await r.json();
-            if(Array.isArray(arr)&&arr.length){
-              const mapped=arr.slice(0,20).map(c=>({
-                id:`tcgdex-${c.id}`,name:c.name,number:c.localId||"",rarity:c.rarity||"Localized",
-                supertype:"Pokémon",set:{id:(c.id||"").split("-")[0],name:((c.id||"").split("-")[0]||"").toUpperCase()},
-                images:{small:c.image?`${c.image}/low.webp`:null,large:c.image?`${c.image}/high.webp`:null},
-                _localized:true,_lang:clang,
-              }));
-              setCards(mapped);found=true;
+          const enR=await fetch(`https://api.tcgdex.net/v2/en/cards?name=like:${encodeURIComponent(q.trim())}`,{signal:AbortSignal.timeout(6000)});
+          if(enR.ok){
+            const enArr=await enR.json();
+            if(Array.isArray(enArr)&&enArr.length){
+              const top=enArr.slice(0,12);
+              const details=await Promise.all(top.map(c=>
+                fetch(`https://api.tcgdex.net/v2/${langKey}/cards/${c.id}`,{signal:AbortSignal.timeout(5000)})
+                  .then(r=>r.ok?r.json():null).catch(()=>null)
+              ));
+              const valid=details.filter(c=>c&&c.image);
+              if(valid.length){
+                const mapped=valid.map(c=>({
+                  id:`tcgdex-${c.id}`,name:c.name,number:c.localId||"",rarity:c.rarity||"Localized",
+                  supertype:"Pokémon",set:{id:c.set?.id||"",name:c.set?.name||""},
+                  images:{small:`${c.image}/low.webp`,large:`${c.image}/high.webp`},
+                  _localized:true,_lang:clang,
+                }));
+                setCards(mapped);found=true;
+              }
             }
           }
         }catch{}
