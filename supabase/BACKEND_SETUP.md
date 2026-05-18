@@ -33,7 +33,6 @@ Supabase Dashboard → SQL Editor → New query → incolla il contenuto di `mig
 Aggiungi le API key come Edge Function secrets:
 - `TCGLOOKUP_API_KEY` = `xxx`
 - `JUSTTCG_API_KEY` = `xxx`
-- `SCRYDEX_API_KEY` = `xxx`
 
 Senza queste chiavi le funzioni cadono al fallback successivo (eBay scrape, mock data).
 
@@ -52,7 +51,6 @@ npm install -g supabase
 supabase login
 supabase link --project-ref pimwkmwrduqkaydyvxqz
 supabase functions deploy bulk-import-pokemon
-supabase functions deploy bulk-import-onepiece
 supabase functions deploy bulk-import-mtg
 supabase functions deploy bulk-import-ygo
 supabase functions deploy refresh-prices
@@ -68,8 +66,7 @@ curl -X POST https://pimwkmwrduqkaydyvxqz.supabase.co/functions/v1/bulk-import-p
   -H "Content-Type: application/json" \
   -d '{"langs":["en","ja","ko","fr","de","it","es","pt"]}'
 
-# One Piece (richiede SCRYDEX_API_KEY)
-curl -X POST https://pimwkmwrduqkaydyvxqz.supabase.co/functions/v1/bulk-import-onepiece
+# One Piece: NO bulk import (gestito on-demand via JustTCG dal frontend)
 
 # Yu-Gi-Oh! (gratis, no auth)
 curl -X POST https://pimwkmwrduqkaydyvxqz.supabase.co/functions/v1/bulk-import-ygo
