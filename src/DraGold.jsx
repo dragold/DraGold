@@ -99,23 +99,22 @@ const SEALED=[
   {id:"etb-brs",  name:"Brilliant Stars ETB",            set:"swsh9", setName:"Brilliant Stars",    type:"ETB",    fmv:38, img:"https://images.pokemontcg.io/swsh9/logo.png"},
   {id:"bp-paf",   name:"Paldean Fates Booster Pack",     set:"sv4pt5",setName:"Paldean Fates",      type:"Booster",fmv:8,  img:"https://images.pokemontcg.io/sv4pt5/logo.png"},
 ];
-// Hero showcase: 1 Pokémon (front, middle) + 1 MTG (left) + 1 Yu-Gi-Oh! (right)
+// Hero showcase: 1 Pokemon front + MTG left + YGO right (the 3 TCGs we support)
 const HERO_POOL=[
-  {tcg:'pokemon', img:"https://images.pokemontcg.io/sv3pt5/6_hires.png", glow:"rgba(251,191,36,.55)"},
+  {tcg:'pokemon', img:"https://images.pokemontcg.io/sv3pt5/6.png", glow:"rgba(251,191,36,.55)"},
   {tcg:'mtg',     img:"https://cards.scryfall.io/normal/front/b/d/bd8fa327-dd41-4737-8f19-2cf5eb1f7cdd.jpg", glow:"rgba(56,189,248,.45)"},
   {tcg:'ygo',     img:"https://images.ygoprodeck.com/images/cards/89631139.jpg", glow:"rgba(167,139,250,.5)"},
 ];
 function getDailyCards(pool,n=3){
-  // Force order [MTG-left, Pokémon-middle(front), YGO-right]
-  const pkm = pool.find(c=>c.tcg==='pokemon');
-  const mtg = pool.find(c=>c.tcg==='mtg');
-  const ygo = pool.find(c=>c.tcg==='ygo');
-  return [mtg, pkm, ygo].filter(Boolean);
+  const pkm=pool.find(c=>c.tcg==='pokemon');
+  const mtg=pool.find(c=>c.tcg==='mtg');
+  const ygo=pool.find(c=>c.tcg==='ygo');
+  return [mtg,pkm,ygo].filter(Boolean);
 }
 const HOT_PICKS=[
   {id:"hp1",name:"Charizard ex",    set:"Scarlet & Violet 151",fmv:22,  fmvEUR:20.2,change:+23,reason:"Pokémon Day demand spike",      img:"https://images.pokemontcg.io/sv3pt5/6.png"},
-  {id:"hp2",name:"Mewtwo ex",       set:"Scarlet & Violet 151",fmv:18,  fmvEUR:16.6,change:+18,reason:"Top-3 search volume all week",  img:"https://images.pokemontcg.io/sv3pt5/11.png"},
-  {id:"hp3",name:"Pikachu ex",      set:"Scarlet & Violet 151",fmv:15,  fmvEUR:13.8,change:+12,reason:"Evergreen collector demand",    img:"https://images.pokemontcg.io/sv3pt5/71.png"},
+  {id:"hp2",name:"Mewtwo",          set:"Scarlet & Violet 151",fmv:18,  fmvEUR:16.6,change:+18,reason:"Top-3 search volume all week",  img:"https://images.pokemontcg.io/sv3pt5/150.png"},
+  {id:"hp3",name:"Pikachu",         set:"Scarlet & Violet 151",fmv:15,  fmvEUR:13.8,change:+12,reason:"Evergreen collector demand",    img:"https://images.pokemontcg.io/sv3pt5/25.png"},
   {id:"hp4",name:"Charizard VSTAR", set:"Brilliant Stars",     fmv:9.5, fmvEUR:8.7, change:+9, reason:"Case openings trending up",    img:"https://images.pokemontcg.io/swsh9/18.png"},
   {id:"hp5",name:"Charizard Prime", set:"Triumphant",          fmv:62,  fmvEUR:57.1,change:+7, reason:"Vintage HGSS resurgence",      img:"https://images.pokemontcg.io/hgss4/1.png"},
   {id:"hp6",name:"Charizard",       set:"Base Set 1999",       fmv:420, fmvEUR:386.4,change:+5,reason:"All-time cornerstone hold",    img:"https://images.pokemontcg.io/base1/4.png"},
@@ -521,12 +520,12 @@ img{display:block;}
 
 /* HOT PICKS */
 .hot-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:9px;position:relative;}
-.hot-card{background:var(--s2);border:1px solid var(--gb);border-radius:14px;padding:12px;
+.hot-card{background:var(--s2);border:1px solid var(--gb);border-radius:14px;padding:14px;
   transition:all .25s;cursor:pointer;display:flex;align-items:center;gap:10px;}
 .hot-card:hover{border-color:rgba(251,191,36,.2);transform:translateY(-2px);}
-.hot-card img{width:46px;border-radius:7px;flex-shrink:0;}
+.hot-card img{width:96px;border-radius:8px;flex-shrink:0;}
 .hc-info{flex:1;min-width:0;}
-.hc-name{font-family:'Fraunces',sans-serif;font-weight:800;font-size:12px;margin-bottom:1px;
+.hc-name{font-family:'Fraunces',sans-serif;font-weight:800;font-size:14px;margin-bottom:1px;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .hc-set{font-size:9px;color:var(--muted);margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .hc-price{font-family:'Space Mono',monospace;font-size:13px;font-weight:700;color:var(--amber);}
@@ -1177,11 +1176,29 @@ export default function DraGold(){
     setLoading(true);setSearched(true);setCards([]);setDemo(false);
     if(tcg==="pokemon"){
       let found=false;
-      for(const qs of[`name:"${q.trim()}"`,`name:${q.trim()}*`]){
+      const TCGDEX_LANG={ja:"ja",ko:"ko",fr:"fr",de:"de",it:"it",es:"es",pt:"pt",zhs:"zh-tw"};
+      const langKey=TCGDEX_LANG[clang];
+      if(langKey){
+        try{
+          const r=await fetch(`https://api.tcgdex.net/v2/${langKey}/cards?name=like:${encodeURIComponent(q.trim())}`,{signal:AbortSignal.timeout(6000)});
+          if(r.ok){const arr=await r.json();
+            if(Array.isArray(arr)&&arr.length){
+              const mapped=arr.slice(0,20).map(c=>({
+                id:`tcgdex-${c.id}`,name:c.name,number:c.localId||"",rarity:c.rarity||"Localized",
+                supertype:"Pokémon",set:{id:(c.id||"").split("-")[0],name:((c.id||"").split("-")[0]||"").toUpperCase()},
+                images:{small:c.image?`${c.image}/low.webp`:null,large:c.image?`${c.image}/high.webp`:null},
+                _localized:true,_lang:clang,
+              }));
+              setCards(mapped);found=true;
+            }
+          }
+        }catch{}
+      }
+      if(!found){for(const qs of[`name:"${q.trim()}"`,`name:${q.trim()}*`]){
         if(found) break;
         try{const r=await fetch(`https://api.pokemontcg.io/v2/cards?q=${encodeURIComponent(qs)}&pageSize=20&orderBy=-set.releaseDate`,{signal:AbortSignal.timeout(5000)});
           if(r.ok){const d=await r.json();if(d.data?.length){setCards(d.data);found=true;}}}catch{}
-      }
+      }}
       if(!found){setDemo(true);setCards(MOCK_PKM);}
     }else if(tcg==="mtg"){
       try{const r=await fetch(`https://api.scryfall.com/cards/search?q=${encodeURIComponent(q.trim())}&unique=cards&order=released`,{signal:AbortSignal.timeout(6000)});
@@ -1194,15 +1211,13 @@ export default function DraGold(){
   },[q,tcg]);
   const changeTCG=id=>{setTcg(id);setCards([]);setSearched(false);setDemo(false);setQ("");};
 
-  // Real auth via Supabase magic link. Falls back to local mock if backend not configured.
   const doRegister=async()=>{
     if(!authEmail) return;
     if(supabaseReady){
       const {error}=await sendMagicLink(authEmail);
-      if(error){alert("Magic link error: "+error.message);return;}
-      alert("Check your inbox: we just sent you a sign-in link.");
-      setAuthMode(null);setAuthName("");setAuthEmail("");setAuthPass("");
-      return;
+      if(error){alert("Sign-in error: "+error.message);return;}
+      alert("Check your inbox for the sign-in link.");
+      setAuthMode(null);setAuthName("");setAuthEmail("");setAuthPass("");return;
     }
     const u={name:authName||authEmail.split("@")[0],email:authEmail,at:Date.now()};
     setUser(u);try{await window.storage.set("dg_u1",JSON.stringify(u));}catch{}
@@ -1214,10 +1229,9 @@ export default function DraGold(){
     if(!authEmail) return;
     if(supabaseReady){
       const {error}=await sendMagicLink(authEmail);
-      if(error){alert("Magic link error: "+error.message);return;}
-      alert("Check your inbox: we just sent you a sign-in link.");
-      setAuthMode(null);setAuthEmail("");setAuthPass("");
-      return;
+      if(error){alert("Sign-in error: "+error.message);return;}
+      alert("Check your inbox for the sign-in link.");
+      setAuthMode(null);setAuthEmail("");setAuthPass("");return;
     }
     const u={name:authEmail.split("@")[0],email:authEmail,at:Date.now()};
     setUser(u);try{await window.storage.set("dg_u1",JSON.stringify(u));}catch{}
@@ -1229,19 +1243,13 @@ export default function DraGold(){
     if(supabaseReady){await sbSignOut();}
     setUser(null);try{await window.storage.delete("dg_u1");}catch{}
   };
-
-  // Listen to Supabase auth state (magic link callback)
   useEffect(()=>{
     if(!supabaseReady) return;
-    (async()=>{
-      const s=await getSession();
-      if(s?.user){setUser({name:s.user.email.split("@")[0],email:s.user.email,at:Date.now(),id:s.user.id});}
-    })();
-    const off=onAuth(s=>{
+    (async()=>{const s=await getSession();if(s?.user){setUser({name:s.user.email.split("@")[0],email:s.user.email,at:Date.now(),id:s.user.id});}})();
+    return onAuth(s=>{
       if(s?.user){setUser({name:s.user.email.split("@")[0],email:s.user.email,at:Date.now(),id:s.user.id});}
       else setUser(null);
     });
-    return off;
   },[]);
 
   const getCardData=card=>{
@@ -1812,7 +1820,7 @@ export default function DraGold(){
       {/* NAV */}
       <nav className="nav">
         <div className="nav-l">
-          <img className="logo-gem" src="/logo-gold.png" alt="DraGold logo" />
+          <img className="logo-gem" src="/logo-gold.png" alt="DraGold" />
           <span className="logo-txt gt">DraGold</span>
         </div>
         <div className="nav-r">
