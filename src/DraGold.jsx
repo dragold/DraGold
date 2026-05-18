@@ -1178,63 +1178,9 @@ export default function DraGold(){
   const portData  = useMemo(()=>totalVal>0?mkPortChart(totalVal):null,[totalVal]);
   const portChg   = portData?portData[portData.length-1]-portData[0]:0;
 
-  const doSearch=useCallback(async()=>{
-    if(!q.trim()) return;
-    setLoading(true);setSearched(true);setCards([]);setDemo(false);
-    if(tcg==="pokemon"){
-      let found=false;
-      const TCGDEX_LANG={ja:"ja",ko:"ko",fr:"fr",de:"de",it:"it",es:"es",pt:"pt",zhs:"zh-tw"};
-      const langKey=TCGDEX_LANG[clang];
-      if(langKey){
-        // Pokemon names differ by language (Charizard=リザードン in JP).
-        // Strategy: search EN to get universal IDs, then resolve each localized version.
-        // If localized API is down (e.g. tcgdex 503), fall back to EN art with localized
-        // price multiplier and a clear visual badge so users know what's happening.
-        try{
-          const enR=await fetch(`https://api.tcgdex.net/v2/en/cards?name=like:${encodeURIComponent(q.trim())}`,{signal:AbortSignal.timeout(6000)});
-          if(enR.ok){
-            const enArr=await enR.json();
-            if(Array.isArray(enArr)&&enArr.length){
-              const top=enArr.slice(0,12);
-              const details=await Promise.all(top.map(c=>
-                fetch(`https://api.tcgdex.net/v2/${langKey}/cards/${c.id}`,{signal:AbortSignal.timeout(5000)})
-                  .then(r=>r.ok?r.json():null).catch(()=>null)
-              ));
-              const valid=details.filter(c=>c&&c.image);
-              const localized=valid.length>0;
-              const source=localized?valid:top.filter(c=>c.image);
-              if(source.length){
-                const mapped=source.map(c=>({
-                  id:`tcgdex-${c.id}-${clang}`,
-                  name:c.name,
-                  number:c.localId||"",
-                  rarity:c.rarity||(localized?"Localized":`${clang.toUpperCase()} print (art unavailable, EN shown)`),
-                  supertype:"Pokémon",
-                  set:{id:c.set?.id||(c.id||"").split("-")[0]||"",name:c.set?.name||((c.id||"").split("-")[0]||"").toUpperCase()},
-                  images:{small:`${c.image}/low.webp`,large:`${c.image}/high.webp`},
-                  _localized:localized,_lang:clang,_fallbackArt:!localized,
-                }));
-                setCards(mapped);found=true;
-              }
-            }
-          }
-        }catch{}
-      }
-      if(!found){for(const qs of[`name:"${q.trim()}"`,`name:${q.trim()}*`]){
-        if(found) break;
-        try{const r=await fetch(`https://api.pokemontcg.io/v2/cards?q=${encodeURIComponent(qs)}&pageSize=50&orderBy=-set.releaseDate`,{signal:AbortSignal.timeout(5000)});
-          if(r.ok){const d=await r.json();if(d.data?.length){setCards(d.data);found=true;}}}catch{}
-      }}
-      if(!found){setDemo(true);setCards(MOCK_PKM);}
-    }else if(tcg==="mtg"){
-      try{const r=await fetch(`https://api.scryfall.com/cards/search?q=${encodeURIComponent(q.trim())}&unique=cards&order=released`,{signal:AbortSignal.timeout(6000)});
-        if(r.ok){const d=await r.json();setCards(d.data||[]);}else setCards([]);}catch{setCards([]);}
-    }else{
-      try{const r=await fetch(`https://db.ygoprodeck.com/api/v7/cardinfo.php?fname=${encodeURIComponent(q.trim())}`,{signal:AbortSignal.timeout(6000)});
-        if(r.ok){const d=await r.json();setCards(d.data||[]);}else setCards([]);}catch{setCards([]);}
-    }
-    setLoading(false);
-  },[q,tcg]);
+  const { data, error } = await supabase.rpc('search_cards', {
+  q: query.trim(), tcg_filter: tcg, lang_filter: clang, limit_n: 50
+});
   const changeTCG=id=>{setTcg(id);setCards([]);setSearched(false);setDemo(false);setQ("");};
 
   const doRegister=async()=>{
