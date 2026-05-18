@@ -113,8 +113,8 @@ function getDailyCards(pool,n=3){
 }
 const HOT_PICKS=[
   {id:"hp1",name:"Charizard ex",    set:"Scarlet & Violet 151",fmv:22,  fmvEUR:20.2,change:+23,reason:"Pokémon Day demand spike",      img:"https://images.pokemontcg.io/sv3pt5/6.png"},
-  {id:"hp2",name:"Mewtwo",          set:"Scarlet & Violet 151",fmv:18,  fmvEUR:16.6,change:+18,reason:"Top-3 search volume all week",  img:"https://images.pokemontcg.io/sv3pt5/150.png"},
-  {id:"hp3",name:"Pikachu",         set:"Scarlet & Violet 151",fmv:15,  fmvEUR:13.8,change:+12,reason:"Evergreen collector demand",    img:"https://images.pokemontcg.io/sv3pt5/25.png"},
+  {id:"hp2",name:"Charizard ex SAR",set:"Obsidian Flames",     fmv:140, fmvEUR:128.8,change:+18,reason:"SAR demand spike post-event",img:"https://images.pokemontcg.io/sv3/223.png"},
+  {id:"hp3",name:"Charizard ex FA", set:"Paldean Fates",       fmv:55,  fmvEUR:50.6,change:+12,reason:"Full Art collector hold",      img:"https://images.pokemontcg.io/sv4pt5/234.png"},
   {id:"hp4",name:"Charizard VSTAR", set:"Brilliant Stars",     fmv:9.5, fmvEUR:8.7, change:+9, reason:"Case openings trending up",    img:"https://images.pokemontcg.io/swsh9/18.png"},
   {id:"hp5",name:"Charizard Prime", set:"Triumphant",          fmv:62,  fmvEUR:57.1,change:+7, reason:"Vintage HGSS resurgence",      img:"https://images.pokemontcg.io/hgss4/1.png"},
   {id:"hp6",name:"Charizard",       set:"Base Set 1999",       fmv:420, fmvEUR:386.4,change:+5,reason:"All-time cornerstone hold",    img:"https://images.pokemontcg.io/base1/4.png"},
@@ -424,7 +424,7 @@ img{display:block;}
 .feat:hover{border-color:rgba(251,191,36,.22);}
 .feat-img{background:var(--s1);display:flex;align-items:center;justify-content:center;cursor:zoom-in;overflow:hidden;
   padding:20px;position:relative;overflow:hidden;cursor:pointer;min-height:180px;}
-.feat-img img{max-width:180px;width:100%;height:auto;object-fit:contain;border-radius:10px;box-shadow:0 14px 36px rgba(0,0,0,.5);}
+.feat-img img{max-width:220px;width:auto;height:auto;max-height:320px;object-fit:contain;border-radius:10px;box-shadow:0 14px 36px rgba(0,0,0,.5);}
 .feat-holo{position:absolute;inset:-80%;width:260%;height:260%;
   background:conic-gradient(from 0deg at 50% 50%,rgba(255,0,100,.28),rgba(255,150,0,.28),rgba(255,255,0,.28),rgba(0,255,100,.28),rgba(0,150,255,.28),rgba(150,0,255,.28),rgba(255,0,100,.28));
   pointer-events:none;opacity:0;transition:opacity .4s;mix-blend-mode:color-dodge;}
@@ -882,7 +882,7 @@ img{display:block;}
 .smod-div::before,.smod-div::after{content:'';flex:1;height:1px;background:rgba(255,255,255,.06);}
 .smod-div span{font-size:10px;color:var(--dim);font-family:'Space Mono',monospace;}
 .auth-logo{display:flex;align-items:center;gap:9px;justify-content:center;margin-bottom:20px;}
-.auth-gem{width:32px;height:32px;border-radius:9px;background:linear-gradient(135deg,var(--amber),var(--pink));display:flex;align-items:center;justify-content:center;font-size:15px;}
+.auth-gem{width:38px;height:38px;object-fit:contain;background:transparent;filter:drop-shadow(0 0 10px rgba(251,191,36,.5));}
 .auth-brand{font-family:'Fraunces',sans-serif;font-size:20px;font-weight:800;letter-spacing:-.4px;}
 .succ{text-align:center;padding:14px 0;}
 .succ-i{font-size:46px;margin-bottom:12px;display:block;}
@@ -1549,7 +1549,7 @@ export default function DraGold(){
         <div style={{display:"flex",justifyContent:"flex-end",marginBottom:4}}>
           <button className="smod-x" onClick={()=>setAuthMode(null)}>✕</button>
         </div>
-        <div className="auth-logo"><div className="auth-gem">🐉</div>
+        <div className="auth-logo"><img className="auth-gem" src="/logo-gold.png" alt="DraGold"/>
           <span className="auth-brand gt">DraGold</span>
         </div>
         <div className="smod-hdr" style={{marginBottom:5}}><div className="smod-t">{authMode==="register"?"Join DraGold":"Welcome back"}</div></div>
@@ -1597,7 +1597,7 @@ export default function DraGold(){
           ))}
         </div>
         <div style={{textAlign:"center",marginTop:18,fontSize:12,color:"var(--muted)"}}>
-          Support now via <a href="https://buymeacoffee.com/dragold" target="_blank" rel="noopener noreferrer" style={{color:"var(--amber)",fontWeight:700}}>Ko-fi</a>
+          Support now via <a href="https://buymeacoffee.com/dragold" target="_blank" rel="noopener noreferrer" style={{color:"var(--amber)",fontWeight:700}}>BuyMeACoffee</a>
         </div>
       </div>
     </div>
