@@ -85,7 +85,7 @@ const MOCK_PKM=[
   {id:"pop3-1",  name:"Charizard Star",  number:"1",  rarity:"Rare Secret", supertype:"Pokémon",set:{id:"pop3",name:"POP Series 3"},    images:{small:"https://images.pokemontcg.io/pop3/1.png",   large:"https://images.pokemontcg.io/pop3/1_hires.png"},   tcgplayer:{prices:{holofoil:{market:185,low:120,high:280}}}},
   {id:"xy7-11",  name:"Charizard EX",    number:"11", rarity:"Rare Holo EX",supertype:"Pokémon",set:{id:"xy7",name:"Ancient Origins"},  images:{small:"https://images.pokemontcg.io/xy7/11.png",   large:"https://images.pokemontcg.io/xy7/11_hires.png"},   tcgplayer:{prices:{holofoil:{market:38, low:26,high:58 }}}},
   {id:"swsh9-18",name:"Charizard VSTAR", number:"18", rarity:"Rare VSTAR",  supertype:"Pokémon",set:{id:"swsh9",name:"Brilliant Stars"},images:{small:"https://images.pokemontcg.io/swsh9/18.png", large:"https://images.pokemontcg.io/swsh9/18_hires.png"}, tcgplayer:{prices:{holofoil:{market:9.5,low:6,  high:15 }}}},
-  {id:"hgss4-1", name:"Charizard Prime", number:"1",  rarity:"Rare Prime",  supertype:"Pokémon",set:{id:"hgss4",name:"Triumphant"},     images:{small:"https://images.pokemontcg.io/hgss4/1.png",  large:"https://images.pokemontcg.io/hgss4/1_hires.png"},  tcgplayer:{prices:{holofoil:{market:62, low:44,high:98 }}}},
+  {id:"hgss4-1", name:"Charizard Prime", number:"1",  rarity:"Rare Prime",  supertype:"Pokémon",set:{id:"hgss4",name:"Triumphant"},     images:{small:"https://images.pokemontcg.io/hgss4/14.png",  large:"https://images.pokemontcg.io/hgss4/14_hires.png"},  tcgplayer:{prices:{holofoil:{market:62, low:44,high:98 }}}},
   {id:"swsh3-20",name:"Charizard V",     number:"20", rarity:"Rare Holo V", supertype:"Pokémon",set:{id:"swsh3",name:"Darkness Ablaze"},images:{small:"https://images.pokemontcg.io/swsh3/20.png", large:"https://images.pokemontcg.io/swsh3/20_hires.png"}, tcgplayer:{prices:{holofoil:{market:12.8,low:8,high:20 }}}},
   {id:"xy1-12",  name:"Charizard EX FA", number:"12", rarity:"Rare Ultra",  supertype:"Pokémon",set:{id:"xy1",name:"XY Base Set"},      images:{small:"https://images.pokemontcg.io/xy1/12.png",   large:"https://images.pokemontcg.io/xy1/12_hires.png"},   tcgplayer:{prices:{holofoil:{market:28, low:19,high:44 }}}},
 ];
@@ -116,7 +116,7 @@ const HOT_PICKS=[
   {id:"hp2",name:"Charizard ex SAR",set:"Obsidian Flames",     fmv:140, fmvEUR:128.8,change:+18,reason:"SAR demand spike post-event",img:"https://images.pokemontcg.io/sv3/223.png"},
   {id:"hp3",name:"Charizard ex FA", set:"Paldean Fates",       fmv:55,  fmvEUR:50.6,change:+12,reason:"Full Art collector hold",      img:"https://images.pokemontcg.io/sv4pt5/234.png"},
   {id:"hp4",name:"Charizard VSTAR", set:"Brilliant Stars",     fmv:9.5, fmvEUR:8.7, change:+9, reason:"Case openings trending up",    img:"https://images.pokemontcg.io/swsh9/18.png"},
-  {id:"hp5",name:"Charizard Prime", set:"Triumphant",          fmv:62,  fmvEUR:57.1,change:+7, reason:"Vintage HGSS resurgence",      img:"https://images.pokemontcg.io/hgss4/1.png"},
+  {id:"hp5",name:"Charizard Prime", set:"Triumphant",          fmv:62,  fmvEUR:57.1,change:+7, reason:"Vintage HGSS resurgence",      img:"https://images.pokemontcg.io/hgss4/14.png"},
   {id:"hp6",name:"Charizard",       set:"Base Set 1999",       fmv:420, fmvEUR:386.4,change:+5,reason:"All-time cornerstone hold",    img:"https://images.pokemontcg.io/base1/4.png"},
   {id:"hp7",name:"Charizard EX",    set:"Ancient Origins",     fmv:38,  fmvEUR:35,  change:+4, reason:"XY era gaining momentum",     img:"https://images.pokemontcg.io/xy7/11.png"},
   {id:"hp8",name:"Charizard Star",  set:"POP Series 3",        fmv:185, fmvEUR:170, change:+3, reason:"Low pop, high PSA demand",    img:"https://images.pokemontcg.io/pop3/1.png"},
@@ -148,7 +148,7 @@ const BLOG=[
    excerpt:"Fees went up. Wait times came down. But which cards still make financial sense to send?",
    featuredCards:[
      {name:"Charizard",     fmv:420,change:+8,img:"https://images.pokemontcg.io/base1/4.png",set:"Base Set 1999"},
-     {name:"Charizard Prime",fmv:62,change:+5,img:"https://images.pokemontcg.io/hgss4/1.png",set:"Triumphant"},
+     {name:"Charizard Prime",fmv:62,change:+5,img:"https://images.pokemontcg.io/hgss4/14.png",set:"Triumphant"},
    ],
    body:["PSA standard grading now costs $50 per card with a 30 to 45 day turnaround. For a Base Set Charizard with a raw FMV of $420, a PSA 10 result pushes that number to approximately $1,350. The math works.","The break-even threshold: only send cards where PSA 10 FMV exceeds 2.5x the raw card value plus grading cost. Below that multiplier you are gambling on condition rather than investing.","Cards that remain strong grading candidates: Base Set holofoils in excellent condition, Japanese promos, and any first-edition Scarlet and Violet pull that comes out of the pack with clean centering."]},
   {id:"invest-2026",emoji:"💎",cat:"Investment",date:"May 5, 2026",read:"6 min",
