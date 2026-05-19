@@ -55,15 +55,16 @@ const BINDER_TYPES=[
   {id:"1p", name:"1-Pocket Display", cols:1,rows:1,slots:1,  desc:"Top Loader / Slab"},
 ];
 const CARD_LANGS=[
+  // Lingue effettivamente nel DB Supabase (bulk import completati).
+  // Aggiungere altre lingue qui dopo aver lanciato bulk-import-pokemon con quella lang.
   {c:"en",l:"English",  f:"🇺🇸",live:true, hot:false},
   {c:"ja",l:"日本語",   f:"🇯🇵",live:true, hot:true },
-  {c:"ko",l:"한국어",   f:"🇰🇷",live:true, hot:false},
-  {c:"fr",l:"Français", f:"🇫🇷",live:true, hot:false},
-  {c:"de",l:"Deutsch",  f:"🇩🇪",live:true, hot:false},
   {c:"it",l:"Italiano", f:"🇮🇹",live:true, hot:false},
-  {c:"es",l:"Español",  f:"🇪🇸",live:true, hot:false},
-  {c:"pt",l:"Português",f:"🇧🇷",live:true, hot:false},
-  {c:"zhs",l:"中文",   f:"🇨🇳",live:false,hot:false},
+  {c:"ko",l:"한국어",   f:"🇰🇷",live:false,hot:false},
+  {c:"fr",l:"Français", f:"🇫🇷",live:false,hot:false},
+  {c:"de",l:"Deutsch",  f:"🇩🇪",live:false,hot:false},
+  {c:"es",l:"Español",  f:"🇪🇸",live:false,hot:false},
+  {c:"pt",l:"Português",f:"🇧🇷",live:false,hot:false},
 ];
 const UI_LANGS=[
   {c:"en",f:"🇺🇸",n:"English"},{c:"it",f:"🇮🇹",n:"Italiano"},
@@ -128,10 +129,12 @@ const GRADING_SPOT={
   img:"https://images.pokemontcg.io/base1/4.png",pop10:342,pop9:1240,
   analysis:"Raw-to-PSA10 multiplier at 3.2x. Historically this gap widens in Q3 when grading volume drops. Current PSA turnaround is 35 days at standard tier. For raw copies in NM condition this remains one of the strongest grading opportunities in the market.",
 };
+// Market pulse: vol e change reali verranno calcolati dal cron compute-hot-picks
+// quando l'aggregato giornaliero sarà disponibile. Per ora mostra solo nomi.
 const MARKET_PULSE=[
-  {name:"Pokémon TCG",         change:+3.2,vol:"$2.4M",trend:"up"},
-  {name:"Magic: The Gathering",change:+1.1,vol:"$8.1M",trend:"up"},
-  {name:"Yu-Gi-Oh!",          change:-0.8,vol:"$1.2M",trend:"down"},
+  {name:"Pokémon TCG",         change:null,vol:null,trend:"neutral"},
+  {name:"Magic: The Gathering",change:null,vol:null,trend:"neutral"},
+  {name:"Yu-Gi-Oh!",           change:null,vol:null,trend:"neutral"},
 ];
 const BLOG=[
   {id:"top-movers",emoji:"📈",cat:"Market",date:"May 10, 2026",read:"3 min",
@@ -375,6 +378,13 @@ img{display:block;}
   font-weight:500;outline:none;transition:all .3s;}
 .srch-in:focus{border-color:var(--amber);box-shadow:0 0 0 3px var(--amber-b);}
 .srch-in::placeholder{color:var(--muted);}
+.sugg-dd{position:absolute;top:calc(100% + 6px);left:0;right:0;background:#0e0e1a;border:1px solid rgba(255,255,255,.08);border-radius:12px;box-shadow:0 16px 40px rgba(0,0,0,.6);z-index:50;overflow:hidden;max-height:440px;overflow-y:auto;}
+.sugg-row{display:flex;gap:12px;align-items:center;padding:10px 14px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,.04);}
+.sugg-row:last-child{border-bottom:none;}
+.sugg-row:hover{background:rgba(251,191,36,.08);}
+.sugg-img{width:36px;height:50px;object-fit:cover;border-radius:5px;flex-shrink:0;background:#1a1a30;}
+.sugg-name{font-family:'Fraunces',serif;font-weight:700;font-size:14px;color:#f5f0e3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.sugg-meta{font-size:11px;color:#8a8aa8;text-transform:capitalize;}
 .srch-go{position:absolute;right:6px;top:50%;transform:translateY(-50%);padding:9px 18px;
   background:linear-gradient(135deg,var(--amber),var(--pink));color:#020208;border:none;
   border-radius:10px;font-size:12px;font-weight:800;cursor:pointer;transition:all .2s;
@@ -1062,6 +1072,8 @@ export default function DraGold(){
   const [user,setUser]       = useState(null);
   const [authMode,setAuthMode]     = useState(null);
   const [zoomImg,setZoomImg]       = useState(null);
+  const [suggestions,setSuggestions] = useState([]);
+  const [showSugg,setShowSugg]       = useState(false);
   const [authPending,setAuthPending] = useState(null);
   const [authName,setAuthName]   = useState("");
   const [authEmail,setAuthEmail] = useState("");
@@ -1178,18 +1190,54 @@ export default function DraGold(){
   const portData  = useMemo(()=>totalVal>0?mkPortChart(totalVal):null,[totalVal]);
   const portChg   = portData?portData[portData.length-1]-portData[0]:0;
 
+  // Auto-detect card language from the search query (Japanese kana, Korean hangul, etc.)
+  function detectLang(s){
+    if(!s) return null;
+    if(/[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]/.test(s)) return "ja";
+    if(/[\uAC00-\uD7AF]/.test(s)) return "ko";
+    return null; // caller decides default
+  }
+
+  // Live autocomplete: debounced call to suggest_cards RPC (universal, cross-TCG)
+  useEffect(()=>{
+    if(!supabaseReady){setSuggestions([]);return;}
+    if(!q || q.trim().length<2){setSuggestions([]);return;}
+    const detected = detectLang(q);
+    const lang = detected || clang;
+    const tcgF = null; // cross-TCG suggestions
+    const handle = setTimeout(async()=>{
+      try{
+        const {data,error}=await supabase.rpc('suggest_cards',{
+          q:q.trim(), tcg_filter:tcgF, lang_filter:lang,
+        });
+        if(!error && Array.isArray(data)){setSuggestions(data); setShowSugg(true);}
+      }catch{}
+    },280);
+    return ()=>clearTimeout(handle);
+  },[q, clang]);
+
   // Hybrid search: try Supabase catalog first (fast, multi-lang, no rate limit).
   // If Supabase returns nothing (or backend not configured), fall back to live APIs.
   const doSearch=useCallback(async()=>{
     if(!q.trim()) return;
-    setLoading(true);setSearched(true);setCards([]);setDemo(false);
+    setLoading(true);setSearched(true);setCards([]);setDemo(false);setShowSugg(false);
 
-    // 1) Try Supabase catalog
+    // Detect language from query (overrides current clang if non-latin script)
+    const detectedLang = detectLang(q.trim()) || clang;
+    if(detectedLang!==clang) setClang(detectedLang);
+
+    // 1) Try Supabase catalog: first with current TCG filter, then cross-TCG if empty
     if(supabaseReady){
       try{
-        const {data,error}=await supabase.rpc('search_cards',{
-          q:q.trim(), tcg_filter:tcg, lang_filter:clang, limit_n:50,
+        let {data,error}=await supabase.rpc('search_cards',{
+          q:q.trim(), tcg_filter:tcg, lang_filter:detectedLang, limit_n:50,
         });
+        if((!data||!data.length)&&!error){
+          // Cross-TCG fallback
+          ({data,error}=await supabase.rpc('search_cards',{
+            q:q.trim(), tcg_filter:null, lang_filter:detectedLang, limit_n:50,
+          }));
+        }
         if(!error && data && data.length){
           // Map Supabase row -> shape consumed by the existing card UI
           const mapped=data.map(r=>({
@@ -1742,9 +1790,12 @@ export default function DraGold(){
         </div>
         <div className="ug">
           {[
-            {name:"Pokémon Stellar Crown",date:"June 2026",hype:92,img:"https://images.pokemontcg.io/sv3pt5/logo.png"},
+            {name:"Pokémon Mega Evolution",date:"June 2026",hype:96,img:"https://images.pokemontcg.io/sv3pt5/logo.png"},
             {name:"Magic: Tarkir Dragonstorm",date:"May 30, 2026",hype:88,img:null},
-            {name:"Pokémon Prismatic Evolutions 2",date:"Q3 2026",hype:96,img:"https://images.pokemontcg.io/sv3pt5/logo.png"},
+            {name:"Pokémon Black Bolt & White Flare",date:"Q3 2026",hype:92,img:"https://images.pokemontcg.io/sv3pt5/logo.png"},
+            {name:"DraGold Portfolio Dashboard",date:"Coming soon",hype:100,img:null},
+            {name:"DraGold Camera Scan",date:"Q3 2026",hype:85,img:null},
+            {name:"One Piece full bulk catalog",date:"Q4 2026",hype:80,img:null},
           ].map((u,i)=>(
             <div key={i} className="uc">
               {u.img?<img src={u.img} alt={u.name} className="uc-img"/>:<div className="uc-img-ph">📦</div>}
@@ -1893,7 +1944,8 @@ export default function DraGold(){
             <button className={`curb${cur==="USD"?" on":""}`} onClick={()=>setCur("USD")}>USD</button>
             <button className={`curb${cur==="EUR"?" on":""}`} onClick={()=>setCur("EUR")}>EUR</button>
           </div>
-          <div className="ldw" ref={langRef}>
+          {/* UI language switcher removed: i18n not implemented yet, only EN. */}
+          <div style={{display:"none"}} ref={langRef}>
             <button className="ldb" onClick={()=>setLangOpen(x=>!x)}>
               <span>{curLang.f}</span>
               <span style={{fontSize:11,fontWeight:700}}>{curLang.c.toUpperCase()}</span>
@@ -1930,8 +1982,8 @@ export default function DraGold(){
           <div key={m.name} className="pulse-item">
             <div className="pulse-dot" style={{background:m.trend==="up"?"var(--gain)":"var(--loss)"}}/>
             <span className="pulse-name">{m.name}</span>
-            <span className="pulse-chg" style={{color:m.trend==="up"?"var(--gain)":"var(--loss)"}}>{m.trend==="up"?"+":""}{m.change}%</span>
-            <span className="pulse-vol">{m.vol}</span>
+            {m.change!=null && <span className="pulse-chg" style={{color:m.trend==="up"?"var(--gain)":"var(--loss)"}}>{m.trend==="up"?"+":""}{m.change}%</span>}
+            {m.vol && <span className="pulse-vol">{m.vol}</span>}
           </div>
         ))}
       </div>
@@ -1975,11 +2027,31 @@ export default function DraGold(){
                     </button>
                   ))}
                 </div>
-                <div className="srch">
+                <div className="srch" style={{position:"relative"}}>
                   <input className="srch-in" type="text"
-                    placeholder={tcg==="pokemon"?"Search Pokémon (Charizard, Pikachu...)":tcg==="mtg"?"Search Magic (Black Lotus, Lightning Bolt...)":"Search Yu-Gi-Oh! (Blue-Eyes, Dark Magician...)"}
-                    value={q} onChange={e=>setQ(e.target.value)} onKeyDown={e=>e.key==="Enter"&&doSearch()}/>
+                    placeholder="Search any card by name, number or set..."
+                    value={q}
+                    onChange={e=>setQ(e.target.value)}
+                    onFocus={()=>q&&suggestions.length&&setShowSugg(true)}
+                    onBlur={()=>setTimeout(()=>setShowSugg(false),200)}
+                    onKeyDown={e=>e.key==="Enter"&&doSearch()}/>
                   <button className="srch-go" onClick={doSearch}>Search</button>
+                  {showSugg&&suggestions.length>0&&(
+                    <div className="sugg-dd">
+                      {suggestions.map(s=>(
+                        <div key={s.id} className="sugg-row"
+                          onMouseDown={()=>{setQ(s.name);setTimeout(()=>doSearch(),50);setShowSugg(false);}}>
+                          {s.image_url
+                            ? <img src={s.image_url} alt={s.name} className="sugg-img"/>
+                            : <div className="sugg-img" style={{background:"var(--s2)"}}/>}
+                          <div style={{flex:1,minWidth:0}}>
+                            <div className="sugg-name">{s.name}</div>
+                            <div className="sugg-meta">{s.set_name||""}  ·  {s.tcg}</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 {demo&&<div className="demo-bar">Demo mode   live search active when deployed</div>}
                 <div className="mq-wrap"><div className="mq">{TICKER}   {TICKER}</div></div>
