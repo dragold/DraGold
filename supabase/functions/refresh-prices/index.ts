@@ -22,6 +22,11 @@ serve(async (_req) => {
 
   const TCGLOOKUP_KEY = Deno.env.get('TCGLOOKUP_API_KEY')
   const JUSTTCG_KEY = Deno.env.get('JUSTTCG_API_KEY')
+  const POKEMONTCG_KEY = Deno.env.get('POKEMONTCG_API_KEY')
+  // Static USD/EUR rate. Lives in code on purpose — we don't want this Edge Function
+  // taking a runtime dependency on a forex API just to normalize Cardmarket EUR prices.
+  // Bump manually a few times a year if drift becomes meaningful.
+  const EUR_TO_USD = 1.087
 
   let refreshed = 0
   const errors: any[] = []
@@ -44,16 +49,27 @@ serve(async (_req) => {
           return { price: parseFloat(p) || null, raw: r.data }
         }
       })
-      // 2. Pokemon TCG API (free)
+      // 2. Pokemon TCG API (free, 1000/day anon · 20000/day with key)
+      // For DraGold's EU audience we prefer Cardmarket avgSellPrice (EUR, EU market signal)
+      // converted to USD for consistent storage. TCGplayer USD is the secondary fallback.
       chain.push({
         source: 'pokemontcgio',
         fetcher: async () => {
+          const headers: Record<string,string> = {}
+          if (POKEMONTCG_KEY) headers['X-Api-Key'] = POKEMONTCG_KEY
           const r = await loggedFetch(supabase, 'pokemontcgio',
-            `https://api.pokemontcg.io/v2/cards/${card_api_id}`, { timeout: 8000, cardId })
+            `https://api.pokemontcg.io/v2/cards/${card_api_id}`, { timeout: 8000, headers, cardId })
           const c = r.data?.data
-          const p = c?.tcgplayer?.prices?.holofoil?.market ?? c?.tcgplayer?.prices?.normal?.market
-                ?? c?.cardmarket?.prices?.averageSellPrice
-          return { price: p || null, raw: c?.tcgplayer?.prices ?? c?.cardmarket?.prices }
+          const cm = c?.cardmarket?.prices
+          // Cardmarket: prefer averageSellPrice (last 30d avg), then trendPrice, then avg7
+          const eurPrice = cm?.averageSellPrice ?? cm?.trendPrice ?? cm?.avg7 ?? cm?.avg30
+          const tp = c?.tcgplayer?.prices
+          // TCGplayer: best variant available
+          const usdPrice = tp?.holofoil?.market ?? tp?.['1stEditionHolofoil']?.market
+                        ?? tp?.reverseHolofoil?.market ?? tp?.normal?.market
+                        ?? tp?.unlimitedHolofoil?.market
+          const price = eurPrice ? +eurPrice * EUR_TO_USD : (usdPrice || null)
+          return { price, raw: { cm, tp, picked: eurPrice ? 'cardmarket_eur' : 'tcgplayer_usd' } }
         }
       })
       // 3. TCG Price Lookup (universal)

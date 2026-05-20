@@ -26,15 +26,18 @@ Supabase Dashboard → SQL Editor → New query → incolla il contenuto di `mig
 
 | Servizio | Free tier | Quando serve |
 |---|---|---|
-| **TCG Price Lookup** | 10.000 req/mese | Fallback universale prezzi |
-| **JustTCG** | gratis (20 risultati/call) | Pokémon prezzi primari |
+| **Pokémon TCG API** | 1.000/giorno anon · 20.000/giorno con key | Sorgente prezzi PRIMARIA Pokémon (Cardmarket EUR + TCGplayer USD) |
+| **TCG Price Lookup** | 10.000 req/mese | Fallback universale (Pokémon, Magic, YGO, One Piece) |
+| **JustTCG** | gratis (20 risultati/call) | Alternativa Pokémon, One Piece on-demand |
 
+Aggiungi le API key come Edge Function secrets (Supabase Dashboard → Edge Functions → Secrets):
+- `POKEMONTCG_API_KEY` = registra una key gratis su https://dev.pokemontcg.io/ — passa da 1k a 20k chiamate/giorno. **Fortemente raccomandato** appena hai >1000 carte nel catalogo.
+- `TCGLOOKUP_API_KEY` = opzionale, fallback universale
+- `JUSTTCG_API_KEY` = opzionale, alternativa
 
-Aggiungi le API key come Edge Function secrets:
-- `TCGLOOKUP_API_KEY` = `xxx`
-- `JUSTTCG_API_KEY` = `xxx`
+Senza `POKEMONTCG_API_KEY` la funzione gira lo stesso (anon tier 1k/day) ma il limite si raggiunge in fretta. **Registrati subito**: zero costo, basta una email.
 
-Senza queste chiavi le funzioni cadono al fallback successivo (eBay scrape, mock data).
+**Nota su eBay Finding API**: era nel piano originale ma è stata deprecata da eBay nel 2024 a favore di Browse API (richiede OAuth completo, non un semplice App ID). Non vale lo sforzo: Cardmarket `averageSellPrice` via Pokémon TCG API è già il prezzo EU "vero" per Pokémon — la conversione EUR→USD per lo storage avviene dentro `refresh-prices` (vedi `EUR_TO_USD` costante).
 
 ### 3. Deploy delle Edge Functions
 
