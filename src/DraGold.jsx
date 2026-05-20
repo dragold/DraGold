@@ -1138,15 +1138,20 @@ export default function DraGold(){
     const fmv=fmvObj?.fmv||0;
     const paidNum=parseFloat(paid)||0;
     const inferredTcg=card._tcg||tcgType||tcg;
-    const local={id:cid,name:card.name,set:card.set?.name||card.set_name||"",img,lang:inferredTcg==="pokemon"?(card._lang||clang):"x",flag:inferredTcg==="pokemon"?(aLang?.f||""):(TCG_LIST.find(t=>t.id===inferredTcg)?.emoji||"🃏"),tcgType:inferredTcg,condition:selCond,market:fmv,paid:paidNum,spark:mkSpark(fmv||10)};
+    const cardName=card.name;
+    const cardSet=card.set?.name||card.set_name||"";
+    const cardLang=inferredTcg==="pokemon"?(card._lang||clang||"en"):(card._lang||"en");
+    const local={id:cid,name:cardName,set:cardSet,img,lang:cardLang,flag:inferredTcg==="pokemon"?(aLang?.f||""):(TCG_LIST.find(t=>t.id===inferredTcg)?.emoji||"🃏"),tcgType:inferredTcg,condition:selCond,market:fmv,paid:paidNum,spark:mkSpark(fmv||10)};
     await saveCol([...col,local]);
-    // Push a Supabase (best-effort, non-blocking sull'UX)
+    // Persist to Supabase con metadata denormalizzata (no FK dependency)
     if(supabaseReady && user.id){
       try{
-        await supabase.from('collection').upsert({
+        const {error}=await supabase.from('collection').upsert({
           user_id:user.id, card_id:cid, tcg:inferredTcg, card_api_id:cid,
+          card_name:cardName, card_set:cardSet, card_img:img||null, card_lang:cardLang,
           quantity:1, condition:selCond, paid_eur:paidNum, paid_usd:paidNum?+(paidNum/EUR_RATE).toFixed(2):null,
         },{onConflict:'user_id,card_id,condition'});
+        if(error) console.warn('collection upsert error:',error.message);
       }catch(e){console.warn('collection upsert failed',e);}
     }
     setPaid("");setSelCond("NM");setDetail(null);
@@ -1161,12 +1166,22 @@ export default function DraGold(){
   const toggleWatch=async(card,fmvObj,img,tcgType)=>{
     const id=card.id||card.name;
     const cardTcg=card._tcg||tcgType||tcg;
+    const cardName=card.name;
+    const cardSet=card.set?.name||card.set_name||"";
     if(inWatch(id)){
       await saveWatch(watchlist.filter(x=>x.id!==id));
       if(supabaseReady && user?.id) try{await supabase.from('watchlist').delete().eq('user_id',user.id).eq('card_id',id);}catch{}
     } else {
-      await saveWatch([...watchlist,{id,name:card.name,set:card.set?.name||card.set_name||"",img,tcgType:cardTcg,market:fmvObj?.fmv||0,addedAt:Date.now()}]);
-      if(supabaseReady && user?.id) try{await supabase.from('watchlist').upsert({user_id:user.id,card_id:id,tcg:cardTcg},{onConflict:'user_id,card_id'});}catch{}
+      await saveWatch([...watchlist,{id,name:cardName,set:cardSet,img,tcgType:cardTcg,market:fmvObj?.fmv||0,addedAt:Date.now()}]);
+      if(supabaseReady && user?.id){
+        try{
+          const {error}=await supabase.from('watchlist').upsert({
+            user_id:user.id, card_id:id, tcg:cardTcg,
+            card_name:cardName, card_set:cardSet, card_img:img||null,
+          },{onConflict:'user_id,card_id'});
+          if(error) console.warn('watchlist upsert error:',error.message);
+        }catch{}
+      }
     }
   };
   const removeWatch=async id=>{
@@ -1219,25 +1234,30 @@ export default function DraGold(){
   }
 
   // Login → carica vault & watchlist remoti, merge col localStorage.
+  // Usa campi denormalizzati (card_name, card_set, card_img, card_lang) memorizzati
+  // direttamente nella riga collection, fallback al JOIN cards solo se mancano.
   useEffect(()=>{
     if(!supabaseReady || !user?.id) return;
     let cancelled=false;
     (async()=>{
       try{
-        const {data:rows}=await supabase
+        const {data:rows,error}=await supabase
           .from('collection')
-          .select('card_id, tcg, condition, paid_eur, paid_usd, added_at, cards:card_id(name, set_name, image_url, image_url_hi, lang)')
+          .select('card_id, tcg, condition, paid_eur, paid_usd, added_at, card_name, card_set, card_img, card_lang, cards:card_id(name, set_name, image_url, image_url_hi, lang)')
           .eq('user_id',user.id)
           .order('added_at',{ascending:false});
-        if(cancelled||!Array.isArray(rows)) return;
-        if(rows.length===0) return; // niente da remoto → mantiene col attuale (localStorage)
-        // Merge: remoto è la verità per items con stesso id; local extras restano
+        if(cancelled) return;
+        if(error){
+          console.warn('collection load error:',error.message);
+          return;
+        }
+        if(!Array.isArray(rows)||rows.length===0) return; // niente da remoto → mantiene col attuale (localStorage)
         const remote=rows.map(r=>({
           id:r.card_id,
-          name:r.cards?.name||r.card_id,
-          set:r.cards?.set_name||'',
-          img:r.cards?.image_url_hi||r.cards?.image_url||null,
-          lang:r.cards?.lang||'en',
+          name:r.card_name||r.cards?.name||r.card_id,
+          set:r.card_set||r.cards?.set_name||'',
+          img:r.card_img||r.cards?.image_url_hi||r.cards?.image_url||null,
+          lang:r.card_lang||r.cards?.lang||'en',
           flag:r.tcg==='pokemon'?'🇺🇸':TCG_LIST.find(t=>t.id===r.tcg)?.emoji||'🃏',
           tcgType:r.tcg,
           condition:r.condition||'NM',
@@ -1249,6 +1269,29 @@ export default function DraGold(){
         const extras=col.filter(x=>!remoteIds.has(x.id));
         saveCol([...remote,...extras]);
       }catch(e){console.warn('collection load failed',e);}
+    })();
+    // Carica anche watchlist remota
+    (async()=>{
+      try{
+        const {data:wrows,error}=await supabase
+          .from('watchlist')
+          .select('card_id, tcg, card_name, card_set, card_img, added_at')
+          .eq('user_id',user.id)
+          .order('added_at',{ascending:false});
+        if(cancelled||error||!Array.isArray(wrows)||wrows.length===0) return;
+        const remote=wrows.map(r=>({
+          id:r.card_id,
+          name:r.card_name||r.card_id,
+          set:r.card_set||'',
+          img:r.card_img||null,
+          tcgType:r.tcg,
+          market:0,
+          addedAt:r.added_at?new Date(r.added_at).getTime():Date.now(),
+        }));
+        const remoteIds=new Set(remote.map(x=>x.id));
+        const extras=watchlist.filter(x=>!remoteIds.has(x.id));
+        saveWatch([...remote,...extras]);
+      }catch{}
     })();
     return()=>{cancelled=true;};
     // eslint-disable-next-line react-hooks/exhaustive-deps
