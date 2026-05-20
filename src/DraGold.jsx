@@ -1143,14 +1143,28 @@ export default function DraGold(){
     const cardLang=inferredTcg==="pokemon"?(card._lang||clang||"en"):(card._lang||"en");
     const local={id:cid,name:cardName,set:cardSet,img,lang:cardLang,flag:inferredTcg==="pokemon"?(aLang?.f||""):(TCG_LIST.find(t=>t.id===inferredTcg)?.emoji||"🃏"),tcgType:inferredTcg,condition:selCond,market:fmv,paid:paidNum,spark:mkSpark(fmv||10)};
     await saveCol([...col,local]);
-    // Persist to Supabase con metadata denormalizzata (no FK dependency)
+    // Persist to Supabase. Schema reale tabella `collection`:
+    // card_api_id, card_name, set_name, card_number, rarity, image_url, language,
+    // condition, purchase_price, fmv_snapshot, fmv_currency, added_at, ...
     if(supabaseReady && user.id){
       try{
+        const cardNumber=card.number||card.card_number||null;
+        const cardRarity=card.rarity||null;
         const {error}=await supabase.from('collection').upsert({
-          user_id:user.id, card_id:cid, tcg:inferredTcg, card_api_id:cid,
-          card_name:cardName, card_set:cardSet, card_img:img||null, card_lang:cardLang,
-          quantity:1, condition:selCond, paid_eur:paidNum, paid_usd:paidNum?+(paidNum/EUR_RATE).toFixed(2):null,
-        },{onConflict:'user_id,card_id,condition'});
+          user_id:user.id,
+          card_api_id:cid,
+          tcg:inferredTcg,
+          card_name:cardName,
+          set_name:cardSet,
+          card_number:cardNumber,
+          rarity:cardRarity,
+          image_url:img||null,
+          language:cardLang,
+          condition:selCond,
+          purchase_price:paidNum||null,
+          fmv_snapshot:fmv||null,
+          fmv_currency:'EUR',
+        },{onConflict:'user_id,card_api_id'});
         if(error) console.warn('collection upsert error:',error.message);
       }catch(e){console.warn('collection upsert failed',e);}
     }
@@ -1159,7 +1173,7 @@ export default function DraGold(){
   const removeFromCol=async id=>{
     await saveCol(col.filter(x=>x.id!==id));
     if(supabaseReady && user?.id){
-      try{await supabase.from('collection').delete().eq('user_id',user.id).eq('card_id',id);}catch{}
+      try{await supabase.from('collection').delete().eq('user_id',user.id).eq('card_api_id',id);}catch{}
     }
   };
 
@@ -1170,15 +1184,15 @@ export default function DraGold(){
     const cardSet=card.set?.name||card.set_name||"";
     if(inWatch(id)){
       await saveWatch(watchlist.filter(x=>x.id!==id));
-      if(supabaseReady && user?.id) try{await supabase.from('watchlist').delete().eq('user_id',user.id).eq('card_id',id);}catch{}
+      if(supabaseReady && user?.id) try{await supabase.from('watchlist').delete().eq('user_id',user.id).eq('card_api_id',id);}catch{}
     } else {
       await saveWatch([...watchlist,{id,name:cardName,set:cardSet,img,tcgType:cardTcg,market:fmvObj?.fmv||0,addedAt:Date.now()}]);
       if(supabaseReady && user?.id){
         try{
           const {error}=await supabase.from('watchlist').upsert({
-            user_id:user.id, card_id:id, tcg:cardTcg,
-            card_name:cardName, card_set:cardSet, card_img:img||null,
-          },{onConflict:'user_id,card_id'});
+            user_id:user.id, card_api_id:id, tcg:cardTcg,
+            card_name:cardName, set_name:cardSet, image_url:img||null,
+          },{onConflict:'user_id,card_api_id'});
           if(error) console.warn('watchlist upsert error:',error.message);
         }catch{}
       }
@@ -1186,7 +1200,7 @@ export default function DraGold(){
   };
   const removeWatch=async id=>{
     await saveWatch(watchlist.filter(x=>x.id!==id));
-    if(supabaseReady && user?.id) try{await supabase.from('watchlist').delete().eq('user_id',user.id).eq('card_id',id);}catch{}
+    if(supabaseReady && user?.id) try{await supabase.from('watchlist').delete().eq('user_id',user.id).eq('card_api_id',id);}catch{}
   };
 
   // BINDER
@@ -1233,9 +1247,8 @@ export default function DraGold(){
     return null; // caller decides default
   }
 
-  // Login → carica vault & watchlist remoti, merge col localStorage.
-  // Usa campi denormalizzati (card_name, card_set, card_img, card_lang) memorizzati
-  // direttamente nella riga collection, fallback al JOIN cards solo se mancano.
+  // Login → carica vault & watchlist remoti dal DB Supabase usando nomi colonne reali.
+  // Tabella collection: card_api_id, card_name, set_name, image_url, language, purchase_price, fmv_snapshot
   useEffect(()=>{
     if(!supabaseReady || !user?.id) return;
     let cancelled=false;
@@ -1243,47 +1256,46 @@ export default function DraGold(){
       try{
         const {data:rows,error}=await supabase
           .from('collection')
-          .select('card_id, tcg, condition, paid_eur, paid_usd, added_at, card_name, card_set, card_img, card_lang, cards:card_id(name, set_name, image_url, image_url_hi, lang)')
+          .select('card_api_id, tcg, condition, purchase_price, fmv_snapshot, fmv_currency, added_at, card_name, set_name, card_number, rarity, image_url, language')
           .eq('user_id',user.id)
           .order('added_at',{ascending:false});
         if(cancelled) return;
-        if(error){
-          console.warn('collection load error:',error.message);
-          return;
-        }
+        if(error){console.warn('collection load error:',error.message);return;}
         if(!Array.isArray(rows)||rows.length===0) return; // niente da remoto → mantiene col attuale (localStorage)
         const remote=rows.map(r=>({
-          id:r.card_id,
-          name:r.card_name||r.cards?.name||r.card_id,
-          set:r.card_set||r.cards?.set_name||'',
-          img:r.card_img||r.cards?.image_url_hi||r.cards?.image_url||null,
-          lang:r.card_lang||r.cards?.lang||'en',
+          id:r.card_api_id,
+          name:r.card_name||r.card_api_id,
+          set:r.set_name||'',
+          number:r.card_number||'',
+          rarity:r.rarity||'',
+          img:r.image_url||null,
+          lang:r.language||'en',
           flag:r.tcg==='pokemon'?'🇺🇸':TCG_LIST.find(t=>t.id===r.tcg)?.emoji||'🃏',
           tcgType:r.tcg,
           condition:r.condition||'NM',
-          market:0, // sarà popolato dal price refresher useEffect
-          paid:+r.paid_eur||+r.paid_usd||0,
-          spark:mkSpark(10),
+          market:+r.fmv_snapshot||0,
+          paid:+r.purchase_price||0,
+          spark:mkSpark(+r.fmv_snapshot||10),
         }));
         const remoteIds=new Set(remote.map(x=>x.id));
         const extras=col.filter(x=>!remoteIds.has(x.id));
         saveCol([...remote,...extras]);
       }catch(e){console.warn('collection load failed',e);}
     })();
-    // Carica anche watchlist remota
+    // Watchlist: tabella appena creata, schema: card_api_id, card_name, set_name, image_url, language
     (async()=>{
       try{
         const {data:wrows,error}=await supabase
           .from('watchlist')
-          .select('card_id, tcg, card_name, card_set, card_img, added_at')
+          .select('card_api_id, tcg, card_name, set_name, image_url, language, added_at')
           .eq('user_id',user.id)
           .order('added_at',{ascending:false});
         if(cancelled||error||!Array.isArray(wrows)||wrows.length===0) return;
         const remote=wrows.map(r=>({
-          id:r.card_id,
-          name:r.card_name||r.card_id,
-          set:r.card_set||'',
-          img:r.card_img||null,
+          id:r.card_api_id,
+          name:r.card_name||r.card_api_id,
+          set:r.set_name||'',
+          img:r.image_url||null,
           tcgType:r.tcg,
           market:0,
           addedAt:r.added_at?new Date(r.added_at).getTime():Date.now(),
