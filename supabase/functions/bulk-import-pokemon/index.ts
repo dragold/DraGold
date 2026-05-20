@@ -1,14 +1,15 @@
 // DraGold: Bulk import Pokémon cards from TCGdex (multi-language)
-// Run manually (one-shot) or schedule weekly to catch new sets.
-//
 // Strategy:
-//   1. For each language: GET /v2/{lang}/cards → minimal list (id, localId, name, image)
-//   2. Upsert into cards table. Image URL = c.image + "/high.webp"
-//   3. Pokemon TCG API metadata (rarity, set, supertype) is fetched separately only for EN
-//      then propagated via card mapping (universal IDs).
+//   1. GET /v2/{lang}/sets         → list of sets with their id+name
+//   2. For each set: GET /v2/{lang}/sets/{setId} → full card detail (name, image, rarity, localId)
+//   3. Upsert into cards table with set_id, set_name, card_number, rarity all populated.
+//
+// /v2/{lang}/cards minimal endpoint was returning rarity:null and set_name:null. Using
+// the /sets/{setId} endpoint instead gives us complete metadata in roughly the same
+// number of total network bytes.
 //
 // Invocation: POST https://{project}.supabase.co/functions/v1/bulk-import-pokemon
-//   Optional body: { langs: ['en','ja','it'], limit_per_lang: 5000 }
+//   Optional body: { langs: ['en','ja','it'], limit_per_lang: 50000 }
 
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts'
 import { getServiceClient, loggedFetch } from '../_shared/fetch-with-log.ts'
@@ -18,47 +19,76 @@ const ALL_LANGS = ['en','ja','ko','fr','de','it','es','pt','zh-tw','zh-cn','id',
 serve(async (req) => {
   const body = req.method === 'POST' ? await req.json().catch(() => ({})) : {}
   const langs: string[] = body.langs || ALL_LANGS
-  const maxPerLang: number = body.limit_per_lang || 50000  // effectively no limit
+  const maxPerLang: number = body.limit_per_lang || 50000
 
   const supabase = getServiceClient()
   const stats: Record<string, any> = {}
 
   for (const lang of langs) {
     const langStart = Date.now()
-    const res = await loggedFetch(supabase, 'tcgdex',
-      `https://api.tcgdex.net/v2/${lang}/cards`,
-      { timeout: 60000 })
-    if (!res.ok || !Array.isArray(res.data)) {
-      stats[lang] = { error: res.error || 'no data', count: 0 }
+    let imported = 0
+    let setsProcessed = 0
+    let setsFailed = 0
+
+    // 1) Fetch sets list for this language
+    const setsRes = await loggedFetch(supabase, 'tcgdex',
+      `https://api.tcgdex.net/v2/${lang}/sets`,
+      { timeout: 30000 })
+    if (!setsRes.ok || !Array.isArray(setsRes.data)) {
+      stats[lang] = { error: setsRes.error || 'no sets data', count: 0 }
       continue
     }
-    const cards = (res.data as any[]).slice(0, maxPerLang)
-    // Batch insert in chunks of 500
-    let imported = 0
-    for (let i = 0; i < cards.length; i += 500) {
-      const chunk = cards.slice(i, i + 500).map((c) => ({
-        id: `pokemon:tcgdex:${c.id}:${lang}`,
-        tcg: 'pokemon',
-        source: 'tcgdex',
-        source_id: c.id,
-        lang,
-        name: c.name || '',
-        set_id: (c.id || '').split('-')[0] || null,
-        set_name: null,
-        card_number: c.localId || null,
-        rarity: null,
-        supertype: 'Pokémon',
-        image_url: c.image ? `${c.image}/low.webp` : null,
-        image_url_hi: c.image ? `${c.image}/high.webp` : null,
-        metadata: c,
-        updated_at: new Date().toISOString(),
-      }))
-      const { error } = await supabase.from('cards').upsert(chunk, { onConflict: 'id' })
-      if (!error) imported += chunk.length
+    const sets: any[] = setsRes.data
+
+    // 2) For each set, fetch full detail (cards array with full metadata)
+    for (const setMeta of sets) {
+      const setId = setMeta.id
+      const setName = setMeta.name || setMeta.id
+      try {
+        const detRes = await loggedFetch(supabase, 'tcgdex',
+          `https://api.tcgdex.net/v2/${lang}/sets/${setId}`,
+          { timeout: 20000 })
+        if (!detRes.ok) { setsFailed++; continue }
+        const setDetail = detRes.data
+        const cardsArr: any[] = setDetail?.cards || []
+        if (cardsArr.length === 0) { setsProcessed++; continue }
+
+        const rows = cardsArr.slice(0, maxPerLang - imported).map((c) => ({
+          id: `pokemon:tcgdex:${c.id}:${lang}`,
+          tcg: 'pokemon',
+          source: 'tcgdex',
+          source_id: c.id,
+          lang,
+          name: c.name || '',
+          set_id: setId,
+          set_name: setName,
+          card_number: c.localId ? String(c.localId) : null,
+          rarity: c.rarity || null,
+          supertype: 'Pokémon',
+          image_url: c.image ? `${c.image}/low.webp` : null,
+          image_url_hi: c.image ? `${c.image}/high.webp` : null,
+          metadata: { localId: c.localId, setReleaseDate: setMeta.releaseDate },
+          updated_at: new Date().toISOString(),
+        }))
+
+        // Batch into chunks of 500 (Supabase upsert limit comfort)
+        for (let i = 0; i < rows.length; i += 500) {
+          const chunk = rows.slice(i, i + 500)
+          const { error } = await supabase.from('cards').upsert(chunk, { onConflict: 'id' })
+          if (!error) imported += chunk.length
+        }
+        setsProcessed++
+        if (imported >= maxPerLang) break
+      } catch (e) {
+        setsFailed++
+      }
     }
+
     stats[lang] = {
-      total_from_api: cards.length,
-      imported,
+      sets_total: sets.length,
+      sets_processed: setsProcessed,
+      sets_failed: setsFailed,
+      cards_imported: imported,
       duration_ms: Date.now() - langStart,
     }
   }
