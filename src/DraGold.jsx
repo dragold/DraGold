@@ -216,6 +216,43 @@ function Spark({data,w=100,h=30,pos}){
   );
 }
 
+// HoloCard: interactive card with 3D tilt + holographic shine that follows the cursor.
+// Stile ispirato a Scrydex / Collectr — la carta si "anima" sotto il mouse.
+// Usa CSS variables (--mx, --my, --rx, --ry) settate via mouseMove e lette dal CSS.
+function HoloCard({src,alt,onClick,big=false,small=false,bgFallback=true}){
+  const ref=useRef(null);
+  const onMove=useCallback((e)=>{
+    const el=ref.current; if(!el) return;
+    const r=el.getBoundingClientRect();
+    const x=Math.max(0,Math.min(100,((e.clientX-r.left)/r.width)*100));
+    const y=Math.max(0,Math.min(100,((e.clientY-r.top)/r.height)*100));
+    el.style.setProperty('--mx',x+'%');
+    el.style.setProperty('--my',y+'%');
+    el.style.setProperty('--rx',(((y-50)/50)*-9)+'deg');
+    el.style.setProperty('--ry',(((x-50)/50)*9)+'deg');
+    el.style.setProperty('--act','1');
+  },[]);
+  const onLeave=useCallback(()=>{
+    const el=ref.current; if(!el) return;
+    el.style.setProperty('--rx','0deg');
+    el.style.setProperty('--ry','0deg');
+    el.style.setProperty('--mx','50%');
+    el.style.setProperty('--my','50%');
+    el.style.setProperty('--act','0');
+  },[]);
+  return(
+    <div ref={ref} className={`holocard${big?' big':''}${small?' sm':''}`}
+         onMouseMove={onMove} onMouseLeave={onLeave} onClick={onClick}>
+      <div className="holocard-tilt">
+        {src?<img src={src} alt={alt||''} loading="lazy"/>:(bgFallback?<div className="holocard-ph"/>:null)}
+        <div className="holocard-shine"/>
+        <div className="holocard-holo"/>
+        <div className="holocard-edge"/>
+      </div>
+    </div>
+  );
+}
+
 function LineChart({data,w=300,h=80,color="#34d399",id="lc"}){
   if(!data||data.length<2) return null;
   const max=Math.max(...data),min=Math.min(...data),rng=max-min||1;
@@ -429,6 +466,8 @@ img{display:block;}
   pointer-events:none;opacity:0;transition:opacity .4s;mix-blend-mode:color-dodge;}
 .feat:hover .feat-holo{opacity:1;animation:hs 4s linear infinite;}
 @keyframes hs{to{transform:rotate(360deg)}}
+.feat-img-wrap{padding:24px;background:var(--s1);display:flex;align-items:center;justify-content:center;min-height:180px;}
+.feat-img-wrap .holocard{max-width:200px;}
 .feat-body{padding:18px;display:flex;flex-direction:column;gap:10px;}
 .feat-lbl{font-size:9px;color:var(--amber);font-family:'Space Mono',monospace;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;}
 .feat-name{font-family:'Fraunces',sans-serif;font-size:22px;font-weight:800;letter-spacing:-.5px;line-height:1.1;}
@@ -767,6 +806,33 @@ img{display:block;}
 /* OVERLAY */
 .ov{position:fixed;inset:0;background:rgba(1,1,5,.88);display:flex;align-items:flex-end;justify-content:center;z-index:300;padding:0;animation:fi .18s ease;}
 
+/* HOLOCARD — interactive 3D tilt + holographic shine (Scrydex/Collectr-style) */
+.holocard{display:block;width:100%;perspective:1200px;cursor:pointer;--mx:50%;--my:50%;--rx:0deg;--ry:0deg;--act:0;}
+.holocard.big{max-width:280px;margin:0 auto;}
+.holocard.sm{max-width:170px;}
+.holocard-tilt{position:relative;border-radius:14px;overflow:hidden;
+  transform:rotateX(var(--rx)) rotateY(var(--ry));
+  transition:transform .18s cubic-bezier(.2,.7,.3,1);
+  transform-style:preserve-3d;
+  box-shadow:0 14px 36px rgba(0,0,0,.55), 0 0 0 1px rgba(251,191,36,.12);}
+.holocard:hover .holocard-tilt{box-shadow:0 22px 50px rgba(0,0,0,.7), 0 0 0 1px rgba(251,191,36,.28), 0 0 60px rgba(251,191,36,.18);}
+.holocard-tilt img{display:block;width:100%;height:auto;border-radius:14px;}
+.holocard-ph{width:100%;aspect-ratio:5/7;background:linear-gradient(135deg,var(--s1),var(--s2));border-radius:14px;}
+.holocard-shine{position:absolute;inset:0;pointer-events:none;border-radius:14px;
+  background:radial-gradient(circle at var(--mx) var(--my),rgba(255,255,255,.45) 0%,rgba(255,255,255,.12) 18%,transparent 38%);
+  mix-blend-mode:overlay;opacity:calc(var(--act) * 1);transition:opacity .22s;}
+.holocard-holo{position:absolute;inset:0;pointer-events:none;border-radius:14px;
+  background:conic-gradient(from 0deg at var(--mx) var(--my),
+    rgba(255,0,180,.22),rgba(255,180,0,.22),rgba(180,255,0,.22),
+    rgba(0,255,180,.22),rgba(0,140,255,.22),rgba(180,0,255,.22),rgba(255,0,180,.22));
+  mix-blend-mode:color-dodge;opacity:calc(var(--act) * .8);transition:opacity .25s;}
+.holocard-edge{position:absolute;inset:0;pointer-events:none;border-radius:14px;
+  background:linear-gradient(135deg,
+    rgba(255,255,255,calc(var(--act) * .12)) 0%,
+    transparent 30%, transparent 70%,
+    rgba(255,255,255,calc(var(--act) * .08)) 100%);
+  border:1px solid rgba(255,255,255,calc(var(--act) * .08));}
+
 /* DETAIL MODAL — bottom sheet on mobile */
 .dmod{background:linear-gradient(155deg,var(--s2) 0%,var(--s1) 100%);border:1px solid rgba(255,255,255,.1);
   border-radius:20px 20px 0 0;width:100%;max-width:100%;overflow:hidden;
@@ -778,6 +844,7 @@ img{display:block;}
 .dmod-img{width:220px;flex-shrink:0;position:relative;overflow:hidden;border-radius:14px;cursor:zoom-in;}
 .dmod-img img{width:100%;border-radius:14px;box-shadow:0 16px 44px rgba(0,0,0,.7),0 0 0 1px rgba(251,191,36,.15);transition:transform .2s;}
 .dmod-img:hover img{transform:scale(1.04);}
+.dmod-img-wrap{width:220px;flex-shrink:0;}
 .comp-prices{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:10px;}
 .comp-i{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:10px;}
 .comp-lbl{font-family:'Space Mono',monospace;font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px;}
@@ -983,6 +1050,7 @@ img{display:block;}
   .dmod{border-radius:22px 22px 0 0;max-width:560px;}
   .dmod-top{padding:20px;}
   .dmod-img{width:150px;}
+  .dmod-img-wrap{width:150px;}
   .dmod-name{font-size:19px;}
   .fmv-val{font-size:28px;}
   .smod{border-radius:20px 20px 0 0;max-width:440px;}
@@ -1586,9 +1654,8 @@ export default function DraGold(){
     const netD=fmvObj?(cur==="EUR"?`€${fmvObj.netEUR}`:`$${fmvObj.net}`):null;
     return(
       <div className="feat">
-        <div className="feat-img" onClick={()=>setDetail(card)}>
-          <div className="feat-holo"/>
-          {img?<img src={img} alt={card.name}/>:<div style={{width:160,height:220,background:"var(--s1)",borderRadius:10}}/>}
+        <div className="feat-img-wrap">
+          <HoloCard src={img} alt={card.name} big onClick={()=>setDetail(card)}/>
         </div>
         <div className="feat-body">
           <div className="feat-lbl">Top result   {activeTCG.emoji} {activeTCG.label}</div>
@@ -1671,7 +1738,9 @@ export default function DraGold(){
           <div className="dmod-handle"/>
           <div className="dmod-top">
             <button className="dmod-x" onClick={()=>setDetail(null)}>✕</button>
-            <div className="dmod-img" onClick={()=>img&&setZoomImg(img)}><div className="dmod-holo"/><img src={img} alt={card.name}/></div>
+            <div className="dmod-img-wrap">
+              <HoloCard src={img} alt={card.name} big onClick={()=>img&&setZoomImg(img)}/>
+            </div>
             <div className="dmod-info">
               <div>
                 <div className="dmod-name gt">{card.name}</div>
