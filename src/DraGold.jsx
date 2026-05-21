@@ -1685,6 +1685,11 @@ export default function DraGold(){
       // onepiece or unknown — use generic supabase price path
       const fmvObj=card._supabasePrice!=null?calcFMV(card):(card._justtcgPrice?{fmv:+card._justtcgPrice,fmvEUR:+(card._justtcgPrice*EUR_RATE).toFixed(2),net:+(card._justtcgPrice*0.87).toFixed(2),netEUR:+(card._justtcgPrice*EUR_RATE*0.87).toFixed(2)}:null);
       const img=card.images?.large||card.images?.small;
+      // if we have a price from Supabase (card_prices_latest), use it
+if (card._supabasePrice && card._supabasePrice > 0) {
+  card.price = card._supabasePrice;
+  card.currency = 'EUR';
+}
       return{fmvObj,img,smallImg:card.images?.small||img,setName:card.set_name||card.set?.name,rarity:card.rarity,type2:card.supertype||'Card',buyLink:ebayURL(card.name,"",country,null,cardTcg||'pokemon'),sellLink:ebaySellURL(card.name,"",country)};
     }
   };
