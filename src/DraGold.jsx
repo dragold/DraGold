@@ -1199,18 +1199,61 @@ export default function DraGold(){
 
   // Persistenza Supabase per portfolio (vault). Quando l'utente è loggato la fonte
   // primaria è la tabella `collection`; localStorage resta come cache locale.
-  const addToCol=async(card,fmvObj,img,tcgType)=>{
-    if(!user){setAuthPending({card,fmvObj,img,tcgType});setAuthMode("register");return;}
-    const cid=card.id||card.name;
-    if(inCol(cid)) return;
-    const fmv=fmvObj?.fmv||0;
-    const paidNum=parseFloat(paid)||0;
-    const inferredTcg=card._tcg||tcgType||tcg;
-    const cardName=card.name;
-    const cardSet=card.set?.name||card.set_name||"";
-    const cardLang=inferredTcg==="pokemon"?(card._lang||clang||"en"):(card._lang||"en");
-    const local={id:cid,name:cardName,set:cardSet,img,lang:cardLang,flag:inferredTcg==="pokemon"?(aLang?.f||""):(TCG_LIST.find(t=>t.id===inferredTcg)?.emoji||"🃏"),tcgType:inferredTcg,condition:selCond,market:fmv,paid:paidNum,spark:mkSpark(fmv||10)};
-    await saveCol([...col,local]);
+  const addToCol = async (card, condition = 'NM') => {
+  if (!user) {
+    alert('Please log in to add cards to your collection');
+    return;
+  }
+  const { data: existing, error: checkErr } = await supabase
+    .from('collection')
+    .select('id')
+    .eq('user_id', user.id)
+    .eq('card_api_id', card.id)
+    .maybeSingle();
+  if (existing) {
+    // already in collection, do nothing or increment quantity later
+    return;
+  }
+  const insert = {
+    user_id: user.id,
+    card_api_id: card.id,
+    tcg: card.tcg || 'pokemon',
+    card_name: card.name,
+    set_name: card.set,
+    card_number: card.number,
+    rarity: card.rarity,
+    image_url: card.image,
+    language: card.lang || 'en',
+    condition: condition,
+    fmv_snapshot: card.price,
+    purchase_price: null,
+    purchase_date: null,
+    notes: null,
+    added_at: new Date().toISOString()
+  };
+  const { error } = await supabase.from('collection').insert(insert);
+  if (error) {
+    console.error('addToCol error:', error);
+    alert('Failed to add card to collection');
+  } else {
+    // refresh vault after add
+   const loadUserCollection = async () => {
+  if (!user) {
+    setColCards([]);
+    return;
+  }
+  const { data, error } = await supabase
+    .from('collection')
+    .select('*')
+    .eq('user_id', user.id);
+  if (error) {
+    console.error('loadUserCollection error:', error);
+    setColCards([]);
+  } else {
+    setColCards(data || []);
+  }
+};
+};
     // Persist to Supabase. Schema reale tabella `collection`:
     // card_api_id, card_name, set_name, card_number, rarity, image_url, language,
     // condition, purchase_price, fmv_snapshot, fmv_currency, added_at, ...
