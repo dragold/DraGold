@@ -43,9 +43,10 @@ const PLANS=[
 
 // ─── TCG / BINDER ────────────────────────────────────────────────────────────
 const TCG_LIST=[
-  {id:"pokemon",label:"Pokémon TCG",         emoji:"🔴",color:"#f87171"},
-  {id:"mtg",    label:"Magic: The Gathering", emoji:"🟦",color:"#60a5fa"},
-  {id:"ygo",    label:"Yu-Gi-Oh!",            emoji:"⭐",color:"#fbbf24"},
+  {id:"pokemon", label:"Pokémon TCG",         emoji:"🔴",color:"#f87171"},
+  {id:"mtg",     label:"Magic: The Gathering", emoji:"🟦",color:"#60a5fa"},
+  {id:"ygo",     label:"Yu-Gi-Oh!",            emoji:"⭐",color:"#fbbf24"},
+  {id:"op",      label:"One Piece TCG",        emoji:"⚓",color:"#f97316"},
 ];
 const BINDER_TYPES=[
   {id:"9p", name:"9-Pocket (3x3)",   cols:3,rows:3,slots:9,  desc:"Ultra Pro / Dragon Shield"},
@@ -1593,10 +1594,23 @@ export default function DraGold(){
     // 2) LIVE APIs IN PARALLELO — non più gated dal TCG selector. Mergiamo tutto e mostriamo cross-TCG.
     const liveResults=[];
     const live=[
-      // Pokemon TCG API
-      fetch(`https://api.pokemontcg.io/v2/cards?q=${encodeURIComponent(`name:"${query}"`)}&pageSize=30&orderBy=-set.releaseDate`,{signal:AbortSignal.timeout(5500)})
+      // Pokemon TCG API — wildcard search, più risultati, aggiunge varianti lingue
+      fetch(`https://api.pokemontcg.io/v2/cards?q=${encodeURIComponent(`name:*${query}*`)}&pageSize=100&orderBy=-set.releaseDate`,{signal:AbortSignal.timeout(6000)})
         .then(r=>r.ok?r.json():null).then(d=>{
-          if(d?.data?.length) liveResults.push(...d.data.map(c=>({...c,_tcg:'pokemon'})));
+          if(!d?.data?.length) return;
+          // Risultati EN
+          liveResults.push(...d.data.map(c=>({...c,_tcg:'pokemon',_lang:'en'})));
+          // Varianti lingue: top 12 carte uniche × 6 lingue
+          const _varLangs=[
+            {c:'ja'},{c:'ko'},{c:'fr'},{c:'de'},{c:'it'},{c:'pt'},
+          ];
+          const seen=new Set();const uniquePok=[];
+          for(const c of d.data){if(!seen.has(c.name)&&uniquePok.length<12){seen.add(c.name);uniquePok.push(c);}}
+          for(const uc of uniquePok){
+            for(const vl of _varLangs){
+              liveResults.push({...uc,id:`${uc.id}_${vl.c}`,_tcg:'pokemon',_lang:vl.c,_isVariant:true});
+            }
+          }
         }).catch(()=>{}),
       // Scryfall MTG
       fetch(`https://api.scryfall.com/cards/search?q=${encodeURIComponent(query)}&unique=cards&order=released`,{signal:AbortSignal.timeout(5500)})
@@ -1608,23 +1622,71 @@ export default function DraGold(){
         .then(r=>r.ok?r.json():null).then(d=>{
           if(d?.data?.length) liveResults.push(...d.data.slice(0,30).map(c=>({...c,_tcg:'ygo'})));
         }).catch(()=>{}),
+      // One Piece TCG — API libera, nessuna chiave richiesta
+      (async()=>{
+        try{
+          // Prova 1: optcgdb
+          const r1=await fetch(`https://api.optcgdb.com/cards?name=${encodeURIComponent(query)}&limit=30`,{signal:AbortSignal.timeout(5000)});
+          if(r1.ok){
+            const d1=await r1.json();
+            const cards1=Array.isArray(d1)?d1:(d1?.data||d1?.cards||[]);
+            if(cards1.length){
+              liveResults.push(...cards1.slice(0,30).map(c=>({
+                id:c.id||c.card_id||`op_${c.name}_${Math.random()}`,
+                name:c.name||c.card_name||query,
+                number:c.number||c.card_number||"",
+                rarity:c.rarity||"",
+                supertype:"Character",
+                set:{id:c.set||c.set_id||"",name:c.set_name||c.set||"One Piece TCG"},
+                images:{small:c.image_url||c.image||c.img||"",large:c.image_url||c.image||c.img||""},
+                _tcg:'onepiece',
+              })));
+              return;
+            }
+          }
+        }catch{}
+        try{
+          // Prova 2: op-tcg-api alternativa
+          const r2=await fetch(`https://op-tcg-api.onrender.com/api/cards?name=${encodeURIComponent(query)}`,{signal:AbortSignal.timeout(5000)});
+          if(r2.ok){
+            const d2=await r2.json();
+            const cards2=Array.isArray(d2)?d2:(d2?.data||d2?.cards||[]);
+            if(cards2.length){
+              liveResults.push(...cards2.slice(0,30).map(c=>({
+                id:c.id||`op2_${c.name}_${Math.random()}`,
+                name:c.name||query,
+                number:c.number||"",
+                rarity:c.rarity||"",
+                supertype:"Character",
+                set:{id:c.set||"",name:c.set_name||c.set||"One Piece TCG"},
+                images:{small:c.image||c.image_url||"",large:c.image||c.image_url||""},
+                _tcg:'onepiece',
+              })));
+              return;
+            }
+          }
+        }catch{}
+        // Prova 3: JustTCG se chiave disponibile
+        const JUSTTCG_KEY=import.meta.env.VITE_JUSTTCG_API_KEY;
+        if(JUSTTCG_KEY){
+          try{
+            const r3=await fetch(`https://api.justtcg.com/v1/cards?q=${encodeURIComponent(query)}&game=one-piece&limit=20`,
+              {signal:AbortSignal.timeout(6000),headers:{'X-API-Key':JUSTTCG_KEY}});
+            if(r3.ok){
+              const d3=await r3.json();
+              if(d3?.data?.length){
+                liveResults.push(...d3.data.map(c=>({
+                  id:c.id||c.tcgplayerId,name:c.name,number:c.number||"",rarity:c.rarity||"",
+                  supertype:"Character",set:{id:c.set?.id,name:c.set?.name||""},
+                  images:{small:c.image||c.imageUrl,large:c.image||c.imageUrl},
+                  _justtcgPrice:c.variants?.[0]?.price,_tcg:'onepiece',
+                })));
+              }
+            }
+          }catch{}
+        }
+      })(),
     ];
-    // One Piece on-demand via JustTCG only if key present
-    const JUSTTCG_KEY=import.meta.env.VITE_JUSTTCG_API_KEY;
-    if(JUSTTCG_KEY){
-      live.push(
-        fetch(`https://api.justtcg.com/v1/cards?q=${encodeURIComponent(query)}&game=one-piece&limit=20`,
-          {signal:AbortSignal.timeout(6000),headers:{'X-API-Key':JUSTTCG_KEY}})
-          .then(r=>r.ok?r.json():null).then(d=>{
-            if(d?.data?.length) liveResults.push(...d.data.map(c=>({
-              id:c.id||c.tcgplayerId, name:c.name, number:c.number||"", rarity:c.rarity||"",
-              supertype:"Character", set:{id:c.set?.id,name:c.set?.name||""},
-              images:{small:c.image||c.imageUrl,large:c.image||c.imageUrl},
-              _justtcgPrice:c.variants?.[0]?.price, _tcg:'onepiece',
-            })));
-          }).catch(()=>{})
-      );
-    }
     await Promise.all(live);
 
     if(liveResults.length>0){
@@ -1697,8 +1759,14 @@ export default function DraGold(){
     const cardTcg=card._tcg||tcg;
     if(cardTcg==="pokemon"){
       const fmvObj=calcFMV(card);
+      // Language-aware eBay routing: JP→ebay.co.jp, IT→ebay.it, FR→ebay.fr, etc.
+      const cardLang=card._lang||"en";
+      const _langCountry={ja:"JP",ko:"US",fr:"FR",de:"DE",it:"IT",pt:"ES",es:"ES"};
+      const _langTerms={ja:"japanese",ko:"korean",fr:"français",de:"deutsch",it:"italiano",pt:"português",es:"español"};
+      const buyCountry=(cardLang!=="en"&&_langCountry[cardLang])?_langCountry[cardLang]:country;
+      const langQ=(cardLang!=="en"&&_langTerms[cardLang])?`${card.name} ${_langTerms[cardLang]}`:card.name;
       return{fmvObj,img:card.images?.large||card.images?.small,smallImg:card.images?.small,setName:card.set?.name,rarity:card.rarity,type2:card.supertype,
-        buyLink:ebayURL(card.name,card.set?.name,country,null,"pokemon"),
+        buyLink:ebayURL(langQ,card.set?.name,buyCountry,null,"pokemon"),
         sellLink:ebaySellURL(card.name,card.set?.name,country),
         tcgPrice:fmvObj?.tcg};
     }else if(cardTcg==="mtg"){
@@ -1734,7 +1802,7 @@ export default function DraGold(){
           <HoloCard src={img} alt={card.name} big onClick={()=>setDetail(card)}/>
         </div>
         <div className="feat-body">
-          <div className="feat-lbl">Risultato principale   {cardTcgF==="pokemon"?"🔴 Pokémon":cardTcgF==="mtg"?"🟦 Magic":"⭐ Yu-Gi-Oh!"}</div>
+          <div className="feat-lbl">Risultato principale   {cardTcgF==="pokemon"?"🔴 Pokémon":cardTcgF==="mtg"?"🟦 Magic":cardTcgF==="ygo"?"⭐ Yu-Gi-Oh!":"⚓ One Piece"}</div>
           <div className="feat-name gt-gold">{card.name}{langSuffix}</div>
           <div className="feat-set">{setName}{card.number?` #${card.number}`:""}</div>
           <div className="feat-badges">
@@ -2850,75 +2918,4 @@ export default function DraGold(){
                       <div className="alert-name">{a.card_api_id||a.card_id}</div>
                       <div className="alert-target">
                         {a.direction==="below"?"▼":"▲"} Target: {a.target_eur!=null?`€${a.target_eur}`:"—"}
-                        {a.email&&<span style={{color:"var(--muted)",marginLeft:8}}>→ {a.email}</span>}
-                      </div>
-                      {dateStr&&<div style={{fontSize:9,color:"var(--dim)",fontFamily:"'Space Mono',monospace",marginTop:2}}>Creato {dateStr}</div>}
-                    </div>
-                    <span className={`alert-status ${isTriggered?"as-triggered":"as-active"}`}>
-                      {isTriggered?"✓ Triggered":isActive?"Attivo":"Inattivo"}
-                    </span>
-                    <button className="btn-rm" title="Elimina alert" onClick={async()=>{
-                      if(supabaseReady&&user?.id) try{await supabase.from('alerts').delete().eq('id',a.id);}catch{}
-                      setAlerts(prev=>prev.filter(x=>x.id!==a.id));
-                    }}>✕</button>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* DONATION */}
-      <div className="donate-section">
-        <div className="donate-inner">
-          <div className="donate-left">
-            <div className="donate-emoji">☕</div>
-            <div>
-              <div className="donate-title gt">Support DraGold</div>
-              <div className="donate-sub">Built by one person, free for everyone. If DraGold saves you money on your collection, consider buying me a coffee. Keeps the servers running and new features coming.</div>
-            </div>
-          </div>
-          <div style={{display:"flex",flexDirection:"column",alignItems:"stretch",gap:8,flexShrink:0}}>
-            <a href="https://buymeacoffee.com/dragold" target="_blank" rel="noopener noreferrer" className="donate-btn">
-              ☕ Buy me a coffee
-            </a>
-            <div className="donate-note">via BuyMeACoffee   No account needed</div>
-          </div>
-        </div>
-      </div>
-
-      <footer className="footer">
-        <span>© 2026 DraGold</span>
-        <span>Real prices. No guesses.</span>
-        <a href="https://buymeacoffee.com/dragold" target="_blank" rel="noopener noreferrer" style={{color:"var(--amber)",fontWeight:700}}>Support ☕</a>
-      </footer>
-
-      {/* MODALS */}
-      {zoomImg    &&<div className="img-zoom-ov" onClick={()=>setZoomImg(null)}><img src={zoomImg} alt="zoom"/></div>}
-      {article    &&<ArticleReader post={article}/>}
-      {authMode   &&<AuthModal/>}
-      {detail     &&<DetailModal card={detail}/>}
-      {alertCard  &&<AlertModal card={alertCard}/>}
-      {plansOpen  &&<PlansModal/>}
-      {pickingSlot&&(
-        <div className="smod-ov" onClick={e=>e.target===e.currentTarget&&setPickingSlot(null)}>
-          <div className="picker-modal">
-            <div className="smod-handle"/>
-            <div className="picker-title">Choose from your vault</div>
-            {col.length===0?<div className="picker-empty">Your vault is empty. Add cards from Explore first.</div>
-              :<div className="picker-list">
-                {col.map(c=>(
-                  <div key={c.id} className="picker-item" onClick={()=>placeCard(c.id)}>
-                    {c.img&&<img src={c.img} alt={c.name}/>}
-                    <div><div className="pi-n">{c.name}</div><div className="pi-s">{c.set}</div><div className="pi-p">{disp(c.market)}</div></div>
-                  </div>
-                ))}
-              </div>
-            }
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
+                        {a.email&&<span style={{colo
