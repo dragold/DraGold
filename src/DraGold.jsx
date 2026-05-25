@@ -1200,6 +1200,7 @@ export default function DraGold(){
   const [article,setArticle]     = useState(null);
   const [plansOpen,setPlansOpen] = useState(false);
   const [colTab,setColTab]       = useState("vault");
+  const [vaultRefreshing,setVaultRefreshing] = useState(false);
   const [portRange,setPortRange] = useState("30d");
   const [detailPhRange,setDetailPhRange] = useState("7d");
   const [binders,setBinders]     = useState([]);
@@ -1471,6 +1472,40 @@ export default function DraGold(){
     return()=>{cancelled=true;};
     // eslint-disable-next-line react-hooks/exhaustive-deps
   },[col.length, user?.id]);
+
+  // Vault price refresh: chiama edge function refresh-prices e ri-fetch card_prices_latest
+  const refreshVaultPrices = async () => {
+    if(!supabaseReady||!user?.id||vaultRefreshing) return;
+    setVaultRefreshing(true);
+    try{
+      // Trigger edge function (aggiorna card_prices_latest per tutte le carte in collection+alerts)
+      await supabase.functions.invoke('refresh-prices');
+      // Ri-fetch prezzi aggiornati
+      const ids=col.map(x=>x.id).filter(id=>typeof id==='string'&&id.length>0);
+      if(ids.length>0){
+        const {data}=await supabase.from('card_prices_latest').select('card_id, price_market').in('card_id',ids);
+        if(Array.isArray(data)&&data.length){
+          const pm=new Map(data.map(r=>[r.card_id,+r.price_market]));
+          const updated=col.map(it=>{
+            const lm=pm.get(it.id);
+            if(!lm||isNaN(lm)) return it;
+            return{...it,market:lm};
+          });
+          saveCol(updated);
+        }
+      }
+      localStorage.setItem('dg_lastPriceRefresh',Date.now().toString());
+    }catch(e){console.warn('Vault price refresh error',e);}
+    finally{setVaultRefreshing(false);}
+  };
+
+  // Auto-refresh prezzi vault: una volta al giorno quando l'utente apre il Vault
+  useEffect(()=>{
+    if(colTab!=='vault'||!user?.id||!supabaseReady||col.length===0) return;
+    const last=parseInt(localStorage.getItem('dg_lastPriceRefresh')||'0');
+    if(Date.now()-last>24*60*60*1000) refreshVaultPrices();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[colTab,user?.id]);
 
   // Alerts loader: fetch active alerts for logged-in user
   useEffect(()=>{
@@ -1792,7 +1827,7 @@ export default function DraGold(){
     const cardLangF=card._lang||clang||"en";
     const langInfoF=CARD_LANGS.find(x=>x.c===cardLangF);
     const langSuffix=cardTcgF==="pokemon"&&cardLangF!=="en"?` [${cardLangF.toUpperCase()}]`:"";
-    const fmvD=fmvObj?(cur==="EUR"?`€${fmvObj.fmvEUR}`:`$${fmvObj.fmv}`):"Price unavailable";
+    const fmvD=fmvObj?(cur==="EUR"?`€${fmvObj.fmvEUR}`:`$${fmvObj.fmv}`):"Prezzo non disp.";
     const netD=fmvObj?(cur==="EUR"?`€${fmvObj.netEUR}`:`$${fmvObj.net}`):null;
     return(
       <div className="feat">
@@ -1819,7 +1854,7 @@ export default function DraGold(){
               <span className="pref-i">eBay <span>{tcgPrice?`$${(tcgPrice*1.06).toFixed(2)}`:`$${(fmvObj.fmv*1.06).toFixed(2)}`}</span></span>
             </div>
           </>):(
-            <div className="feat-price-ref" style={{color:"var(--dim)",fontStyle:"italic",marginBottom:8}}>No price data yet</div>
+            <div className="feat-price-ref" style={{color:"var(--dim)",fontStyle:"italic",marginBottom:8}}>Prezzo temporaneamente non disponibile</div>
           )}
           <div className="feat-actions">
             <a href={buyLink} target="_blank" rel="noopener noreferrer" className="btn-buy">
@@ -1866,7 +1901,7 @@ export default function DraGold(){
             <div className="kprice">{fmvD}</div>
             <div className="kprice-lbl">FMV</div>
             <div className="knet">Net {netD}</div>
-          </>):<div className="kno-price">Price unavailable</div>}
+          </>):<div className="kno-price">Prezzo non disp.</div>}
           <div className="kact">
             <a href={buyLink} target="_blank" rel="noopener noreferrer" className="btn-es">🛒 eBay</a>
             <button className={`btn-add-k${already?" in":""}`} onClick={()=>already?null:setDetail(card)}>{already?"✓":"+"}</button>
@@ -1881,7 +1916,7 @@ export default function DraGold(){
     const{fmvObj,img,setName,rarity,type2,buyLink,sellLink,tcgPrice}=getCardData(card);
     const already=inCol(card.id||card.name);const watching=inWatch(card.id||card.name);
     const psa=fmvObj?psaEst(fmvObj.fmv):null;
-    const fmvD=fmvObj?(cur==="EUR"?`€${fmvObj.fmvEUR}`:`$${fmvObj.fmv}`):"Price unavailable";
+    const fmvD=fmvObj?(cur==="EUR"?`€${fmvObj.fmvEUR}`:`$${fmvObj.fmv}`):"Prezzo non disp.";
     const netD=fmvObj?(cur==="EUR"?`€${fmvObj.netEUR}`:`$${fmvObj.net}`):null;
     const psaD=(u,e)=>cur==="EUR"?`€${e}`:`$${u}`;
     const priceHist=useMemo(()=>fmvObj?mkPriceHist(fmvObj.fmv,30):null,[fmvObj?.fmv]);
@@ -2919,13 +2954,21 @@ export default function DraGold(){
                   <div className="roi-lbl">ROI after fees</div>
                 </div>
               </div>
+              {/* Refresh button */}
+              {user&&<div style={{display:"flex",justifyContent:"flex-end",marginBottom:8,gap:8,alignItems:"center"}}>
+                {vaultRefreshing&&<span style={{fontSize:11,color:"var(--muted)"}}>Aggiornamento prezzi...</span>}
+                <button className="btn-ghost" onClick={refreshVaultPrices} disabled={vaultRefreshing} style={{fontSize:11,padding:"4px 10px",opacity:vaultRefreshing?0.6:1}}>
+                  🔄 Aggiorna prezzi
+                </button>
+              </div>}
               {/* Vault grid */}
               <div className="vault-grid">
                 {col.map((item,i)=>{
-                  const profit=(item.market*0.87)-item.paid;const pos=profit>=0;
-                  const priceD=cur==="EUR"?`€${(item.market*EUR_RATE).toFixed(2)}`:`$${item.market.toFixed(2)}`;
+                  const mkt=item.market||0;
+                  const profit=(mkt*0.87)-item.paid;const pos=profit>=0;
+                  const priceD=mkt?(cur==="EUR"?`€${(mkt*EUR_RATE).toFixed(2)}`:`$${mkt.toFixed(2)}`):"—";
                   const paidD=item.paid>0?(cur==="EUR"?`€${(item.paid*EUR_RATE).toFixed(2)}`:`$${item.paid.toFixed(2)}`):null;
-                  const pnlD=item.paid>0?(cur==="EUR"?`€${Math.abs(profit*EUR_RATE).toFixed(2)}`:`$${Math.abs(profit).toFixed(2)}`):null;
+                  const pnlD=(item.paid>0&&mkt>0)?(cur==="EUR"?`€${Math.abs(profit*EUR_RATE).toFixed(2)}`:`$${Math.abs(profit).toFixed(2)}`):null;
                   const langInfo=item.tcgType==="pokemon"?CARD_LANGS.find(x=>x.c===item.lang):null;
                   return(
                     <div key={item.id} className="vcard" onClick={()=>setDetail({
@@ -2969,7 +3012,7 @@ export default function DraGold(){
                     <div className="wi-info">
                       <div className="wi-name">{item.name}</div>
                       <div className="wi-set">{item.set}   {item.tcgType?.toUpperCase()}</div>
-                      <div className="wi-price">{disp(item.market)||"Price unavailable"}</div>
+                      <div className="wi-price">{item.market?disp(item.market):"Prezzo non disp."}</div>
                       <div className="wi-alert">🔔 Tap to set a price alert</div>
                     </div>
                     <button className="btn-rm" style={{color:"var(--pink)"}} onClick={e=>{e.stopPropagation();removeWatch(item.id);}}>♥</button>
@@ -3089,4 +3132,3 @@ export default function DraGold(){
     </div>
   );
 }
-                                                                
