@@ -1235,14 +1235,12 @@ export default function DraGold(){
   },[]);
 
   useEffect(()=>{
-    (async()=>{
-      try{
-        const u=await window.storage.get("dg_u1");if(u) setUser(JSON.parse(u.value));
-        const c=await window.storage.get("dg_c1");if(c) setCol(JSON.parse(c.value));
-        const w=await window.storage.get("dg_w1");if(w) setWatchlist(JSON.parse(w.value));
-        const b=await window.storage.get("dg_b1");if(b) setBinders(JSON.parse(b.value));
-      }catch{}
-    })();
+    try{
+      const u=localStorage.getItem("dg_u1");if(u) setUser(JSON.parse(u));
+      const c=localStorage.getItem("dg_c1");if(c) setCol(JSON.parse(c));
+      const w=localStorage.getItem("dg_w1");if(w) setWatchlist(JSON.parse(w));
+      const b=localStorage.getItem("dg_b1");if(b) setBinders(JSON.parse(b));
+    }catch{}
   },[]);
 
   useEffect(()=>{
@@ -1254,9 +1252,9 @@ export default function DraGold(){
     return()=>document.removeEventListener("mousedown",h);
   },[]);
 
-  const saveCol=async c=>{setCol(c);try{await window.storage.set("dg_c1",JSON.stringify(c));}catch{}};
-  const saveWatch=async w=>{setWatchlist(w);try{await window.storage.set("dg_w1",JSON.stringify(w));}catch{}};
-  const saveBinders=async b=>{setBinders(b);try{await window.storage.set("dg_b1",JSON.stringify(b));}catch{}};
+  const saveCol=async c=>{setCol(c);try{localStorage.setItem("dg_c1",JSON.stringify(c));}catch{}};
+  const saveWatch=async w=>{setWatchlist(w);try{localStorage.setItem("dg_w1",JSON.stringify(w));}catch{}};
+  const saveBinders=async b=>{setBinders(b);try{localStorage.setItem("dg_b1",JSON.stringify(b));}catch{}};
   const inCol=id=>col.some(x=>x.id===id);
   const inWatch=id=>watchlist.some(x=>x.id===id);
   const getColCard=id=>col.find(x=>x.id===id);
@@ -1708,7 +1706,7 @@ export default function DraGold(){
       setAuthMode(null);setAuthName("");setAuthEmail("");setAuthPass("");return;
     }
     const u={name:authName||authEmail.split("@")[0],email:authEmail,at:Date.now()};
-    setUser(u);try{await window.storage.set("dg_u1",JSON.stringify(u));}catch{}
+    setUser(u);try{localStorage.setItem("dg_u1",JSON.stringify(u));}catch{}
     setAuthMode(null);
     if(authPending){await addToCol(authPending.card,authPending.fmvObj,authPending.img,authPending.tcgType);setAuthPending(null);}
     setAuthName("");setAuthEmail("");setAuthPass("");
@@ -1722,14 +1720,14 @@ export default function DraGold(){
       setAuthMode(null);setAuthEmail("");setAuthPass("");return;
     }
     const u={name:authEmail.split("@")[0],email:authEmail,at:Date.now()};
-    setUser(u);try{await window.storage.set("dg_u1",JSON.stringify(u));}catch{}
+    setUser(u);try{localStorage.setItem("dg_u1",JSON.stringify(u));}catch{}
     setAuthMode(null);
     if(authPending){await addToCol(authPending.card,authPending.fmvObj,authPending.img,authPending.tcgType);setAuthPending(null);}
     setAuthEmail("");setAuthPass("");
   };
   const doLogout=async()=>{
     if(supabaseReady){await sbSignOut();}
-    setUser(null);try{await window.storage.delete("dg_u1");}catch{}
+    setUser(null);try{localStorage.removeItem("dg_u1");}catch{}
   };
   useEffect(()=>{
     if(!supabaseReady) return;
@@ -1794,7 +1792,7 @@ export default function DraGold(){
     const cardLangF=card._lang||clang||"en";
     const langInfoF=CARD_LANGS.find(x=>x.c===cardLangF);
     const langSuffix=cardTcgF==="pokemon"&&cardLangF!=="en"?` [${cardLangF.toUpperCase()}]`:"";
-    const fmvD=fmvObj?(cur==="EUR"?`€${fmvObj.fmvEUR}`:`$${fmvObj.fmv}`):"Prezzo non disponibile";
+    const fmvD=fmvObj?(cur==="EUR"?`€${fmvObj.fmvEUR}`:`$${fmvObj.fmv}`):"Price unavailable";
     const netD=fmvObj?(cur==="EUR"?`€${fmvObj.netEUR}`:`$${fmvObj.net}`):null;
     return(
       <div className="feat">
@@ -1802,7 +1800,7 @@ export default function DraGold(){
           <HoloCard src={img} alt={card.name} big onClick={()=>setDetail(card)}/>
         </div>
         <div className="feat-body">
-          <div className="feat-lbl">Risultato principale   {cardTcgF==="pokemon"?"🔴 Pokémon":cardTcgF==="mtg"?"🟦 Magic":cardTcgF==="ygo"?"⭐ Yu-Gi-Oh!":"⚓ One Piece"}</div>
+          <div className="feat-lbl">Top result · {cardTcgF==="pokemon"?"🔴 Pokémon":cardTcgF==="mtg"?"🟦 Magic":cardTcgF==="ygo"?"⭐ Yu-Gi-Oh!":"⚓ One Piece"}</div>
           <div className="feat-name gt-gold">{card.name}{langSuffix}</div>
           <div className="feat-set">{setName}{card.number?` #${card.number}`:""}</div>
           <div className="feat-badges">
@@ -1813,7 +1811,7 @@ export default function DraGold(){
             <div>
               <div className="feat-price gt">{fmvD}</div>
               <div className="feat-price-ref">Fair Market Value · Cardmarket avg</div>
-              {netD&&<div className="feat-net">Net sell dopo commissioni: {netD}</div>}
+              {netD&&<div className="feat-net">Net after fees: {netD}</div>}
             </div>
             <div className="pref">
               <span className="pref-i">TCGPlayer <span>{tcgPrice?`$${tcgPrice.toFixed(2)}`:`$${fmvObj.fmv.toFixed(2)}`}</span></span>
@@ -1821,7 +1819,7 @@ export default function DraGold(){
               <span className="pref-i">eBay <span>{tcgPrice?`$${(tcgPrice*1.06).toFixed(2)}`:`$${(fmvObj.fmv*1.06).toFixed(2)}`}</span></span>
             </div>
           </>):(
-            <div className="feat-price-ref" style={{color:"var(--dim)",fontStyle:"italic",marginBottom:8}}>Prezzo temporaneamente non disponibile</div>
+            <div className="feat-price-ref" style={{color:"var(--dim)",fontStyle:"italic",marginBottom:8}}>No price data yet</div>
           )}
           <div className="feat-actions">
             <a href={buyLink} target="_blank" rel="noopener noreferrer" className="btn-buy">
@@ -1868,7 +1866,7 @@ export default function DraGold(){
             <div className="kprice">{fmvD}</div>
             <div className="kprice-lbl">FMV</div>
             <div className="knet">Net {netD}</div>
-          </>):<div className="kno-price">Prezzo temporaneamente non disponibile</div>}
+          </>):<div className="kno-price">Price unavailable</div>}
           <div className="kact">
             <a href={buyLink} target="_blank" rel="noopener noreferrer" className="btn-es">🛒 eBay</a>
             <button className={`btn-add-k${already?" in":""}`} onClick={()=>already?null:setDetail(card)}>{already?"✓":"+"}</button>
@@ -1883,7 +1881,7 @@ export default function DraGold(){
     const{fmvObj,img,setName,rarity,type2,buyLink,sellLink,tcgPrice}=getCardData(card);
     const already=inCol(card.id||card.name);const watching=inWatch(card.id||card.name);
     const psa=fmvObj?psaEst(fmvObj.fmv):null;
-    const fmvD=fmvObj?(cur==="EUR"?`€${fmvObj.fmvEUR}`:`$${fmvObj.fmv}`):"Prezzo non disponibile";
+    const fmvD=fmvObj?(cur==="EUR"?`€${fmvObj.fmvEUR}`:`$${fmvObj.fmv}`):"Price unavailable";
     const netD=fmvObj?(cur==="EUR"?`€${fmvObj.netEUR}`:`$${fmvObj.net}`):null;
     const psaD=(u,e)=>cur==="EUR"?`€${e}`:`$${u}`;
     const priceHist=useMemo(()=>fmvObj?mkPriceHist(fmvObj.fmv,30):null,[fmvObj?.fmv]);
@@ -1942,7 +1940,7 @@ export default function DraGold(){
               <div style={{flex:1}}>
                 <div className="fmv-val gt">{fmvD}</div>
                 <div className="fmv-lbl">Fair Market Value   Cardmarket avg</div>
-                {netD&&<div className="fmv-net">Net sell dopo commissioni: {netD}</div>}
+                {netD&&<div className="fmv-net">Net after fees: {netD}</div>}
                 {/* Competitor prices — sempre visibili */}
                 <div className="comp-prices" style={{marginTop:10}}>
                   <div className="comp-i">
@@ -2060,7 +2058,7 @@ export default function DraGold(){
             {otherVersions.length>0&&(
               <div style={{marginBottom:14}}>
                 <div style={{fontFamily:"'Fraunces',sans-serif",fontWeight:800,fontSize:13,marginBottom:10}}>
-                  Altre versioni ({otherVersions.length})
+                  Other versions ({otherVersions.length})
                 </div>
                 <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8}}>
                   {otherVersions.map(v=>{
@@ -2085,7 +2083,7 @@ export default function DraGold(){
               </div>
             )}
 
-            <div className="mod-note">FMV = media Cardmarket. Net sell = dopo commissione eBay 13%. Stime indicative.</div>
+            <div className="mod-note">FMV = avg. market price. Net sell = after eBay 13% fee. Estimates only.</div>
           </div>
         </div>
       </div>
@@ -2095,13 +2093,41 @@ export default function DraGold(){
   const AlertModal=({card})=>{
     const{fmvObj,smallImg}=getCardData(card);
     const fmvD=fmvObj?(cur==="EUR"?`€${fmvObj.fmvEUR}`:`$${fmvObj.fmv}`):null;
+    const [alertSaving,setAlertSaving]=useState(false);
+    const [alertErr,setAlertErr]=useState(null);
+    const closeAlert=()=>{setAlertCard(null);setAlertSent(false);setAEmail("");setAPrice("");setAlertErr(null);};
+    // Pre-fill user email
+    useEffect(()=>{if(user?.email&&!aEmail) setAEmail(user.email);},[]);// eslint-disable-line
+    const activateAlert=async()=>{
+      if(!aEmail||!aPrice) return;
+      setAlertSaving(true);setAlertErr(null);
+      const priceNum=parseFloat(aPrice);
+      const targetEUR=cur==="EUR"?priceNum:+(priceNum*EUR_RATE).toFixed(2);
+      if(supabaseReady){
+        const {error}=await supabase.from('alerts').insert({
+          user_id:user?.id||null,
+          tcg:card._tcg||'pokemon',
+          card_api_id:card.id||card.name,
+          target_eur:targetEUR,
+          direction:'below',
+          is_active:true,
+          email:aEmail,
+        });
+        if(error){setAlertErr("Save failed: "+error.message);setAlertSaving(false);return;}
+        // Update local alerts list
+        setAlerts(prev=>[{id:Date.now(),card_api_id:card.id||card.name,
+          tcg:card._tcg||'pokemon',target_eur:targetEUR,direction:'below',
+          is_active:true,email:aEmail,created_at:new Date().toISOString()},...prev]);
+      }
+      setAlertSaving(false);setAlertSent(true);
+    };
     return(
-      <div className="smod-ov" onClick={e=>e.target===e.currentTarget&&setAlertCard(null)}>
+      <div className="smod-ov" onClick={e=>e.target===e.currentTarget&&closeAlert()}>
         <div className="smod">
           <div className="smod-handle"/>
           {!alertSent?(<>
             <div className="smod-hdr"><div className="smod-t">🔔 Price Alert</div>
-              <button className="smod-x" onClick={()=>setAlertCard(null)}>✕</button></div>
+              <button className="smod-x" onClick={closeAlert}>✕</button></div>
             <div className="am-prev">
               {smallImg&&<img src={smallImg} alt={card.name}/>}
               <div><div style={{fontWeight:700,fontSize:13,marginBottom:2}}>{card.name}</div>
@@ -2112,11 +2138,16 @@ export default function DraGold(){
             <p className="smod-desc">Get notified when this card drops below your target price on {region==="EU"?"European":"US"} eBay.</p>
             <input className="smod-in" type="email" placeholder="Your email" value={aEmail} onChange={e=>setAEmail(e.target.value)}/>
             <input className="smod-in" type="number" placeholder={`Target price (${cur})`} value={aPrice} onChange={e=>setAPrice(e.target.value)}/>
-            <button className="smod-btn" onClick={()=>aEmail&&aPrice&&setAlertSent(true)}>Activate Alert</button>
+            {alertErr&&<div style={{fontSize:11,color:"var(--loss)",marginBottom:6}}>{alertErr}</div>}
+            {!user&&<div style={{fontSize:10,color:"var(--muted)",marginBottom:8}}>Sign in to manage alerts across devices.</div>}
+            <button className="smod-btn" onClick={activateAlert} disabled={alertSaving||!aEmail||!aPrice}
+              style={{opacity:(alertSaving||!aEmail||!aPrice)?0.6:1}}>
+              {alertSaving?"Saving…":"Activate Alert"}
+            </button>
           </>):(
             <div className="succ"><span className="succ-i">⚡</span><div className="succ-t">Alert activated!</div>
-              <p className="succ-m">Monitoring {region==="EU"?"EU":"US"} eBay for price drops.</p>
-              <button className="succ-c" onClick={()=>{setAlertCard(null);setAlertSent(false);}}>Close</button>
+              <p className="succ-m">We'll email you at {aEmail} when {card.name} drops below {cur==="EUR"?`€${aPrice}`:`$${aPrice}`}.</p>
+              <button className="succ-c" onClick={closeAlert}>Close</button>
             </div>
           )}
         </div>
@@ -2222,6 +2253,48 @@ export default function DraGold(){
   // HOME SECTIONS
   const HomeSections=()=>(
     <div className="hs">
+
+      {/* ── WHY DRAGOLD — landing explainer ── */}
+      <div style={{marginBottom:48}}>
+        <div style={{textAlign:"center",marginBottom:28}}>
+          <div style={{fontFamily:"'Fraunces',sans-serif",fontSize:"clamp(22px,5vw,34px)",fontWeight:800,letterSpacing:"-.5px",marginBottom:10}} className="gt-gold">
+            The EU collector's edge
+          </div>
+          <div style={{fontSize:14,color:"var(--muted)",maxWidth:540,margin:"0 auto",lineHeight:1.7}}>
+            DraGold aggregates real Fair Market Values for 170K+ TCG cards and routes you directly to the right eBay store in your country — so you pay EU prices, not US.
+          </div>
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:12}}>
+          {[
+            {icon:"🌍",color:"var(--blue)",title:"EU Geo-routing",desc:"eBay.it for Italy, eBay.de for Germany, eBay.fr for France. Always the right store, automatically."},
+            {icon:"💶",color:"var(--amber)",title:"Real FMV in EUR",desc:"Fair Market Value calculated from live eBay data. No guesses, no fake prices — just what cards actually sell for."},
+            {icon:"🔍",color:"var(--purple)",title:"170K+ cards",desc:"Pokémon (12 languages), Magic: The Gathering, Yu-Gi-Oh!, and One Piece TCG — all in one search."},
+            {icon:"🐉",color:"var(--gain)",title:"Vault & Alerts",desc:"Track your collection, set price drop alerts, and manage digital binders — free, forever."},
+          ].map(f=>(
+            <div key={f.title} style={{background:"var(--s2)",border:"1px solid var(--gb)",borderRadius:16,padding:16,transition:"border-color .2s"}}
+              onMouseEnter={e=>e.currentTarget.style.borderColor="rgba(255,255,255,.14)"}
+              onMouseLeave={e=>e.currentTarget.style.borderColor="rgba(255,255,255,.09)"}>
+              <div style={{fontSize:24,marginBottom:8}}>{f.icon}</div>
+              <div style={{fontFamily:"'Fraunces',sans-serif",fontWeight:800,fontSize:14,marginBottom:5,color:f.color}}>{f.title}</div>
+              <div style={{fontSize:11,color:"var(--muted)",lineHeight:1.55}}>{f.desc}</div>
+            </div>
+          ))}
+        </div>
+        {/* TCG logos strip */}
+        <div style={{display:"flex",gap:10,justifyContent:"center",flexWrap:"wrap",marginTop:22}}>
+          {TCG_LIST.map(t=>(
+            <div key={t.id} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 14px",
+              background:"var(--gl)",border:"1px solid var(--gb)",borderRadius:100,
+              fontSize:12,fontWeight:700,color:"var(--txt2)",cursor:"pointer",transition:"all .2s"}}
+              onClick={()=>{setQ("");setTab("explore");}}
+              onMouseEnter={e=>{e.currentTarget.style.borderColor=t.color;e.currentTarget.style.color=t.color;}}
+              onMouseLeave={e=>{e.currentTarget.style.borderColor="rgba(255,255,255,.09)";e.currentTarget.style.color="var(--txt2)";}}>
+              <span>{t.emoji}</span><span>{t.label}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
       {/* HOT RIGHT NOW */}
       <div style={{marginBottom:40}}>
         <div className="sec-hdr">
@@ -2232,7 +2305,7 @@ export default function DraGold(){
           <div className="col-empty" style={{padding:'32px 16px'}}>
             <span className="col-ei">📈</span>
             <div className="col-et">Hot picks computing</div>
-            <p className="col-es">Daily price movers will appear here once the next snapshot completes. No fake numbers — only real movers from the catalog.</p>
+            <p className="col-es">Daily price movers appear here after the snapshot runs. Real data only — no fake numbers.</p>
           </div>
         ):(
           <div style={{position:"relative"}}>
@@ -2295,17 +2368,22 @@ export default function DraGold(){
         </div>
         <div className="ug">
           {[
-            {name:"Pokémon Mega Evolution",date:"June 2026",hype:96,img:"https://images.pokemontcg.io/sv3pt5/logo.png"},
-            {name:"Magic: Tarkir Dragonstorm",date:"May 30, 2026",hype:88,img:null},
-            {name:"Pokémon Black Bolt & White Flare",date:"Q3 2026",hype:92,img:"https://images.pokemontcg.io/sv3pt5/logo.png"},
-            {name:"DraGold Portfolio Dashboard",date:"Coming soon",hype:100,img:null},
-            {name:"DraGold Camera Scan",date:"Q3 2026",hype:85,img:null},
-            {name:"One Piece full bulk catalog",date:"Q4 2026",hype:80,img:null},
+            {name:"Pokémon: Mega Evolution",date:"June 6, 2026",hype:96,img:"https://images.pokemontcg.io/sv3pt5/logo.png",tcg:"Pokémon"},
+            {name:"Magic: Tarkir Dragonstorm",date:"May 30, 2026",hype:88,img:null,tcg:"MTG"},
+            {name:"Pokémon: Black Bolt & White Flare",date:"Q3 2026",hype:94,img:"https://images.pokemontcg.io/sv3pt5/logo.png",tcg:"Pokémon"},
+            {name:"One Piece: EB-01 Extra Booster",date:"June 2026",hype:82,img:null,tcg:"One Piece"},
+            {name:"Yu-Gi-Oh!: Rage of the Abyss",date:"July 2026",hype:78,img:null,tcg:"YGO"},
+            {name:"Magic: Final Fantasy",date:"June 13, 2026",hype:91,img:null,tcg:"MTG"},
           ].map((u,i)=>(
             <div key={i} className="uc">
               {u.img?<img src={u.img} alt={u.name} className="uc-img"/>:<div className="uc-img-ph">📦</div>}
               <div className="uc-info">
-                <div className="uc-name">{u.name}</div>
+                <div style={{display:"flex",alignItems:"baseline",gap:6,marginBottom:2}}>
+                  <div className="uc-name" style={{flex:1}}>{u.name}</div>
+                  {u.tcg&&<span style={{fontSize:8,fontFamily:"'Space Mono',monospace",fontWeight:700,padding:"1px 5px",
+                    background:"var(--gl)",border:"1px solid var(--gb)",borderRadius:100,
+                    color:"var(--muted)",flexShrink:0}}>{u.tcg}</span>}
+                </div>
                 <div className="uc-date">{u.date}</div>
                 <div className="hype-bar"><div className="hype-fill" style={{width:`${u.hype}%`}}/></div>
                 <div style={{fontSize:9,color:"var(--muted)",marginTop:3,fontFamily:"'Space Mono',monospace"}}>Hype {u.hype}/100</div>
@@ -2351,15 +2429,21 @@ export default function DraGold(){
         </div>
         <div className="coming-grid">
           {[
-            {emoji:"📷",name:"Camera Scanning",desc:"Scan any card with your phone. Auto-adds to vault."},
-            {emoji:"🎴",name:"Pack Opening Game",desc:"Open virtual packs with real market values."},
-            {emoji:"💎",name:"DraGold Pro",desc:"Unlimited alerts, binders, price history. €4.99/mo."},
-            {emoji:"⚓",name:"One Piece TCG",desc:"Full One Piece card database with pricing."},
-            {emoji:"🏰",name:"Disney Lorcana",desc:"Complete Lorcana tracking and collection tools."},
-            {emoji:"📤",name:"Export",desc:"PDF and CSV export for insurance and records."},
+            {emoji:"📷",name:"Camera Scanning",desc:"Scan any card with your phone. Auto-adds to vault.",tag:"Q3 2026"},
+            {emoji:"🎴",name:"Pack Opening Game",desc:"Open virtual packs with real market values.",tag:"Q3 2026"},
+            {emoji:"💎",name:"DraGold Pro",desc:"Unlimited alerts, binders, 90-day price history. €4.99/mo.",tag:"Q3 2026"},
+            {emoji:"🏰",name:"Disney Lorcana",desc:"Full Lorcana card database with EU pricing.",tag:"Q4 2026"},
+            {emoji:"📊",name:"Portfolio Analytics",desc:"Charts, ROI tracking, and sell timing signals.",tag:"Q3 2026"},
+            {emoji:"📤",name:"CSV & PDF Export",desc:"Export your collection for insurance and records.",tag:"Q4 2026"},
           ].map((f,i)=>(
             <div key={i} className="coming-item">
-              <span style={{fontSize:22,marginBottom:7,display:"block"}}>{f.emoji}</span>
+              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:7}}>
+                <span style={{fontSize:22}}>{f.emoji}</span>
+                {f.tag&&<span style={{fontSize:8,fontFamily:"'Space Mono',monospace",fontWeight:700,padding:"2px 6px",
+                  background:"rgba(167,139,250,.1)",color:"var(--purple)",border:"1px solid rgba(167,139,250,.2)",borderRadius:100}}>
+                  {f.tag}
+                </span>}
+              </div>
               <div style={{fontFamily:"'Fraunces',sans-serif",fontWeight:800,fontSize:12,marginBottom:3}}>{f.name}</div>
               <div style={{fontSize:10,color:"var(--muted)",lineHeight:1.5}}>{f.desc}</div>
             </div>
@@ -2407,8 +2491,8 @@ export default function DraGold(){
     if(col.length===0) return(
       <div className="col-empty">
         <span className="col-ei">📦</span>
-        <div className="col-et">Vault vuoto</div>
-        <p className="col-es">Aggiungi carte al Vault per vedere il completamento dei set.</p>
+        <div className="col-et">Vault is empty</div>
+        <p className="col-es">Add cards to your Vault to see set completion progress.</p>
       </div>
     );
     return(
@@ -2424,7 +2508,7 @@ export default function DraGold(){
                 <div className="setrow-ct">{g.owned.length}/{loadingSets?"…":total} · {pct}%</div>
               </div>
               <div className="setrow-bar"><div className="setrow-fill" style={{width:`${pct}%`}}/></div>
-              <div className="setrow-pct">{pct===100?"✓ Completo!":pct>=80?"Quasi completo":pct>=50?"A metà strada":"In costruzione"}</div>
+              <div className="setrow-pct">{pct===100?"✓ Complete!":pct>=80?"Almost complete":pct>=50?"Halfway there":"Building"}</div>
               {/* Mini preview carte possedute */}
               <div className="missing-grid">
                 {g.owned.slice(0,8).map(c=>(
@@ -2436,7 +2520,7 @@ export default function DraGold(){
                   </div>
                 ))}
                 {g.owned.length<total&&(
-                  <div className="missing-card" title="Aggiungi carte mancanti" onClick={()=>{setQ(g.name);setTab("explore");setTimeout(()=>doSearch(),100);}}>
+                  <div className="missing-card" title="Find missing cards" onClick={()=>{setQ(g.name);setTab("explore");setTimeout(()=>doSearch(),100);}}>
                     <span className="miss-plus">+</span>
                   </div>
                 )}
@@ -2553,11 +2637,11 @@ export default function DraGold(){
                 <div className="lo" onClick={()=>{setTab("col");setColTab("vault");setUserMenuOpen(false);}}>🐉 Vault</div>
                 <div className="lo" onClick={()=>{setTab("alerts");setUserMenuOpen(false);}}>🔔 Alerts</div>
                 <div className="lo" onClick={()=>{setPlansOpen(true);setUserMenuOpen(false);}}>🚀 Plans</div>
-                <div className="lo" onClick={doLogout} style={{color:"var(--loss)"}}>Esci</div>
+                <div className="lo" onClick={doLogout} style={{color:"var(--loss)"}}>Sign out</div>
               </div>}
             </div>
           ):(
-            <button className="auth-btn" onClick={()=>setAuthMode("register")}>Unisciti gratis</button>
+            <button className="auth-btn" onClick={()=>setAuthMode("register")}>Join free</button>
           )}
         </div>
       </nav>
@@ -2574,7 +2658,7 @@ export default function DraGold(){
         ))}
       </div>
 
-      {region&&<div className="geo"><div className="geo-dot"/>
+      {region&&import.meta.env.DEV&&<div className="geo"><div className="geo-dot"/>
         <span>Detected: {country}   {region==="EU"?"EUR   EU eBay active":"USD   US eBay active"}</span>
       </div>}
 
@@ -2604,9 +2688,9 @@ export default function DraGold(){
           <div className="hero-inner">
             <div className="hero-cols">
               <div className="hero-left">
-                <div className="hero-badge"><span className="bdot"/>Beta   Pokémon · Magic · Yu-Gi-Oh!</div>
-                <span className="hero-tagline gt">For serious collectors.</span>
-                <p className="hero-sub">Cerca qualsiasi carta — Pokémon, Magic, Yu-Gi-Oh! — in tutte le lingue. Prezzi FMV in EUR, PSA estimates, Watchlist e Vault.</p>
+                <div className="hero-badge"><span className="bdot"/>Beta · Pokémon · Magic · Yu-Gi-Oh! · One Piece</div>
+                <span className="hero-tagline gt">Fair Market Value,<br/>every card.</span>
+                <p className="hero-sub">Search 170K+ cards across Pokémon, Magic, Yu-Gi-Oh! and One Piece TCG. Real prices in EUR with EU eBay geo-routing, price alerts, vault tracking and digital binders.</p>
                 <div className="srch" style={{position:"relative"}}>
                   <input className="srch-in" type="text"
                     placeholder="Search any card by name, number or set..."
@@ -2634,6 +2718,21 @@ export default function DraGold(){
                   )}
                 </div>
                 {demo&&<div className="demo-bar">Demo mode   live search active when deployed</div>}
+                <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:14}}>
+                  {[
+                    {icon:"🌍",text:"EU eBay geo-routing"},
+                    {icon:"💶",text:"Real FMV in EUR"},
+                    {icon:"170K+",text:"cards in catalog"},
+                    {icon:"🔔",text:"Price alerts"},
+                  ].map(f=>(
+                    <div key={f.text} style={{display:"flex",alignItems:"center",gap:5,padding:"4px 11px",
+                      background:"rgba(255,255,255,.05)",border:"1px solid rgba(255,255,255,.08)",
+                      borderRadius:100,fontSize:11,fontWeight:600,color:"var(--txt2)"}}>
+                      <span style={{fontSize:f.icon.length>2?10:13}}>{f.icon}</span>
+                      <span>{f.text}</span>
+                    </div>
+                  ))}
+                </div>
                 <div className="mq-wrap"><div className="mq">{TICKER}   {TICKER}</div></div>
               </div>
               <div className="hero-right">
@@ -2751,10 +2850,10 @@ export default function DraGold(){
           {user&&(
             <div style={{padding:'16px 16px 4px',display:'flex',alignItems:'baseline',gap:10,flexWrap:'wrap'}}>
               <div className="gt-gold" style={{fontFamily:"'Fraunces',serif",fontSize:24,fontWeight:800,letterSpacing:'-.5px'}}>
-                Benvenuto, {user.name}
+                Welcome back, {user.name}
               </div>
               <div style={{fontSize:12,color:'var(--muted)',fontFamily:"'Space Mono',monospace"}}>
-                {col.length} carte · sincronizzato
+                {col.length} card{col.length!==1?"s":""} · synced
               </div>
             </div>
           )}
@@ -2765,7 +2864,7 @@ export default function DraGold(){
                 €{(totalVal*EUR_RATE).toFixed(2)}
               </div>
               <div style={{fontSize:12,color:'var(--muted)',fontFamily:"'Space Mono',monospace"}}>
-                Valore totale portfolio FMV in EUR
+                Total portfolio FMV in EUR
               </div>
               {roi&&<div className={`${parseFloat(roi)>=0?"pos":"neg"}`} style={{fontFamily:"'Space Mono',monospace",fontSize:12,fontWeight:700}}>
                 ROI {roi}%
@@ -2790,12 +2889,12 @@ export default function DraGold(){
             {col.length===0?(
               <div className="col-empty">
                 <span className="col-ei">🐉</span>
-                <div className="col-et">Il tuo Vault è vuoto</div>
-                <p className="col-es">{user?'Cerca qualsiasi carta e premi + Vault per aggiungerla. I prezzi si aggiornano automaticamente.':'Accedi per tracciare la tua collezione su tutti i dispositivi.'}</p>
+                <div className="col-et">Your Vault is empty</div>
+                <p className="col-es">{user?'Search any card and press + Vault to add it. Prices update automatically.':'Sign in to track your collection across all devices.'}</p>
                 {user?(
-                  <button className="btn-prim" style={{marginTop:14}} onClick={()=>setTab('explore')}>Cerca nel catalogo</button>
+                  <button className="btn-prim" style={{marginTop:14}} onClick={()=>setTab('explore')}>Browse the catalog</button>
                 ):(
-                  <button className="btn-prim" style={{marginTop:14}} onClick={()=>setAuthMode('login')}>Accedi al tuo Vault</button>
+                  <button className="btn-prim" style={{marginTop:14}} onClick={()=>setAuthMode('login')}>Sign in to your Vault</button>
                 )}
               </div>
             ):(<>
@@ -2804,14 +2903,14 @@ export default function DraGold(){
                 <div className="bento-main">
                   <div className="port-val gt">{disp(totalVal)}</div>
                   <div className={`port-chg ${portChg>=0?"pos":"neg"}`}>{portChg>=0?"+":""}{disp(Math.abs(portChg))} (30d)</div>
-                  <div className="port-lbl">Portfolio · {col.length} carte · FMV</div>
+                  <div className="port-lbl">Portfolio · {col.length} card{col.length!==1?"s":""} · FMV</div>
                   {portData&&<div className="port-chart"><LineChart data={portData} color={portChg>=0?"#34d399":"#f87171"} id="pc" h={68}/></div>}
                   <div className="range-row">
                     {["7d","30d","90d"].map(r=><button key={r} className={`rbtn${portRange===r?" on":""}`} onClick={()=>setPortRange(r)}>{r}</button>)}
                   </div>
                   <div className="port-stats">
                     <div className="pst"><span className="pst-v pos">{disp(netVal)}</span><span className="pst-l">Net Sell</span></div>
-                    <div className="pst"><span className="pst-v" style={{color:"var(--txt2)"}}>{disp(totalPaid)}</span><span className="pst-l">Investito</span></div>
+                    <div className="pst"><span className="pst-v" style={{color:"var(--txt2)"}}>{disp(totalPaid)}</span><span className="pst-l">Invested</span></div>
                     <div className="pst"><span className={`pst-v ${netVal-totalPaid>=0?"pos":"neg"}`}>{netVal-totalPaid>=0?"+":""}{disp(Math.abs(netVal-totalPaid))}</span><span className="pst-l">P&L</span></div>
                   </div>
                 </div>
@@ -2842,7 +2941,7 @@ export default function DraGold(){
                         <div className="vcard-sub">{item.set} {langInfo?`· ${langInfo.f}`:""} {item.condition?`· ${item.condition}`:""}</div>
                         <div className="vcard-price">{priceD}</div>
                         {paidD&&<div className={`vcard-pnl ${pos?"pos":"neg"}`}>
-                          {pos?"▲":"▼"} {pnlD} {pos?"guadagno":"perdita"}
+                          {pos?"▲":"▼"} {pnlD} {pos?"gain":"loss"}
                         </div>}
                       </div>
                       <button className="vcard-rm" onClick={e=>{e.stopPropagation();removeFromCol(item.id);}}>✕</button>
@@ -2859,8 +2958,8 @@ export default function DraGold(){
             {watchlist.length===0?(
               <div className="col-empty">
                 <span className="col-ei">♡</span>
-                <div className="col-et">Nessuna carta in watchlist</div>
-                <p className="col-es">Premi ♡ su qualsiasi carta per monitorare il prezzo senza aggiungerla al Vault.</p>
+                <div className="col-et">No cards in watchlist</div>
+                <p className="col-es">Press ♡ on any card to monitor its price without adding it to the Vault.</p>
               </div>
             ):(
               <div className="col-list">
@@ -2870,8 +2969,8 @@ export default function DraGold(){
                     <div className="wi-info">
                       <div className="wi-name">{item.name}</div>
                       <div className="wi-set">{item.set}   {item.tcgType?.toUpperCase()}</div>
-                      <div className="wi-price">{disp(item.market)||"Prezzo non disponibile"}</div>
-                      <div className="wi-alert">🔔 Clicca per impostare un alert</div>
+                      <div className="wi-price">{disp(item.market)||"Price unavailable"}</div>
+                      <div className="wi-alert">🔔 Tap to set a price alert</div>
                     </div>
                     <button className="btn-rm" style={{color:"var(--pink)"}} onClick={e=>{e.stopPropagation();removeWatch(item.id);}}>♥</button>
                   </div>
@@ -2886,24 +2985,24 @@ export default function DraGold(){
       {tab==="alerts"&&(
         <div className="alerts-wrap">
           <div style={{fontFamily:"'Fraunces',sans-serif",fontSize:22,fontWeight:800,letterSpacing:"-.4px",marginBottom:6}} className="gt">
-            I tuoi Alert Prezzi
+            Price Alerts
           </div>
           <div style={{fontSize:13,color:"var(--muted)",marginBottom:20}}>
-            Ricevi una notifica quando una carta raggiunge il prezzo obiettivo.
+            Get notified by email when a card hits your target price on EU eBay.
           </div>
           {!user?(
             <div className="col-empty">
               <span className="col-ei">🔔</span>
-              <div className="col-et">Accedi per gestire gli alert</div>
-              <p className="col-es">Gli alert monitorano i prezzi su eBay EU e ti avvisano quando è il momento di comprare.</p>
-              <button className="btn-prim" style={{marginTop:14}} onClick={()=>setAuthMode("login")}>Accedi</button>
+              <div className="col-et">Sign in to manage alerts</div>
+              <p className="col-es">Alerts monitor prices on EU eBay and notify you when it's the right time to buy.</p>
+              <button className="btn-prim" style={{marginTop:14}} onClick={()=>setAuthMode("login")}>Sign in</button>
             </div>
           ):alerts.length===0?(
             <div className="col-empty">
               <span className="col-ei">🔔</span>
-              <div className="col-et">Nessun alert attivo</div>
-              <p className="col-es">Cerca una carta, clicca su 🔔 Alert nel dettaglio, e imposta il prezzo obiettivo. Ti avvisiamo noi.</p>
-              <button className="btn-prim" style={{marginTop:14}} onClick={()=>setTab("explore")}>Cerca una carta</button>
+              <div className="col-et">No active alerts</div>
+              <p className="col-es">Search any card, open its detail panel, and tap 🔔 Alert to set your target price. We'll notify you.</p>
+              <button className="btn-prim" style={{marginTop:14}} onClick={()=>setTab("explore")}>Find a card</button>
             </div>
           ):(
             <div>
@@ -2918,4 +3017,76 @@ export default function DraGold(){
                       <div className="alert-name">{a.card_api_id||a.card_id}</div>
                       <div className="alert-target">
                         {a.direction==="below"?"▼":"▲"} Target: {a.target_eur!=null?`€${a.target_eur}`:"—"}
-                        {a.email&&<span style={{colo
+                        {a.email&&<span style={{color:"var(--muted)",marginLeft:8}}>→ {a.email}</span>}
+                      </div>
+                      {dateStr&&<div style={{fontSize:9,color:"var(--dim)",fontFamily:"'Space Mono',monospace",marginTop:2}}>Created {dateStr}</div>}
+                    </div>
+                    <span className={`alert-status ${isTriggered?"as-triggered":"as-active"}`}>
+                      {isTriggered?"✓ Triggered":isActive?"Active":"Inactive"}
+                    </span>
+                    <button className="btn-rm" title="Delete alert" onClick={async()=>{
+                      if(supabaseReady&&user?.id) try{await supabase.from('alerts').delete().eq('id',a.id);}catch{}
+                      setAlerts(prev=>prev.filter(x=>x.id!==a.id));
+                    }}>✕</button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* DONATION */}
+      <div className="donate-section">
+        <div className="donate-inner">
+          <div className="donate-left">
+            <div className="donate-emoji">☕</div>
+            <div>
+              <div className="donate-title gt">Support DraGold</div>
+              <div className="donate-sub">Built by one person, free for everyone. If DraGold saves you money on your collection, consider buying me a coffee. Keeps the servers running and new features coming.</div>
+            </div>
+          </div>
+          <div style={{display:"flex",flexDirection:"column",alignItems:"stretch",gap:8,flexShrink:0}}>
+            <a href="https://buymeacoffee.com/dragold" target="_blank" rel="noopener noreferrer" className="donate-btn">
+              ☕ Buy me a coffee
+            </a>
+            <div className="donate-note">via BuyMeACoffee   No account needed</div>
+          </div>
+        </div>
+      </div>
+
+      <footer className="footer">
+        <span>© 2026 DraGold</span>
+        <span>Real prices. No guesses.</span>
+        <a href="https://buymeacoffee.com/dragold" target="_blank" rel="noopener noreferrer" style={{color:"var(--amber)",fontWeight:700}}>Support ☕</a>
+      </footer>
+
+      {/* MODALS */}
+      {zoomImg    &&<div className="img-zoom-ov" onClick={()=>setZoomImg(null)}><img src={zoomImg} alt="zoom"/></div>}
+      {article    &&<ArticleReader post={article}/>}
+      {authMode   &&<AuthModal/>}
+      {detail     &&<DetailModal card={detail}/>}
+      {alertCard  &&<AlertModal card={alertCard}/>}
+      {plansOpen  &&<PlansModal/>}
+      {pickingSlot&&(
+        <div className="smod-ov" onClick={e=>e.target===e.currentTarget&&setPickingSlot(null)}>
+          <div className="picker-modal">
+            <div className="smod-handle"/>
+            <div className="picker-title">Choose from your vault</div>
+            {col.length===0?<div className="picker-empty">Your vault is empty. Add cards from Explore first.</div>
+              :<div className="picker-list">
+                {col.map(c=>(
+                  <div key={c.id} className="picker-item" onClick={()=>placeCard(c.id)}>
+                    {c.img&&<img src={c.img} alt={c.name}/>}
+                    <div><div className="pi-n">{c.name}</div><div className="pi-s">{c.set}</div><div className="pi-p">{disp(c.market)}</div></div>
+                  </div>
+                ))}
+              </div>
+            }
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+                                                                
