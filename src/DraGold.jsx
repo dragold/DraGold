@@ -91,14 +91,23 @@ const MOCK_PKM=[
   {id:"xy1-12",  name:"Charizard EX FA", number:"12", rarity:"Rare Ultra",  supertype:"Pokémon",set:{id:"xy1",name:"XY Base Set"},      images:{small:"https://images.pokemontcg.io/xy1/12.png",   large:"https://images.pokemontcg.io/xy1/12_hires.png"},   tcgplayer:{prices:{holofoil:{market:28, low:19,high:44 }}}},
 ];
 const SEALED=[
-  {id:"etb-sv151",name:"SV 151 Elite Trainer Box",      set:"sv3pt5",setName:"Scarlet & Violet 151",type:"ETB",    fmv:44, img:"https://images.pokemontcg.io/sv3pt5/logo.png"},
-  {id:"etb-paf",  name:"Paldean Fates ETB",              set:"sv4pt5",setName:"Paldean Fates",      type:"ETB",    fmv:55, img:"https://images.pokemontcg.io/sv4pt5/logo.png"},
-  {id:"etb-obf",  name:"Obsidian Flames ETB",            set:"sv3",   setName:"Obsidian Flames",    type:"ETB",    fmv:36, img:"https://images.pokemontcg.io/sv3/logo.png"},
-  {id:"etb-twm",  name:"Twilight Masquerade ETB",        set:"sv6",   setName:"Twilight Masquerade",type:"ETB",    fmv:34, img:"https://images.pokemontcg.io/sv6/logo.png"},
-  {id:"box-mew",  name:"Mew VMAX Premium Collection",    set:"swsh8", setName:"Fusion Strike",      type:"Box",    fmv:52, img:"https://images.pokemontcg.io/swsh8/logo.png"},
-  {id:"bp-sv151", name:"SV 151 Booster Pack",            set:"sv3pt5",setName:"Scarlet & Violet 151",type:"Booster",fmv:4.5,img:"https://images.pokemontcg.io/sv3pt5/logo.png"},
-  {id:"etb-brs",  name:"Brilliant Stars ETB",            set:"swsh9", setName:"Brilliant Stars",    type:"ETB",    fmv:38, img:"https://images.pokemontcg.io/swsh9/logo.png"},
-  {id:"bp-paf",   name:"Paldean Fates Booster Pack",     set:"sv4pt5",setName:"Paldean Fates",      type:"Booster",fmv:8,  img:"https://images.pokemontcg.io/sv4pt5/logo.png"},
+  // img = iconic card art from that set (hi-res scan). fallback in JSX → set logo.
+  {id:"etb-sv151",name:"SV 151 Elite Trainer Box",      set:"sv3pt5",setName:"Scarlet & Violet 151",type:"ETB",    fmv:44,
+   img:"https://images.pokemontcg.io/sv3pt5/6_hires.png",  fb:"https://images.pokemontcg.io/sv3pt5/logo.png"},
+  {id:"etb-paf",  name:"Paldean Fates ETB",              set:"sv4pt5",setName:"Paldean Fates",      type:"ETB",    fmv:55,
+   img:"https://images.pokemontcg.io/sv4pt5/182_hires.png",fb:"https://images.pokemontcg.io/sv4pt5/logo.png"},
+  {id:"etb-obf",  name:"Obsidian Flames ETB",            set:"sv3",   setName:"Obsidian Flames",    type:"ETB",    fmv:36,
+   img:"https://images.pokemontcg.io/sv3/228_hires.png",   fb:"https://images.pokemontcg.io/sv3/logo.png"},
+  {id:"etb-twm",  name:"Twilight Masquerade ETB",        set:"sv6",   setName:"Twilight Masquerade",type:"ETB",    fmv:34,
+   img:"https://images.pokemontcg.io/sv6/167_hires.png",   fb:"https://images.pokemontcg.io/sv6/logo.png"},
+  {id:"box-mew",  name:"Mew VMAX Premium Collection",    set:"swsh8", setName:"Fusion Strike",      type:"Box",    fmv:52,
+   img:"https://images.pokemontcg.io/swsh8/114_hires.png", fb:"https://images.pokemontcg.io/swsh8/logo.png"},
+  {id:"bp-sv151", name:"SV 151 Booster Pack",            set:"sv3pt5",setName:"Scarlet & Violet 151",type:"Booster",fmv:4.5,
+   img:"https://images.pokemontcg.io/sv3pt5/205_hires.png",fb:"https://images.pokemontcg.io/sv3pt5/logo.png"},
+  {id:"etb-brs",  name:"Brilliant Stars ETB",            set:"swsh9", setName:"Brilliant Stars",    type:"ETB",    fmv:38,
+   img:"https://images.pokemontcg.io/swsh9/123_hires.png", fb:"https://images.pokemontcg.io/swsh9/logo.png"},
+  {id:"bp-paf",   name:"Paldean Fates Booster Pack",     set:"sv4pt5",setName:"Paldean Fates",      type:"Booster",fmv:8,
+   img:"https://images.pokemontcg.io/sv4pt5/107_hires.png",fb:"https://images.pokemontcg.io/sv4pt5/logo.png"},
 ];
 // Hero showcase: 1 Pokemon front + MTG left + YGO right (the 3 TCGs we support)
 const HERO_POOL=[
@@ -495,8 +504,8 @@ img{display:block;}
 .pref-i{font-family:'Space Mono',monospace;font-size:10px;color:var(--dim);}
 .pref-i span{color:var(--muted);}
 
-/* CARD GRID */
-.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;}
+/* CARD GRID — mobile: 2 col, tablet: 3 col, desktop: auto-fill 200px+ */
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;}
 .kcard{background:var(--s2);border:1px solid rgba(255,255,255,.07);border-radius:16px;overflow:hidden;
   transition:transform .3s cubic-bezier(.34,1.56,.64,1),border-color .3s,box-shadow .3s;
   animation:ci .38s ease both;}
@@ -505,8 +514,8 @@ img{display:block;}
 .kcard.r2:hover{box-shadow:0 22px 44px rgba(0,0,0,.5),0 0 36px rgba(251,191,36,.2);}
 .kcard.r3:hover{box-shadow:0 22px 44px rgba(0,0,0,.5),0 0 44px rgba(244,114,182,.26);}
 .kcard.r4:hover{box-shadow:0 22px 44px rgba(0,0,0,.5),0 0 56px rgba(251,191,36,.36);}
-.kcard-img{position:relative;background:var(--s1);cursor:pointer;overflow:hidden;}
-.kcard-img img{width:100%;transition:transform .4s;}
+.kcard-img{position:relative;background:var(--s1);cursor:pointer;overflow:hidden;min-height:160px;display:flex;align-items:center;justify-content:center;}
+.kcard-img img{width:100%;min-width:120px;transition:transform .4s;display:block;}
 .kcard:hover .kcard-img img{transform:scale(1.06);}
 .holo-s{position:absolute;inset:-80%;width:260%;height:260%;
   background:conic-gradient(from 0deg at 50% 50%,rgba(255,0,100,.32),rgba(255,140,0,.32),rgba(255,255,0,.32),rgba(0,255,100,.32),rgba(0,180,255,.32),rgba(150,0,255,.32),rgba(255,0,100,.32));
@@ -517,17 +526,21 @@ img{display:block;}
   background-size:300% 100%;background-position:-100% 0;opacity:0;}
 .kcard:hover .holo-sh{animation:hsh .7s ease-out forwards;}
 @keyframes hsh{to{background-position:250% 0;opacity:.85;}}
-.kcard-body{padding:10px;}
-.kname{font-family:'Fraunces',sans-serif;font-weight:800;font-size:12px;margin-bottom:2px;cursor:pointer;
+.kcard-body{padding:11px;}
+.kname{font-family:'Fraunces',sans-serif;font-weight:800;font-size:13px;margin-bottom:2px;cursor:pointer;
   transition:color .2s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .kname:hover{color:var(--amber);}
-.kset{font-size:9px;color:var(--muted);margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.kset{font-size:10px;color:var(--muted);margin-bottom:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .klang{display:inline-flex;align-items:center;gap:3px;font-size:9px;color:var(--purple);
   background:var(--purple-b);border:1px solid rgba(167,139,250,.2);border-radius:100px;
-  padding:2px 6px;margin-bottom:7px;font-family:'Space Mono',monospace;}
+  padding:2px 6px;margin-bottom:6px;font-family:'Space Mono',monospace;}
+.klang-tcg{display:inline-flex;align-items:center;gap:3px;font-size:9px;color:var(--blue);
+  background:var(--blue-b);border:1px solid rgba(56,189,248,.2);border-radius:100px;
+  padding:2px 6px;margin-bottom:6px;font-family:'Space Mono',monospace;}
 .kprice{font-family:'Space Mono',monospace;font-size:15px;font-weight:700;color:var(--amber);margin-bottom:1px;}
 .kprice-lbl{font-size:9px;color:var(--muted);font-family:'Space Mono',monospace;margin-bottom:4px;}
 .knet{font-size:9px;color:var(--gain);font-family:'Space Mono',monospace;margin-bottom:7px;}
+.kno-price{font-size:10px;color:var(--dim);font-family:'Space Mono',monospace;margin-bottom:7px;font-style:italic;}
 .kact{display:flex;gap:4px;}
 .btn-es{flex:1;padding:7px;background:var(--amber-b);border:1px solid rgba(251,191,36,.2);
   color:var(--amber);border-radius:8px;font-size:10px;font-weight:700;cursor:pointer;
@@ -648,12 +661,16 @@ img{display:block;}
 .donate-note{font-size:10px;color:var(--dim);font-family:'Space Mono',monospace;text-align:center;}
 
 /* SEALED */
-.sealed-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:11px;}
-.sc{background:var(--s2);border:1px solid rgba(255,255,255,.07);border-radius:16px;padding:16px;transition:all .25s;}
-.sc:hover{border-color:rgba(251,191,36,.2);transform:translateY(-3px);}
-.sc-img-wrap{width:100%;height:52px;display:flex;align-items:center;justify-content:center;
-  margin-bottom:12px;overflow:hidden;border-radius:7px;background:rgba(0,0,0,.2);}
-.sc-img{height:44px;object-fit:contain;filter:drop-shadow(0 3px 8px rgba(0,0,0,.4));}
+.sealed-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;}
+.sc{background:var(--s2);border:1px solid rgba(255,255,255,.07);border-radius:18px;padding:14px;transition:all .3s;overflow:hidden;}
+.sc:hover{border-color:rgba(251,191,36,.28);transform:translateY(-4px);box-shadow:0 12px 32px rgba(0,0,0,.3);}
+.sc-img-wrap{width:100%;height:200px;display:flex;align-items:center;justify-content:center;
+  margin-bottom:14px;overflow:hidden;border-radius:12px;background:linear-gradient(135deg,rgba(0,0,0,.35),rgba(255,255,255,.04));
+  position:relative;}
+.sc-img{width:100%;height:100%;object-fit:cover;object-position:center top;
+  filter:drop-shadow(0 6px 18px rgba(0,0,0,.55));transition:transform .35s;}
+.sc:hover .sc-img{transform:scale(1.04);}
+.sc-img.fallback{object-fit:contain;width:auto;height:72px;}
 .sc-name{font-family:'Fraunces',sans-serif;font-weight:800;font-size:12px;margin-bottom:2px;line-height:1.3;}
 .sc-set{font-size:10px;color:var(--muted);margin-bottom:8px;}
 .sc-type{font-size:9px;font-family:'Space Mono',monospace;font-weight:700;padding:2px 7px;
@@ -751,7 +768,7 @@ img{display:block;}
 
 /* COLLECTION */
 .col-wrap{padding:0 var(--p) 72px;}
-.col-tabs{display:flex;gap:6px;margin-bottom:18px;}
+.col-tabs{display:flex;gap:6px;margin-bottom:18px;flex-wrap:wrap;}
 .col-tab{padding:8px 18px;border:1px solid var(--gb);background:var(--gl);color:var(--muted);
   border-radius:10px;font-size:12px;font-weight:700;cursor:pointer;transition:all .2s;}
 .col-tab.on{border-color:var(--amber);background:var(--amber-b);color:var(--amber);}
@@ -776,6 +793,37 @@ img{display:block;}
 .bento-roi{background:var(--s2);border:1px solid rgba(255,255,255,.07);border-radius:20px;padding:18px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:3px;}
 .roi-val{font-family:'Fraunces',sans-serif;font-size:28px;font-weight:800;letter-spacing:-.8px;}
 .roi-lbl{font-size:10px;color:var(--muted);}
+/* Vault grid — same as search results */
+.vault-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:28px;}
+.vcard{background:var(--s2);border:1px solid rgba(255,255,255,.07);border-radius:16px;overflow:hidden;position:relative;cursor:pointer;transition:transform .25s,border-color .25s;}
+.vcard:hover{transform:translateY(-6px);border-color:rgba(251,191,36,.22);}
+.vcard-img{position:relative;background:var(--s1);overflow:hidden;min-height:150px;display:flex;align-items:center;justify-content:center;}
+.vcard-img img{width:100%;display:block;transition:transform .35s;}
+.vcard:hover .vcard-img img{transform:scale(1.06);}
+.vcard-body{padding:10px;}
+.vcard-name{font-family:'Fraunces',sans-serif;font-weight:800;font-size:12px;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.vcard-sub{font-size:9px;color:var(--muted);margin-bottom:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.vcard-price{font-family:'Space Mono',monospace;font-size:14px;font-weight:700;color:var(--amber);margin-bottom:2px;}
+.vcard-pnl{font-family:'Space Mono',monospace;font-size:10px;font-weight:700;}
+.vcard-rm{position:absolute;top:7px;right:7px;width:22px;height:22px;background:rgba(0,0,0,.7);border:none;border-radius:50%;color:var(--loss);font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .2s;z-index:2;}
+.vcard:hover .vcard-rm{opacity:1;}
+/* Set completion */
+.setcomp{margin-bottom:28px;}
+.setcomp-hdr{font-family:'Fraunces',sans-serif;font-size:18px;font-weight:800;letter-spacing:-.3px;margin-bottom:14px;}
+.setrow{background:var(--s2);border:1px solid var(--gb);border-radius:14px;padding:14px;margin-bottom:8px;}
+.setrow-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+.setrow-name{font-family:'Fraunces',sans-serif;font-weight:800;font-size:13px;}
+.setrow-ct{font-family:'Space Mono',monospace;font-size:11px;color:var(--amber);}
+.setrow-bar{height:5px;background:var(--dim);border-radius:3px;overflow:hidden;margin-bottom:7px;}
+.setrow-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--amber),var(--pink));transition:width .6s ease;}
+.setrow-pct{font-size:10px;color:var(--muted);font-family:'Space Mono',monospace;}
+/* Missing cards mini-grid */
+.missing-grid{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;}
+.missing-card{width:44px;height:62px;border-radius:6px;background:rgba(255,255,255,.04);border:1px dashed rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .2s;flex-shrink:0;}
+.missing-card:hover{border-color:var(--amber);background:var(--amber-b);}
+.missing-card img{width:44px;height:62px;object-fit:cover;border-radius:5px;filter:grayscale(1) opacity(.3);}
+.missing-card .miss-plus{font-size:16px;color:var(--dim);}
+/* List view items */
 .col-list{display:grid;gap:8px;}
 .ci{background:var(--gl);border:1px solid var(--gb);border-radius:14px;padding:12px;display:flex;align-items:center;gap:11px;transition:border-color .2s;}
 .ci:hover{border-color:rgba(251,191,36,.14);}
@@ -791,6 +839,17 @@ img{display:block;}
 .pos{color:var(--gain);}.neg{color:var(--loss);}
 .btn-rm{background:none;border:none;color:var(--dim);font-size:15px;padding:4px;flex-shrink:0;cursor:pointer;transition:color .2s;}
 .btn-rm:hover{color:var(--loss);}
+/* Alerts tab */
+.alerts-wrap{padding:0 var(--p) 72px;}
+.alert-item{background:var(--s2);border:1px solid var(--gb);border-radius:14px;padding:14px;display:flex;align-items:center;gap:12px;margin-bottom:8px;transition:border-color .2s;}
+.alert-item:hover{border-color:rgba(56,189,248,.18);}
+.alert-item img{width:44px;border-radius:7px;flex-shrink:0;}
+.alert-info{flex:1;min-width:0;}
+.alert-name{font-family:'Fraunces',sans-serif;font-weight:800;font-size:13px;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.alert-target{font-family:'Space Mono',monospace;font-size:12px;color:var(--blue);}
+.alert-status{font-size:9px;font-family:'Space Mono',monospace;padding:2px 7px;border-radius:100px;}
+.as-active{background:var(--gain-g);color:var(--gain);border:1px solid rgba(52,211,153,.2);}
+.as-triggered{background:var(--amber-b);color:var(--amber);border:1px solid rgba(251,191,36,.2);}
 
 /* WATCHLIST ITEM */
 .wi{background:var(--gl);border:1px solid var(--gb);border-radius:14px;padding:12px;
@@ -1029,9 +1088,10 @@ img{display:block;}
   .hero{padding:54px var(--p) 42px;}
   .hero-tagline{font-size:clamp(44px,9vw,92px);}
   .srch-in{padding:16px 120px 16px 20px;font-size:15px;}
-  .grid{grid-template-columns:repeat(3,1fr);gap:12px;}
-  .kcard-body{padding:12px;}
-  .kname{font-size:13px;}
+  .grid{grid-template-columns:repeat(3,1fr);gap:14px;}
+  .kcard-img{min-height:190px;}
+  .kcard-body{padding:13px;}
+  .kname{font-size:14px;}
   .kprice{font-size:16px;}
   .hot-grid{grid-template-columns:repeat(3,1fr);}
   .sealed-grid{grid-template-columns:repeat(3,1fr);}
@@ -1074,7 +1134,8 @@ img{display:block;}
   .hero-cols{flex-direction:row;}
   .hero-right{display:flex;align-items:center;justify-content:center;}
   .hero-sub{font-size:15px;}
-  .grid{grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:14px;}
+  .grid{grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px;}
+  .kcard-img{min-height:210px;}
   .hot-grid{grid-template-columns:repeat(5,1fr);}
   .sealed-grid{grid-template-columns:repeat(4,1fr);}
   .coming-grid{grid-template-columns:repeat(3,1fr);}
@@ -1149,6 +1210,8 @@ export default function DraGold(){
   const [nbType,setNbType]   = useState("9p");
   const [hotPicks,setHotPicks] = useState([]); // popolata da Supabase hot_picks table
   const [hotLoading,setHotLoading] = useState(false);
+  const [alerts,setAlerts]   = useState([]); // alert attivi dell'utente
+  const [alertsLoaded,setAlertsLoaded] = useState(false);
 
   const langRef = useRef(null);
   const userRef = useRef(null);
@@ -1199,61 +1262,18 @@ export default function DraGold(){
 
   // Persistenza Supabase per portfolio (vault). Quando l'utente è loggato la fonte
   // primaria è la tabella `collection`; localStorage resta come cache locale.
-  const addToCol = async (card, condition = 'NM') => {
-  if (!user) {
-    alert('Please log in to add cards to your collection');
-    return;
-  }
-  const { data: existing, error: checkErr } = await supabase
-    .from('collection')
-    .select('id')
-    .eq('user_id', user.id)
-    .eq('card_api_id', card.id)
-    .maybeSingle();
-  if (existing) {
-    // already in collection, do nothing or increment quantity later
-    return;
-  }
-  const insert = {
-    user_id: user.id,
-    card_api_id: card.id,
-    tcg: card.tcg || 'pokemon',
-    card_name: card.name,
-    set_name: card.set,
-    card_number: card.number,
-    rarity: card.rarity,
-    image_url: card.image,
-    language: card.lang || 'en',
-    condition: condition,
-    fmv_snapshot: card.price,
-    purchase_price: null,
-    purchase_date: null,
-    notes: null,
-    added_at: new Date().toISOString()
-  };
-  const { error } = await supabase.from('collection').insert(insert);
-  if (error) {
-    console.error('addToCol error:', error);
-    alert('Failed to add card to collection');
-  } else {
-    // refresh vault after add
-   const loadUserCollection = async () => {
-  if (!user) {
-    setColCards([]);
-    return;
-  }
-  const { data, error } = await supabase
-    .from('collection')
-    .select('*')
-    .eq('user_id', user.id);
-  if (error) {
-    console.error('loadUserCollection error:', error);
-    setColCards([]);
-  } else {
-    setColCards(data || []);
-  }
-};
-};
+  const addToCol=async(card,fmvObj,img,tcgType)=>{
+    if(!user){setAuthPending({card,fmvObj,img,tcgType});setAuthMode("register");return;}
+    const cid=card.id||card.name;
+    if(inCol(cid)) return;
+    const fmv=fmvObj?.fmv||0;
+    const paidNum=parseFloat(paid)||0;
+    const inferredTcg=card._tcg||tcgType||tcg;
+    const cardName=card.name;
+    const cardSet=card.set?.name||card.set_name||"";
+    const cardLang=inferredTcg==="pokemon"?(card._lang||clang||"en"):(card._lang||"en");
+    const local={id:cid,name:cardName,set:cardSet,img,lang:cardLang,flag:inferredTcg==="pokemon"?(aLang?.f||""):(TCG_LIST.find(t=>t.id===inferredTcg)?.emoji||"🃏"),tcgType:inferredTcg,condition:selCond,market:fmv,paid:paidNum,spark:mkSpark(fmv||10)};
+    await saveCol([...col,local]);
     // Persist to Supabase. Schema reale tabella `collection`:
     // card_api_id, card_name, set_name, card_number, rarity, image_url, language,
     // condition, purchase_price, fmv_snapshot, fmv_currency, added_at, ...
@@ -1453,6 +1473,28 @@ export default function DraGold(){
     // eslint-disable-next-line react-hooks/exhaustive-deps
   },[col.length, user?.id]);
 
+  // Alerts loader: fetch active alerts for logged-in user
+  useEffect(()=>{
+    if(!supabaseReady||!user?.id){setAlerts([]);return;}
+    let cancelled=false;
+    (async()=>{
+      try{
+        const {data,error}=await supabase
+          .from('alerts')
+          .select('id, card_id, tcg, card_api_id, target_eur, direction, is_active, email, created_at, triggered_at')
+          .eq('user_id',user.id)
+          .order('created_at',{ascending:false})
+          .limit(50);
+        if(cancelled) return;
+        if(!error && Array.isArray(data)){
+          setAlerts(data);
+        }
+      }catch{}
+      finally{if(!cancelled) setAlertsLoaded(true);}
+    })();
+    return()=>{cancelled=true;};
+  },[user?.id]);
+
   // Hot Picks loader: fetch daily top movers from Supabase hot_picks table.
   // Joins to cards for name/image and reads current_price + delta_pct directly.
   useEffect(()=>{
@@ -1516,15 +1558,18 @@ export default function DraGold(){
     if(!query) return;
     setLoading(true);setSearched(true);setCards([]);setDemo(false);setShowSugg(false);
 
-    const detectedLang = detectLang(query) || clang;
+    // Detect script for Japanese/Korean queries — but always search ALL langs cross-DB
+    const detectedLang = detectLang(query) || "en";
     if(detectedLang!==clang) setClang(detectedLang);
 
-    // 1) SUPABASE CATALOG — always cross-TCG (tcg_filter=null) so any card in any TCG matches.
+    // 1) SUPABASE CATALOG — cross-TCG, cross-language (lang_filter=null = tutte le lingue)
+    // Se cerco "Charizard" trovo EN+JP+IT insieme, ognuno col proprio _lang e immagine corretta.
     let supabaseHits=[];
     if(supabaseReady){
       try{
+        // Prima cerca in tutte le lingue (lang_filter=null)
         const {data,error}=await supabase.rpc('search_cards',{
-          q:query, tcg_filter:null, lang_filter:detectedLang, limit_n:50,
+          q:query, tcg_filter:null, lang_filter:null, limit_n:60,
         });
         if(!error && Array.isArray(data) && data.length){
           supabaseHits=data.map(r=>({
@@ -1534,23 +1579,7 @@ export default function DraGold(){
             images:{small:r.image_url,large:r.image_url},
             image_uris:{small:r.image_url,normal:r.image_url,large:r.image_url},
             card_images:[{image_url:r.image_url,image_url_small:r.image_url}],
-            _supabase:true,_lang:r.lang,_tcg:r.tcg,
-            _supabasePrice:r.price_usd,_priceSource:r.price_source,
-          }));
-        }
-        // Fall back to EN if the localized search came up empty (asian queries may match EN catalog)
-        if(supabaseHits.length===0 && detectedLang!=='en'){
-          const {data:enData}=await supabase.rpc('search_cards',{
-            q:query, tcg_filter:null, lang_filter:'en', limit_n:50,
-          });
-          if(Array.isArray(enData)) supabaseHits=enData.map(r=>({
-            id:r.id, name:r.name, number:r.card_number||"", rarity:r.rarity||"",
-            supertype:r.tcg==="pokemon"?"Pokémon":r.tcg==="mtg"?"Creature":r.tcg==="ygo"?"Monster":"Character",
-            set:{id:r.set_name,name:r.set_name||""}, set_name:r.set_name,
-            images:{small:r.image_url,large:r.image_url},
-            image_uris:{small:r.image_url,normal:r.image_url,large:r.image_url},
-            card_images:[{image_url:r.image_url,image_url_small:r.image_url}],
-            _supabase:true,_lang:r.lang,_tcg:r.tcg,
+            _supabase:true,_lang:r.lang||"en",_tcg:r.tcg,
             _supabasePrice:r.price_usd,_priceSource:r.price_source,
           }));
         }
@@ -1685,11 +1714,6 @@ export default function DraGold(){
       // onepiece or unknown — use generic supabase price path
       const fmvObj=card._supabasePrice!=null?calcFMV(card):(card._justtcgPrice?{fmv:+card._justtcgPrice,fmvEUR:+(card._justtcgPrice*EUR_RATE).toFixed(2),net:+(card._justtcgPrice*0.87).toFixed(2),netEUR:+(card._justtcgPrice*EUR_RATE*0.87).toFixed(2)}:null);
       const img=card.images?.large||card.images?.small;
-      // if we have a price from Supabase (card_prices_latest), use it
-if (card._supabasePrice && card._supabasePrice > 0) {
-  card.price = card._supabasePrice;
-  card.currency = 'EUR';
-}
       return{fmvObj,img,smallImg:card.images?.small||img,setName:card.set_name||card.set?.name,rarity:card.rarity,type2:card.supertype||'Card',buyLink:ebayURL(card.name,"",country,null,cardTcg||'pokemon'),sellLink:ebaySellURL(card.name,"",country)};
     }
   };
@@ -1698,7 +1722,11 @@ if (card._supabasePrice && card._supabasePrice > 0) {
   const FeaturedCard=({card})=>{
     const{fmvObj,img,setName,rarity,buyLink,sellLink,tcgPrice}=getCardData(card);
     const already=inCol(card.id||card.name);const watching=inWatch(card.id||card.name);
-    const fmvD=fmvObj?(cur==="EUR"?`€${fmvObj.fmvEUR}`:`$${fmvObj.fmv}`):null;
+    const cardTcgF=card._tcg||tcg;
+    const cardLangF=card._lang||clang||"en";
+    const langInfoF=CARD_LANGS.find(x=>x.c===cardLangF);
+    const langSuffix=cardTcgF==="pokemon"&&cardLangF!=="en"?` [${cardLangF.toUpperCase()}]`:"";
+    const fmvD=fmvObj?(cur==="EUR"?`€${fmvObj.fmvEUR}`:`$${fmvObj.fmv}`):"Prezzo non disponibile";
     const netD=fmvObj?(cur==="EUR"?`€${fmvObj.netEUR}`:`$${fmvObj.net}`):null;
     return(
       <div className="feat">
@@ -1706,25 +1734,27 @@ if (card._supabasePrice && card._supabasePrice > 0) {
           <HoloCard src={img} alt={card.name} big onClick={()=>setDetail(card)}/>
         </div>
         <div className="feat-body">
-          <div className="feat-lbl">Top result   {activeTCG.emoji} {activeTCG.label}</div>
-          <div className="feat-name gt-gold">{card.name}</div>
+          <div className="feat-lbl">Risultato principale   {cardTcgF==="pokemon"?"🔴 Pokémon":cardTcgF==="mtg"?"🟦 Magic":"⭐ Yu-Gi-Oh!"}</div>
+          <div className="feat-name gt-gold">{card.name}{langSuffix}</div>
           <div className="feat-set">{setName}{card.number?` #${card.number}`:""}</div>
           <div className="feat-badges">
             {rarity&&<span className="mb mb-r">{rarity}</span>}
-            {tcg==="pokemon"&&<span className="mb mb-l">{aLang?.f} {aLang?.l}</span>}
+            {langInfoF&&cardLangF!=="en"&&<span className="mb mb-l">{langInfoF.f} {langInfoF.l}</span>}
           </div>
-          {fmvD&&(<>
+          {fmvObj?(<>
             <div>
               <div className="feat-price gt">{fmvD}</div>
-              <div className="feat-price-ref">Fair Market Value   TCGPlayer + eBay avg</div>
-              <div className="feat-net">Net sell after fees: {netD}</div>
+              <div className="feat-price-ref">Fair Market Value · Cardmarket avg</div>
+              {netD&&<div className="feat-net">Net sell dopo commissioni: {netD}</div>}
             </div>
-            {tcgPrice&&<div className="pref">
-              <span className="pref-i">TCGPlayer <span>${tcgPrice.toFixed(2)}</span></span>
-              <span className="pref-i">CM <span>~€{(tcgPrice*EUR_RATE*0.88).toFixed(2)}</span></span>
-              <span className="pref-i">eBay <span>${(tcgPrice*1.06).toFixed(2)}</span></span>
-            </div>}
-          </>)}
+            <div className="pref">
+              <span className="pref-i">TCGPlayer <span>{tcgPrice?`$${tcgPrice.toFixed(2)}`:`$${fmvObj.fmv.toFixed(2)}`}</span></span>
+              <span className="pref-i">CM <span>€{tcgPrice?(tcgPrice*EUR_RATE*0.88).toFixed(2):(fmvObj.fmvEUR*0.88).toFixed(2)}</span></span>
+              <span className="pref-i">eBay <span>{tcgPrice?`$${(tcgPrice*1.06).toFixed(2)}`:`$${(fmvObj.fmv*1.06).toFixed(2)}`}</span></span>
+            </div>
+          </>):(
+            <div className="feat-price-ref" style={{color:"var(--dim)",fontStyle:"italic",marginBottom:8}}>Prezzo temporaneamente non disponibile</div>
+          )}
           <div className="feat-actions">
             <a href={buyLink} target="_blank" rel="noopener noreferrer" className="btn-buy">
               🛒 {region==="EU"?"EU eBay":"eBay"}
@@ -1732,7 +1762,7 @@ if (card._supabasePrice && card._supabasePrice > 0) {
             <button className={`btn-ghost${already?" in":""}`} onClick={()=>already?removeFromCol(card.id||card.name):setDetail(card)}>
               {already?"✓ Vault":"+ Vault"}
             </button>
-            <button className={`btn-heart${watching?" on":""}`} onClick={()=>toggleWatch(card,fmvObj,img,tcg)}>{watching?"♥":"♡"}</button>
+            <button className={`btn-heart${watching?" on":""}`} onClick={()=>toggleWatch(card,fmvObj,img,cardTcgF)}>{watching?"♥":"♡"}</button>
           </div>
         </div>
       </div>
@@ -1746,22 +1776,35 @@ if (card._supabasePrice && card._supabasePrice > 0) {
     const fmvD=fmvObj?(cur==="EUR"?`€${fmvObj.fmvEUR}`:`$${fmvObj.fmv}`):null;
     const netD=fmvObj?(cur==="EUR"?`€${fmvObj.netEUR}`:`$${fmvObj.net}`):null;
     const setLabel=card.set?.name||card.set_name||card.type||"";
+    const cardTcg=card._tcg||tcg;
+    const cardLangCode=card._lang||"en";
+    // Suffisso lingua: se carta non-EN, mostra [JP], [IT] etc.
+    const langSuffixCard=cardTcg==="pokemon"&&cardLangCode&&cardLangCode!=="en"?` [${cardLangCode.toUpperCase()}]`:"";
+    const displayName=card.name+(langSuffixCard);
+    // Lang badge: per pokemon mostra lang, per altri mostra TCG
+    const langBadge=cardTcg==="pokemon"
+      ? (() => { const l=CARD_LANGS.find(x=>x.c===cardLangCode); return l?`${l.f} ${l.c.toUpperCase()}`:null; })()
+      : cardTcg==="mtg"?"✦ MTG":cardTcg==="ygo"?"★ YGO":cardTcg==="onepiece"?"⚓ OP":null;
     return(
       <div className={`kcard r${rl}`} style={{animationDelay:`${idx*0.045}s`}}>
         <div className="kcard-img" onClick={()=>setDetail(card)}>
-          {smallImg?<img src={smallImg} alt={card.name} loading="lazy"/>:<div style={{height:170,background:"var(--s1)"}}/>}
+          {smallImg?<img src={smallImg} alt={card.name} loading="lazy"/>:<div style={{width:"100%",aspectRatio:"3/4",background:"var(--s1)"}}/>}
           <div className="holo-s"/><div className="holo-sh"/>
         </div>
         <div className="kcard-body">
-          <div className="kname" onClick={()=>setDetail(card)}>{card.name}</div>
-          <div className="kset">{setLabel}</div>
-          {tcg==="pokemon"&&<span className="klang">{aLang?.f} {aLang?.l}</span>}
-          {fmvD?(<><div className="kprice">{fmvD}</div><div className="kprice-lbl">FMV</div><div className="knet">Net {netD}</div></>)
-            :<div className="kprice-lbl" style={{marginBottom:14}}>No price data</div>}
+          <div className="kname" onClick={()=>setDetail(card)}>{displayName}</div>
+          <div className="kset">{setLabel}{card.number?` #${card.number}`:""}</div>
+          {langBadge&&<span className={cardTcg==="pokemon"?"klang":"klang-tcg"}>{langBadge}</span>}
+          {card.rarity&&<span className="mb mb-r" style={{display:"inline-block",marginBottom:6,fontSize:9}}>{card.rarity}</span>}
+          {fmvD?(<>
+            <div className="kprice">{fmvD}</div>
+            <div className="kprice-lbl">FMV</div>
+            <div className="knet">Net {netD}</div>
+          </>):<div className="kno-price">Prezzo temporaneamente non disponibile</div>}
           <div className="kact">
             <a href={buyLink} target="_blank" rel="noopener noreferrer" className="btn-es">🛒 eBay</a>
             <button className={`btn-add-k${already?" in":""}`} onClick={()=>already?null:setDetail(card)}>{already?"✓":"+"}</button>
-            <button className={`btn-h-k${watching?" on":""}`} onClick={()=>toggleWatch(card,fmvObj,smallImg,tcg)}>{watching?"♥":"♡"}</button>
+            <button className={`btn-h-k${watching?" on":""}`} onClick={()=>toggleWatch(card,fmvObj,smallImg,cardTcg)}>{watching?"♥":"♡"}</button>
           </div>
         </div>
       </div>
@@ -1772,13 +1815,37 @@ if (card._supabasePrice && card._supabasePrice > 0) {
     const{fmvObj,img,setName,rarity,type2,buyLink,sellLink,tcgPrice}=getCardData(card);
     const already=inCol(card.id||card.name);const watching=inWatch(card.id||card.name);
     const psa=fmvObj?psaEst(fmvObj.fmv):null;
-    const fmvD=fmvObj?(cur==="EUR"?`€${fmvObj.fmvEUR}`:`$${fmvObj.fmv}`):"No data";
+    const fmvD=fmvObj?(cur==="EUR"?`€${fmvObj.fmvEUR}`:`$${fmvObj.fmv}`):"Prezzo non disponibile";
     const netD=fmvObj?(cur==="EUR"?`€${fmvObj.netEUR}`:`$${fmvObj.net}`):null;
     const psaD=(u,e)=>cur==="EUR"?`€${e}`:`$${u}`;
     const priceHist=useMemo(()=>fmvObj?mkPriceHist(fmvObj.fmv,30):null,[fmvObj?.fmv]);
     const histColor=priceHist&&priceHist[priceHist.length-1]>=priceHist[0]?"#34d399":"#f87171";
     const hist7=priceHist?.slice(-7);
     const isPro=false; // will be true when plans activated
+    const cardTcg=card._tcg||tcg;
+    const cardLangCode=card._lang||clang||"en";
+    // Compute competitor prices from available data
+    const cmEur=fmvObj&&tcgPrice?(tcgPrice*EUR_RATE*0.88).toFixed(2):fmvObj?(fmvObj.fmvEUR*0.88).toFixed(2):null;
+    const tcgUsd=tcgPrice?.toFixed(2)||fmvObj?.fmv?.toFixed(2)||null;
+    const ebayEst=tcgPrice?(tcgPrice*1.06).toFixed(2):fmvObj?(fmvObj.fmv*1.06).toFixed(2):null;
+    // Other versions — same card name in different languages
+    const [otherVersions,setOtherVersions]=useState([]);
+    useEffect(()=>{
+      if(!supabaseReady||!card.name) return;
+      let cancelled=false;
+      (async()=>{
+        try{
+          const {data}=await supabase.rpc('search_cards',{
+            q:card.name, tcg_filter:cardTcg==="pokemon"?"pokemon":null, lang_filter:null, limit_n:20,
+          });
+          if(cancelled||!Array.isArray(data)) return;
+          const others=data.filter(r=>r.id!==card.id && r.name===card.name).slice(0,6);
+          setOtherVersions(others);
+        }catch{}
+      })();
+      return()=>{cancelled=true;};
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    },[card.id]);
 
     return(
       <div className="ov" onClick={e=>e.target===e.currentTarget&&setDetail(null)}>
@@ -1804,17 +1871,35 @@ if (card._supabasePrice && card._supabasePrice > 0) {
           <div className="dmod-body">
             {/* FMV block */}
             <div className="fmv-block">
-              <div>
+              <div style={{flex:1}}>
                 <div className="fmv-val gt">{fmvD}</div>
-                <div className="fmv-lbl">Fair Market Value   weighted avg</div>
-                {netD&&<div className="fmv-net">Net sell: {netD}</div>}
-                {tcgPrice&&<div className="comp-prices">
-                  <div className="comp-i"><div className="comp-lbl">TCGPlayer</div><div className="comp-v">${tcgPrice.toFixed(2)}</div></div>
-                  <div className="comp-i"><div className="comp-lbl">Cardmarket</div><div className="comp-v">€{(tcgPrice*EUR_RATE*0.88).toFixed(2)}</div></div>
-                  <div className="comp-i"><div className="comp-lbl">eBay</div><div className="comp-v">${(tcgPrice*1.06).toFixed(2)}</div></div>
-                </div>}
+                <div className="fmv-lbl">Fair Market Value   Cardmarket avg</div>
+                {netD&&<div className="fmv-net">Net sell dopo commissioni: {netD}</div>}
+                {/* Competitor prices — sempre visibili */}
+                <div className="comp-prices" style={{marginTop:10}}>
+                  <div className="comp-i">
+                    <div className="comp-lbl">TCGPlayer</div>
+                    <div className="comp-v">{tcgUsd?`$${tcgUsd}`:"—"}</div>
+                  </div>
+                  <div className="comp-i">
+                    <div className="comp-lbl">Cardmarket</div>
+                    <div className="comp-v">{cmEur?`€${cmEur}`:"—"}</div>
+                  </div>
+                  <div className="comp-i">
+                    <div className="comp-lbl">eBay est.</div>
+                    <div className="comp-v">{ebayEst?`$${ebayEst}`:"—"}</div>
+                  </div>
+                </div>
+                {/* Extra info */}
+                <div style={{display:"flex",gap:10,flexWrap:"wrap",marginTop:8}}>
+                  {card.number&&<span style={{fontSize:10,color:"var(--muted)",fontFamily:"'Space Mono',monospace"}}># {card.number}</span>}
+                  {rarity&&<span style={{fontSize:10,color:"var(--amber)",fontFamily:"'Space Mono',monospace"}}>{rarity}</span>}
+                  {card._lang&&<span style={{fontSize:10,color:"var(--purple)",fontFamily:"'Space Mono',monospace"}}>{(CARD_LANGS.find(x=>x.c===card._lang)||{f:"",c:card._lang}).f} {card._lang?.toUpperCase()}</span>}
+                  {card.artist&&<span style={{fontSize:10,color:"var(--txt2)"}}>Art: {card.artist}</span>}
+                  {card.set?.releaseDate&&<span style={{fontSize:10,color:"var(--dim)",fontFamily:"'Space Mono',monospace"}}>{card.set.releaseDate?.slice(0,4)}</span>}
+                </div>
               </div>
-              <a href={buyLink} target="_blank" rel="noopener noreferrer" className="btn-buy" style={{fontSize:12,padding:"9px 14px",alignSelf:"center"}}>
+              <a href={buyLink} target="_blank" rel="noopener noreferrer" className="btn-buy" style={{fontSize:12,padding:"9px 14px",alignSelf:"flex-start",flexShrink:0}}>
                 🛒 {region==="EU"?"EU eBay":"eBay"}
               </a>
             </div>
@@ -1867,7 +1952,7 @@ if (card._supabasePrice && card._supabasePrice > 0) {
             </div>}
 
             {/* PSA */}
-            {psa&&tcg==="pokemon"&&(
+            {psa&&cardTcg==="pokemon"&&(
               <div className="psa-block">
                 <div className="psa-title gt">PSA Graded Estimates</div>
                 <div className="psa-sub">Multipliers: 10=3.2x   9=1.6x   8=1.1x   {region==="EU"?"EU":"US"} eBay listings.</div>
@@ -1903,7 +1988,36 @@ if (card._supabasePrice && card._supabasePrice > 0) {
               </div>
             </div>
 
-            <div className="mod-note">FMV = weighted avg. Net sell = after eBay 13% fee. Estimates only.</div>
+            {/* ALTRE VERSIONI */}
+            {otherVersions.length>0&&(
+              <div style={{marginBottom:14}}>
+                <div style={{fontFamily:"'Fraunces',sans-serif",fontWeight:800,fontSize:13,marginBottom:10}}>
+                  Altre versioni ({otherVersions.length})
+                </div>
+                <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8}}>
+                  {otherVersions.map(v=>{
+                    const langInfo=CARD_LANGS.find(x=>x.c===v.lang)||{f:"",c:v.lang||"en"};
+                    const vPrice=v.price_usd?(cur==="EUR"?`€${(+v.price_usd*EUR_RATE).toFixed(2)}`:`$${(+v.price_usd).toFixed(2)}`):null;
+                    return(
+                      <div key={v.id} onClick={()=>setDetail({
+                        id:v.id,name:v.name,number:v.card_number||"",rarity:v.rarity||"",
+                        set:{name:v.set_name||""},images:{small:v.image_url,large:v.image_url},
+                        _supabase:true,_lang:v.lang,_tcg:v.tcg,_supabasePrice:v.price_usd,
+                      })} style={{cursor:"pointer",background:"rgba(255,255,255,.04)",border:"1px solid rgba(255,255,255,.08)",borderRadius:10,padding:8,textAlign:"center",transition:"border-color .2s"}}
+                      onMouseEnter={e=>e.currentTarget.style.borderColor="rgba(251,191,36,.3)"}
+                      onMouseLeave={e=>e.currentTarget.style.borderColor="rgba(255,255,255,.08)"}>
+                        {v.image_url?<img src={v.image_url} alt={v.name} style={{width:"100%",borderRadius:6,marginBottom:5}}/>:<div style={{height:60,background:"var(--s1)",borderRadius:6,marginBottom:5}}/>}
+                        <div style={{fontFamily:"'Space Mono',monospace",fontSize:9,color:"var(--purple)",marginBottom:2}}>{langInfo.f} {(v.lang||"en").toUpperCase()}</div>
+                        <div style={{fontSize:9,color:"var(--muted)"}}>{v.set_name||""}</div>
+                        {vPrice&&<div style={{fontFamily:"'Space Mono',monospace",fontSize:11,fontWeight:700,color:"var(--amber)",marginTop:3}}>{vPrice}</div>}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            <div className="mod-note">FMV = media Cardmarket. Net sell = dopo commissione eBay 13%. Stime indicative.</div>
           </div>
         </div>
       </div>
@@ -2187,6 +2301,85 @@ if (card._supabasePrice && card._supabasePrice > 0) {
     </div>
   );
 
+  // SET COMPLETION TAB — raggruppa le carte del vault per set e mostra avanzamento
+  const SetCompletionTab=()=>{
+    const [setTotals,setSetTotals]=useState({});
+    const [loadingSets,setLoadingSets]=useState(false);
+    // Raggruppa vault per set
+    const grouped=useMemo(()=>{
+      const m={};
+      col.forEach(item=>{
+        const key=item.set||"Unknown Set";
+        if(!m[key]) m[key]={name:key,owned:[],tcg:item.tcgType};
+        m[key].owned.push(item);
+      });
+      return Object.values(m);
+    },[col]);
+    // Carica totali set da Supabase
+    useEffect(()=>{
+      if(!supabaseReady||grouped.length===0) return;
+      let cancelled=false;
+      setLoadingSets(true);
+      (async()=>{
+        const results={};
+        await Promise.all(grouped.map(async g=>{
+          try{
+            const {count}=await supabase.from('cards')
+              .select('id',{count:'exact',head:true})
+              .eq('set_name',g.name);
+            if(!cancelled) results[g.name]=count||0;
+          }catch{results[g.name]=0;}
+        }));
+        if(!cancelled){setSetTotals(results);setLoadingSets(false);}
+      })();
+      return()=>{cancelled=true;};
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    },[grouped.length]);
+
+    if(col.length===0) return(
+      <div className="col-empty">
+        <span className="col-ei">📦</span>
+        <div className="col-et">Vault vuoto</div>
+        <p className="col-es">Aggiungi carte al Vault per vedere il completamento dei set.</p>
+      </div>
+    );
+    return(
+      <div className="setcomp">
+        <div className="setcomp-hdr gt">Set Completion</div>
+        {grouped.map(g=>{
+          const total=setTotals[g.name]||g.owned.length;
+          const pct=total>0?Math.round((g.owned.length/total)*100):100;
+          return(
+            <div key={g.name} className="setrow">
+              <div className="setrow-top">
+                <div className="setrow-name">{g.name}</div>
+                <div className="setrow-ct">{g.owned.length}/{loadingSets?"…":total} · {pct}%</div>
+              </div>
+              <div className="setrow-bar"><div className="setrow-fill" style={{width:`${pct}%`}}/></div>
+              <div className="setrow-pct">{pct===100?"✓ Completo!":pct>=80?"Quasi completo":pct>=50?"A metà strada":"In costruzione"}</div>
+              {/* Mini preview carte possedute */}
+              <div className="missing-grid">
+                {g.owned.slice(0,8).map(c=>(
+                  <div key={c.id} className="missing-card" title={c.name} onClick={()=>setDetail({
+                    id:c.id,name:c.name,set:{name:c.set},images:{small:c.img,large:c.img},
+                    _lang:c.lang,_tcg:c.tcgType,_supabasePrice:c.market,
+                  })}>
+                    {c.img?<img src={c.img} alt={c.name}/>:<span className="miss-plus">{c.name?.[0]}</span>}
+                  </div>
+                ))}
+                {g.owned.length<total&&(
+                  <div className="missing-card" title="Aggiungi carte mancanti" onClick={()=>{setQ(g.name);setTab("explore");setTimeout(()=>doSearch(),100);}}>
+                    <span className="miss-plus">+</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
   const BinderTab=()=>(
     <div className="binder-wrap">
       <div className="binder-hdr">
@@ -2283,18 +2476,20 @@ if (card._supabasePrice && card._supabasePrice > 0) {
             </div>}
           </div>
           {user?(
-            <div className="ldw" ref={userRef}>
+            <div className="ldw-x" ref={userRef}>
               <div className="user-chip" onClick={()=>setUserMenuOpen(x=>!x)}>
                 <div className="user-av">{user.name?.[0]?.toUpperCase()||"U"}</div>
-                <span style={{display:"none"}} className="hide-xs">{user.name}</span>
+                <span style={{fontSize:11,maxWidth:100,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{user.email||user.name}</span>
               </div>
               {userMenuOpen&&<div className="ldm">
-                <div className="lo" onClick={()=>{setPlansOpen(true);setUserMenuOpen(false);}}>Plans</div>
-                <div className="lo" onClick={doLogout} style={{color:"var(--loss)"}}>Sign out</div>
+                <div className="lo" onClick={()=>{setTab("col");setColTab("vault");setUserMenuOpen(false);}}>🐉 Vault</div>
+                <div className="lo" onClick={()=>{setTab("alerts");setUserMenuOpen(false);}}>🔔 Alerts</div>
+                <div className="lo" onClick={()=>{setPlansOpen(true);setUserMenuOpen(false);}}>🚀 Plans</div>
+                <div className="lo" onClick={doLogout} style={{color:"var(--loss)"}}>Esci</div>
               </div>}
             </div>
           ):(
-            <button className="auth-btn" onClick={()=>setAuthMode("register")}>Join free</button>
+            <button className="auth-btn" onClick={()=>setAuthMode("register")}>Unisciti gratis</button>
           )}
         </div>
       </nav>
@@ -2319,12 +2514,15 @@ if (card._supabasePrice && card._supabasePrice > 0) {
       <div className="tbar">
         <div className="tabs">
           <button className={`tb${tab==="explore"?" on":""}`} onClick={()=>setTab("explore")}>Explore</button>
-          <button className={`tb${tab==="sealed"?" on":""}`} onClick={()=>setTab("sealed")}>Sealed</button>
-          <button className={`tb${tab==="binder"?" on":""}`} onClick={()=>setTab("binder")}>Binder</button>
-          <button className={`tb${tab==="blog"?" on":""}`} onClick={()=>setTab("blog")}>Blog</button>
           <button className={`tb${tab==="col"?" on":""}`} onClick={()=>setTab("col")}>
             Vault{col.length>0&&<span className="tbb">{col.length}</span>}
           </button>
+          <button className={`tb${tab==="alerts"?" on":""}`} onClick={()=>setTab("alerts")}>
+            Alerts{alerts.filter(a=>a.is_active).length>0&&<span className="tbb">{alerts.filter(a=>a.is_active).length}</span>}
+          </button>
+          <button className={`tb${tab==="sealed"?" on":""}`} onClick={()=>setTab("sealed")}>Sealed</button>
+          <button className={`tb${tab==="binder"?" on":""}`} onClick={()=>setTab("binder")}>Binder</button>
+          <button className={`tb${tab==="blog"?" on":""}`} onClick={()=>setTab("blog")}>Blog</button>
         </div>
       </div>
 
@@ -2338,18 +2536,9 @@ if (card._supabasePrice && card._supabasePrice > 0) {
           <div className="hero-inner">
             <div className="hero-cols">
               <div className="hero-left">
-                <div className="hero-badge"><span className="bdot"/>Beta   Pokémon   Magic   Yu-Gi-Oh!</div>
+                <div className="hero-badge"><span className="bdot"/>Beta   Pokémon · Magic · Yu-Gi-Oh!</div>
                 <span className="hero-tagline gt">For serious collectors.</span>
-                <p className="hero-sub">One fair price across TCGPlayer and eBay. PSA estimates. Digital binder. Watchlist. No guesses.</p>
-                <div className="tcg-row">
-                  {TCG_LIST.map(tc=>(
-                    <button key={tc.id} className={`tcg-btn${tcg===tc.id?" on":""}`}
-                      style={tcg===tc.id?{borderColor:tc.color,color:tc.color,background:`${tc.color}12`,boxShadow:`0 0 16px ${tc.color}28`}:{}}
-                      onClick={()=>changeTCG(tc.id)}>
-                      <span>{tc.emoji}</span><span>{tc.label}</span>
-                    </button>
-                  ))}
-                </div>
+                <p className="hero-sub">Cerca qualsiasi carta — Pokémon, Magic, Yu-Gi-Oh! — in tutte le lingue. Prezzi FMV in EUR, PSA estimates, Watchlist e Vault.</p>
                 <div className="srch" style={{position:"relative"}}>
                   <input className="srch-in" type="text"
                     placeholder="Search any card by name, number or set..."
@@ -2395,19 +2584,7 @@ if (card._supabasePrice && card._supabasePrice > 0) {
           </div>
         </section>
 
-        {tcg==="pokemon"&&<div className="lf">
-          <div className="lf-lbl">Card edition language</div>
-          <div className="lf-pills">
-            {CARD_LANGS.map(l=>(
-              <button key={l.c} className={`lp${clang===l.c?" on":""}${!l.live?" off":""}`}
-                onClick={()=>{if(l.live){setClang(l.c);setCards([]);setSearched(false);setDemo(false);}}}>
-                <span>{l.f}</span><span>{l.l}</span>
-                {l.hot&&<span className="lp-hot">Hot</span>}
-                {!l.live&&<span className="lp-soon">Soon</span>}
-              </button>
-            ))}
-          </div>
-        </div>}
+        {/* Language filter pills removed — search is universal across all languages */}
 
         <div className="cw">
           {loading&&<p className="rmsg">Searching the vault...</p>}
@@ -2432,7 +2609,19 @@ if (card._supabasePrice && card._supabasePrice > 0) {
               const link=ebayURL(prod.name,"",country,null,"pokemon");
               return(
                 <div key={prod.id} className="sc">
-                  <div className="sc-img-wrap"><img src={prod.img} alt={prod.name} className="sc-img"/></div>
+                  <div className="sc-img-wrap">
+                    <img
+                      src={prod.img}
+                      alt={prod.name}
+                      className="sc-img"
+                      onError={e=>{
+                        if(e.target.src!==prod.fb){
+                          e.target.src=prod.fb;
+                          e.target.classList.add("fallback");
+                        }
+                      }}
+                    />
+                  </div>
                   <div className="sc-name">{prod.name}</div>
                   <div className="sc-set">{prod.setName}</div>
                   <span className={`sc-type ty-${prod.type.toLowerCase()}`}>{prod.type}</span>
@@ -2494,20 +2683,38 @@ if (card._supabasePrice && card._supabasePrice > 0) {
           {user&&(
             <div style={{padding:'16px 16px 4px',display:'flex',alignItems:'baseline',gap:10,flexWrap:'wrap'}}>
               <div className="gt-gold" style={{fontFamily:"'Fraunces',serif",fontSize:24,fontWeight:800,letterSpacing:'-.5px'}}>
-                Welcome back, {user.name}
+                Benvenuto, {user.name}
               </div>
               <div style={{fontSize:12,color:'var(--muted)',fontFamily:"'Space Mono',monospace"}}>
-                {col.length} cards · synced to your account
+                {col.length} carte · sincronizzato
               </div>
+            </div>
+          )}
+          {/* Valore totale EUR in cima */}
+          {col.length>0&&(
+            <div style={{padding:'12px 0 4px',display:'flex',alignItems:'baseline',gap:14,flexWrap:'wrap'}}>
+              <div style={{fontFamily:"'Space Mono',monospace",fontSize:28,fontWeight:700,color:"var(--amber)",letterSpacing:-1}}>
+                €{(totalVal*EUR_RATE).toFixed(2)}
+              </div>
+              <div style={{fontSize:12,color:'var(--muted)',fontFamily:"'Space Mono',monospace"}}>
+                Valore totale portfolio FMV in EUR
+              </div>
+              {roi&&<div className={`${parseFloat(roi)>=0?"pos":"neg"}`} style={{fontFamily:"'Space Mono',monospace",fontSize:12,fontWeight:700}}>
+                ROI {roi}%
+              </div>}
             </div>
           )}
           <div className="col-tabs">
             <button className={`col-tab${colTab==="vault"?" on":""}`} onClick={()=>setColTab("vault")}>
-              Vault {col.length>0&&`(${col.length})`}
+              🐉 Vault {col.length>0&&`(${col.length})`}
+            </button>
+            <button className={`col-tab${colTab==="sets"?" on":""}`} onClick={()=>setColTab("sets")}
+              style={colTab==="sets"?{borderColor:"var(--blue)",background:"var(--blue-b)",color:"var(--blue)"}:{}}>
+              📦 Set Completion
             </button>
             <button className={`col-tab${colTab==="watchlist"?" on":""}`} onClick={()=>setColTab("watchlist")}
               style={colTab==="watchlist"?{borderColor:"var(--pink)",background:"var(--pink-b)",color:"var(--pink)"}:{}}>
-              Watchlist {watchlist.length>0&&`(${watchlist.length})`}
+              ♡ Watchlist {watchlist.length>0&&`(${watchlist.length})`}
             </button>
           </div>
 
@@ -2515,27 +2722,28 @@ if (card._supabasePrice && card._supabasePrice > 0) {
             {col.length===0?(
               <div className="col-empty">
                 <span className="col-ei">🐉</span>
-                <div className="col-et">Your vault is empty</div>
-                <p className="col-es">{user?'Search for any card — Pokémon, Magic, Yu-Gi-Oh! — and tap + Vault to add it. Prices refresh automatically.':'Sign in to start tracking your collection across devices.'}</p>
+                <div className="col-et">Il tuo Vault è vuoto</div>
+                <p className="col-es">{user?'Cerca qualsiasi carta e premi + Vault per aggiungerla. I prezzi si aggiornano automaticamente.':'Accedi per tracciare la tua collezione su tutti i dispositivi.'}</p>
                 {user?(
-                  <button className="btn-prim" style={{marginTop:14}} onClick={()=>setTab('explore')}>Search the catalog</button>
+                  <button className="btn-prim" style={{marginTop:14}} onClick={()=>setTab('explore')}>Cerca nel catalogo</button>
                 ):(
-                  <button className="btn-prim" style={{marginTop:14}} onClick={()=>setAuthMode('login')}>Sign in to your vault</button>
+                  <button className="btn-prim" style={{marginTop:14}} onClick={()=>setAuthMode('login')}>Accedi al tuo Vault</button>
                 )}
               </div>
             ):(<>
+              {/* Portfolio summary */}
               <div className="bento">
                 <div className="bento-main">
                   <div className="port-val gt">{disp(totalVal)}</div>
                   <div className={`port-chg ${portChg>=0?"pos":"neg"}`}>{portChg>=0?"+":""}{disp(Math.abs(portChg))} (30d)</div>
-                  <div className="port-lbl">Portfolio   {col.length} cards   FMV</div>
+                  <div className="port-lbl">Portfolio · {col.length} carte · FMV</div>
                   {portData&&<div className="port-chart"><LineChart data={portData} color={portChg>=0?"#34d399":"#f87171"} id="pc" h={68}/></div>}
                   <div className="range-row">
                     {["7d","30d","90d"].map(r=><button key={r} className={`rbtn${portRange===r?" on":""}`} onClick={()=>setPortRange(r)}>{r}</button>)}
                   </div>
                   <div className="port-stats">
                     <div className="pst"><span className="pst-v pos">{disp(netVal)}</span><span className="pst-l">Net Sell</span></div>
-                    <div className="pst"><span className="pst-v" style={{color:"var(--txt2)"}}>{disp(totalPaid)}</span><span className="pst-l">Invested</span></div>
+                    <div className="pst"><span className="pst-v" style={{color:"var(--txt2)"}}>{disp(totalPaid)}</span><span className="pst-l">Investito</span></div>
                     <div className="pst"><span className={`pst-v ${netVal-totalPaid>=0?"pos":"neg"}`}>{netVal-totalPaid>=0?"+":""}{disp(Math.abs(netVal-totalPaid))}</span><span className="pst-l">P&L</span></div>
                   </div>
                 </div>
@@ -2544,26 +2752,32 @@ if (card._supabasePrice && card._supabasePrice > 0) {
                   <div className="roi-lbl">ROI after fees</div>
                 </div>
               </div>
-              <div className="col-list">
-                {col.map(item=>{
+              {/* Vault grid */}
+              <div className="vault-grid">
+                {col.map((item,i)=>{
                   const profit=(item.market*0.87)-item.paid;const pos=profit>=0;
+                  const priceD=cur==="EUR"?`€${(item.market*EUR_RATE).toFixed(2)}`:`$${item.market.toFixed(2)}`;
+                  const paidD=item.paid>0?(cur==="EUR"?`€${(item.paid*EUR_RATE).toFixed(2)}`:`$${item.paid.toFixed(2)}`):null;
+                  const pnlD=item.paid>0?(cur==="EUR"?`€${Math.abs(profit*EUR_RATE).toFixed(2)}`:`$${Math.abs(profit).toFixed(2)}`):null;
+                  const langInfo=item.tcgType==="pokemon"?CARD_LANGS.find(x=>x.c===item.lang):null;
                   return(
-                    <div key={item.id} className="ci" style={{borderLeft:`3px solid ${pos?"var(--gain)":"var(--loss)"}`}}>
-                      {item.img&&<img src={item.img} alt={item.name}/>}
-                      <div className="ci-info">
-                        <div className="ci-name">{item.name}</div>
-                        <div className="ci-sub">{item.set}   {item.flag}   {item.tcgType?.toUpperCase()}</div>
-                        <div className="ci-pr">
-                          <span className="ci-fmv">{disp(item.market)}</span>
-                          {item.condition&&<span className="ci-cond">{item.condition}</span>}
-                          {item.paid>0&&(<>
-                            <span className="ci-paid">paid ${item.paid.toFixed(2)}</span>
-                            <span className={`ci-pnl ${pos?"pos":"neg"}`}>{pos?"▲":"▼"} ${Math.abs(profit).toFixed(2)}</span>
-                          </>)}
-                        </div>
+                    <div key={item.id} className="vcard" onClick={()=>setDetail({
+                      id:item.id,name:item.name,number:item.number||"",rarity:item.rarity||"",
+                      set:{name:item.set||""},images:{small:item.img,large:item.img},
+                      _lang:item.lang,_tcg:item.tcgType,_supabasePrice:item.market,
+                    })}>
+                      <div className="vcard-img">
+                        {item.img?<img src={item.img} alt={item.name} loading="lazy"/>:<div style={{width:"100%",aspectRatio:"3/4",background:"var(--s1)"}}/>}
                       </div>
-                      {item.spark&&<Spark data={item.spark} pos={pos} w={80} h={26}/>}
-                      <button className="btn-rm" onClick={()=>removeFromCol(item.id)}>✕</button>
+                      <div className="vcard-body">
+                        <div className="vcard-name">{item.name}</div>
+                        <div className="vcard-sub">{item.set} {langInfo?`· ${langInfo.f}`:""} {item.condition?`· ${item.condition}`:""}</div>
+                        <div className="vcard-price">{priceD}</div>
+                        {paidD&&<div className={`vcard-pnl ${pos?"pos":"neg"}`}>
+                          {pos?"▲":"▼"} {pnlD} {pos?"guadagno":"perdita"}
+                        </div>}
+                      </div>
+                      <button className="vcard-rm" onClick={e=>{e.stopPropagation();removeFromCol(item.id);}}>✕</button>
                     </div>
                   );
                 })}
@@ -2571,30 +2785,87 @@ if (card._supabasePrice && card._supabasePrice > 0) {
             </>)}
           </>)}
 
+          {colTab==="sets"&&(<SetCompletionTab/>)}
+
           {colTab==="watchlist"&&(<>
             {watchlist.length===0?(
               <div className="col-empty">
                 <span className="col-ei">♡</span>
-                <div className="col-et">No cards in watchlist</div>
-                <p className="col-es">Tap ♡ on any card to watch its price without adding it to your vault.</p>
+                <div className="col-et">Nessuna carta in watchlist</div>
+                <p className="col-es">Premi ♡ su qualsiasi carta per monitorare il prezzo senza aggiungerla al Vault.</p>
               </div>
             ):(
               <div className="col-list">
                 {watchlist.map(item=>(
-                  <div key={item.id} className="wi">
+                  <div key={item.id} className="wi" onClick={()=>setAlertCard({id:item.id,name:item.name,set:{name:item.set},images:{small:item.img,large:item.img},_tcg:item.tcgType})}>
                     {item.img&&<img src={item.img} alt={item.name}/>}
                     <div className="wi-info">
                       <div className="wi-name">{item.name}</div>
                       <div className="wi-set">{item.set}   {item.tcgType?.toUpperCase()}</div>
-                      <div className="wi-price">{disp(item.market)}</div>
-                      <div className="wi-alert">🔔 Set alert to track price drop</div>
+                      <div className="wi-price">{disp(item.market)||"Prezzo non disponibile"}</div>
+                      <div className="wi-alert">🔔 Clicca per impostare un alert</div>
                     </div>
-                    <button className="btn-rm" style={{color:"var(--pink)"}} onClick={()=>removeWatch(item.id)}>♥</button>
+                    <button className="btn-rm" style={{color:"var(--pink)"}} onClick={e=>{e.stopPropagation();removeWatch(item.id);}}>♥</button>
                   </div>
                 ))}
               </div>
             )}
           </>)}
+        </div>
+      )}
+
+      {/* ALERTS */}
+      {tab==="alerts"&&(
+        <div className="alerts-wrap">
+          <div style={{fontFamily:"'Fraunces',sans-serif",fontSize:22,fontWeight:800,letterSpacing:"-.4px",marginBottom:6}} className="gt">
+            I tuoi Alert Prezzi
+          </div>
+          <div style={{fontSize:13,color:"var(--muted)",marginBottom:20}}>
+            Ricevi una notifica quando una carta raggiunge il prezzo obiettivo.
+          </div>
+          {!user?(
+            <div className="col-empty">
+              <span className="col-ei">🔔</span>
+              <div className="col-et">Accedi per gestire gli alert</div>
+              <p className="col-es">Gli alert monitorano i prezzi su eBay EU e ti avvisano quando è il momento di comprare.</p>
+              <button className="btn-prim" style={{marginTop:14}} onClick={()=>setAuthMode("login")}>Accedi</button>
+            </div>
+          ):alerts.length===0?(
+            <div className="col-empty">
+              <span className="col-ei">🔔</span>
+              <div className="col-et">Nessun alert attivo</div>
+              <p className="col-es">Cerca una carta, clicca su 🔔 Alert nel dettaglio, e imposta il prezzo obiettivo. Ti avvisiamo noi.</p>
+              <button className="btn-prim" style={{marginTop:14}} onClick={()=>setTab("explore")}>Cerca una carta</button>
+            </div>
+          ):(
+            <div>
+              {alerts.map(a=>{
+                const isActive=a.is_active&&!a.triggered_at;
+                const isTriggered=!!a.triggered_at;
+                const dateStr=a.created_at?new Date(a.created_at).toLocaleDateString("it-IT",{day:"2-digit",month:"short"}):null;
+                return(
+                  <div key={a.id} className="alert-item">
+                    <div style={{width:8,height:8,borderRadius:"50%",flexShrink:0,background:isTriggered?"var(--amber)":isActive?"var(--gain)":"var(--dim)"}}/>
+                    <div className="alert-info">
+                      <div className="alert-name">{a.card_api_id||a.card_id}</div>
+                      <div className="alert-target">
+                        {a.direction==="below"?"▼":"▲"} Target: {a.target_eur!=null?`€${a.target_eur}`:"—"}
+                        {a.email&&<span style={{color:"var(--muted)",marginLeft:8}}>→ {a.email}</span>}
+                      </div>
+                      {dateStr&&<div style={{fontSize:9,color:"var(--dim)",fontFamily:"'Space Mono',monospace",marginTop:2}}>Creato {dateStr}</div>}
+                    </div>
+                    <span className={`alert-status ${isTriggered?"as-triggered":"as-active"}`}>
+                      {isTriggered?"✓ Triggered":isActive?"Attivo":"Inattivo"}
+                    </span>
+                    <button className="btn-rm" title="Elimina alert" onClick={async()=>{
+                      if(supabaseReady&&user?.id) try{await supabase.from('alerts').delete().eq('id',a.id);}catch{}
+                      setAlerts(prev=>prev.filter(x=>x.id!==a.id));
+                    }}>✕</button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 
@@ -2645,27 +2916,6 @@ if (card._supabasePrice && card._supabasePrice > 0) {
                 ))}
               </div>
             }
-            <button className="picker-close" onClick={()=>setPickingSlot(null)}>Cancel</button>
-          </div>
-        </div>
-      )}
-      {newBinderOpen&&(
-        <div className="smod-ov" onClick={e=>e.target===e.currentTarget&&setNewBinderOpen(false)}>
-          <div className="nb-modal">
-            <div className="smod-handle"/>
-            <div className="nb-title">New Binder</div>
-            <div className="nb-lbl">Name</div>
-            <input className="nb-in" type="text" placeholder="e.g. My Charizard Collection" value={nbName} onChange={e=>setNbName(e.target.value)}/>
-            <div className="nb-lbl">Type</div>
-            <div className="nb-types">
-              {BINDER_TYPES.map(t=>(
-                <div key={t.id} className={`nb-type${nbType===t.id?" on":""}`} onClick={()=>setNbType(t.id)}>
-                  <div className="nb-type-n">{t.name}</div>
-                  <div className="nb-type-d">{t.desc}</div>
-                </div>
-              ))}
-            </div>
-            <button className="nb-create" onClick={createBinder} disabled={!nbName.trim()}>Create Binder</button>
           </div>
         </div>
       )}
