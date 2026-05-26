@@ -1770,25 +1770,35 @@ export default function DraGold(){
     const detectedLang = detectLang(query) || "en";
     if(detectedLang!==clang) setClang(detectedLang);
 
-    // 1) SUPABASE CATALOG — cross-TCG, cross-language (lang_filter=null = tutte le lingue)
-    // Se cerco "Charizard" trovo EN+JP+IT insieme, ognuno col proprio _lang e immagine corretta.
+    // 1) SUPABASE CATALOG — query diretta su cards per TUTTE le varianti lingua
+    // L'RPC search_cards deduplicava per source_id (1 sola lingua per carta).
+    // Qui prendiamo ogni riga separatamente: EN+JP+IT+etc appaiono tutte nei risultati.
     let supabaseHits=[];
     if(supabaseReady){
       try{
-        // Prima cerca in tutte le lingue (lang_filter=null)
-        const {data,error}=await supabase.rpc('search_cards',{
-          q:query, tcg_filter:null, lang_filter:null, limit_n:60,
-        });
+        const {data,error}=await supabase
+          .from('cards')
+          .select('id,name,set_name,card_number,rarity,image_url,image_url_hi,lang,tcg')
+          .or(`name.ilike.%${query}%,card_number.eq.${query}`)
+          .order('name').order('lang')
+          .limit(300);
         if(!error && Array.isArray(data) && data.length){
+          // Fetch prezzi in batch (best-effort, non blocca il render)
+          let priceMap={};
+          try{
+            const ids=data.map(r=>r.id);
+            const {data:pd}=await supabase.from('card_prices_latest').select('card_id,price_market,source').in('card_id',ids);
+            if(Array.isArray(pd)) for(const p of pd) priceMap[p.card_id]=p;
+          }catch{}
           supabaseHits=data.map(r=>({
             id:r.id, name:r.name, number:r.card_number||"", rarity:r.rarity||"",
             supertype:r.tcg==="pokemon"?"Pokémon":r.tcg==="mtg"?"Creature":r.tcg==="ygo"?"Monster":"Character",
             set:{id:r.set_name,name:r.set_name||""}, set_name:r.set_name,
-            images:{small:r.image_url,large:r.image_url},
-            image_uris:{small:r.image_url,normal:r.image_url,large:r.image_url},
-            card_images:[{image_url:r.image_url,image_url_small:r.image_url}],
+            images:{small:r.image_url_hi||r.image_url,large:r.image_url_hi||r.image_url},
+            image_uris:{small:r.image_url_hi||r.image_url,normal:r.image_url_hi||r.image_url,large:r.image_url_hi||r.image_url},
+            card_images:[{image_url:r.image_url_hi||r.image_url,image_url_small:r.image_url}],
             _supabase:true,_lang:r.lang||"en",_tcg:r.tcg,
-            _supabasePrice:r.price_usd,_priceSource:r.price_source,
+            _supabasePrice:priceMap[r.id]?.price_market,_priceSource:priceMap[r.id]?.source,
           }));
         }
       }catch(e){console.warn('Supabase search failed, falling through to live APIs',e);}
@@ -3412,15 +3422,4 @@ export default function DraGold(){
       {article    &&<ArticleReader post={article}/>}
       {authMode   &&<AuthModal/>}
       {detail     &&<DetailModal card={detail}/>}
-      {alertCard  &&<AlertModal card={alertCard}/>}
-      {plansOpen  &&<PlansModal/>}
-      {pickingSlot&&(
-        <div className="smod-ov" onClick={e=>e.target===e.currentTarget&&setPickingSlot(null)}>
-          <div className="picker-modal">
-            <div className="smod-handle"/>
-            <div className="picker-title">Choose from your vault</div>
-            {col.length===0?<div className="picker-empty">Your vault is empty. Add cards from Explore first.</div>
-              :<div className="picker-list">
-                {col.map(c=>(
-                  <div key={c.id} className="picker-item" onClick={()=>placeCard(c.id)}>
-                
+      {alertCard  &&
