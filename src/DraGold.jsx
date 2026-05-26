@@ -1771,35 +1771,43 @@ export default function DraGold(){
     if(detectedLang!==clang) setClang(detectedLang);
 
     // 1) SUPABASE CATALOG — query diretta su cards per TUTTE le varianti lingua
-    // L'RPC search_cards deduplicava per source_id (1 sola lingua per carta).
-    // Qui prendiamo ogni riga separatamente: EN+JP+IT+etc appaiono tutte nei risultati.
+    // Usiamo * come wildcard PostgREST (non %) nel filter .or().
+    // Ogni riga = una variante lingua separata. Risultati ordinati: EN→JP→IT→ES→altri.
     let supabaseHits=[];
     if(supabaseReady){
       try{
         const {data,error}=await supabase
           .from('cards')
-          .select('id,name,set_name,card_number,rarity,image_url,image_url_hi,lang,tcg')
-          .or(`name.ilike.%${query}%,card_number.eq.${query}`)
-          .order('name').order('lang')
-          .limit(300);
+          .select('id,name,set_id,set_name,card_number,rarity,image_url,image_url_hi,lang,tcg')
+          .or(`name.ilike.*${query}*,card_number.eq.${query}`)
+          .limit(500);
         if(!error && Array.isArray(data) && data.length){
-          // Fetch prezzi in batch (best-effort, non blocca il render)
+          // Fetch prezzi in batch (best-effort)
           let priceMap={};
           try{
             const ids=data.map(r=>r.id);
             const {data:pd}=await supabase.from('card_prices_latest').select('card_id,price_market,source').in('card_id',ids);
             if(Array.isArray(pd)) for(const p of pd) priceMap[p.card_id]=p;
           }catch{}
+          const _langOrder={en:0,ja:1,it:2,es:3,pt:4,de:5,fr:6,ko:7,id:8};
           supabaseHits=data.map(r=>({
             id:r.id, name:r.name, number:r.card_number||"", rarity:r.rarity||"",
             supertype:r.tcg==="pokemon"?"Pokémon":r.tcg==="mtg"?"Creature":r.tcg==="ygo"?"Monster":"Character",
-            set:{id:r.set_name,name:r.set_name||""}, set_name:r.set_name,
+            set:{id:r.set_id||r.set_name,name:r.set_name||r.set_id||""},
+            set_name:r.set_name||r.set_id||"",
+            _setId:r.set_id||"",
             images:{small:r.image_url_hi||r.image_url,large:r.image_url_hi||r.image_url},
             image_uris:{small:r.image_url_hi||r.image_url,normal:r.image_url_hi||r.image_url,large:r.image_url_hi||r.image_url},
             card_images:[{image_url:r.image_url_hi||r.image_url,image_url_small:r.image_url}],
             _supabase:true,_lang:r.lang||"en",_tcg:r.tcg,
             _supabasePrice:priceMap[r.id]?.price_market,_priceSource:priceMap[r.id]?.source,
+            _langRank:_langOrder[r.lang||"en"]??99,
           }));
+          // Ordina: EN prima, poi JP, poi altre lingue — per nome all'interno di ogni lingua
+          supabaseHits.sort((a,b)=>{
+            if(a._langRank!==b._langRank) return a._langRank-b._langRank;
+            return a.name.localeCompare(b.name);
+          });
         }
       }catch(e){console.warn('Supabase search failed, falling through to live APIs',e);}
     }
@@ -2060,16 +2068,16 @@ export default function DraGold(){
     const rl=rLvl(card.rarity||"");
     const fmvD=fmvObj?(cur==="EUR"?`€${fmvObj.fmvEUR}`:`$${fmvObj.fmv}`):null;
     const netD=fmvObj?(cur==="EUR"?`€${fmvObj.netEUR}`:`$${fmvObj.net}`):null;
-    const setLabel=card.set?.name||card.set_name||card.type||"";
+    const setLabel=card.set?.name||card.set_name||card._setId||card.type||"";
     const cardTcg=card._tcg||tcg;
     const cardLangCode=card._lang||"en";
     // Nome sempre in inglese (no suffisso testo lingua nel titolo)
     const displayName=card.name;
     // Flag overlay sull'immagine per carte non-EN
     const imgFlagBadge=cardLangCode!=="en"?(()=>{const l=CARD_LANGS.find(x=>x.c===cardLangCode);return l?l.f:null;})():null;
-    // Lang badge sotto il nome: per pokemon mostra flag+code, per altri mostra TCG
+    // Lang badge: sempre visibile per pokemon (anche EN), per altri mostra TCG
     const langBadge=cardTcg==="pokemon"
-      ? (() => { const l=CARD_LANGS.find(x=>x.c===cardLangCode); return l&&cardLangCode!=="en"?`${l.f} ${l.c.toUpperCase()}`:null; })()
+      ? (() => { const l=CARD_LANGS.find(x=>x.c===cardLangCode); return l?`${l.f} ${l.c.toUpperCase()}`:null; })()
       : cardTcg==="mtg"?"✦ MTG":cardTcg==="ygo"?"★ YGO":cardTcg==="onepiece"?"⚓ OP":null;
     return(
       <div className={`kcard r${rl}`} style={{animationDelay:`${idx*0.045}s`}}>
@@ -2080,9 +2088,11 @@ export default function DraGold(){
         </div>
         <div className="kcard-body">
           <div className="kname" onClick={()=>setDetail(card)}>{displayName}</div>
-          <div className="kset">{setLabel}{card.number?` #${card.number}`:""}</div>
-          {langBadge&&<span className={cardTcg==="pokemon"?"klang":"klang-tcg"}>{langBadge}</span>}
-          {card.rarity&&<span className="mb mb-r" style={{display:"inline-block",marginBottom:6,fontSize:9}}>{card.rarity}</span>}
+          <div className="kset">{setLabel||"—"}{card.number?` · #${card.number}`:""}</div>
+          <div style={{display:"flex",flexWrap:"wrap",gap:3,marginBottom:4,marginTop:2}}>
+            {langBadge&&<span className={cardTcg==="pokemon"?"klang":"klang-tcg"}>{langBadge}</span>}
+            {card.rarity&&<span className="mb mb-r" style={{fontSize:9,padding:"1px 5px"}}>{card.rarity}</span>}
+          </div>
           {fmvD?(<>
             <div className="kprice">{fmvD}</div>
             <div className="kprice-lbl">FMV</div>
@@ -3413,13 +3423,4 @@ export default function DraGold(){
 
       <footer className="footer">
         <span>© 2026 DraGold</span>
-        <span>Real prices. No guesses.</span>
-        <a href="https://buymeacoffee.com/dragold" target="_blank" rel="noopener noreferrer" style={{color:"var(--amber)",fontWeight:700}}>Support ☕</a>
-      </footer>
-
-      {/* MODALS */}
-      {zoomImg    &&<div className="img-zoom-ov" onClick={()=>setZoomImg(null)}><img src={zoomImg} alt="zoom"/></div>}
-      {article    &&<ArticleReader post={article}/>}
-      {authMode   &&<AuthModal/>}
-      {detail     &&<DetailModal card={detail}/>}
-      {alertCard  &&
+        <s
