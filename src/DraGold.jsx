@@ -122,6 +122,18 @@ function getDailyCards(pool,n=3){
   const ygo=pool.find(c=>c.tcg==='ygo');
   return [mtg,pkm,ygo].filter(Boolean);
 }
+function timeAgo(dateStr){
+  if(!dateStr) return '';
+  const d=new Date(dateStr), diff=Date.now()-d.getTime(), m=Math.floor(diff/60000);
+  if(m<1) return 'ora';
+  if(m<60) return `${m}m fa`;
+  const h=Math.floor(m/60);
+  if(h<24) return `${h}h fa`;
+  const dy=Math.floor(h/24);
+  if(dy<7) return `${dy}g fa`;
+  return d.toLocaleDateString('it-IT',{day:'2-digit',month:'short'});
+}
+
 // Hot Picks: nessun hardcode. La griglia legge da Supabase `hot_picks` (popolata daily dal cron
 // compute-hot-picks). Quando la tabella è vuota → empty state. Mai dati fake.
 const GRADING_SPOT={
@@ -1066,6 +1078,50 @@ img{display:block;}
 .nb-type.on{border-color:var(--amber);background:var(--amber-b);}
 .nb-type-n{font-weight:700;font-size:11px;margin-bottom:2px;}
 .nb-type-d{font-size:9px;color:var(--muted);}
+
+/* COMMUNITY HUB */
+.community-wrap{padding:0 var(--p) 72px;}
+.community-hdr{font-family:'Fraunces',sans-serif;font-size:22px;font-weight:800;letter-spacing:-.4px;margin-bottom:5px;}
+.community-sub{font-size:13px;color:var(--muted);margin-bottom:18px;}
+.post-composer{background:var(--s2);border:1px solid rgba(255,255,255,.08);border-radius:18px;padding:16px;margin-bottom:18px;}
+.post-textarea{width:100%;background:transparent;border:none;color:#f8f8ff;font-size:14px;resize:none;outline:none;font-family:inherit;line-height:1.6;min-height:72px;box-sizing:border-box;}
+.post-textarea::placeholder{color:var(--muted);}
+.post-actions{display:flex;align-items:center;justify-content:space-between;margin-top:10px;border-top:1px solid rgba(255,255,255,.05);padding-top:10px;}
+.post-char{font-family:'Space Mono',monospace;font-size:9px;color:var(--muted);}
+.post-submit{padding:8px 18px;background:linear-gradient(135deg,var(--amber),var(--pink));color:#020208;border:none;border-radius:9px;font-size:12px;font-weight:800;cursor:pointer;transition:all .2s;}
+.post-submit:disabled{opacity:.5;cursor:not-allowed;}
+.post-submit:not(:disabled):hover{filter:brightness(1.1);}
+.feed{display:grid;gap:14px;}
+.post-card{background:var(--s2);border:1px solid rgba(255,255,255,.07);border-radius:18px;padding:16px;transition:border-color .2s;}
+.post-card:hover{border-color:rgba(255,255,255,.12);}
+.post-head{display:flex;align-items:center;gap:10px;margin-bottom:12px;}
+.post-avatar{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--amber),var(--pink));display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:#020208;flex-shrink:0;overflow:hidden;}
+.post-avatar img{width:36px;height:36px;border-radius:50%;object-fit:cover;}
+.post-author{flex:1;min-width:0;}
+.post-username{font-family:'Fraunces',sans-serif;font-weight:800;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.post-time{font-size:10px;color:var(--muted);font-family:'Space Mono',monospace;}
+.post-follow{font-size:10px;font-weight:700;padding:4px 10px;border-radius:100px;cursor:pointer;border:1px solid rgba(251,191,36,.35);color:var(--amber);background:var(--amber-b);transition:all .2s;flex-shrink:0;}
+.post-follow.following{background:var(--gl);border-color:var(--gb);color:var(--muted);}
+.post-follow:hover{filter:brightness(1.1);}
+.post-content{font-size:14px;color:var(--txt2);line-height:1.65;margin-bottom:12px;word-break:break-word;}
+.post-card-chip{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:5px 9px;font-size:11px;font-weight:600;color:var(--muted);margin-bottom:10px;}
+.post-foot{display:flex;align-items:center;gap:10px;}
+.post-action-btn{display:flex;align-items:center;gap:5px;background:none;border:none;color:var(--muted);font-size:12px;font-weight:600;cursor:pointer;padding:5px 8px;border-radius:7px;transition:all .2s;}
+.post-action-btn:hover{color:#f8f8ff;background:rgba(255,255,255,.06);}
+.post-action-btn.liked{color:var(--pink);}
+.comments-section{margin-top:12px;border-top:1px solid rgba(255,255,255,.05);padding-top:12px;}
+.comment{display:flex;gap:8px;margin-bottom:10px;}
+.cmt-avatar{width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,var(--blue),var(--purple));display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#f8f8ff;flex-shrink:0;}
+.cmt-body{flex:1;min-width:0;}
+.cmt-user{font-weight:700;font-size:11px;margin-bottom:2px;}
+.cmt-text{font-size:12px;color:var(--txt2);line-height:1.5;word-break:break-word;}
+.cmt-composer{display:flex;gap:8px;margin-top:8px;}
+.cmt-in{flex:1;padding:8px 12px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:9px;color:#f8f8ff;font-size:12px;outline:none;transition:border-color .2s;}
+.cmt-in:focus{border-color:var(--amber);}
+.cmt-in::placeholder{color:var(--muted);}
+.cmt-send{padding:8px 14px;background:var(--gl);border:1px solid var(--gb);color:var(--muted);border-radius:9px;font-size:11px;font-weight:700;cursor:pointer;transition:all .2s;flex-shrink:0;}
+.cmt-send:hover{border-color:var(--amber);color:var(--amber);}
+@media(min-width:640px){.community-wrap{max-width:640px;margin-left:auto;margin-right:auto;}}
 .nb-create{width:100%;padding:12px;background:linear-gradient(135deg,var(--amber),var(--pink));color:#020208;border:none;border-radius:10px;font-size:13px;font-weight:800;cursor:pointer;transition:all .2s;}
 .nb-create:hover{filter:brightness(1.1);}
 
@@ -1214,6 +1270,16 @@ export default function DraGold(){
   const [hotLoading,setHotLoading] = useState(false);
   const [alerts,setAlerts]   = useState([]); // alert attivi dell'utente
   const [alertsLoaded,setAlertsLoaded] = useState(false);
+  // Community Hub
+  const [commPosts,setCommPosts]         = useState([]);
+  const [commLoading,setCommLoading]     = useState(false);
+  const [newPost,setNewPost]             = useState("");
+  const [posting,setPosting]             = useState(false);
+  const [myLikes,setMyLikes]             = useState(new Set());
+  const [myFollowing,setMyFollowing]     = useState(new Set());
+  const [openComments,setOpenComments]   = useState(null);
+  const [postComments,setPostComments]   = useState({});
+  const [newComment,setNewComment]       = useState("");
 
   const langRef = useRef(null);
   const userRef = useRef(null);
@@ -1506,6 +1572,114 @@ export default function DraGold(){
     if(Date.now()-last>24*60*60*1000) refreshVaultPrices();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   },[colTab,user?.id]);
+
+  // ── COMMUNITY HUB ─────────────────────────────────────────────────────────
+  const loadCommunityPosts = useCallback(async()=>{
+    if(!supabaseReady) return;
+    setCommLoading(true);
+    try{
+      const {data:posts}=await supabase
+        .from('posts')
+        .select('*, profiles(username,avatar_url)')
+        .order('created_at',{ascending:false})
+        .limit(40);
+      setCommPosts(posts||[]);
+      if(user?.id&&(posts||[]).length>0){
+        const postIds=(posts||[]).map(p=>p.id);
+        const {data:likes}=await supabase.from('likes').select('post_id').eq('user_id',user.id).in('post_id',postIds);
+        setMyLikes(new Set((likes||[]).map(l=>l.post_id)));
+        const authorIds=[...new Set((posts||[]).map(p=>p.user_id).filter(id=>id!==user.id))];
+        if(authorIds.length){
+          const {data:following}=await supabase.from('followers').select('following_id').eq('follower_id',user.id).in('following_id',authorIds);
+          setMyFollowing(new Set((following||[]).map(f=>f.following_id)));
+        }
+      }
+    }catch(e){console.warn('community load',e);}
+    setCommLoading(false);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[supabaseReady,user?.id]);
+
+  useEffect(()=>{if(tab==='community') loadCommunityPosts();},[tab,loadCommunityPosts]);
+
+  const submitPost=async()=>{
+    if(!user?.id||!newPost.trim()||posting) return;
+    setPosting(true);
+    try{
+      const {data}=await supabase.from('posts')
+        .insert({user_id:user.id,content:newPost.trim(),tcg})
+        .select('*, profiles(username,avatar_url)').single();
+      if(data) setCommPosts(prev=>[data,...prev]);
+      setNewPost("");
+    }catch(e){console.warn('post error',e);}
+    setPosting(false);
+  };
+
+  const toggleLike=async(post)=>{
+    if(!user?.id){setAuthMode("login");return;}
+    const liked=myLikes.has(post.id);
+    if(liked){
+      setMyLikes(prev=>{const s=new Set(prev);s.delete(post.id);return s;});
+      setCommPosts(prev=>prev.map(p=>p.id===post.id?{...p,likes_count:Math.max(0,(p.likes_count||0)-1)}:p));
+      try{
+        await supabase.from('likes').delete().eq('user_id',user.id).eq('post_id',post.id);
+        await supabase.rpc('decrement_likes',{post_id:post.id});
+      }catch{}
+    }else{
+      setMyLikes(prev=>new Set([...prev,post.id]));
+      setCommPosts(prev=>prev.map(p=>p.id===post.id?{...p,likes_count:(p.likes_count||0)+1}:p));
+      try{
+        await supabase.from('likes').insert({user_id:user.id,post_id:post.id});
+        await supabase.rpc('increment_likes',{post_id:post.id});
+      }catch{}
+    }
+  };
+
+  const toggleFollow=async(authorId)=>{
+    if(!user?.id){setAuthMode("login");return;}
+    if(authorId===user.id) return;
+    const isFollowing=myFollowing.has(authorId);
+    if(isFollowing){
+      setMyFollowing(prev=>{const s=new Set(prev);s.delete(authorId);return s;});
+      try{await supabase.from('followers').delete().eq('follower_id',user.id).eq('following_id',authorId);}catch{}
+    }else{
+      setMyFollowing(prev=>new Set([...prev,authorId]));
+      try{await supabase.from('followers').insert({follower_id:user.id,following_id:authorId});}catch{}
+    }
+  };
+
+  const loadComments=async(postId)=>{
+    if(openComments===postId){setOpenComments(null);return;}
+    setOpenComments(postId);
+    if(postComments[postId]) return;
+    try{
+      const {data}=await supabase.from('comments')
+        .select('*, profiles(username)')
+        .eq('post_id',postId).order('created_at',{ascending:true});
+      setPostComments(prev=>({...prev,[postId]:data||[]}));
+    }catch(e){console.warn('comments load',e);}
+  };
+
+  const submitComment=async(postId)=>{
+    if(!user?.id||!newComment.trim()) return;
+    const text=newComment.trim();
+    setNewComment("");
+    try{
+      const {data}=await supabase.from('comments')
+        .insert({post_id:postId,user_id:user.id,content:text})
+        .select('*, profiles(username)').single();
+      if(data){
+        setPostComments(prev=>({...prev,[postId]:[...(prev[postId]||[]),data]}));
+        setCommPosts(prev=>prev.map(p=>p.id===postId?{...p,comments_count:(p.comments_count||0)+1}:p));
+        await supabase.rpc('increment_comments',{post_id:postId});
+      }
+    }catch(e){console.warn('comment error',e);}
+  };
+
+  const deletePost=async(postId)=>{
+    try{await supabase.from('posts').delete().eq('id',postId);}catch{}
+    setCommPosts(prev=>prev.filter(p=>p.id!==postId));
+  };
+  // ── END COMMUNITY ─────────────────────────────────────────────────────────
 
   // Alerts loader: fetch active alerts for logged-in user
   useEffect(()=>{
@@ -2710,6 +2884,7 @@ export default function DraGold(){
           <button className={`tb${tab==="sealed"?" on":""}`} onClick={()=>setTab("sealed")}>Sealed</button>
           <button className={`tb${tab==="binder"?" on":""}`} onClick={()=>setTab("binder")}>Binder</button>
           <button className={`tb${tab==="blog"?" on":""}`} onClick={()=>setTab("blog")}>Blog</button>
+          <button className={`tb${tab==="community"?" on":""}`} onClick={()=>setTab("community")} style={tab==="community"?{borderColor:"var(--pink)",background:"var(--pink-b)",color:"var(--pink)"}:{}}>🌐 Community</button>
         </div>
       </div>
 
@@ -3079,10 +3254,182 @@ export default function DraGold(){
         </div>
       )}
 
+      {/* COMMUNITY HUB */}
+      {tab==="community"&&(
+        <div className="community-wrap">
+          <div className="community-hdr gt">Community</div>
+          <div className="community-sub">Il social per i collezionisti TCG europei. Condividi pull, strategie e prezzi.</div>
+
+          {/* Composer */}
+          {user?(
+            <div className="post-composer">
+              <textarea
+                className="post-textarea"
+                placeholder="Condividi un pull, un'analisi di mercato, una domanda sui prezzi..."
+                value={newPost}
+                onChange={e=>setNewPost(e.target.value.slice(0,500))}
+                rows={3}
+              />
+              <div className="post-actions">
+                <span className="post-char" style={{color:newPost.length>450?"var(--loss)":"var(--muted)"}}>{newPost.length}/500</span>
+                <button className="post-submit" onClick={submitPost} disabled={!newPost.trim()||posting}>
+                  {posting?"Pubblicando...":"Pubblica 🚀"}
+                </button>
+              </div>
+            </div>
+          ):(
+            <div className="col-empty" style={{marginBottom:18}}>
+              <span className="col-ei">🌐</span>
+              <div className="col-et">Unisciti alla community</div>
+              <p className="col-es">Accedi per condividere pull, strategie e connetterti con altri collezionisti europei.</p>
+              <button className="btn-prim" style={{marginTop:14}} onClick={()=>setAuthMode("login")}>Accedi</button>
+            </div>
+          )}
+
+          {/* Feed */}
+          {commLoading?(
+            <div style={{textAlign:"center",padding:"32px 0",color:"var(--muted)"}}>Caricamento feed...</div>
+          ):commPosts.length===0?(
+            <div className="col-empty">
+              <span className="col-ei">📢</span>
+              <div className="col-et">Nessun post ancora</div>
+              <p className="col-es">Sii il primo a condividere qualcosa nella community!</p>
+            </div>
+          ):(
+            <div className="feed">
+              {commPosts.map(post=>{
+                const liked=myLikes.has(post.id);
+                const isFollowing=myFollowing.has(post.user_id);
+                const isOwn=post.user_id===user?.id;
+                const uname=post.profiles?.username||"Collector";
+                const initial=uname[0]?.toUpperCase()||"?";
+                const showCmts=openComments===post.id;
+                return(
+                  <div key={post.id} className="post-card">
+                    {/* Header */}
+                    <div className="post-head">
+                      <div className="post-avatar">
+                        {post.profiles?.avatar_url
+                          ?<img src={post.profiles.avatar_url} alt={uname}/>
+                          :initial}
+                      </div>
+                      <div className="post-author">
+                        <div className="post-username">{uname}</div>
+                        <div className="post-time">{timeAgo(post.created_at)}{post.tcg&&post.tcg!=="pokemon"&&<span style={{marginLeft:6,fontSize:9,background:"rgba(255,255,255,.07)",padding:"1px 5px",borderRadius:4}}>{post.tcg}</span>}</div>
+                      </div>
+                      {!isOwn&&(
+                        <button className={`post-follow${isFollowing?" following":""}`} onClick={()=>toggleFollow(post.user_id)}>
+                          {isFollowing?"Seguendo ✓":"+ Segui"}
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Content */}
+                    <div className="post-content">{post.content}</div>
+                    {post.card_id&&<div className="post-card-chip">🃏 {post.card_id}</div>}
+
+                    {/* Actions */}
+                    <div className="post-foot">
+                      <button className={`post-action-btn${liked?" liked":""}`} onClick={()=>toggleLike(post)}>
+                        {liked?"❤️":"🤍"} <span>{post.likes_count||0}</span>
+                      </button>
+                      <button className="post-action-btn" onClick={()=>loadComments(post.id)}>
+                        💬 <span>{post.comments_count||0}</span>
+                      </button>
+                      {isOwn&&(
+                        <button className="post-action-btn" style={{marginLeft:"auto",color:"var(--loss)"}} onClick={()=>deletePost(post.id)}>
+                          🗑️
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Comments section */}
+                    {showCmts&&(
+                      <div className="comments-section">
+                        {(postComments[post.id]||[]).length===0&&(
+                          <div style={{fontSize:12,color:"var(--muted)",marginBottom:8}}>Nessun commento ancora.</div>
+                        )}
+                        {(postComments[post.id]||[]).map(c=>(
+                          <div key={c.id} className="comment">
+                            <div className="cmt-avatar">{(c.profiles?.username||"?")[0]?.toUpperCase()}</div>
+                            <div className="cmt-body">
+                              <div className="cmt-user">{c.profiles?.username||"Collector"}</div>
+                              <div className="cmt-text">{c.content}</div>
+                            </div>
+                          </div>
+                        ))}
+                        {user&&(
+                          <div className="cmt-composer">
+                            <input
+                              className="cmt-in"
+                              placeholder="Scrivi un commento..."
+                              value={newComment}
+                              onChange={e=>setNewComment(e.target.value.slice(0,200))}
+                              onKeyDown={e=>e.key==="Enter"&&submitComment(post.id)}
+                            />
+                            <button className="cmt-send" onClick={()=>submitComment(post.id)}>Invia</button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* DONATION */}
       <div className="donate-section">
         <div className="donate-inner">
           <div className="donate-left">
             <div className="donate-emoji">☕</div>
             <div>
-              <div className="donate-title gt">Support DraGold</
+              <div className="donate-title gt">Support DraGold</div>
+              <div className="donate-sub">Built by one person, free for everyone. If DraGold saves you money on your collection, consider buying me a coffee. Keeps the servers running and new features coming.</div>
+            </div>
+          </div>
+          <div style={{display:"flex",flexDirection:"column",alignItems:"stretch",gap:8,flexShrink:0}}>
+            <a href="https://buymeacoffee.com/dragold" target="_blank" rel="noopener noreferrer" className="donate-btn">
+              ☕ Buy me a coffee
+            </a>
+            <div className="donate-note">via BuyMeACoffee   No account needed</div>
+          </div>
+        </div>
+      </div>
+
+      <footer className="footer">
+        <span>© 2026 DraGold</span>
+        <span>Real prices. No guesses.</span>
+        <a href="https://buymeacoffee.com/dragold" target="_blank" rel="noopener noreferrer" style={{color:"var(--amber)",fontWeight:700}}>Support ☕</a>
+      </footer>
+
+      {/* MODALS */}
+      {zoomImg    &&<div className="img-zoom-ov" onClick={()=>setZoomImg(null)}><img src={zoomImg} alt="zoom"/></div>}
+      {article    &&<ArticleReader post={article}/>}
+      {authMode   &&<AuthModal/>}
+      {detail     &&<DetailModal card={detail}/>}
+      {alertCard  &&<AlertModal card={alertCard}/>}
+      {plansOpen  &&<PlansModal/>}
+      {pickingSlot&&(
+        <div className="smod-ov" onClick={e=>e.target===e.currentTarget&&setPickingSlot(null)}>
+          <div className="picker-modal">
+            <div className="smod-handle"/>
+            <div className="picker-title">Choose from your vault</div>
+            {col.length===0?<div className="picker-empty">Your vault is empty. Add cards from Explore first.</div>
+              :<div className="picker-list">
+                {col.map(c=>(
+                  <div key={c.id} className="picker-item" onClick={()=>placeCard(c.id)}>
+                    {c.img&&<img src={c.img} alt={c.name}/>}
+                    <div><div className="pi-n">{c.name}</div><div className="pi-s">{c.set}</div><div className="pi-p">{disp(c.market)}</div></div>
+                  </div>
+                ))}
+              </div>
+            }
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
