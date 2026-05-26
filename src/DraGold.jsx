@@ -3423,4 +3423,35 @@ export default function DraGold(){
 
       <footer className="footer">
         <span>© 2026 DraGold</span>
-        <s
+        <span>Real prices. No guesses.</span>
+        <a href="https://buymeacoffee.com/dragold" target="_blank" rel="noopener noreferrer" style={{color:"var(--amber)",fontWeight:700}}>Support ☕</a>
+      </footer>
+
+      {/* MODALS */}
+      {zoomImg    &&<div className="img-zoom-ov" onClick={()=>setZoomImg(null)}><img src={zoomImg} alt="zoom"/></div>}
+      {article    &&<ArticleReader post={article}/>}
+      {authMode   &&<AuthModal/>}
+      {detail     &&<DetailModal card={detail}/>}
+      {alertCard  &&<AlertModal card={alertCard}/>}
+      {plansOpen  &&<PlansModal/>}
+      {pickingSlot&&(
+        <div className="smod-ov" onClick={e=>e.target===e.currentTarget&&setPickingSlot(null)}>
+          <div className="picker-modal">
+            <div className="smod-handle"/>
+            <div className="picker-title">Choose from your vault</div>
+            {col.length===0?<div className="picker-empty">Your vault is empty. Add cards from Explore first.</div>
+              :<div className="picker-list">
+                {col.map(c=>(
+                  <div key={c.id} className="picker-item" onClick={()=>placeCard(c.id)}>
+                    {c.img&&<img src={c.img} alt={c.name}/>}
+                    <div><div className="pi-n">{c.name}</div><div className="pi-s">{c.set}</div><div className="pi-p">{disp(c.market)}</div></div>
+                  </div>
+                ))}
+              </div>
+            }
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
