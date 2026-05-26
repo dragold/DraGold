@@ -2000,7 +2000,7 @@ export default function DraGold(){
     const cardTcgF=card._tcg||tcg;
     const cardLangF=card._lang||clang||"en";
     const langInfoF=CARD_LANGS.find(x=>x.c===cardLangF);
-    const langSuffix=cardTcgF==="pokemon"&&cardLangF!=="en"?` [${cardLangF.toUpperCase()}]`:"";
+    const langSuffix=""; // nome sempre in inglese, il badge mostra la lingua
     const fmvD=fmvObj?(cur==="EUR"?`€${fmvObj.fmvEUR}`:`$${fmvObj.fmv}`):"Prezzo non disp.";
     const netD=fmvObj?(cur==="EUR"?`€${fmvObj.netEUR}`:`$${fmvObj.net}`):null;
     return(
@@ -2053,17 +2053,19 @@ export default function DraGold(){
     const setLabel=card.set?.name||card.set_name||card.type||"";
     const cardTcg=card._tcg||tcg;
     const cardLangCode=card._lang||"en";
-    // Suffisso lingua: se carta non-EN, mostra [JP], [IT] etc.
-    const langSuffixCard=cardTcg==="pokemon"&&cardLangCode&&cardLangCode!=="en"?` [${cardLangCode.toUpperCase()}]`:"";
-    const displayName=card.name+(langSuffixCard);
-    // Lang badge: per pokemon mostra lang, per altri mostra TCG
+    // Nome sempre in inglese (no suffisso testo lingua nel titolo)
+    const displayName=card.name;
+    // Flag overlay sull'immagine per carte non-EN
+    const imgFlagBadge=cardLangCode!=="en"?(()=>{const l=CARD_LANGS.find(x=>x.c===cardLangCode);return l?l.f:null;})():null;
+    // Lang badge sotto il nome: per pokemon mostra flag+code, per altri mostra TCG
     const langBadge=cardTcg==="pokemon"
-      ? (() => { const l=CARD_LANGS.find(x=>x.c===cardLangCode); return l?`${l.f} ${l.c.toUpperCase()}`:null; })()
+      ? (() => { const l=CARD_LANGS.find(x=>x.c===cardLangCode); return l&&cardLangCode!=="en"?`${l.f} ${l.c.toUpperCase()}`:null; })()
       : cardTcg==="mtg"?"✦ MTG":cardTcg==="ygo"?"★ YGO":cardTcg==="onepiece"?"⚓ OP":null;
     return(
       <div className={`kcard r${rl}`} style={{animationDelay:`${idx*0.045}s`}}>
-        <div className="kcard-img" onClick={()=>setDetail(card)}>
+        <div className="kcard-img" onClick={()=>setDetail(card)} style={{position:"relative"}}>
           {smallImg?<img src={smallImg} alt={card.name} loading="lazy"/>:<div style={{width:"100%",aspectRatio:"3/4",background:"var(--s1)"}}/>}
+          {imgFlagBadge&&<span style={{position:"absolute",bottom:5,right:5,fontSize:15,lineHeight:1,background:"rgba(0,0,0,.6)",borderRadius:5,padding:"2px 5px",backdropFilter:"blur(4px)",pointerEvents:"none"}}>{imgFlagBadge}</span>}
           <div className="holo-s"/><div className="holo-sh"/>
         </div>
         <div className="kcard-body">
@@ -3421,15 +3423,4 @@ export default function DraGold(){
               :<div className="picker-list">
                 {col.map(c=>(
                   <div key={c.id} className="picker-item" onClick={()=>placeCard(c.id)}>
-                    {c.img&&<img src={c.img} alt={c.name}/>}
-                    <div><div className="pi-n">{c.name}</div><div className="pi-s">{c.set}</div><div className="pi-p">{disp(c.market)}</div></div>
-                  </div>
-                ))}
-              </div>
-            }
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
+                
