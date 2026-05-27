@@ -112,17 +112,6 @@ const SEALED=[
    img:"https://images.pokemontcg.io/sv4pt5/107_hires.png",fb:"https://images.pokemontcg.io/sv4pt5/logo.png"},
 ];
 // Hero showcase: 1 Pokemon front + MTG left + YGO right (the 3 TCGs we support)
-const HERO_POOL=[
-  {tcg:'pokemon', img:"https://images.pokemontcg.io/sv3pt5/6.png", glow:"rgba(251,191,36,.55)"},
-  {tcg:'mtg',     img:"https://cards.scryfall.io/normal/front/b/d/bd8fa327-dd41-4737-8f19-2cf5eb1f7cdd.jpg", glow:"rgba(56,189,248,.45)"},
-  {tcg:'ygo',     img:"https://images.ygoprodeck.com/images/cards/89631139.jpg", glow:"rgba(167,139,250,.5)"},
-];
-function getDailyCards(pool,n=3){
-  const pkm=pool.find(c=>c.tcg==='pokemon');
-  const mtg=pool.find(c=>c.tcg==='mtg');
-  const ygo=pool.find(c=>c.tcg==='ygo');
-  return [mtg,pkm,ygo].filter(Boolean);
-}
 function timeAgo(dateStr){
   if(!dateStr) return '';
   const d=new Date(dateStr), diff=Date.now()-d.getTime(), m=Math.floor(diff/60000);
@@ -135,8 +124,6 @@ function timeAgo(dateStr){
   return d.toLocaleDateString('it-IT',{day:'2-digit',month:'short'});
 }
 
-// Hot Picks: nessun hardcode. La griglia legge da Supabase `hot_picks` (popolata daily dal cron
-// compute-hot-picks). Quando la tabella è vuota → empty state. Mai dati fake.
 const GRADING_SPOT={
   name:"Charizard",set:"Base Set 1999",fmv:420,psa10:1344,psa10EUR:1237,
   img:"https://images.pokemontcg.io/base1/4.png",pop10:342,pop9:1240,
@@ -409,7 +396,6 @@ img{display:block;}
 .hero-inner{position:relative;z-index:2;max-width:1100px;margin:0 auto;}
 .hero-cols{display:flex;align-items:center;gap:36px;}
 .hero-left{flex:1;min-width:0;}
-.hero-right{display:none;width:340px;flex-shrink:0;}
 .hero-badge{display:inline-flex;align-items:center;gap:6px;background:var(--gl);border:1px solid var(--gb);
   border-radius:100px;padding:4px 14px;font-size:10px;color:var(--txt2);margin-bottom:16px;
   font-family:'Space Mono',monospace;backdrop-filter:blur(12px);}
@@ -449,16 +435,6 @@ img{display:block;}
   font-size:10px;color:var(--muted);font-family:'Space Mono',monospace;letter-spacing:.3px;}
 @keyframes mq{from{transform:translateX(0)}to{transform:translateX(-50%)}}
 
-/* FLOATING CARDS (desktop only) */
-.fc-wrap{position:relative;width:320px;height:400px;}
-.fcard{position:absolute;width:150px;height:210px;border-radius:12px;box-shadow:0 28px 60px rgba(0,0,0,.7);object-fit:cover;background:#000;}
-.fcard:nth-of-type(1){width:150px;left:0;top:50px;transform:rotate(-10deg);animation:fl1 5s ease-in-out infinite;}
-.fcard:nth-of-type(2){width:165px;height:231px;left:85px;top:0;z-index:3;transform:rotate(2deg);animation:fl2 6.5s ease-in-out infinite;}
-.fcard:nth-of-type(3){width:150px;right:0;top:50px;transform:rotate(10deg);animation:fl3 7.5s ease-in-out infinite;}
-@keyframes fl1{0%,100%{transform:rotate(-12deg) translateY(0)}50%{transform:rotate(-12deg) translateY(-16px)}}
-@keyframes fl2{0%,100%{transform:rotate(1deg) translateY(-8px)}50%{transform:rotate(1deg) translateY(12px)}}
-@keyframes fl3{0%,100%{transform:rotate(14deg) translateY(5px)}50%{transform:rotate(14deg) translateY(-13px)}}
-.cglow{position:absolute;border-radius:50%;filter:blur(38px);pointer-events:none;z-index:-1;}
 
 /* LANG FILTER */
 .lf{padding:20px var(--p) 24px;}
@@ -589,30 +565,6 @@ img{display:block;}
   padding:3px 9px;border-radius:100px;letter-spacing:.3px;}
 .sb-live{background:var(--loss-g);color:var(--loss);border:1px solid rgba(248,113,113,.2);}
 
-/* HOT PICKS */
-.hot-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:9px;position:relative;}
-.hot-card{background:var(--s2);border:1px solid var(--gb);border-radius:14px;padding:14px;
-  transition:all .25s;cursor:pointer;display:flex;align-items:center;gap:10px;}
-.hot-card:hover{border-color:rgba(251,191,36,.2);transform:translateY(-2px);}
-.hot-card img{width:96px;border-radius:8px;flex-shrink:0;}
-.hc-info{flex:1;min-width:0;}
-.hc-name{font-family:'Fraunces',sans-serif;font-weight:800;font-size:14px;margin-bottom:1px;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.hc-set{font-size:9px;color:var(--muted);margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.hc-price{font-family:'Space Mono',monospace;font-size:13px;font-weight:700;color:var(--amber);}
-.hc-change{font-family:'Space Mono',monospace;font-size:10px;font-weight:700;color:var(--gain);}
-.hc-reason{font-size:9px;color:var(--muted);margin-top:2px;line-height:1.3;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-/* TASTE: cards 6-10 blurred */
-.hot-card.locked{filter:blur(5px);pointer-events:none;user-select:none;}
-.pw-overlay{position:absolute;bottom:0;left:0;right:0;
-  background:linear-gradient(0deg,rgba(2,2,8,.98) 0%,rgba(2,2,8,.7) 60%,transparent 100%);
-  display:flex;flex-direction:column;align-items:center;justify-content:flex-end;
-  padding:20px 16px;min-height:160px;z-index:10;pointer-events:all;}
-.pw-txt{font-size:12px;color:var(--txt2);margin-bottom:10px;text-align:center;font-weight:500;}
-.pw-btn{padding:9px 20px;background:linear-gradient(135deg,var(--purple),var(--pink));
-  color:#020208;border:none;border-radius:9px;font-size:12px;font-weight:800;cursor:pointer;transition:all .2s;}
-.pw-btn:hover{filter:brightness(1.1);}
 
 /* GRADING SPOTLIGHT */
 .gs-card{background:linear-gradient(135deg,rgba(167,139,250,.07),rgba(56,189,248,.04));
@@ -818,8 +770,8 @@ img{display:block;}
 .vault-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:28px;}
 .vcard{background:var(--s2);border:1px solid rgba(255,255,255,.07);border-radius:16px;overflow:hidden;position:relative;cursor:pointer;transition:transform .25s,border-color .25s;}
 .vcard:hover{transform:translateY(-6px);border-color:rgba(251,191,36,.22);}
-.vcard-img{position:relative;background:var(--s1);overflow:hidden;min-height:150px;display:flex;align-items:center;justify-content:center;}
-.vcard-img img{width:100%;display:block;transition:transform .35s;}
+.vcard-img{position:relative;background:var(--s1);overflow:hidden;height:110px;display:flex;align-items:center;justify-content:center;}
+.vcard-img img{height:100%;width:auto;max-width:100%;display:block;object-fit:contain;transition:transform .35s;}
 .vcard:hover .vcard-img img{transform:scale(1.06);}
 .vcard-body{padding:10px;}
 .vcard-name{font-family:'Fraunces',sans-serif;font-weight:800;font-size:12px;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
@@ -1158,7 +1110,6 @@ img{display:block;}
   .kcard-body{padding:13px;}
   .kname{font-size:14px;}
   .kprice{font-size:16px;}
-  .hot-grid{grid-template-columns:repeat(3,1fr);}
   .sealed-grid{grid-template-columns:repeat(3,1fr);}
   .coming-grid{grid-template-columns:repeat(3,1fr);}
   .ug{grid-template-columns:repeat(2,1fr);}
@@ -1197,11 +1148,9 @@ img{display:block;}
   .logo-txt{font-size:22px;}
   .hero{padding:70px var(--p) 50px;}
   .hero-cols{flex-direction:row;}
-  .hero-right{display:flex;align-items:center;justify-content:center;}
   .hero-sub{font-size:15px;}
   .grid{grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px;}
   .kcard-img{min-height:210px;}
-  .hot-grid{grid-template-columns:repeat(5,1fr);}
   .sealed-grid{grid-template-columns:repeat(4,1fr);}
   .coming-grid{grid-template-columns:repeat(3,1fr);}
   .ug{grid-template-columns:repeat(3,1fr);}
@@ -1275,8 +1224,6 @@ export default function DraGold(){
   const [newBinderOpen,setNewBinderOpen] = useState(false);
   const [nbName,setNbName]   = useState("");
   const [nbType,setNbType]   = useState("9p");
-  const [hotPicks,setHotPicks] = useState([]); // popolata da Supabase hot_picks table
-  const [hotLoading,setHotLoading] = useState(false);
   const [alerts,setAlerts]   = useState([]); // alert attivi dell'utente
   const [alertsLoaded,setAlertsLoaded] = useState(false);
   // Community Hub
@@ -1296,7 +1243,6 @@ export default function DraGold(){
   const curLang = UI_LANGS.find(x=>x.c===ui)||UI_LANGS[0];
   const activeTCG = TCG_LIST.find(x=>x.id===tcg)||TCG_LIST[0];
   const bt = BINDER_TYPES.find(x=>x.id===(activeBinder?.type||"9p"))||BINDER_TYPES[0];
-  const dailyCards = useMemo(()=>getDailyCards(HERO_POOL,3),[]);
   const disp = usd=>cur==="EUR"?`€${(usd*EUR_RATE).toFixed(2)}`:`$${usd.toFixed(2)}`;
 
   useEffect(()=>{
@@ -1712,43 +1658,6 @@ export default function DraGold(){
     return()=>{cancelled=true;};
   },[user?.id]);
 
-  // Hot Picks loader: fetch daily top movers from Supabase hot_picks table.
-  // Joins to cards for name/image and reads current_price + delta_pct directly.
-  useEffect(()=>{
-    if(!supabaseReady) return;
-    let cancelled=false;
-    (async()=>{
-      setHotLoading(true);
-      try{
-        const today=new Date().toISOString().slice(0,10);
-        const {data,error}=await supabase
-          .from('hot_picks')
-          .select('rank, card_id, tcg, delta_pct, current_price, previous_price, reason, cards:card_id(name, set_name, image_url, image_url_hi)')
-          .eq('computed_date', today)
-          .order('rank',{ascending:true})
-          .limit(10);
-        if(cancelled) return;
-        if(!error && Array.isArray(data) && data.length){
-          setHotPicks(data.map(r=>({
-            id:`hp-${r.rank}`,
-            cardId:r.card_id,
-            name:r.cards?.name||r.card_id,
-            set:r.cards?.set_name||'',
-            img:r.cards?.image_url_hi||r.cards?.image_url||null,
-            fmv:r.current_price?+(+r.current_price).toFixed(2):null,
-            fmvEUR:r.current_price?+(+r.current_price*EUR_RATE).toFixed(2):null,
-            change:r.delta_pct!=null?+(+r.delta_pct).toFixed(1):null,
-            reason:r.reason||(r.delta_pct>=0?'Trending up · 24h':'Sliding · 24h'),
-            tcg:r.tcg,
-          })));
-        }else{
-          setHotPicks([]);
-        }
-      }catch{setHotPicks([]);}
-      finally{if(!cancelled) setHotLoading(false);}
-    })();
-    return()=>{cancelled=true;};
-  },[]);
 
   // Live autocomplete: debounced call to suggest_cards RPC (universal, cross-TCG)
   useEffect(()=>{
@@ -2357,12 +2266,13 @@ export default function DraGold(){
     useEffect(()=>{if(user?.email&&!aEmail) setAEmail(user.email);},[]);// eslint-disable-line
     const activateAlert=async()=>{
       if(!aEmail||!aPrice) return;
+      if(!user){setAlertErr("Accedi prima per attivare gli alert.");return;}
       setAlertSaving(true);setAlertErr(null);
       const priceNum=parseFloat(aPrice);
       const targetEUR=cur==="EUR"?priceNum:+(priceNum*EUR_RATE).toFixed(2);
       if(supabaseReady){
         const {error}=await supabase.from('alerts').insert({
-          user_id:user?.id||null,
+          user_id:user.id,
           tcg:card._tcg||'pokemon',
           card_api_id:card.id||card.name,
           target_eur:targetEUR,
@@ -2552,49 +2462,6 @@ export default function DraGold(){
         </div>
       </div>
 
-      {/* HOT RIGHT NOW */}
-      <div style={{marginBottom:40}}>
-        <div className="sec-hdr">
-          <div className="sec-title gt">Hot Right Now</div>
-          <span className="sec-badge sb-live">{hotLoading?'Loading…':hotPicks.length?'Updated daily':'Computing'}</span>
-        </div>
-        {hotPicks.length===0?(
-          <div className="col-empty" style={{padding:'32px 16px'}}>
-            <span className="col-ei">📈</span>
-            <div className="col-et">Hot picks computing</div>
-            <p className="col-es">Daily price movers appear here after the snapshot runs. Real data only — no fake numbers.</p>
-          </div>
-        ):(
-          <div style={{position:"relative"}}>
-            <div className="hot-grid">
-              {hotPicks.map((c,i)=>{
-                const up=c.change!=null&&c.change>=0;
-                const sign=up?'+':'';
-                const priceTxt=c.fmv!=null?(cur==="EUR"?`€${c.fmvEUR}`:`$${c.fmv}`):'—';
-                const chgTxt=c.change!=null?`${sign}${c.change}% 24h`:'Δ —';
-                return(
-                  <div key={c.id} className={`hot-card${i>=5?" locked":""}`} onClick={()=>{if(i<5){setQ(c.name);setTab("explore");setTimeout(()=>doSearch(),100);}}}>
-                    {c.img?<img src={c.img} alt={c.name}/>:<div style={{height:160,background:"var(--s1)",borderRadius:8}}/>}
-                    <div className="hc-info">
-                      <div className="hc-name">{c.name}</div>
-                      <div className="hc-set">{c.set}</div>
-                      <div className="hc-price">{priceTxt}</div>
-                      <div className="hc-change" style={{color:up?'var(--gain)':'var(--loss)'}}>{chgTxt}</div>
-                      <div className="hc-reason">{c.reason}</div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-            {hotPicks.length>5&&(
-              <div className="pw-overlay">
-                <div className="pw-txt">See all 10 picks with DraGold Pro</div>
-                <button className="pw-btn" onClick={()=>setPlansOpen(true)}>See plans — coming Q3 2026</button>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
 
       {/* GRADING SPOTLIGHT */}
       <div style={{marginBottom:40}}>
@@ -2993,18 +2860,6 @@ export default function DraGold(){
                 </div>
                 <div className="mq-wrap"><div className="mq">{TICKER}   {TICKER}</div></div>
               </div>
-              <div className="hero-right">
-                <div className="fc-wrap">
-                  {dailyCards.map((c,i)=>(<>
-                    <div key={`g${i}`} className="cglow" style={{
-                      width:180,height:180,background:c.glow,
-                      left:i===0?"0":i===1?"80px":"auto",right:i===2?"0":"auto",
-                      top:i===0?"50px":i===1?"-30px":"80px"}}/>
-                    <img key={`c${i}`} src={c.img} alt="card" className="fcard"
-                      style={{filter:`drop-shadow(0 0 26px ${c.glow})`}}/>
-                  </>))}
-                </div>
-              </div>
             </div>
           </div>
         </section>
@@ -3263,7 +3118,7 @@ export default function DraGold(){
             ):(
               <div className="col-list">
                 {watchlist.map(item=>(
-                  <div key={item.id} className="wi" onClick={()=>setAlertCard({id:item.id,name:item.name,set:{name:item.set},images:{small:item.img,large:item.img},_tcg:item.tcgType})}>
+                  <div key={item.id} className="wi" onClick={()=>{setAlertSent(false);setAlertCard({id:item.id,name:item.name,set:{name:item.set},images:{small:item.img,large:item.img},_tcg:item.tcgType});}}>
                     {item.img&&<img src={item.img} alt={item.name}/>}
                     <div className="wi-info">
                       <div className="wi-name">{item.name}</div>
@@ -3448,4 +3303,70 @@ export default function DraGold(){
                               onChange={e=>setNewComment(e.target.value.slice(0,200))}
                               onKeyDown={e=>e.key==="Enter"&&submitComment(post.id)}
                             />
-                            <button className="cmt-send" onClick={()=>submitComment(post.id)}>Invia</
+                            <button className="cmt-send" onClick={()=>submitComment(post.id)}>Invia</button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* DONATION */}
+      <div className="donate-section">
+        <div className="donate-inner">
+          <div className="donate-left">
+            <div className="donate-emoji">☕</div>
+            <div>
+              <div className="donate-title gt">Support DraGold</div>
+              <div className="donate-sub">Built by one person, free for everyone. If DraGold saves you money on your collection, consider buying me a coffee. Keeps the servers running and new features coming.</div>
+            </div>
+          </div>
+          <div style={{display:"flex",flexDirection:"column",alignItems:"stretch",gap:8,flexShrink:0}}>
+            <a href="https://buymeacoffee.com/dragold" target="_blank" rel="noopener noreferrer" className="donate-btn">
+              ☕ Buy me a coffee
+            </a>
+            <div className="donate-note">via BuyMeACoffee   No account needed</div>
+          </div>
+        </div>
+      </div>
+
+      <footer className="footer">
+        <span>© 2026 DraGold</span>
+        <span>Real prices. No guesses.</span>
+        <a href="https://buymeacoffee.com/dragold" target="_blank" rel="noopener noreferrer" style={{color:"var(--amber)",fontWeight:700}}>Support ☕</a>
+      </footer>
+
+      {/* MODALS */}
+      {zoomImg    &&<div className="img-zoom-ov" onClick={()=>setZoomImg(null)}><img src={zoomImg} alt="zoom"/></div>}
+      {article    &&<ArticleReader post={article}/>}
+      {authMode   &&<AuthModal/>}
+      {detail     &&<DetailModal card={detail}/>}
+      {alertCard  &&<AlertModal card={alertCard}/>}
+      {plansOpen  &&<PlansModal/>}
+      {pickingSlot&&(
+        <div className="smod-ov" onClick={e=>e.target===e.currentTarget&&setPickingSlot(null)}>
+          <div className="picker-modal">
+            <div className="smod-handle"/>
+            <div className="picker-title">Choose from your vault</div>
+            {col.length===0?<div className="picker-empty">Your vault is empty. Add cards from Explore first.</div>
+              :<div className="picker-list">
+                {col.map(c=>(
+                  <div key={c.id} className="picker-item" onClick={()=>placeCard(c.id)}>
+                    {c.img&&<img src={c.img} alt={c.name}/>}
+                    <div><div className="pi-n">{c.name}</div><div className="pi-s">{c.set}</div><div className="pi-p">{disp(c.market)}</div></div>
+                  </div>
+                ))}
+              </div>
+            }
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              
