@@ -64,8 +64,9 @@ const CARD_LANGS=[
   {c:"ko",l:"한국어",   f:"🇰🇷",live:false,hot:false},
   {c:"fr",l:"Français", f:"🇫🇷",live:false,hot:false},
   {c:"de",l:"Deutsch",  f:"🇩🇪",live:false,hot:false},
-  {c:"es",l:"Español",  f:"🇪🇸",live:false,hot:false},
-  {c:"pt",l:"Português",f:"🇧🇷",live:false,hot:false},
+  {c:"es",l:"Español",  f:"🇪🇸",live:true, hot:false},
+  {c:"pt",l:"Português",f:"🇧🇷",live:true, hot:false},
+  {c:"id",l:"Indonesian",f:"🇮🇩",live:true, hot:false},
 ];
 const UI_LANGS=[
   {c:"en",f:"🇺🇸",n:"English"},{c:"it",f:"🇮🇹",n:"Italiano"},
@@ -3037,6 +3038,15 @@ export default function DraGold(){
                   })}
                 </div>
               )}
+              <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10,flexWrap:"wrap"}}>
+                <span style={{fontFamily:"'Fraunces',sans-serif",fontWeight:800,fontSize:15,color:"var(--txt)"}}>{q}</span>
+                <span style={{fontFamily:"'Space Mono',monospace",fontSize:11,color:"var(--muted)"}}>
+                  {langFilter
+                    ? `${_filtered.length} of ${cards.length} results`
+                    : `${cards.length} result${cards.length===1?"":"s"}`}
+                </span>
+                {cards.length>=500&&<span style={{fontSize:10,color:"var(--amber)",fontFamily:"'Space Mono',monospace"}}>limit 500 — refine search</span>}
+              </div>
               <FeaturedCard card={_filtered[0]||cards[0]}/>
               {_filtered.length>1&&<div className="grid">{_filtered.slice(1).map((c,i)=><CardItem key={c.id||c.name||i} card={c} idx={i}/>)}</div>}
             </>);
@@ -3438,26 +3448,4 @@ export default function DraGold(){
                               onChange={e=>setNewComment(e.target.value.slice(0,200))}
                               onKeyDown={e=>e.key==="Enter"&&submitComment(post.id)}
                             />
-                            <button className="cmt-send" onClick={()=>submitComment(post.id)}>Invia</button>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* DONATION */}
-      <div className="donate-section">
-        <div className="donate-inner">
-          <div className="donate-left">
-            <div className="donate-emoji">☕</div>
-            <div>
-              <div className="donate-title gt">Support DraGold</div>
-              <div className="donate-sub">Built by one person, free for everyone. If DraGold saves you money on your collection, consider buying me a coffee. Keeps the servers running and new features coming.</div>
-            </div>
-          </di
+                            <button className="cmt-send" onClick={()=>submitComment(post.id)}>Invia</
