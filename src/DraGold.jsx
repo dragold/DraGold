@@ -38,7 +38,7 @@ const PLANS=[
   {id:"collector",name:"Collector",price:"€4.99",period:"/mo",color:"#fbbf24",badge:"Most Popular",
    features:["Everything in Free","Vault up to 500 cards","20 price alerts","Unlimited binders","All 10 Hot Picks","30-day price history","Condition tracking","Export collection CSV"]},
   {id:"pro",name:"Pro Investor",price:"€9.99",period:"/mo",color:"#a78bfa",badge:"Best Value",
-   features:["Everything in Collector","Unlimited everything","90-day price history","Camera scanning","Grading Spotlight daily","Portfolio analytics","Priority support","Pack opening game"]},
+   features:["Everything in Collector","Unlimited everything","90-day price history","Camera scanning","Investment Picks daily","Portfolio analytics","Priority support","Pack opening game"]},
 ];
 
 // ─── TCG / BINDER ────────────────────────────────────────────────────────────
@@ -92,25 +92,6 @@ const MOCK_PKM=[
   {id:"swsh3-20",name:"Charizard V",     number:"20", rarity:"Rare Holo V", supertype:"Pokémon",set:{id:"swsh3",name:"Darkness Ablaze"},images:{small:"https://images.pokemontcg.io/swsh3/20.png", large:"https://images.pokemontcg.io/swsh3/20_hires.png"}, tcgplayer:{prices:{holofoil:{market:12.8,low:8,high:20 }}}},
   {id:"xy1-12",  name:"Charizard EX FA", number:"12", rarity:"Rare Ultra",  supertype:"Pokémon",set:{id:"xy1",name:"XY Base Set"},      images:{small:"https://images.pokemontcg.io/xy1/12.png",   large:"https://images.pokemontcg.io/xy1/12_hires.png"},   tcgplayer:{prices:{holofoil:{market:28, low:19,high:44 }}}},
 ];
-const SEALED=[
-  // img = iconic card art from that set (hi-res scan). fallback in JSX → set logo.
-  {id:"etb-sv151",name:"SV 151 Elite Trainer Box",      set:"sv3pt5",setName:"Scarlet & Violet 151",type:"ETB",    fmv:44,
-   img:"https://images.pokemontcg.io/sv3pt5/6_hires.png",  fb:"https://images.pokemontcg.io/sv3pt5/logo.png"},
-  {id:"etb-paf",  name:"Paldean Fates ETB",              set:"sv4pt5",setName:"Paldean Fates",      type:"ETB",    fmv:55,
-   img:"https://images.pokemontcg.io/sv4pt5/182_hires.png",fb:"https://images.pokemontcg.io/sv4pt5/logo.png"},
-  {id:"etb-obf",  name:"Obsidian Flames ETB",            set:"sv3",   setName:"Obsidian Flames",    type:"ETB",    fmv:36,
-   img:"https://images.pokemontcg.io/sv3/228_hires.png",   fb:"https://images.pokemontcg.io/sv3/logo.png"},
-  {id:"etb-twm",  name:"Twilight Masquerade ETB",        set:"sv6",   setName:"Twilight Masquerade",type:"ETB",    fmv:34,
-   img:"https://images.pokemontcg.io/sv6/167_hires.png",   fb:"https://images.pokemontcg.io/sv6/logo.png"},
-  {id:"box-mew",  name:"Mew VMAX Premium Collection",    set:"swsh8", setName:"Fusion Strike",      type:"Box",    fmv:52,
-   img:"https://images.pokemontcg.io/swsh8/114_hires.png", fb:"https://images.pokemontcg.io/swsh8/logo.png"},
-  {id:"bp-sv151", name:"SV 151 Booster Pack",            set:"sv3pt5",setName:"Scarlet & Violet 151",type:"Booster",fmv:4.5,
-   img:"https://images.pokemontcg.io/sv3pt5/205_hires.png",fb:"https://images.pokemontcg.io/sv3pt5/logo.png"},
-  {id:"etb-brs",  name:"Brilliant Stars ETB",            set:"swsh9", setName:"Brilliant Stars",    type:"ETB",    fmv:38,
-   img:"https://images.pokemontcg.io/swsh9/123_hires.png", fb:"https://images.pokemontcg.io/swsh9/logo.png"},
-  {id:"bp-paf",   name:"Paldean Fates Booster Pack",     set:"sv4pt5",setName:"Paldean Fates",      type:"Booster",fmv:8,
-   img:"https://images.pokemontcg.io/sv4pt5/107_hires.png",fb:"https://images.pokemontcg.io/sv4pt5/logo.png"},
-];
 // Hero showcase: 1 Pokemon front + MTG left + YGO right (the 3 TCGs we support)
 function timeAgo(dateStr){
   if(!dateStr) return '';
@@ -124,11 +105,6 @@ function timeAgo(dateStr){
   return d.toLocaleDateString('it-IT',{day:'2-digit',month:'short'});
 }
 
-const GRADING_SPOT={
-  name:"Charizard",set:"Base Set 1999",fmv:420,psa10:1344,psa10EUR:1237,
-  img:"https://images.pokemontcg.io/base1/4.png",pop10:342,pop9:1240,
-  analysis:"Raw-to-PSA10 multiplier at 3.2x. Historically this gap widens in Q3 when grading volume drops. Current PSA turnaround is 35 days at standard tier. For raw copies in NM condition this remains one of the strongest grading opportunities in the market.",
-};
 // Market pulse: vol e change reali verranno calcolati dal cron compute-hot-picks
 // quando l'aggregato giornaliero sarà disponibile. Per ora mostra solo nomi.
 const MARKET_PULSE=[
@@ -566,19 +542,21 @@ img{display:block;}
 .sb-live{background:var(--loss-g);color:var(--loss);border:1px solid rgba(248,113,113,.2);}
 
 
-/* GRADING SPOTLIGHT */
-.gs-card{background:linear-gradient(135deg,rgba(167,139,250,.07),rgba(56,189,248,.04));
-  border:1px solid rgba(167,139,250,.2);border-radius:18px;padding:20px;display:flex;flex-direction:column;gap:14px;}
-.gs-img{width:90px;border-radius:9px;box-shadow:0 10px 28px rgba(0,0,0,.5);}
-.gs-label{font-size:9px;font-family:'Space Mono',monospace;font-weight:700;color:var(--purple);
-  letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;}
-.gs-name{font-family:'Fraunces',sans-serif;font-size:20px;font-weight:800;letter-spacing:-.4px;margin-bottom:3px;}
-.gs-set{font-size:11px;color:var(--muted);margin-bottom:12px;}
-.gs-prices{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:10px;}
-.gs-pi{display:flex;flex-direction:column;gap:1px;}
-.gs-pi-l{font-size:9px;color:var(--muted);font-family:'Space Mono',monospace;}
-.gs-pi-v{font-family:'Space Mono',monospace;font-size:15px;font-weight:700;}
-.gs-analysis{font-size:13px;color:var(--txt2);line-height:1.65;}
+/* INVESTMENT PICKS (Hot Picks) */
+.hp-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;}
+.hp-card{background:var(--s2);border:1px solid var(--gb);border-radius:14px;padding:12px;display:flex;gap:10px;align-items:flex-start;cursor:pointer;transition:all .2s;}
+.hp-card:hover{border-color:rgba(251,191,36,.22);transform:translateY(-1px);}
+.hp-img{width:52px;flex-shrink:0;border-radius:7px;object-fit:cover;box-shadow:0 6px 18px rgba(0,0,0,.45);}
+.hp-img-ph{width:52px;height:72px;flex-shrink:0;border-radius:7px;background:var(--dim);display:flex;align-items:center;justify-content:center;font-size:18px;}
+.hp-info{flex:1;min-width:0;}
+.hp-tcg{font-size:8px;font-family:'Space Mono',monospace;font-weight:700;letter-spacing:.5px;padding:2px 6px;border-radius:100px;display:inline-block;margin-bottom:5px;}
+.hp-name{font-family:'Fraunces',sans-serif;font-weight:800;font-size:12px;line-height:1.3;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.hp-set{font-size:10px;color:var(--muted);margin-bottom:7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.hp-price{font-family:'Space Mono',monospace;font-size:13px;font-weight:700;color:var(--amber);}
+.hp-change{font-size:9px;font-family:'Space Mono',monospace;font-weight:700;margin-top:2px;}
+.hp-tabs{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;}
+.hp-tab{background:var(--gl);border:1px solid var(--gb);color:var(--muted);padding:4px 12px;border-radius:100px;font-size:10px;font-weight:700;cursor:pointer;font-family:'Space Mono',monospace;transition:all .18s;}
+.hp-tab.on{background:rgba(251,191,36,.12);border-color:var(--amber);color:var(--amber);}
 
 /* UPCOMING */
 .ug{display:grid;grid-template-columns:repeat(1,1fr);gap:10px;}
@@ -1134,11 +1112,9 @@ img{display:block;}
   .plans-grid{grid-template-columns:repeat(3,1fr);}
   .picker-modal{max-width:500px;border-radius:20px 20px 0 0;}
   .nb-modal{max-width:440px;border-radius:20px 20px 0 0;}
-  .gs-card{flex-direction:row;gap:18px;}
-  .gs-img{width:100px;}
+  .hp-grid{grid-template-columns:repeat(3,1fr);}
   .donate-inner{flex-direction:row;align-items:center;}
   .donate-btn{width:auto;}
-  .gs-card{align-items:flex-start;}
 }
 
 /* ── DESKTOP 1024px+ ───────────────────────────────────────────────────────── */
@@ -1391,12 +1367,33 @@ export default function DraGold(){
   const portData  = useMemo(()=>totalVal>0?mkPortChart(totalVal):null,[totalVal]);
   const portChg   = portData?portData[portData.length-1]-portData[0]:0;
 
-  // Auto-detect card language from the search query (Japanese kana, Korean hangul, etc.)
+  // Auto-detect card language from the search query (Japanese kana, Korean hangul, or text keywords)
   function detectLang(s){
     if(!s) return null;
     if(/[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]/.test(s)) return "ja";
     if(/[\uAC00-\uD7AF]/.test(s)) return "ko";
+    // Text keyword detection: "japan", "jp", "jap", "japanese" \u2192 ja
+    if(/\b(japan(ese)?|jap|jp)\b/i.test(s)) return "ja";
+    // "korean", "kr", "kor" \u2192 ko
+    if(/\b(korean?|kor|kr)\b/i.test(s)) return "ko";
+    // Other language keywords
+    if(/\b(italian?|ita|it)\b/i.test(s)) return "it";
+    if(/\b(french|fra|fr)\b/i.test(s)) return "fr";
+    if(/\b(german|deu|de)\b/i.test(s)) return "de";
+    if(/\b(spanish|esp|es)\b/i.test(s)) return "es";
+    if(/\b(portuguese?|por|pt)\b/i.test(s)) return "pt";
     return null; // caller decides default
+  }
+
+  // Strip language keywords from a query string and return {cleanQuery, detectedLang}
+  function stripLangKeywords(s){
+    if(!s) return {cleanQuery:s, detectedLang:null};
+    const lang = detectLang(s);
+    if(!lang) return {cleanQuery:s.trim(), detectedLang:null};
+    const cleanQuery = s
+      .replace(/\b(japan(ese)?|jap|jp|korean?|kor|kr|italian?|ita|french|fra|german|deu|spanish|esp|portuguese?|por)\b/gi,"")
+      .replace(/\s{2,}/g," ").trim();
+    return {cleanQuery, detectedLang:lang};
   }
 
   // Login → carica vault & watchlist remoti dal DB Supabase usando nomi colonne reali.
@@ -1663,13 +1660,15 @@ export default function DraGold(){
   useEffect(()=>{
     if(!supabaseReady){setSuggestions([]);return;}
     if(!q || q.trim().length<2){setSuggestions([]);return;}
-    const detected = detectLang(q);
-    const lang = detected || clang;
+    const {cleanQuery, detectedLang} = stripLangKeywords(q);
+    const effectiveQ = cleanQuery || q.trim();
+    // Pass lang_filter only when a script language was detected; otherwise null = all languages
+    const langFilter = detectedLang || null;
     const tcgF = null; // cross-TCG suggestions
     const handle = setTimeout(async()=>{
       try{
         const {data,error}=await supabase.rpc('suggest_cards',{
-          q:q.trim(), tcg_filter:tcgF, lang_filter:lang,
+          q:effectiveQ, tcg_filter:tcgF, lang_filter:langFilter,
         });
         if(!error && Array.isArray(data)){setSuggestions(data); setShowSugg(true);}
       }catch{}
@@ -1680,13 +1679,19 @@ export default function DraGold(){
   // Universal search: ALWAYS cross-TCG by default. Supabase first, then live APIs in parallel.
   // The TCG selector becomes a post-results visual filter, never a gate.
   const doSearch=useCallback(async()=>{
-    const query=q.trim();
-    if(!query) return;
-    setLoading(true);setSearched(true);setCards([]);setLangFilter(null);setDemo(false);setShowSugg(false);
+    const raw=q.trim();
+    if(!raw) return;
+    setLoading(true);setSearched(true);setCards([]);setDemo(false);setShowSugg(false);
 
-    // Detect script for Japanese/Korean queries — but always search ALL langs cross-DB
-    const detectedLang = detectLang(query) || "en";
-    if(detectedLang!==clang) setClang(detectedLang);
+    // Strip language keywords ("japan", "jp", etc.) from query and apply lang filter
+    const {cleanQuery, detectedLang} = stripLangKeywords(raw);
+    const query = cleanQuery || raw;
+    if(detectedLang){
+      setLangFilter(detectedLang);
+      if(detectedLang!==clang) setClang(detectedLang);
+    } else {
+      setLangFilter(null);
+    }
 
     // 1) SUPABASE CATALOG — query diretta su cards per TUTTE le varianti lingua
     // Usiamo * come wildcard PostgREST (non %) nel filter .or().
@@ -1694,11 +1699,14 @@ export default function DraGold(){
     let supabaseHits=[];
     if(supabaseReady){
       try{
-        const {data,error}=await supabase
+        let dbQuery = supabase
           .from('cards')
           .select('id,name,set_id,set_name,card_number,rarity,image_url,image_url_hi,lang,tcg')
           .or(`name.ilike.*${query}*,card_number.eq.${query}`)
           .limit(500);
+        // If user specified a language, filter DB results to that lang only
+        if(detectedLang) dbQuery = dbQuery.eq('lang', detectedLang);
+        const {data,error}=await dbQuery;
         if(!error && Array.isArray(data) && data.length){
           // Fetch prezzi in batch (best-effort)
           let priceMap={};
@@ -1707,7 +1715,10 @@ export default function DraGold(){
             const {data:pd}=await supabase.from('card_prices_latest').select('card_id,price_market,source').in('card_id',ids);
             if(Array.isArray(pd)) for(const p of pd) priceMap[p.card_id]=p;
           }catch{}
-          const _langOrder={en:0,ja:1,it:2,es:3,pt:4,de:5,fr:6,ko:7,id:8};
+          // When lang filtered: JP first, then others. Otherwise: EN first.
+          const _langOrder = detectedLang
+            ? {[detectedLang]:0,en:1,ja:1,it:2,es:3,pt:4,de:5,fr:6,ko:7,id:8}
+            : {en:0,ja:1,it:2,es:3,pt:4,de:5,fr:6,ko:7,id:8};
           supabaseHits=data.map(r=>({
             id:r.id, name:r.name, number:r.card_number||"", rarity:r.rarity||"",
             supertype:r.tcg==="pokemon"?"Pokémon":r.tcg==="mtg"?"Creature":r.tcg==="ygo"?"Monster":"Character",
@@ -1721,7 +1732,7 @@ export default function DraGold(){
             _supabasePrice:priceMap[r.id]?.price_market,_priceSource:priceMap[r.id]?.source,
             _langRank:_langOrder[r.lang||"en"]??99,
           }));
-          // Ordina: EN prima, poi JP, poi altre lingue — per nome all'interno di ogni lingua
+          // Ordina: lingua filtrata prima, poi EN, poi altre
           supabaseHits.sort((a,b)=>{
             if(a._langRank!==b._langRank) return a._langRank-b._langRank;
             return a.name.localeCompare(b.name);
@@ -2418,6 +2429,91 @@ export default function DraGold(){
     </div>
   );
 
+  // INVESTMENT PICKS — fetches top-priced cards from Supabase card_prices_latest
+  const HotPicksSection=()=>{
+    const [picks,setPicks]=useState([]);
+    const [loadingPicks,setLoadingPicks]=useState(true);
+    const [tcgF,setTcgF]=useState(null);
+    useEffect(()=>{
+      if(!supabaseReady){setLoadingPicks(false);return;}
+      let cancelled=false;
+      (async()=>{
+        try{
+          // Top-priced cards with a price, from all TCGs
+          const {data:pd}=await supabase
+            .from('card_prices_latest')
+            .select('card_id,price_market,source')
+            .not('price_market','is',null)
+            .gt('price_market',5)
+            .order('price_market',{ascending:false})
+            .limit(80);
+          if(cancelled||!Array.isArray(pd)||!pd.length){if(!cancelled)setLoadingPicks(false);return;}
+          const priceMap={};
+          for(const p of pd) priceMap[p.card_id]=p.price_market;
+          const {data:cards}=await supabase
+            .from('cards')
+            .select('id,name,set_name,image_url,image_url_hi,lang,tcg,rarity')
+            .in('id',pd.map(p=>p.card_id))
+            .eq('lang','en');
+          if(!cancelled&&Array.isArray(cards)){
+            const merged=cards
+              .filter(c=>priceMap[c.id]!=null)
+              .map(c=>({...c,price:priceMap[c.id]}))
+              .sort((a,b)=>b.price-a.price);
+            setPicks(merged);
+          }
+        }catch{}
+        finally{if(!cancelled)setLoadingPicks(false);}
+      })();
+      return()=>{cancelled=true;};
+    },[]);
+    const TCG_TABS=[{id:null,label:"All"},{id:"pokemon",label:"🔴 Pokémon"},{id:"mtg",label:"✨ MTG"},{id:"ygo",label:"⭐ YGO"},{id:"onepiece",label:"🌊 One Piece"}];
+    const TCG_BADGE={pokemon:{bg:"var(--red-b,rgba(239,68,68,.12))",color:"var(--red,#ef4444)"},mtg:{bg:"rgba(251,191,36,.1)",color:"var(--amber)"},ygo:{bg:"rgba(56,189,248,.1)",color:"var(--blue)"},onepiece:{bg:"var(--lime-b)",color:"var(--lime)"}};
+    const filtered=(tcgF?picks.filter(p=>p.tcg===tcgF):picks).slice(0,8);
+    return(
+      <div style={{marginBottom:40}}>
+        <div className="sec-hdr">
+          <div className="sec-title gt">Investment Picks</div>
+          <span className="sec-badge" style={{background:"rgba(251,191,36,.1)",color:"var(--amber)",border:"1px solid rgba(251,191,36,.2)"}}>Live prices</span>
+        </div>
+        <div className="hp-tabs">
+          {TCG_TABS.map(t=>(
+            <button key={t.id||"all"} className={`hp-tab${tcgF===t.id?" on":""}`} onClick={()=>setTcgF(t.id)}>{t.label}</button>
+          ))}
+        </div>
+        {loadingPicks?(
+          <div style={{textAlign:"center",padding:"28px 0",color:"var(--muted)",fontSize:12,fontFamily:"'Space Mono',monospace"}}>Loading picks…</div>
+        ):filtered.length===0?(
+          <div style={{textAlign:"center",padding:"28px 0",color:"var(--muted)",fontSize:12}}>No data yet for this TCG.</div>
+        ):(
+          <div className="hp-grid">
+            {filtered.map(card=>{
+              const badge=TCG_BADGE[card.tcg]||{bg:"var(--gl)",color:"var(--muted)"};
+              const price=cur==="EUR"?`€${(card.price*EUR_RATE).toFixed(2)}`:`$${card.price.toFixed(2)}`;
+              return(
+                <div key={card.id} className="hp-card" onClick={()=>{setQ(card.name);setTab("explore");setTimeout(()=>doSearch(),80);}}>
+                  {card.image_url||card.image_url_hi
+                    ?<img src={card.image_url_hi||card.image_url} alt={card.name} className="hp-img"/>
+                    :<div className="hp-img-ph">🃏</div>}
+                  <div className="hp-info">
+                    <div className="hp-tcg" style={{background:badge.bg,color:badge.color}}>{card.tcg?.toUpperCase()}</div>
+                    <div className="hp-name" title={card.name}>{card.name}</div>
+                    <div className="hp-set">{card.set_name}</div>
+                    <div className="hp-price">{price}</div>
+                    <div className="hp-change" style={{color:"var(--muted)"}}>FMV · market avg</div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+        <div style={{fontSize:10,color:"var(--dim)",textAlign:"center",marginTop:10,fontFamily:"'Space Mono',monospace"}}>
+          Sorted by current FMV · Price history tracking in progress
+        </div>
+      </div>
+    );
+  };
+
   // HOME SECTIONS
   const HomeSections=()=>(
     <div className="hs">
@@ -2426,22 +2522,23 @@ export default function DraGold(){
       <div style={{marginBottom:48}}>
         <div style={{textAlign:"center",marginBottom:28}}>
           <div style={{fontFamily:"'Fraunces',sans-serif",fontSize:"clamp(22px,5vw,34px)",fontWeight:800,letterSpacing:"-.5px",marginBottom:10}} className="gt-gold">
-            The EU collector's edge
+            Your TCG portfolio, under control
           </div>
           <div style={{fontSize:14,color:"var(--muted)",maxWidth:540,margin:"0 auto",lineHeight:1.7}}>
-            DraGold aggregates real Fair Market Values for 170K+ TCG cards and routes you directly to the right eBay store in your country — so you pay EU prices, not US.
+            Track your collection value, get instant price alerts, and discover 170K+ cards across Pokémon, MTG, YGO and One Piece — all with real EU market prices.
           </div>
         </div>
         <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:12}}>
           {[
-            {icon:"🌍",color:"var(--blue)",title:"EU Geo-routing",desc:"eBay.it for Italy, eBay.de for Germany, eBay.fr for France. Always the right store, automatically."},
-            {icon:"💶",color:"var(--amber)",title:"Real FMV in EUR",desc:"Fair Market Value calculated from live eBay data. No guesses, no fake prices — just what cards actually sell for."},
-            {icon:"🔍",color:"var(--purple)",title:"170K+ cards",desc:"Pokémon (12 languages), Magic: The Gathering, Yu-Gi-Oh!, and One Piece TCG — all in one search."},
-            {icon:"🐉",color:"var(--gain)",title:"Vault & Alerts",desc:"Track your collection, set price drop alerts, and manage digital binders — free, forever."},
+            {icon:"🔔",color:"var(--amber)",title:"Price Alerts",desc:"Set a target price on any card. Get notified the moment it drops below. Never miss a deal again.",action:()=>setTab("alerts")},
+            {icon:"🐉",color:"var(--gain)",title:"Portfolio Vault",desc:"Track every card you own. See total value in EUR/USD, ROI, and watchlist all in one place.",action:()=>{setTab("col");setColTab("vault");}},
+            {icon:"📒",color:"var(--blue)",title:"Digital Binder",desc:"Organize your collection into visual binders by set, type or value — exactly like your physical ones.",action:()=>setTab("binder")},
+            {icon:"🌍",color:"var(--purple)",title:"EU-Ready Prices",desc:"eBay geo-routing for Italy, Germany, France + more. Always EUR pricing, never USD conversions.",action:()=>setTab("explore")},
           ].map(f=>(
-            <div key={f.title} style={{background:"var(--s2)",border:"1px solid var(--gb)",borderRadius:16,padding:16,transition:"border-color .2s"}}
-              onMouseEnter={e=>e.currentTarget.style.borderColor="rgba(255,255,255,.14)"}
-              onMouseLeave={e=>e.currentTarget.style.borderColor="rgba(255,255,255,.09)"}>
+            <div key={f.title} style={{background:"var(--s2)",border:"1px solid var(--gb)",borderRadius:16,padding:16,transition:"all .2s",cursor:"pointer"}}
+              onClick={f.action}
+              onMouseEnter={e=>{e.currentTarget.style.borderColor=f.color;e.currentTarget.style.transform="translateY(-2px)";}}
+              onMouseLeave={e=>{e.currentTarget.style.borderColor="rgba(255,255,255,.09)";e.currentTarget.style.transform="";}}>
               <div style={{fontSize:24,marginBottom:8}}>{f.icon}</div>
               <div style={{fontFamily:"'Fraunces',sans-serif",fontWeight:800,fontSize:14,marginBottom:5,color:f.color}}>{f.title}</div>
               <div style={{fontSize:11,color:"var(--muted)",lineHeight:1.55}}>{f.desc}</div>
@@ -2464,27 +2561,8 @@ export default function DraGold(){
       </div>
 
 
-      {/* GRADING SPOTLIGHT */}
-      <div style={{marginBottom:40}}>
-        <div className="sec-hdr">
-          <div className="sec-title gt">Grading Spotlight</div>
-          <span className="sec-badge" style={{background:"var(--purple-b)",color:"var(--purple)",border:"1px solid rgba(167,139,250,.2)"}}>Daily pick</span>
-        </div>
-        <div className="gs-card">
-          <img src={GRADING_SPOT.img} alt={GRADING_SPOT.name} className="gs-img"/>
-          <div>
-            <div className="gs-label">Top grading opportunity</div>
-            <div className="gs-name gt">{GRADING_SPOT.name}</div>
-            <div className="gs-set">{GRADING_SPOT.set}</div>
-            <div className="gs-prices">
-              <div className="gs-pi"><div className="gs-pi-l">Raw FMV</div><div className="gs-pi-v" style={{color:"var(--amber)"}}>{cur==="EUR"?`€${(GRADING_SPOT.fmv*EUR_RATE).toFixed(0)}`:`$${GRADING_SPOT.fmv}`}</div></div>
-              <div className="gs-pi"><div className="gs-pi-l">PSA 10 est.</div><div className="gs-pi-v" style={{color:"var(--gain)"}}>{cur==="EUR"?`€${GRADING_SPOT.psa10EUR}`:`$${GRADING_SPOT.psa10}`}</div></div>
-              <div className="gs-pi"><div className="gs-pi-l">Pop 10</div><div className="gs-pi-v" style={{color:"var(--purple)"}}>{GRADING_SPOT.pop10}</div></div>
-            </div>
-            <div className="gs-analysis">{GRADING_SPOT.analysis}</div>
-          </div>
-        </div>
-      </div>
+      {/* INVESTMENT PICKS */}
+      <HotPicksSection/>
 
       {/* UPCOMING RELEASES */}
       <div style={{marginBottom:40}}>
@@ -2797,7 +2875,6 @@ export default function DraGold(){
           <button className={`tb${tab==="alerts"?" on":""}`} onClick={()=>setTab("alerts")}>
             Alerts{alerts.filter(a=>a.is_active).length>0&&<span className="tbb">{alerts.filter(a=>a.is_active).length}</span>}
           </button>
-          <button className={`tb${tab==="sealed"?" on":""}`} onClick={()=>setTab("sealed")}>Sealed</button>
           <button className={`tb${tab==="binder"?" on":""}`} onClick={()=>setTab("binder")}>Binder</button>
           <button className={`tb${tab==="blog"?" on":""}`} onClick={()=>setTab("blog")}>Blog</button>
           <button className={`tb${tab==="community"?" on":""}`} onClick={()=>setTab("community")} style={tab==="community"?{borderColor:"var(--pink)",background:"var(--pink-b)",color:"var(--pink)"}:{}}>🌐 Community</button>
@@ -2819,7 +2896,7 @@ export default function DraGold(){
                 <p className="hero-sub">Search 170K+ cards across Pokémon, Magic, Yu-Gi-Oh! and One Piece TCG. Real prices in EUR with EU eBay geo-routing, price alerts, vault tracking and digital binders.</p>
                 <div className="srch" style={{position:"relative"}}>
                   <input className="srch-in" type="text"
-                    placeholder="Search any card by name, number or set..."
+                    placeholder='Search any card — try "charizard jp" or "pikachu japan"...'
                     value={q}
                     onChange={e=>setQ(e.target.value)}
                     onFocus={()=>q&&suggestions.length&&setShowSugg(true)}
@@ -2912,44 +2989,6 @@ export default function DraGold(){
         {!searched&&<HomeSections/>}
       </>)}
 
-      {/* SEALED */}
-      {tab==="sealed"&&(
-        <div className="cw">
-          <div className="sec-title gt" style={{fontSize:22,marginBottom:6}}>Sealed Products</div>
-          <div style={{fontSize:13,color:"var(--muted)",marginBottom:20}}>Top Pokémon boxes, ETBs and booster packs</div>
-          <div className="sealed-grid">
-            {SEALED.map(prod=>{
-              const price=cur==="EUR"?`€${(prod.fmv*EUR_RATE).toFixed(2)}`:`$${prod.fmv}`;
-              const link=ebayURL(prod.name,"",country,null,"pokemon");
-              return(
-                <div key={prod.id} className="sc">
-                  <div className="sc-img-wrap">
-                    <img
-                      src={prod.img}
-                      alt={prod.name}
-                      className="sc-img"
-                      onError={e=>{
-                        if(e.target.src!==prod.fb){
-                          e.target.src=prod.fb;
-                          e.target.classList.add("fallback");
-                        }
-                      }}
-                    />
-                  </div>
-                  <div className="sc-name">{prod.name}</div>
-                  <div className="sc-set">{prod.setName}</div>
-                  <span className={`sc-type ty-${prod.type.toLowerCase()}`}>{prod.type}</span>
-                  <div className="sc-price gt">{price}</div>
-                  <div className="sc-lbl">Fair Market Value</div>
-                  <a href={link} target="_blank" rel="noopener noreferrer" className="sc-buy">
-                    🛒 {region==="EU"?"EU eBay":"eBay"}
-                  </a>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
 
       {/* BINDER */}
       {tab==="binder"&&<BinderTab/>}
@@ -2959,6 +2998,26 @@ export default function DraGold(){
         <div className="cw">
           <div className="sec-title gt" style={{fontSize:24,marginBottom:5}}>DraGold Blog</div>
           <div style={{fontSize:13,color:"var(--muted)",marginBottom:24}}>Market insights, grading guides and investment strategies</div>
+
+          {/* Write for DraGold */}
+          <div style={{background:"linear-gradient(135deg,rgba(167,139,250,.08),rgba(56,189,248,.05))",border:"1px solid rgba(167,139,250,.2)",borderRadius:16,padding:18,marginBottom:24}}>
+            <div style={{display:"flex",alignItems:"flex-start",gap:12}}>
+              <span style={{fontSize:28,flexShrink:0}}>✍️</span>
+              <div>
+                <div style={{fontFamily:"'Fraunces',sans-serif",fontWeight:800,fontSize:15,marginBottom:4,color:"var(--purple)"}}>Write for DraGold</div>
+                <div style={{fontSize:12,color:"var(--muted)",lineHeight:1.6,marginBottom:10}}>
+                  Share your TCG knowledge with the EU collector community. We publish articles in English on market analysis, investment strategies, set reviews and grading guides. Good articles rank on Google and drive traffic to your socials or store.
+                </div>
+                <div style={{fontSize:11,color:"var(--txt2)",lineHeight:1.7}}>
+                  <strong style={{color:"var(--txt)"}}>How to submit:</strong> Write your article in English (500–1500 words), include card names and set names for SEO, then send to <a href="mailto:info@dragold.org" style={{color:"var(--purple)",fontWeight:700}}>info@dragold.org</a> with subject "Blog submission — [your topic]".
+                </div>
+                <div style={{fontSize:10,color:"var(--muted)",marginTop:8,fontFamily:"'Space Mono',monospace"}}>
+                  Articles reviewed within 3–5 days · Full credit + backlink · No paywall
+                </div>
+              </div>
+            </div>
+          </div>
+
           <div className="blog-grid">
             {BLOG.map((post,i)=>(
               <div key={post.id} className="bcard" onClick={()=>setArticle(post)}>
