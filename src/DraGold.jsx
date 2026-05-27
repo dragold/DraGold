@@ -2132,12 +2132,24 @@ export default function DraGold(){
       let cancelled=false;
       (async()=>{
         try{
-          const {data}=await supabase.rpc('search_cards',{
-            q:card.name, tcg_filter:cardTcg==="pokemon"?"pokemon":null, lang_filter:null, limit_n:20,
-          });
+          // Direct cards table query — returns ALL language variants (bypasses RPC dedup)
+          const {data}=await supabase
+            .from('cards')
+            .select('id,name,lang,tcg,set_id,set_name,card_number,rarity,image_url,image_url_hi')
+            .eq('name',card.name)
+            .eq('tcg',cardTcg==='pokemon'?'pokemon':cardTcg)
+            .neq('id',card.id)
+            .limit(30);
           if(cancelled||!Array.isArray(data)) return;
-          const others=data.filter(r=>r.id!==card.id && r.name===card.name).slice(0,6);
-          setOtherVersions(others);
+          const _lO={en:0,ja:1,it:2,es:3,pt:4,de:5,fr:6,ko:7,id:8};
+          const sorted=[...data].sort((a,b)=>{
+            // Same set as current card first
+            const aS=(a.set_id===card._setId)?0:1;
+            const bS=(b.set_id===card._setId)?0:1;
+            if(aS!==bS) return aS-bS;
+            return (_lO[a.lang||'en']??99)-(_lO[b.lang||'en']??99);
+          });
+          setOtherVersions(sorted.slice(0,9));
         }catch{}
       })();
       return()=>{cancelled=true;};
@@ -2293,20 +2305,25 @@ export default function DraGold(){
                 </div>
                 <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8}}>
                   {otherVersions.map(v=>{
-                    const langInfo=CARD_LANGS.find(x=>x.c===v.lang)||{f:"",c:v.lang||"en"};
-                    const vPrice=v.price_usd?(cur==="EUR"?`€${(+v.price_usd*EUR_RATE).toFixed(2)}`:`$${(+v.price_usd).toFixed(2)}`):null;
+                    const langInfo=CARD_LANGS.find(x=>x.c===v.lang)||{f:"🌐",c:v.lang||"en"};
+                    const vImg=v.image_url_hi||v.image_url;
+                    const vSetLabel=v.set_name||v.set_id||"";
                     return(
                       <div key={v.id} onClick={()=>setDetail({
                         id:v.id,name:v.name,number:v.card_number||"",rarity:v.rarity||"",
-                        set:{name:v.set_name||""},images:{small:v.image_url,large:v.image_url},
-                        _supabase:true,_lang:v.lang,_tcg:v.tcg,_supabasePrice:v.price_usd,
+                        set:{id:v.set_id||"",name:v.set_name||v.set_id||""},
+                        set_name:v.set_name||v.set_id||"",_setId:v.set_id||"",
+                        images:{small:vImg,large:vImg},
+                        image_uris:{small:vImg,normal:vImg,large:vImg},
+                        card_images:[{image_url:vImg,image_url_small:v.image_url}],
+                        _supabase:true,_lang:v.lang||"en",_tcg:v.tcg,
                       })} style={{cursor:"pointer",background:"rgba(255,255,255,.04)",border:"1px solid rgba(255,255,255,.08)",borderRadius:10,padding:8,textAlign:"center",transition:"border-color .2s"}}
                       onMouseEnter={e=>e.currentTarget.style.borderColor="rgba(251,191,36,.3)"}
                       onMouseLeave={e=>e.currentTarget.style.borderColor="rgba(255,255,255,.08)"}>
-                        {v.image_url?<img src={v.image_url} alt={v.name} style={{width:"100%",borderRadius:6,marginBottom:5}}/>:<div style={{height:60,background:"var(--s1)",borderRadius:6,marginBottom:5}}/>}
+                        {vImg?<img src={vImg} alt={v.name} style={{width:"100%",borderRadius:6,marginBottom:5}}/>:<div style={{height:60,background:"var(--s1)",borderRadius:6,marginBottom:5}}/>}
                         <div style={{fontFamily:"'Space Mono',monospace",fontSize:9,color:"var(--purple)",marginBottom:2}}>{langInfo.f} {(v.lang||"en").toUpperCase()}</div>
-                        <div style={{fontSize:9,color:"var(--muted)"}}>{v.set_name||""}</div>
-                        {vPrice&&<div style={{fontFamily:"'Space Mono',monospace",fontSize:11,fontWeight:700,color:"var(--amber)",marginTop:3}}>{vPrice}</div>}
+                        <div style={{fontSize:9,color:"var(--muted)"}}>{vSetLabel}</div>
+                        {v.card_number&&<div style={{fontFamily:"'Space Mono',monospace",fontSize:9,color:"var(--dim)"}}>#{v.card_number}</div>}
                       </div>
                     );
                   })}
