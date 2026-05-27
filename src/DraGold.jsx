@@ -550,6 +550,13 @@ img{display:block;}
 .klang-tcg{display:inline-flex;align-items:center;gap:3px;font-size:9px;color:var(--blue);
   background:var(--blue-b);border:1px solid rgba(56,189,248,.2);border-radius:100px;
   padding:2px 6px;margin-bottom:6px;font-family:'Space Mono',monospace;}
+/* Language filter chips */
+.lfc{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;}
+.lf-chip{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);color:var(--txt2);
+  border-radius:20px;padding:4px 12px;font-size:11px;font-family:'Space Mono',monospace;
+  cursor:pointer;transition:all .2s;white-space:nowrap;}
+.lf-chip:hover{border-color:rgba(251,191,36,.35);color:var(--txt);}
+.lf-chip.on{background:rgba(251,191,36,.12);border-color:rgba(251,191,36,.5);color:var(--amber);font-weight:700;}
 .kprice{font-family:'Space Mono',monospace;font-size:15px;font-weight:700;color:var(--amber);margin-bottom:1px;}
 .kprice-lbl{font-size:9px;color:var(--muted);font-family:'Space Mono',monospace;margin-bottom:4px;}
 .knet{font-size:9px;color:var(--gain);font-family:'Space Mono',monospace;margin-bottom:7px;}
@@ -1232,6 +1239,7 @@ export default function DraGold(){
   const [userMenuOpen,setUserMenuOpen] = useState(false);
   const [q,setQ]             = useState("");
   const [cards,setCards]     = useState([]);
+  const [langFilter,setLangFilter] = useState(null); // null=all, "en"/"it"/etc.
   const [loading,setLoading] = useState(false);
   const [searched,setSearched] = useState(false);
   const [demo,setDemo]       = useState(false);
@@ -1764,7 +1772,7 @@ export default function DraGold(){
   const doSearch=useCallback(async()=>{
     const query=q.trim();
     if(!query) return;
-    setLoading(true);setSearched(true);setCards([]);setDemo(false);setShowSugg(false);
+    setLoading(true);setSearched(true);setCards([]);setLangFilter(null);setDemo(false);setShowSugg(false);
 
     // Detect script for Japanese/Korean queries — but always search ALL langs cross-DB
     const detectedLang = detectLang(query) || "en";
@@ -1922,7 +1930,7 @@ export default function DraGold(){
     setCards([]);setLoading(false);
   },[q,clang]);
 
-  const changeTCG=id=>{setTcg(id);setCards([]);setSearched(false);setDemo(false);setQ("");};
+  const changeTCG=id=>{setTcg(id);setCards([]);setLangFilter(null);setSearched(false);setDemo(false);setQ("");};
 
   const doRegister=async()=>{
     if(!authEmail) return;
@@ -3005,10 +3013,34 @@ export default function DraGold(){
         <div className="cw">
           {loading&&<p className="rmsg">Searching the vault...</p>}
           {!loading&&searched&&cards.length===0&&<p className="rmsg">No cards found. Try another name.</p>}
-          {cards.length>0&&(<>
-            <FeaturedCard card={cards[0]}/>
-            {cards.length>1&&<div className="grid">{cards.slice(1).map((c,i)=><CardItem key={c.id||c.name||i} card={c} idx={i}/>)}</div>}
-          </>)}
+          {cards.length>0&&(()=>{
+            // Language filter chips — solo se ci sono più lingue nei risultati
+            const _seenLangs=[...new Set(cards.map(c=>c._lang||"en"))];
+            const _availLangs=CARD_LANGS.filter(l=>_seenLangs.includes(l.c));
+            // Aggiungi lingue non in CARD_LANGS (es. id)
+            _seenLangs.forEach(lc=>{if(!_availLangs.find(x=>x.c===lc))_availLangs.push({c:lc,l:lc.toUpperCase(),f:"🌐"});});
+            const _filtered=langFilter?cards.filter(c=>(c._lang||"en")===langFilter):cards;
+            return(<>
+              {_availLangs.length>1&&(
+                <div className="lfc">
+                  <button className={`lf-chip${!langFilter?" on":""}`} onClick={()=>setLangFilter(null)}>
+                    All · {cards.length}
+                  </button>
+                  {_availLangs.map(l=>{
+                    const cnt=cards.filter(c=>(c._lang||"en")===l.c).length;
+                    return(
+                      <button key={l.c} className={`lf-chip${langFilter===l.c?" on":""}`}
+                        onClick={()=>setLangFilter(langFilter===l.c?null:l.c)}>
+                        {l.f} {l.c.toUpperCase()} · {cnt}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+              <FeaturedCard card={_filtered[0]||cards[0]}/>
+              {_filtered.length>1&&<div className="grid">{_filtered.slice(1).map((c,i)=><CardItem key={c.id||c.name||i} card={c} idx={i}/>)}</div>}
+            </>);
+          })()}
         </div>
 
         {!searched&&<HomeSections/>}
@@ -3428,47 +3460,4 @@ export default function DraGold(){
               <div className="donate-title gt">Support DraGold</div>
               <div className="donate-sub">Built by one person, free for everyone. If DraGold saves you money on your collection, consider buying me a coffee. Keeps the servers running and new features coming.</div>
             </div>
-          </div>
-          <div style={{display:"flex",flexDirection:"column",alignItems:"stretch",gap:8,flexShrink:0}}>
-            <a href="https://buymeacoffee.com/dragold" target="_blank" rel="noopener noreferrer" className="donate-btn">
-              ☕ Buy me a coffee
-            </a>
-            <div className="donate-note">via BuyMeACoffee   No account needed</div>
-          </div>
-        </div>
-      </div>
-
-      <footer className="footer">
-        <span>© 2026 DraGold</span>
-        <span>Real prices. No guesses.</span>
-        <a href="https://buymeacoffee.com/dragold" target="_blank" rel="noopener noreferrer" style={{color:"var(--amber)",fontWeight:700}}>Support ☕</a>
-      </footer>
-
-      {/* MODALS */}
-      {zoomImg    &&<div className="img-zoom-ov" onClick={()=>setZoomImg(null)}><img src={zoomImg} alt="zoom"/></div>}
-      {article    &&<ArticleReader post={article}/>}
-      {authMode   &&<AuthModal/>}
-      {detail     &&<DetailModal card={detail}/>}
-      {alertCard  &&<AlertModal card={alertCard}/>}
-      {plansOpen  &&<PlansModal/>}
-      {pickingSlot&&(
-        <div className="smod-ov" onClick={e=>e.target===e.currentTarget&&setPickingSlot(null)}>
-          <div className="picker-modal">
-            <div className="smod-handle"/>
-            <div className="picker-title">Choose from your vault</div>
-            {col.length===0?<div className="picker-empty">Your vault is empty. Add cards from Explore first.</div>
-              :<div className="picker-list">
-                {col.map(c=>(
-                  <div key={c.id} className="picker-item" onClick={()=>placeCard(c.id)}>
-                    {c.img&&<img src={c.img} alt={c.name}/>}
-                    <div><div className="pi-n">{c.name}</div><div className="pi-s">{c.set}</div><div className="pi-p">{disp(c.market)}</div></div>
-                  </div>
-                ))}
-              </div>
-            }
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
+          </di
