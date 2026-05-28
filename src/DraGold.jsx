@@ -1184,8 +1184,6 @@ export default function DraGold(){
   const [detail,setDetail]   = useState(null);
   const [alertCard,setAlertCard] = useState(null);
   const [alertSent,setAlertSent] = useState(false);
-  const [aEmail,setAEmail]   = useState("");
-  const [aPrice,setAPrice]   = useState("");
   const [col,setCol]         = useState([]);
   const [watchlist,setWatchlist] = useState([]);
   const [paid,setPaid]       = useState("");
@@ -2070,6 +2068,10 @@ export default function DraGold(){
     const [otherVersions,setOtherVersions]=useState([]);
     const [ebayListings,setEbayListings]=useState([]);
     const [ebayLoading,setEbayLoading]=useState(false);
+    const [ebayTab,setEbayTab]=useState('raw'); // 'raw'|'psa10'|'psa9'
+    const [ebayPsa10,setEbayPsa10]=useState([]);
+    const [ebayPsa9,setEbayPsa9]=useState([]);
+    const [ebayPsaLoading,setEbayPsaLoading]=useState(false);
     useEffect(()=>{
       if(!supabaseReady||!card.name) return;
       let cancelled=false;
@@ -2099,16 +2101,27 @@ export default function DraGold(){
     // eslint-disable-next-line react-hooks/exhaustive-deps
     },[card.id]);
 
-    // eBay Live Prices
+    // eBay Live Prices — query specifica per nome+numero+set+lingua
     useEffect(()=>{
       if(!card.name||!supabaseReady) return;
       let cancelled=false;
-      setEbayLoading(true);setEbayListings([]);
+      setEbayLoading(true);setEbayListings([]);setEbayTab('raw');setEbayPsa10([]);setEbayPsa9([]);
       (async()=>{
         try{
-          const qMap={pokemon:`${card.name} ${setName} pokemon card`,mtg:`${card.name} magic gathering`,ygo:`${card.name} yugioh card`,onepiece:`${card.name} one piece card`};
-          const q=qMap[cardTcg]||`${card.name} card`;
-          const ctr=(country||'it').toLowerCase();
+          // Mappa lingua per ricerca specifica
+          const langMap={jp:'japanese',ko:'korean',de:'german',fr:'french',it:'italian',es:'spanish',pt:'portuguese',id:'indonesian'};
+          const langStr=cardLangCode&&cardLangCode!=='en'?(langMap[cardLangCode]||cardLangCode):'';
+          const numStr=card.number?card.number:'';
+          // Query specifica: nome + numero + set + lingua + tcg
+          const buildQ=(tcgLabel)=>`${card.name}${numStr?' '+numStr:''} ${setName}${langStr?' '+langStr:''} ${tcgLabel}`.trim();
+          const qMap={
+            pokemon:buildQ('pokemon'),
+            mtg:`${card.name}${numStr?' '+numStr:''} ${setName} magic gathering`,
+            ygo:`${card.name}${numStr?' '+numStr:''} yugioh`,
+            onepiece:buildQ('one piece'),
+          };
+          const q=qMap[cardTcg]||buildQ('tcg');
+          const ctr=(country||'us').toLowerCase();
           const{data,error}=await supabase.functions.invoke('fetch-ebay-prices',{body:{query:q,country:ctr,limit:5}});
           if(cancelled||error) return;
           setEbayListings(data?.items||[]);
@@ -2117,6 +2130,22 @@ export default function DraGold(){
       return()=>{cancelled=true;};
     // eslint-disable-next-line react-hooks/exhaustive-deps
     },[card.id]);
+
+    // Fetch PSA on demand (chiamato al click del tab)
+    const fetchPsaGrade=async(grade)=>{
+      if(ebayPsaLoading) return;
+      const existing=grade===10?ebayPsa10:ebayPsa9;
+      if(existing.length>0) return; // già fetchato
+      setEbayPsaLoading(true);
+      try{
+        const ctr=(country||'us').toLowerCase();
+        const q=`${card.name} PSA ${grade} ${cardTcg==='pokemon'?'pokemon':cardTcg==='mtg'?'magic gathering':cardTcg} graded`;
+        const{data,error}=await supabase.functions.invoke('fetch-ebay-prices',{body:{query:q,country:ctr,limit:5}});
+        if(error) return;
+        if(grade===10) setEbayPsa10(data?.items||[]);
+        else setEbayPsa9(data?.items||[]);
+      }catch{}finally{setEbayPsaLoading(false);}
+    };
 
     return(
       <div className="ov" onClick={e=>e.target===e.currentTarget&&setDetail(null)}>
@@ -2247,22 +2276,37 @@ export default function DraGold(){
 
             {/* EBAY LIVE PRICES */}
             <div className="ebay-live-block">
-              <div className="ebay-live-title">🛒 eBay Live Prices</div>
-              {ebayLoading
+              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10}}>
+                <div className="ebay-live-title" style={{marginBottom:0}}>🛒 eBay Live</div>
+                <div style={{display:'flex',gap:4}}>
+                  {['raw','psa10','psa9'].map(t=>(
+                    <button key={t} onClick={()=>{setEbayTab(t);if(t==='psa10')fetchPsaGrade(10);if(t==='psa9')fetchPsaGrade(9);}}
+                      style={{fontSize:9,fontWeight:700,padding:'3px 7px',borderRadius:5,border:'1px solid',cursor:'pointer',
+                        background:ebayTab===t?'rgba(251,191,36,.15)':'transparent',
+                        borderColor:ebayTab===t?'rgba(251,191,36,.4)':'rgba(255,255,255,.12)',
+                        color:ebayTab===t?'var(--amber)':'var(--muted)',transition:'all .15s'}}>
+                      {t==='raw'?'Raw':t==='psa10'?'PSA 10':'PSA 9'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {(ebayTab==='raw'?ebayLoading:(ebayPsaLoading&&(ebayTab==='psa10'?ebayPsa10.length===0:ebayPsa9.length===0)))
                 ?<div className="ebay-live-loading">Carico listing eBay…</div>
-                :ebayListings.length>0
-                  ?<div className="ebay-live-list">
-                    {ebayListings.map((item,i)=>(
-                      <a key={i} href={item.url} target="_blank" rel="noopener noreferrer" className="ebay-live-item">
-                        <div className="eli-info">
-                          <div className="eli-title">{item.title?.substring(0,55)}{item.title?.length>55?'…':''}</div>
-                          <div className="eli-meta">{item.condition||''}{item.location?` · ${item.location}`:''}</div>
-                        </div>
-                        <div className="eli-price">{item.currency==='EUR'||!item.currency?'€':'$'}{item.price!=null?item.price.toFixed(2):'—'}</div>
-                      </a>
-                    ))}
-                  </div>
-                  :<div className="ebay-live-empty">Nessun listing trovato</div>
+                :(()=>{const list=ebayTab==='raw'?ebayListings:ebayTab==='psa10'?ebayPsa10:ebayPsa9;
+                  return list.length>0
+                    ?<div className="ebay-live-list">
+                      {list.map((item,i)=>(
+                        <a key={i} href={item.url} target="_blank" rel="noopener noreferrer" className="ebay-live-item">
+                          <div className="eli-info">
+                            <div className="eli-title">{item.title?.substring(0,55)}{item.title?.length>55?'…':''}</div>
+                            <div className="eli-meta">{item.condition||''}{item.location?` · ${item.location}`:''}</div>
+                          </div>
+                          <div className="eli-price">{item.currency==='EUR'?'€':item.currency==='USD'?'$':item.currency?.slice(0,1)||'€'}{item.price!=null?item.price.toFixed(2):'—'}</div>
+                        </a>
+                      ))}
+                    </div>
+                    :<div className="ebay-live-empty">{ebayTab==='raw'?'Nessun listing trovato':'Clicca il tab per caricare'}</div>;
+                })()
               }
             </div>
 
@@ -2326,8 +2370,11 @@ export default function DraGold(){
     const fmvD=fmvObj?(cur==="EUR"?`€${fmvObj.fmvEUR}`:`$${fmvObj.fmv}`):null;
     const [alertSaving,setAlertSaving]=useState(false);
     const [alertErr,setAlertErr]=useState(null);
-    const closeAlert=()=>{setAlertCard(null);setAlertSent(false);setAEmail("");setAPrice("");setAlertErr(null);};
-    // Pre-fill user email
+    // State locale per evitare re-render del parent ad ogni keystroke
+    const [aEmail,setAEmail]=useState(user?.email||"");
+    const [aPrice,setAPrice]=useState("");
+    const closeAlert=()=>{setAlertCard(null);setAlertSent(false);setAlertErr(null);};
+    // Pre-fill user email se non già impostato
     useEffect(()=>{if(user?.email&&!aEmail) setAEmail(user.email);},[]);// eslint-disable-line
     const activateAlert=async()=>{
       if(!aEmail||!aPrice) return;
