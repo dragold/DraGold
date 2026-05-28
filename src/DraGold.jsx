@@ -2282,20 +2282,21 @@ export default function DraGold(){
       const priceNum=parseFloat(aPrice);
       const targetEUR=cur==="EUR"?priceNum:+(priceNum*EUR_RATE).toFixed(2);
       if(supabaseReady){
+        const cardId=card.id||card.name;
         const {error}=await supabase.from('alerts').insert({
           user_id:user.id,
-          tcg:card._tcg||'pokemon',
-          card_api_id:card.id||card.name,
-          card_name:card.name||null,
+          card_id:cardId,
+          tcg:card._tcg||tcg||'pokemon',
+          card_api_id:cardId,
           target_eur:targetEUR,
           direction:'below',
           is_active:true,
           email:aEmail,
         });
         if(error){setAlertErr("Save failed: "+error.message);setAlertSaving(false);return;}
-        // Update local alerts list
-        setAlerts(prev=>[{id:Date.now(),card_api_id:card.id||card.name,
-          tcg:card._tcg||'pokemon',target_eur:targetEUR,direction:'below',
+        // Update local alerts list immediately
+        setAlerts(prev=>[{id:Date.now(),card_id:cardId,card_api_id:cardId,card_name:card.name||cardId,
+          tcg:card._tcg||tcg||'pokemon',target_eur:targetEUR,direction:'below',
           is_active:true,email:aEmail,created_at:new Date().toISOString()},...prev]);
       }
       setAlertSaving(false);setAlertSent(true);
@@ -2316,7 +2317,7 @@ export default function DraGold(){
             </div>
             <p className="smod-desc">Get notified when this card drops below your target price on {region==="EU"?"European":"US"} eBay.</p>
             <input className="smod-in" type="email" placeholder="Your email" value={aEmail} onChange={e=>setAEmail(e.target.value)}/>
-            <input className="smod-in" type="number" placeholder={`Target price (${cur})`} value={aPrice} onChange={e=>setAPrice(e.target.value)}/>
+            <input className="smod-in" type="text" inputMode="decimal" pattern="[0-9.]*" placeholder={`Target price (e.g. 12.50) in ${cur}`} value={aPrice} onChange={e=>setAPrice(e.target.value.replace(/[^0-9.]/g,''))}/>
             {alertErr&&<div style={{fontSize:11,color:"var(--loss)",marginBottom:6}}>{alertErr}</div>}
             {!user&&<div style={{fontSize:10,color:"var(--muted)",marginBottom:8}}>Sign in to manage alerts across devices.</div>}
             <button className="smod-btn" onClick={activateAlert} disabled={alertSaving||!aEmail||!aPrice}
@@ -2998,25 +2999,6 @@ export default function DraGold(){
         <div className="cw">
           <div className="sec-title gt" style={{fontSize:24,marginBottom:5}}>DraGold Blog</div>
           <div style={{fontSize:13,color:"var(--muted)",marginBottom:24}}>Market insights, grading guides and investment strategies</div>
-
-          {/* Write for DraGold */}
-          <div style={{background:"linear-gradient(135deg,rgba(167,139,250,.08),rgba(56,189,248,.05))",border:"1px solid rgba(167,139,250,.2)",borderRadius:16,padding:18,marginBottom:24}}>
-            <div style={{display:"flex",alignItems:"flex-start",gap:12}}>
-              <span style={{fontSize:28,flexShrink:0}}>✍️</span>
-              <div>
-                <div style={{fontFamily:"'Fraunces',sans-serif",fontWeight:800,fontSize:15,marginBottom:4,color:"var(--purple)"}}>Write for DraGold</div>
-                <div style={{fontSize:12,color:"var(--muted)",lineHeight:1.6,marginBottom:10}}>
-                  Share your TCG knowledge with the EU collector community. We publish articles in English on market analysis, investment strategies, set reviews and grading guides. Good articles rank on Google and drive traffic to your socials or store.
-                </div>
-                <div style={{fontSize:11,color:"var(--txt2)",lineHeight:1.7}}>
-                  <strong style={{color:"var(--txt)"}}>How to submit:</strong> Write your article in English (500–1500 words), include card names and set names for SEO, then send to <a href="mailto:info@dragold.org" style={{color:"var(--purple)",fontWeight:700}}>info@dragold.org</a> with subject "Blog submission — [your topic]".
-                </div>
-                <div style={{fontSize:10,color:"var(--muted)",marginTop:8,fontFamily:"'Space Mono',monospace"}}>
-                  Articles reviewed within 3–5 days · Full credit + backlink · No paywall
-                </div>
-              </div>
-            </div>
-          </div>
 
           <div className="blog-grid">
             {BLOG.map((post,i)=>(
