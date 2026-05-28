@@ -924,6 +924,18 @@ img{display:block;}
 .acc-price{font-family:'Space Mono',monospace;font-size:10px;color:var(--amber);flex-shrink:0;}
 .acc-btn{padding:4px 10px;background:var(--amber-b);border:1px solid rgba(251,191,36,.2);color:var(--amber);border-radius:6px;font-size:10px;font-weight:700;cursor:pointer;text-decoration:none;transition:all .2s;white-space:nowrap;flex-shrink:0;}
 .acc-btn:hover{background:var(--amber-g);}
+/* EBAY LIVE in modal */
+.ebay-live-block{background:linear-gradient(135deg,rgba(251,191,36,.05),rgba(244,114,182,.03));border:1px solid rgba(251,191,36,.15);border-radius:12px;padding:12px 14px;margin-bottom:12px;}
+.ebay-live-title{font-family:'Fraunces',sans-serif;font-size:13px;font-weight:800;margin-bottom:10px;color:var(--amber);}
+.ebay-live-loading{font-size:11px;color:var(--muted);text-align:center;padding:10px;}
+.ebay-live-empty{font-size:11px;color:var(--dim);text-align:center;padding:10px;}
+.ebay-live-list{display:flex;flex-direction:column;gap:6px;}
+.ebay-live-item{display:flex;align-items:center;justify-content:space-between;gap:10px;background:rgba(255,255,255,.04);border-radius:8px;padding:8px 10px;text-decoration:none;color:inherit;border:1px solid rgba(255,255,255,.07);transition:all .2s;}
+.ebay-live-item:hover{border-color:rgba(251,191,36,.25);background:rgba(251,191,36,.06);}
+.eli-info{flex:1;min-width:0;}
+.eli-title{font-size:11px;font-weight:600;color:var(--txt2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px;}
+.eli-meta{font-size:9px;color:var(--dim);}
+.eli-price{font-family:'Space Mono',monospace;font-size:13px;font-weight:700;color:var(--amber);flex-shrink:0;}
 
 .cond-row{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:11px;}
 .cond-btn{padding:5px 10px;border:1px solid var(--gb);background:var(--gl);color:var(--muted);border-radius:7px;font-size:10px;font-weight:700;cursor:pointer;transition:all .2s;}
@@ -2056,6 +2068,8 @@ export default function DraGold(){
     const ebayEst=tcgPrice?(tcgPrice*1.06).toFixed(2):fmvObj?(fmvObj.fmv*1.06).toFixed(2):null;
     // Other versions — same card name in different languages
     const [otherVersions,setOtherVersions]=useState([]);
+    const [ebayListings,setEbayListings]=useState([]);
+    const [ebayLoading,setEbayLoading]=useState(false);
     useEffect(()=>{
       if(!supabaseReady||!card.name) return;
       let cancelled=false;
@@ -2080,6 +2094,25 @@ export default function DraGold(){
           });
           setOtherVersions(sorted.slice(0,9));
         }catch{}
+      })();
+      return()=>{cancelled=true;};
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    },[card.id]);
+
+    // eBay Live Prices
+    useEffect(()=>{
+      if(!card.name||!supabaseReady) return;
+      let cancelled=false;
+      setEbayLoading(true);setEbayListings([]);
+      (async()=>{
+        try{
+          const qMap={pokemon:`${card.name} ${setName} pokemon card`,mtg:`${card.name} magic gathering`,ygo:`${card.name} yugioh card`,onepiece:`${card.name} one piece card`};
+          const q=qMap[cardTcg]||`${card.name} card`;
+          const ctr=(country||'it').toLowerCase();
+          const{data,error}=await supabase.functions.invoke('fetch-ebay-prices',{body:{query:q,country:ctr,limit:5}});
+          if(cancelled||error) return;
+          setEbayListings(data?.items||[]);
+        }catch{}finally{if(!cancelled)setEbayLoading(false);}
       })();
       return()=>{cancelled=true;};
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -2211,6 +2244,27 @@ export default function DraGold(){
                 <div className="psa-note">{region==="EU"?"European":"US"} eBay. Estimates only — actual grades vary by condition and pop report.</div>
               </div>
             )}
+
+            {/* EBAY LIVE PRICES */}
+            <div className="ebay-live-block">
+              <div className="ebay-live-title">🛒 eBay Live Prices</div>
+              {ebayLoading
+                ?<div className="ebay-live-loading">Carico listing eBay…</div>
+                :ebayListings.length>0
+                  ?<div className="ebay-live-list">
+                    {ebayListings.map((item,i)=>(
+                      <a key={i} href={item.url} target="_blank" rel="noopener noreferrer" className="ebay-live-item">
+                        <div className="eli-info">
+                          <div className="eli-title">{item.title?.substring(0,55)}{item.title?.length>55?'…':''}</div>
+                          <div className="eli-meta">{item.condition||''}{item.location?` · ${item.location}`:''}</div>
+                        </div>
+                        <div className="eli-price">{item.currency==='EUR'||!item.currency?'€':'$'}{item.price!=null?item.price.toFixed(2):'—'}</div>
+                      </a>
+                    ))}
+                  </div>
+                  :<div className="ebay-live-empty">Nessun listing trovato</div>
+              }
+            </div>
 
             {/* ACCESSORIES */}
             <div className="acc-block">
