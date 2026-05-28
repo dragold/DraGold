@@ -2286,12 +2286,15 @@ export default function DraGold(){
         const {error}=await supabase.from('alerts').insert({
           user_id:user.id,
           card_id:cardId,
-          tcg:card._tcg||tcg||'pokemon',
           card_api_id:cardId,
+          card_name:card.name||cardId,
+          tcg:card._tcg||tcg||'pokemon',
+          threshold_price:targetEUR,
           target_eur:targetEUR,
           direction:'below',
           is_active:true,
           email:aEmail,
+          country:'it',
         });
         if(error){setAlertErr("Save failed: "+error.message);setAlertSaving(false);return;}
         // Update local alerts list immediately
