@@ -3,9 +3,9 @@ name: Deploy fetch-ebay-prices Edge Function
 on:
   push:
       branches: [main]
-          paths:
+        paths:
                 - 'supabase/functions/fetch-ebay-prices/**'
-                  workflow_dispatch:
+              workflow_dispatch:
 
                   jobs:
                     deploy:
