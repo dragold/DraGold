@@ -1,3 +1,4 @@
+# Fix YAML parsing issue
 name: Deploy fetch-ebay-prices Edge Function
 
 on:
