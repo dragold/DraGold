@@ -4,8 +4,7 @@ on:
   push:
       branches:
             - main
-                paths:
-                      - 'supabase/functions/fetch-ebay-prices/**'
+    paths:                      - 'supabase/functions/fetch-ebay-prices/**'
                         workflow_dispatch:
 
                         jobs:
