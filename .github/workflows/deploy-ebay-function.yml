@@ -2,48 +2,19 @@ name: Deploy fetch-ebay-prices Edge Function
 
 on:
   push:
-      branches:
-            - main
-        paths:
+      branches: [main]
+          paths:
                 - 'supabase/functions/fetch-ebay-prices/**'
-              workflow_dispatch:
+                  workflow_dispatch:
 
-                jobs:
+                  jobs:
                     deploy:
                         runs-on: ubuntu-latest
                             timeout-minutes: 10
-
                                 steps:
-                                      - name: Checkout
-                                              uses: actions/checkout@v4
-
-                                                    - name: Deploy Edge Function
-                                                            run: |
-                                                                      # Read the function code
-                                                                                FUNC_CODE=$(cat supabase/functions/fetch-ebay-prices/index.ts)
-
-                                                                                          # Deploy via Supabase Management API
-                                                                                                    curl -X PATCH \
-                                                                                                                https://api.supabase.com/v1/projects/${{ secrets.SUPABASE_PROJECT_REF }}/functions/fetch-ebay-prices \
-                                                                                                                            -H "Authorization: Bearer ${{ secrets.SUPABASE_MGMT_TOKEN }}" \
-                                                                                                                                        -H "Content-Type: application/json" \
-                                                                                                                                                    -d "{\"name\": \"fetch-ebay-prices\", \"body\": $(echo "$FUNC_CODE" | jq -Rs .), \"verify_jwt\": false}" \
-                                                                                                                                                                -w "\nStatus: %{http_code}\n"
-                                                                                                                                                                
-                                                                                                                                                                          # If PATCH fails (404), try POST to create
-                                                                                                                                                                                    STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
-                                                                                                                                                                                                -X PATCH \
-                                                                                                                                                                                                            https://api.supabase.com/v1/projects/${{ secrets.SUPABASE_PROJECT_REF }}/functions/fetch-ebay-prices \
-                                                                                                                                                                                                                        -H "Authorization: Bearer ${{ secrets.SUPABASE_MGMT_TOKEN }}" \
-                                                                                                                                                                                                                                    -H "Content-Type: application/json" \
-                                                                                                                                                                                                                                                -d "{\"name\": \"fetch-ebay-prices\", \"body\": $(echo "$FUNC_CODE" | jq -Rs .), \"verify_jwt\": false}")
-                                                                                                                                                                                                                                                
-                                                                                                                                                                                                                                                          if [ "$STATUS" = "404" ]; then
-                                                                                                                                                                                                                                                                      echo "Function not found, creating..."
-                                                                                                                                                                                                                                                                                  curl -X POST \
-                                                                                                                                                                                                                                                                                                https://api.supabase.com/v1/projects/${{ secrets.SUPABASE_PROJECT_REF }}/functions \
-                                                                                                                                                                                                                                                                                                              -H "Authorization: Bearer ${{ secrets.SUPABASE_MGMT_TOKEN }}" \
-                                                                                                                                                                                                                                                                                                                            -H "Content-Type: application/json" \
-                                                                                                                                                                                                                                                                                                                                          -d "{\"slug\": \"fetch-ebay-prices\", \"name\": \"fetch-ebay-prices\", \"body\": $(echo "$FUNC_CODE" | jq -Rs .), \"verify_jwt\": false}" \
-                                                                                                                                                                                                                                                                                                                                                        -w "\nStatus: %{http_code}\n"
-                                                                                                                                                                                                                                                                                                                                                                  fi
+                                      - uses: actions/checkout@v4
+                                            - name: Deploy via Node script
+                                                    run: node deploy-fetch-ebay.cjs
+                                                            env:
+                                                                      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+                                                                                SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
