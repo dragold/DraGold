@@ -2,7 +2,7 @@ name: Deploy fetch-ebay-prices Edge Function
 
 
 
-on:
+"on":
   push:
       branches:
             - main
