@@ -547,17 +547,20 @@ img{display:block;}
 
 
 /* INVESTMENT PICKS (Hot Picks) */
-.hp-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;}
-.hp-card{background:var(--s2);border:1px solid var(--gb);border-radius:14px;padding:12px;display:flex;gap:10px;align-items:flex-start;cursor:pointer;transition:all .2s;}
-.hp-card:hover{border-color:rgba(251,191,36,.22);transform:translateY(-1px);}
-.hp-img{width:52px;flex-shrink:0;border-radius:7px;object-fit:cover;box-shadow:0 6px 18px rgba(0,0,0,.45);}
-.hp-img-ph{width:52px;height:72px;flex-shrink:0;border-radius:7px;background:var(--dim);display:flex;align-items:center;justify-content:center;font-size:18px;}
-.hp-info{flex:1;min-width:0;}
-.hp-tcg{font-size:8px;font-family:'Space Mono',monospace;font-weight:700;letter-spacing:.5px;padding:2px 6px;border-radius:100px;display:inline-block;margin-bottom:5px;}
-.hp-name{font-family:'Fraunces',sans-serif;font-weight:800;font-size:12px;line-height:1.3;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.hp-set{font-size:10px;color:var(--muted);margin-bottom:7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.hp-price{font-family:'Space Mono',monospace;font-size:13px;font-weight:700;color:var(--amber);}
-.hp-change{font-size:9px;font-family:'Space Mono',monospace;font-weight:700;margin-top:2px;}
+.hp-grid-big{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;}
+.hp-card-v{background:var(--s2);border:1px solid var(--gb);border-radius:16px;overflow:hidden;cursor:pointer;transition:all .25s;}
+.hp-card-v:hover{border-color:rgba(251,191,36,.28);transform:translateY(-4px);box-shadow:0 12px 32px rgba(0,0,0,.3);}
+.hp-card-v-img{position:relative;overflow:hidden;aspect-ratio:2/3;background:var(--s1);}
+.hp-card-v-img img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .3s;}
+.hp-card-v:hover .hp-card-v-img img{transform:scale(1.06);}
+.hp-card-v-tcg{position:absolute;top:6px;left:6px;font-size:8px;font-weight:700;padding:2px 6px;border-radius:100px;backdrop-filter:blur(6px);font-family:'Space Mono',monospace;}
+.hp-card-v-body{padding:10px 10px 12px;}
+.hp-card-v-name{font-family:'Fraunces',sans-serif;font-weight:800;font-size:13px;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:linear-gradient(135deg,#fff 30%,var(--amber) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.hp-card-v-set{font-size:9px;color:var(--muted);margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.hp-card-v-price{font-family:'Space Mono',monospace;font-size:18px;font-weight:700;color:var(--amber);margin-bottom:1px;}
+.hp-card-v-ref{font-size:8px;color:var(--dim);font-family:'Space Mono',monospace;}
+.hp-view-all-btn{width:100%;margin-top:14px;padding:11px;background:var(--gl);border:1px solid var(--gb);color:var(--muted);border-radius:10px;font-size:12px;font-weight:700;cursor:pointer;transition:all .2s;font-family:'Space Mono',monospace;}
+.hp-view-all-btn:hover{border-color:var(--amber);color:var(--amber);}
 .hp-tabs{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;}
 .hp-tab{background:var(--gl);border:1px solid var(--gb);color:var(--muted);padding:4px 12px;border-radius:100px;font-size:10px;font-weight:700;cursor:pointer;font-family:'Space Mono',monospace;transition:all .18s;}
 .hp-tab.on{background:rgba(251,191,36,.12);border-color:var(--amber);color:var(--amber);}
@@ -1128,7 +1131,7 @@ img{display:block;}
   .plans-grid{grid-template-columns:repeat(3,1fr);}
   .picker-modal{max-width:500px;border-radius:20px 20px 0 0;}
   .nb-modal{max-width:440px;border-radius:20px 20px 0 0;}
-  .hp-grid{grid-template-columns:repeat(3,1fr);}
+  .hp-grid-big{grid-template-columns:repeat(auto-fill,minmax(160px,1fr));}
   .donate-inner{flex-direction:row;align-items:center;}
   .donate-btn{width:auto;}
 }
@@ -1790,20 +1793,44 @@ export default function DraGold(){
           let allData=[...data];
           if(!detectedLang){
             try{
+              // Strategy 1: match by set_id + card_number (works even if JP/IT sets have different IDs)
               const enPok=data.filter(r=>r.tcg==='pokemon'&&r.lang==='en');
               if(enPok.length>0){
-                // ID: "pokemon:tcgdex:{set_id}-{num}:en" → strip :en, append :ja/:it/etc.
-                const variantIds=[];
-                for(const ec of enPok){
-                  const base=ec.id.replace(/:en$/,'');
-                  for(const l of ['ja','it','de','fr','es','pt','ko','id']) variantIds.push(`${base}:${l}`);
+                const seen=new Set();
+                const pairs=[];
+                for(const c of enPok){
+                  if(c.set_id&&c.card_number){
+                    const key=`${c.set_id}|${c.card_number}`;
+                    if(!seen.has(key)){seen.add(key);pairs.push({s:c.set_id,n:c.card_number});}
+                  }
                 }
-                const {data:variants}=await supabase.from('cards')
-                  .select('id,name,set_id,set_name,card_number,rarity,image_url,image_url_hi,lang,tcg')
-                  .in('id',variantIds);
-                if(Array.isArray(variants)&&variants.length>0){
-                  const existingIds=new Set(allData.map(r=>r.id));
-                  allData.push(...variants.filter(v=>!existingIds.has(v.id)));
+                if(pairs.length>0){
+                  // Build OR filter: and(set_id.eq.X,card_number.eq.Y) for each pair
+                  const orFilter=pairs.slice(0,60).map(p=>`and(set_id.eq.${p.s},card_number.eq.${p.n})`).join(',');
+                  const {data:variants}=await supabase.from('cards')
+                    .select('id,name,set_id,set_name,card_number,rarity,image_url,image_url_hi,lang,tcg')
+                    .or(orFilter)
+                    .neq('lang','en');
+                  if(Array.isArray(variants)&&variants.length>0){
+                    const existingIds=new Set(allData.map(r=>r.id));
+                    allData.push(...variants.filter(v=>!existingIds.has(v.id)));
+                  }
+                }
+                // Strategy 2 (fallback): ID-pattern match for any remaining without set_id/card_number
+                const coveredIds=new Set(allData.map(r=>r.id));
+                const uncovered=enPok.filter(c=>!(c.set_id&&c.card_number));
+                if(uncovered.length>0){
+                  const variantIds=[];
+                  for(const ec of uncovered){
+                    const base=ec.id.replace(/:en$/,'');
+                    for(const l of ['ja','it','de','fr','es','pt','ko','id']) variantIds.push(`${base}:${l}`);
+                  }
+                  const {data:vFallback}=await supabase.from('cards')
+                    .select('id,name,set_id,set_name,card_number,rarity,image_url,image_url_hi,lang,tcg')
+                    .in('id',variantIds);
+                  if(Array.isArray(vFallback)&&vFallback.length>0){
+                    allData.push(...vFallback.filter(v=>!coveredIds.has(v.id)));
+                  }
                 }
               }
             }catch{}
@@ -1880,7 +1907,16 @@ export default function DraGold(){
             _priceIsShared:['pokemontcgio_shared','pokemontcgio'].includes(priceMap[r.id]?.source)&&r.lang!=='en',
             // Nome EN per carte non-EN (es. JP cards mostrano nome locale nel DB)
             _enName:r.lang!=='en'&&r.tcg==='pokemon'
-              ?(()=>{const eId=r.id.replace(/:(\w{2,3})$/,':en');return allData.find(x=>x.id===eId)?.name||null;})()
+              ?(()=>{
+                // First: match by set_id + card_number (works across different set ID schemes)
+                const enBySetNum=r.set_id&&r.card_number
+                  ?allData.find(x=>x.tcg==='pokemon'&&x.lang==='en'&&x.set_id===r.set_id&&x.card_number===r.card_number)
+                  :null;
+                if(enBySetNum) return enBySetNum.name;
+                // Fallback: ID pattern replace
+                const eId=r.id.replace(/:(\w{2,3})$/,':en');
+                return allData.find(x=>x.id===eId)?.name||null;
+              })()
               :null,
             _langRank:_langOrder[r.lang||"en"]??99,
           }));
@@ -2714,19 +2750,19 @@ export default function DraGold(){
     const [picks,setPicks]=useState([]);
     const [loadingPicks,setLoadingPicks]=useState(true);
     const [tcgF,setTcgF]=useState(null);
+    const [showAll,setShowAll]=useState(false);
     useEffect(()=>{
       if(!supabaseReady){setLoadingPicks(false);return;}
       let cancelled=false;
       (async()=>{
         try{
-          // Top-priced cards with a price, from all TCGs
           const {data:pd}=await supabase
             .from('card_prices_latest')
             .select('card_id,price_market,source')
             .not('price_market','is',null)
             .gt('price_market',5)
             .order('price_market',{ascending:false})
-            .limit(80);
+            .limit(100);
           if(cancelled||!Array.isArray(pd)||!pd.length){if(!cancelled)setLoadingPicks(false);return;}
           const priceMap={};
           for(const p of pd) priceMap[p.card_id]=p.price_market;
@@ -2734,7 +2770,8 @@ export default function DraGold(){
             .from('cards')
             .select('id,name,set_name,image_url,image_url_hi,lang,tcg,rarity')
             .in('id',pd.map(p=>p.card_id))
-            .eq('lang','en');
+            .eq('lang','en')
+            .in('tcg',['pokemon','onepiece']);
           if(!cancelled&&Array.isArray(cards)){
             const merged=cards
               .filter(c=>priceMap[c.id]!=null)
@@ -2747,48 +2784,59 @@ export default function DraGold(){
       })();
       return()=>{cancelled=true;};
     },[]);
-    const TCG_TABS=[{id:null,label:"All"},{id:"pokemon",label:"🔴 Pokémon"},{id:"mtg",label:"✨ MTG"},{id:"ygo",label:"⭐ YGO"},{id:"onepiece",label:"🌊 One Piece"}];
-    const TCG_BADGE={pokemon:{bg:"var(--red-b,rgba(239,68,68,.12))",color:"var(--red,#ef4444)"},mtg:{bg:"rgba(251,191,36,.1)",color:"var(--amber)"},ygo:{bg:"rgba(56,189,248,.1)",color:"var(--blue)"},onepiece:{bg:"var(--lime-b)",color:"var(--lime)"}};
-    const filtered=(tcgF?picks.filter(p=>p.tcg===tcgF):picks).slice(0,8);
+    const TCG_TABS=[{id:null,label:"All"},{id:"pokemon",label:"🔴 Pokémon"},{id:"onepiece",label:"⚓ One Piece"}];
+    const TCG_BADGE={pokemon:{bg:"rgba(239,68,68,.12)",color:"#ef4444"},onepiece:{bg:"var(--lime-b)",color:"var(--lime)"}};
+    const geoLabel=region==="EU"?"🇪🇺 Hot in Europa":"region"==="US"?"🇺🇸 Hot in USA":"🔥 Investment Picks";
+    const filtered=tcgF?picks.filter(p=>p.tcg===tcgF):picks;
+    const displayed=showAll?filtered:filtered.slice(0,10);
     return(
       <div style={{marginBottom:40}}>
         <div className="sec-hdr">
-          <div className="sec-title gt">Investment Picks</div>
+          <div className="sec-title gt">{geoLabel}</div>
           <span className="sec-badge" style={{background:"rgba(251,191,36,.1)",color:"var(--amber)",border:"1px solid rgba(251,191,36,.2)"}}>Live prices</span>
         </div>
         <div className="hp-tabs">
           {TCG_TABS.map(t=>(
-            <button key={t.id||"all"} className={`hp-tab${tcgF===t.id?" on":""}`} onClick={()=>setTcgF(t.id)}>{t.label}</button>
+            <button key={t.id||"all"} className={`hp-tab${tcgF===t.id?" on":""}`} onClick={()=>{setTcgF(t.id);setShowAll(false);}}>{t.label}</button>
           ))}
         </div>
         {loadingPicks?(
           <div style={{textAlign:"center",padding:"28px 0",color:"var(--muted)",fontSize:12,fontFamily:"'Space Mono',monospace"}}>Loading picks…</div>
-        ):filtered.length===0?(
+        ):displayed.length===0?(
           <div style={{textAlign:"center",padding:"28px 0",color:"var(--muted)",fontSize:12}}>No data yet for this TCG.</div>
         ):(
-          <div className="hp-grid">
-            {filtered.map(card=>{
-              const badge=TCG_BADGE[card.tcg]||{bg:"var(--gl)",color:"var(--muted)"};
-              const price=cur==="EUR"?`€${(card.price*EUR_RATE).toFixed(2)}`:`$${card.price.toFixed(2)}`;
-              return(
-                <div key={card.id} className="hp-card" onClick={()=>{setQ(card.name);setTab("explore");setTimeout(()=>doSearch(),80);}}>
-                  {card.image_url||card.image_url_hi
-                    ?<img src={card.image_url_hi||card.image_url} alt={card.name} className="hp-img"/>
-                    :<div className="hp-img-ph">🃏</div>}
-                  <div className="hp-info">
-                    <div className="hp-tcg" style={{background:badge.bg,color:badge.color}}>{card.tcg?.toUpperCase()}</div>
-                    <div className="hp-name" title={card.name}>{card.name}</div>
-                    <div className="hp-set">{card.set_name}</div>
-                    <div className="hp-price">{price}</div>
-                    <div className="hp-change" style={{color:"var(--muted)"}}>FMV · market avg</div>
+          <>
+            <div className="hp-grid-big">
+              {displayed.map(card=>{
+                const badge=TCG_BADGE[card.tcg]||{bg:"var(--gl)",color:"var(--muted)"};
+                const price=cur==="EUR"?`€${(card.price*EUR_RATE).toFixed(2)}`:`$${card.price.toFixed(2)}`;
+                return(
+                  <div key={card.id} className="hp-card-v" onClick={()=>{setQ(card.name);setTab("explore");setTimeout(()=>doSearch(),80);}}>
+                    <div className="hp-card-v-img">
+                      {card.image_url_hi||card.image_url
+                        ?<img src={card.image_url_hi||card.image_url} alt={card.name} loading="lazy"/>
+                        :<div style={{width:"100%",height:"100%",display:"flex",alignItems:"center",justifyContent:"center",fontSize:32}}>🃏</div>}
+                      <span className="hp-card-v-tcg" style={{background:badge.bg,color:badge.color}}>{card.tcg?.toUpperCase()}</span>
+                    </div>
+                    <div className="hp-card-v-body">
+                      <div className="hp-card-v-name" title={card.name}>{card.name}</div>
+                      <div className="hp-card-v-set">{card.set_name}</div>
+                      <div className="hp-card-v-price">{price}</div>
+                      <div className="hp-card-v-ref">FMV · market avg</div>
+                    </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+            {!showAll&&filtered.length>10&&(
+              <button className="hp-view-all-btn" onClick={()=>setShowAll(true)}>
+                View all {filtered.length} cards ↓
+              </button>
+            )}
+          </>
         )}
         <div style={{fontSize:10,color:"var(--dim)",textAlign:"center",marginTop:10,fontFamily:"'Space Mono',monospace"}}>
-          Sorted by current FMV · Price history tracking in progress
+          Sorted by FMV · {region==="EU"?"EU pricing (EUR)":"US pricing (USD)"}
         </div>
       </div>
     );
