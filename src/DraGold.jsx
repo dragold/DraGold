@@ -1383,8 +1383,20 @@ export default function DraGold(){
   const curPage=activeBinder?.pages?.[binderPage]||[];
   const pageVal=curPage.reduce((s,id)=>{const c=getColCard(id);return s+(c?.market||0);},0);
 
-  // STATS
-  const totalVal  = col.reduce((s,c)=>s+c.market,0);
+  // STATS — usa eBay live quando disponibile, fallback al DB (fmv_snapshot)
+  // I valori interni sono sempre in USD (come item.market); disp() converte in base a cur (EUR/USD geolocalizzato)
+  const ebayToUsd = (price, currency) => {
+    if(!price) return 0;
+    if(currency==='USD') return price;
+    if(currency==='GBP') return price / 0.79; // stima GBP→USD
+    return price / EUR_RATE; // EUR→USD (default)
+  };
+  const effectiveMkt = (c) => {
+    const ep = ebayVaultPrices[c.id];
+    if(ep?.price) return ebayToUsd(ep.price, ep.currency||'EUR');
+    return c.market;
+  };
+  const totalVal  = col.reduce((s,c)=>s+effectiveMkt(c),0);
   const totalPaid = col.reduce((s,c)=>s+c.paid,0);
   const netVal    = totalVal*0.87;
   const roi       = totalPaid>0?((netVal/totalPaid-1)*100).toFixed(1):null;
@@ -1577,11 +1589,16 @@ export default function DraGold(){
     finally{setEbayVaultLoading(false);}
   };
 
-  // Auto-refresh prezzi vault: una volta al giorno quando l'utente apre il Vault
+  // Auto-refresh vault: prezzi DB 1x/giorno + prezzi eBay live 1x/30min (fonte primaria)
   useEffect(()=>{
     if(colTab!=='vault'||!user?.id||!supabaseReady||col.length===0) return;
-    const last=parseInt(localStorage.getItem('dg_lastPriceRefresh')||'0');
-    if(Date.now()-last>24*60*60*1000) refreshVaultPrices();
+    const lastDb=parseInt(localStorage.getItem('dg_lastPriceRefresh')||'0');
+    if(Date.now()-lastDb>24*60*60*1000) refreshVaultPrices();
+    const lastEbay=parseInt(localStorage.getItem('dg_lastEbayRefresh')||'0');
+    if(Date.now()-lastEbay>30*60*1000){
+      localStorage.setItem('dg_lastEbayRefresh',Date.now().toString());
+      refreshVaultEbayPrices();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   },[colTab,user?.id]);
 
@@ -1781,7 +1798,7 @@ export default function DraGold(){
         let dbQuery = supabase
           .from('cards')
           .select('id,name,set_id,set_name,card_number,rarity,image_url,image_url_hi,lang,tcg')
-          .or(`name.ilike.*${query}*,card_number.eq.${query}`)
+          .or(`name.ilike.*${query}*,card_number.eq.${query},name_en.ilike.*${query}*`)
           .limit(500);
         // If user specified a language, filter DB results to that lang only
         if(detectedLang) dbQuery = dbQuery.eq('lang', detectedLang);
@@ -3469,14 +3486,14 @@ export default function DraGold(){
               </div>
             </div>
           )}
-          {/* Valore totale EUR in cima */}
+          {/* Valore totale in cima — geolocalizzato (EUR/USD) */}
           {col.length>0&&(
             <div style={{padding:'12px 0 4px',display:'flex',alignItems:'baseline',gap:14,flexWrap:'wrap'}}>
               <div style={{fontFamily:"'Space Mono',monospace",fontSize:28,fontWeight:700,color:"var(--amber)",letterSpacing:-1}}>
-                €{(totalVal*EUR_RATE).toFixed(2)}
+                {disp(totalVal)}
               </div>
               <div style={{fontSize:12,color:'var(--muted)',fontFamily:"'Space Mono',monospace"}}>
-                Total portfolio FMV in EUR
+                Portfolio · {Object.keys(ebayVaultPrices).length>0?<span style={{color:"var(--amber)"}}>📡 eBay Live</span>:"FMV"}
               </div>
               {roi&&<div className={`${parseFloat(roi)>=0?"pos":"neg"}`} style={{fontFamily:"'Space Mono',monospace",fontSize:12,fontWeight:700}}>
                 ROI {roi}%
@@ -3515,7 +3532,7 @@ export default function DraGold(){
                 <div className="bento-main">
                   <div className="port-val gt">{disp(totalVal)}</div>
                   <div className={`port-chg ${portChg>=0?"pos":"neg"}`}>{portChg>=0?"+":""}{disp(Math.abs(portChg))} (30d)</div>
-                  <div className="port-lbl">Portfolio · {col.length} card{col.length!==1?"s":""} · FMV</div>
+                  <div className="port-lbl">Portfolio · {col.length} card{col.length!==1?"s":""} · {Object.keys(ebayVaultPrices).length>0?"📡 eBay Live":"FMV"}</div>
                   {portData&&<div className="port-chart"><LineChart data={portData} color={portChg>=0?"#34d399":"#f87171"} id="pc" h={68}/></div>}
                   <div className="range-row">
                     {["7d","30d","90d"].map(r=><button key={r} className={`rbtn${portRange===r?" on":""}`} onClick={()=>setPortRange(r)}>{r}</button>)}
@@ -3531,33 +3548,25 @@ export default function DraGold(){
                   <div className="roi-lbl">ROI after fees</div>
                 </div>
               </div>
-              {/* eBay total valuation banner */}
-              {ebayVaultTotal!==null&&(
-                <div style={{background:"rgba(251,191,36,.08)",border:"1px solid rgba(251,191,36,.2)",borderRadius:12,padding:"10px 14px",marginBottom:10,display:"flex",alignItems:"center",gap:12,flexWrap:"wrap"}}>
-                  <span style={{fontSize:11,color:"var(--muted)"}}>Valore vault su eBay live:</span>
-                  <span style={{fontFamily:"'Space Mono',monospace",fontSize:20,fontWeight:700,color:"var(--amber)"}}>€{ebayVaultTotal.toFixed(2)}</span>
-                  <span style={{fontSize:10,color:"var(--dim)",marginLeft:"auto"}}>Compra Ora · prezzi mediani</span>
-                </div>
-              )}
               {/* Refresh buttons */}
               {user&&<div style={{display:"flex",justifyContent:"flex-end",marginBottom:8,gap:8,alignItems:"center",flexWrap:"wrap"}}>
                 {(vaultRefreshing||ebayVaultLoading)&&<span style={{fontSize:11,color:"var(--muted)"}}>
-                  {ebayVaultLoading?"Fetching eBay live…":"Aggiornamento prezzi..."}
+                  {ebayVaultLoading?"📡 Caricamento prezzi eBay live…":"Aggiornamento DB prezzi..."}
                 </span>}
-                <button className="btn-ghost" onClick={refreshVaultPrices} disabled={vaultRefreshing||ebayVaultLoading} style={{fontSize:11,padding:"4px 10px",opacity:(vaultRefreshing||ebayVaultLoading)?0.6:1}}>
-                  🔄 DB prezzi
-                </button>
-                <button className="btn-ghost" onClick={refreshVaultEbayPrices} disabled={vaultRefreshing||ebayVaultLoading}
+                <button className="btn-ghost" onClick={()=>{localStorage.setItem('dg_lastEbayRefresh','0');refreshVaultEbayPrices();}} disabled={vaultRefreshing||ebayVaultLoading}
                   style={{fontSize:11,padding:"4px 10px",background:"rgba(251,191,36,.08)",borderColor:"rgba(251,191,36,.3)",color:"var(--amber)",opacity:(vaultRefreshing||ebayVaultLoading)?0.6:1}}>
-                  📡 Prezzi eBay Live
+                  📡 Aggiorna eBay Live
                 </button>
               </div>}
               {/* Vault grid */}
               <div className="vault-grid">
                 {col.map((item,i)=>{
-                  const mkt=item.market||0;
+                  const ebayP=ebayVaultPrices[item.id];
+                  // eBay live è la fonte primaria; fallback al DB snapshot
+                  const mkt=ebayP?.price ? ebayToUsd(ebayP.price, ebayP.currency||'EUR') : (item.market||0);
+                  const isEbay=!!ebayP?.price;
                   const profit=(mkt*0.87)-item.paid;const pos=profit>=0;
-                  const priceD=mkt?(cur==="EUR"?`€${(mkt*EUR_RATE).toFixed(2)}`:`$${mkt.toFixed(2)}`):"—";
+                  const priceD=mkt?(cur==="EUR"?`€${(mkt*EUR_RATE).toFixed(2)}`:`$${mkt.toFixed(2)}`):(ebayVaultLoading?"…":"—");
                   const paidD=item.paid>0?(cur==="EUR"?`€${(item.paid*EUR_RATE).toFixed(2)}`:`$${item.paid.toFixed(2)}`):null;
                   const pnlD=(item.paid>0&&mkt>0)?(cur==="EUR"?`€${Math.abs(profit*EUR_RATE).toFixed(2)}`:`$${Math.abs(profit).toFixed(2)}`):null;
                   const langInfo=item.tcgType==="pokemon"?CARD_LANGS.find(x=>x.c===item.lang):null;
@@ -3573,13 +3582,11 @@ export default function DraGold(){
                       <div className="vcard-body">
                         <div className="vcard-name">{item.name}</div>
                         <div className="vcard-sub">{item.set} {langInfo?`· ${langInfo.f}`:""} {item.condition?`· ${item.condition}`:""}</div>
-                        <div className="vcard-price">{priceD}</div>
-                        {/* eBay live price overlay */}
-                        {ebayVaultPrices[item.id]&&(
-                          <div style={{fontSize:10,color:"var(--amber)",fontFamily:"'Space Mono',monospace",marginTop:2}}>
-                            📡 €{ebayVaultPrices[item.id].price.toFixed(2)} eBay
-                          </div>
-                        )}
+                        <div className="vcard-price" style={isEbay?{color:"var(--amber)"}:{}}>
+                          {priceD}
+                          {isEbay&&<span style={{fontSize:9,marginLeft:4,opacity:.7,fontFamily:"'Space Mono',monospace"}}>eBay</span>}
+                          {!isEbay&&mkt>0&&<span style={{fontSize:9,marginLeft:4,opacity:.5,fontFamily:"'Space Mono',monospace"}}>DB</span>}
+                        </div>
                         {paidD&&<div className={`vcard-pnl ${pos?"pos":"neg"}`}>
                           {pos?"▲":"▼"} {pnlD} {pos?"gain":"loss"}
                         </div>}
