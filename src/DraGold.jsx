@@ -1263,11 +1263,11 @@ export default function DraGold(){
     try{
       const u=localStorage.getItem("dg_u1");
       if(u){ setUser(JSON.parse(u)); setTab("col"); }
-      else { setShowLoginFirst(true); }
+      else { setShowLoginFirst(true); setAuthMode("register"); }
       const c=localStorage.getItem("dg_c1");if(c) setCol(JSON.parse(c));
       const w=localStorage.getItem("dg_w1");if(w) setWatchlist(JSON.parse(w));
       const b=localStorage.getItem("dg_b1");if(b) setBinders(JSON.parse(b));
-    }catch{ setShowLoginFirst(true); }
+    }catch{ setShowLoginFirst(true); setAuthMode("register"); }
     setAuthReady(true);
   },[]);
 
@@ -1559,7 +1559,7 @@ export default function DraGold(){
     finally{setVaultRefreshing(false);}
   };
 
-  // Refresh prezzi vault da eBay live (Browse API, Compra Ora, prezzo più basso)
+  // Refresh prezzi vault da eBay sold (transazioni completate reali, media)
   const refreshVaultEbayPrices = async () => {
     if(!supabaseReady||ebayVaultLoading||col.length===0) return;
     setEbayVaultLoading(true);
@@ -1572,12 +1572,20 @@ export default function DraGold(){
           try{
             const tcgStr=item.tcgType==='mtg'?'magic gathering':item.tcgType==='ygo'||item.tcgType==='yugioh'?'yugioh':item.tcgType==='onepiece'?'one piece':'pokemon';
             const q=`${item.name} ${tcgStr}`.trim();
-            const{data,error}=await supabase.functions.invoke('fetch-ebay-prices',{body:{query:q,country:ctr,limit:5}});
-            if(error||!data?.items?.length) return{id:item.id,price:null};
-            const prices=data.items.filter(i=>i.price>0).map(i=>i.price).sort((a,b)=>a-b);
-            if(!prices.length) return{id:item.id,price:null};
-            const median=prices[Math.floor(prices.length/2)];
-            return{id:item.id,price:median,currency:data.items[0]?.currency||'EUR'};
+            // Prezzi di transazioni completate (reali), non listing attivi
+            const body={query:q,country:ctr,limit:5};
+            // Carte JP: cerca venditori con sede in Giappone sull'eBay del paese utente
+            if(item.lang==='ja') body.seller_location='JP';
+            const{data,error}=await supabase.functions.invoke('fetch-ebay-sold',{body});
+            if(error||!data) return{id:item.id,price:null};
+            // avg sold dalla edge function; fallback su median o mediana calcolata dagli items
+            let price=data.avg??data.median??null;
+            if(!price&&data.items?.length){
+              const prices=data.items.filter(i=>i.price>0).map(i=>i.price).sort((a,b)=>a-b);
+              if(prices.length) price=prices[Math.floor(prices.length/2)];
+            }
+            if(!price) return{id:item.id,price:null};
+            return{id:item.id,price,currency:data.items?.[0]?.currency||'EUR'};
           }catch{return{id:item.id,price:null};}
         })
       );
@@ -2095,20 +2103,20 @@ export default function DraGold(){
   const doLogout=async()=>{
     if(supabaseReady){await sbSignOut();}
     setUser(null);try{localStorage.removeItem("dg_u1");}catch{}
-    setShowLoginFirst(true);setTab("explore");
+    setShowLoginFirst(true);setAuthMode("register");setTab("explore");
   };
   useEffect(()=>{
     if(!supabaseReady) return;
     let firstLogin=false;
     (async()=>{
       const s=await getSession();
-      if(s?.user){setUser({name:s.user.email.split("@")[0],email:s.user.email,at:Date.now(),id:s.user.id});setShowLoginFirst(false);setAuthMode(null);}
+      if(s?.user){setUser({name:s.user.email.split("@")[0],email:s.user.email,at:Date.now(),id:s.user.id});}
     })();
     return onAuth(s=>{
       if(s?.user){
         const wasLoggedIn=!!user;
         setUser({name:s.user.email.split("@")[0],email:s.user.email,at:Date.now(),id:s.user.id});
-        setShowLoginFirst(false);setAuthMode(null);
+        setShowLoginFirst(false);
         // Primo login della sessione → manda l'utente al suo Vault, non Explore.
         if(!wasLoggedIn && !firstLogin){
           firstLogin=true;
@@ -3250,6 +3258,7 @@ export default function DraGold(){
   );
 
   // ── RENDER ────────────────────────────────────────────────────────────────
+
   // Attendi che localStorage sia stato letto per evitare flash
   if(!authReady){
     return <div style={{minHeight:"100vh",background:"#020208"}}><style>{CSS}</style></div>;
@@ -3543,7 +3552,7 @@ export default function DraGold(){
                 {disp(totalVal)}
               </div>
               <div style={{fontSize:12,color:'var(--muted)',fontFamily:"'Space Mono',monospace"}}>
-                Portfolio · {Object.keys(ebayVaultPrices).length>0?<span style={{color:"var(--amber)"}}>📡 eBay Live</span>:"FMV"}
+                Portfolio · {Object.keys(ebayVaultPrices).length>0?<span style={{color:"var(--amber)"}}>🔥 Sold Avg</span>:"FMV"}
               </div>
               {roi&&<div className={`${parseFloat(roi)>=0?"pos":"neg"}`} style={{fontFamily:"'Space Mono',monospace",fontSize:12,fontWeight:700}}>
                 ROI {roi}%
@@ -3582,13 +3591,13 @@ export default function DraGold(){
                 <div className="bento-main">
                   <div className="port-val gt">{disp(totalVal)}</div>
                   <div className={`port-chg ${portChg>=0?"pos":"neg"}`}>{portChg>=0?"+":""}{disp(Math.abs(portChg))} (30d)</div>
-                  <div className="port-lbl">Portfolio · {col.length} card{col.length!==1?"s":""} · {Object.keys(ebayVaultPrices).length>0?"📡 eBay Live":"FMV"}</div>
+                  <div className="port-lbl">Portfolio · {col.length} card{col.length!==1?"s":""} · {Object.keys(ebayVaultPrices).length>0?"🔥 Sold Avg":"FMV"}</div>
                   {portData&&<div className="port-chart"><LineChart data={portData} color={portChg>=0?"#34d399":"#f87171"} id="pc" h={68}/></div>}
                   <div className="range-row">
                     {["7d","30d","90d"].map(r=><button key={r} className={`rbtn${portRange===r?" on":""}`} onClick={()=>setPortRange(r)}>{r}</button>)}
                   </div>
                   <div className="port-stats">
-                    <div className="pst"><span className="pst-v pos">{disp(netVal)}</span><span className="pst-l">Net Sell</span></div>
+                    <div className="pst"><span className="pst-v pos">{disp(col.length>0?totalVal/col.length:0)}</span><span className="pst-l">Avg Sold</span></div>
                     <div className="pst"><span className="pst-v" style={{color:"var(--txt2)"}}>{disp(totalPaid)}</span><span className="pst-l">Invested</span></div>
                     <div className="pst"><span className={`pst-v ${netVal-totalPaid>=0?"pos":"neg"}`}>{netVal-totalPaid>=0?"+":""}{disp(Math.abs(netVal-totalPaid))}</span><span className="pst-l">P&L</span></div>
                   </div>
@@ -3601,11 +3610,11 @@ export default function DraGold(){
               {/* Refresh buttons */}
               {user&&<div style={{display:"flex",justifyContent:"flex-end",marginBottom:8,gap:8,alignItems:"center",flexWrap:"wrap"}}>
                 {(vaultRefreshing||ebayVaultLoading)&&<span style={{fontSize:11,color:"var(--muted)"}}>
-                  {ebayVaultLoading?"📡 Caricamento prezzi eBay live…":"Aggiornamento DB prezzi..."}
+                  {ebayVaultLoading?"🔥 Caricamento prezzi Sold Avg…":"Aggiornamento DB prezzi..."}
                 </span>}
                 <button className="btn-ghost" onClick={()=>{localStorage.setItem('dg_lastEbayRefresh','0');refreshVaultEbayPrices();}} disabled={vaultRefreshing||ebayVaultLoading}
                   style={{fontSize:11,padding:"4px 10px",background:"rgba(251,191,36,.08)",borderColor:"rgba(251,191,36,.3)",color:"var(--amber)",opacity:(vaultRefreshing||ebayVaultLoading)?0.6:1}}>
-                  📡 Aggiorna eBay Live
+                  🔥 Aggiorna Sold Avg
                 </button>
               </div>}
               {/* Vault grid */}
@@ -3634,7 +3643,7 @@ export default function DraGold(){
                         <div className="vcard-sub">{item.set} {langInfo?`· ${langInfo.f}`:""} {item.condition?`· ${item.condition}`:""}</div>
                         <div className="vcard-price" style={isEbay?{color:"var(--amber)"}:{}}>
                           {priceD}
-                          {isEbay&&<span style={{fontSize:9,marginLeft:4,opacity:.7,fontFamily:"'Space Mono',monospace"}}>eBay</span>}
+                          {isEbay&&<span style={{fontSize:9,marginLeft:4,opacity:.7,fontFamily:"'Space Mono',monospace"}}>sold</span>}
                           {!isEbay&&mkt>0&&<span style={{fontSize:9,marginLeft:4,opacity:.5,fontFamily:"'Space Mono',monospace"}}>DB</span>}
                         </div>
                         {paidD&&<div className={`vcard-pnl ${pos?"pos":"neg"}`}>
