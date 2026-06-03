@@ -547,7 +547,7 @@ img{display:block;}
 
 
 /* INVESTMENT PICKS (Hot Picks) */
-.hp-grid-big{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;}
+.hp-grid-big{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;}
 .hp-card-v{background:var(--s2);border:1px solid var(--gb);border-radius:16px;overflow:hidden;cursor:pointer;transition:all .25s;}
 .hp-card-v:hover{border-color:rgba(251,191,36,.28);transform:translateY(-4px);box-shadow:0 12px 32px rgba(0,0,0,.3);}
 .hp-card-v-img{position:relative;overflow:hidden;aspect-ratio:2/3;background:var(--s1);}
@@ -1132,6 +1132,7 @@ img{display:block;}
   .picker-modal{max-width:500px;border-radius:20px 20px 0 0;}
   .nb-modal{max-width:440px;border-radius:20px 20px 0 0;}
   .hp-grid-big{grid-template-columns:repeat(auto-fill,minmax(160px,1fr));}
+  .vault-grid{grid-template-columns:repeat(3,1fr);}
   .donate-inner{flex-direction:row;align-items:center;}
   .donate-btn{width:auto;}
 }
@@ -1196,6 +1197,8 @@ export default function DraGold(){
   const [paid,setPaid]       = useState("");
   const [selCond,setSelCond] = useState("NM");
   const [user,setUser]       = useState(null);
+  const [showLoginFirst,setShowLoginFirst] = useState(false);
+  const [authReady,setAuthReady]           = useState(false);
   const [authMode,setAuthMode]     = useState(null);
   const [zoomImg,setZoomImg]       = useState(null);
   const [suggestions,setSuggestions] = useState([]);
@@ -1258,11 +1261,14 @@ export default function DraGold(){
 
   useEffect(()=>{
     try{
-      const u=localStorage.getItem("dg_u1");if(u) setUser(JSON.parse(u));
+      const u=localStorage.getItem("dg_u1");
+      if(u){ setUser(JSON.parse(u)); setTab("col"); }
+      else { setShowLoginFirst(true); setAuthMode("register"); }
       const c=localStorage.getItem("dg_c1");if(c) setCol(JSON.parse(c));
       const w=localStorage.getItem("dg_w1");if(w) setWatchlist(JSON.parse(w));
       const b=localStorage.getItem("dg_b1");if(b) setBinders(JSON.parse(b));
-    }catch{}
+    }catch{ setShowLoginFirst(true); setAuthMode("register"); }
+    setAuthReady(true);
   },[]);
 
   useEffect(()=>{
@@ -2068,7 +2074,7 @@ export default function DraGold(){
     }
     const u={name:authName||authEmail.split("@")[0],email:authEmail,at:Date.now()};
     setUser(u);try{localStorage.setItem("dg_u1",JSON.stringify(u));}catch{}
-    setAuthMode(null);
+    setAuthMode(null);setShowLoginFirst(false);setTab("col");
     if(authPending){await addToCol(authPending.card,authPending.fmvObj,authPending.img,authPending.tcgType);setAuthPending(null);}
     setAuthName("");setAuthEmail("");setAuthPass("");
   };
@@ -2082,13 +2088,14 @@ export default function DraGold(){
     }
     const u={name:authEmail.split("@")[0],email:authEmail,at:Date.now()};
     setUser(u);try{localStorage.setItem("dg_u1",JSON.stringify(u));}catch{}
-    setAuthMode(null);
+    setAuthMode(null);setShowLoginFirst(false);setTab("col");
     if(authPending){await addToCol(authPending.card,authPending.fmvObj,authPending.img,authPending.tcgType);setAuthPending(null);}
     setAuthEmail("");setAuthPass("");
   };
   const doLogout=async()=>{
     if(supabaseReady){await sbSignOut();}
     setUser(null);try{localStorage.removeItem("dg_u1");}catch{}
+    setShowLoginFirst(true);setAuthMode("register");setTab("explore");
   };
   useEffect(()=>{
     if(!supabaseReady) return;
@@ -2101,6 +2108,7 @@ export default function DraGold(){
       if(s?.user){
         const wasLoggedIn=!!user;
         setUser({name:s.user.email.split("@")[0],email:s.user.email,at:Date.now(),id:s.user.id});
+        setShowLoginFirst(false);
         // Primo login della sessione → manda l'utente al suo Vault, non Explore.
         if(!wasLoggedIn && !firstLogin){
           firstLogin=true;
@@ -3242,6 +3250,48 @@ export default function DraGold(){
   );
 
   // ── RENDER ────────────────────────────────────────────────────────────────
+  // Attendi che localStorage sia stato letto per evitare flash
+  if(!authReady){
+    return <div style={{minHeight:"100vh",background:"#020208"}}><style>{CSS}</style></div>;
+  }
+
+  // LOGIN GATE — utente non loggato vede prima il form auth
+  if(showLoginFirst && !user){
+    return(
+      <div style={{minHeight:"100vh",background:"#020208",color:"#f8f8ff",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"20px"}}>
+        <style>{CSS}</style>
+        <div className="auth-logo" style={{marginBottom:28}}>
+          <img className="auth-gem" src="/logo-gold.png" alt="DraGold"/>
+          <span className="auth-brand gt">DraGold</span>
+        </div>
+        <p style={{color:"var(--muted)",fontSize:13,marginBottom:24,textAlign:"center",maxWidth:340}}>
+          Track your TCG collection, monitor prices and set alerts across Pokémon, Magic, Yu-Gi-Oh! and One Piece.
+        </p>
+        <div style={{background:"linear-gradient(155deg,var(--s2) 0%,var(--s1) 100%)",border:"1px solid rgba(255,255,255,.1)",borderRadius:20,padding:28,width:"100%",maxWidth:400,boxShadow:"0 24px 64px rgba(0,0,0,.5)"}}>
+          <div className="smod-hdr" style={{marginBottom:6}}><div className="smod-t">{authMode==="login"?"Welcome back":"Join DraGold"}</div></div>
+          <p className="smod-desc">No password needed — we'll send a magic sign-in link.</p>
+          <input className="smod-in" type="email" placeholder="Email address" value={authEmail}
+            onChange={e=>setAuthEmail(e.target.value)} style={{marginBottom:12}}
+            onKeyDown={e=>e.key==="Enter"&&(authMode==="login"?doLogin():doRegister())}/>
+          <button className="smod-btn" onClick={authMode==="login"?doLogin:doRegister}>Send magic link</button>
+          <div className="smod-switch" style={{marginTop:12}}>
+            {authMode==="login"
+              ?<span className="smod-lnk" onClick={()=>setAuthMode("register")}>New? Create free account</span>
+              :<span className="smod-lnk" onClick={()=>setAuthMode("login")}>Already have an account? Sign in</span>
+            }
+          </div>
+        </div>
+        <button
+          style={{marginTop:20,background:"none",border:"1px solid var(--gb)",borderRadius:10,color:"var(--muted)",fontSize:12,padding:"10px 22px",cursor:"pointer",transition:"border-color .2s"}}
+          onMouseOver={e=>e.currentTarget.style.borderColor="rgba(255,255,255,.2)"}
+          onMouseOut={e=>e.currentTarget.style.borderColor="var(--gb)"}
+          onClick={()=>setShowLoginFirst(false)}>
+          Esplora senza account →
+        </button>
+      </div>
+    );
+  }
+
   return(
     <div style={{minHeight:"100vh",background:"#020208",color:"#f8f8ff"}}>
       <style>{CSS}</style>
