@@ -3896,7 +3896,7 @@ export default function DraGold(){
       {/* MODALS */}
       {zoomImg    &&<div className="img-zoom-ov" onClick={()=>setZoomImg(null)}><img src={zoomImg} alt="zoom"/></div>}
       {article    &&<ArticleReader post={article}/>}
-      {authMode   &&<AuthModal/>}
+      {authMode&&!user&&<AuthModal/>}
       {detail     &&<DetailModal card={detail}/>}
       {alertCard  &&<AlertModal card={alertCard}/>}
       {plansOpen  &&<PlansModal/>}
