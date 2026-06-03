@@ -46,10 +46,10 @@ const PLANS=[
 
 // ─── TCG / BINDER ────────────────────────────────────────────────────────────
 const TCG_LIST=[
-  {id:"pokemon", label:"Pokémon TCG",         emoji:"🔴",color:"#f87171"},
-  {id:"mtg",     label:"Magic: The Gathering", emoji:"🟦",color:"#60a5fa"},
-  {id:"ygo",     label:"Yu-Gi-Oh!",            emoji:"⭐",color:"#fbbf24"},
-  {id:"op",      label:"One Piece TCG",        emoji:"⚓",color:"#f97316"},
+  {id:"pokemon", label:"Pokémon TCG",         emoji:"🔴",color:"#f87171",core:true},
+  {id:"op",      label:"One Piece TCG",        emoji:"⚓",color:"#f97316",core:true},
+  {id:"mtg",     label:"Magic: The Gathering", emoji:"🟦",color:"#60a5fa",soon:true},
+  {id:"ygo",     label:"Yu-Gi-Oh!",            emoji:"⭐",color:"#fbbf24",soon:true},
 ];
 const BINDER_TYPES=[
   {id:"9p", name:"9-Pocket (3x3)",   cols:3,rows:3,slots:9,  desc:"Ultra Pro / Dragon Shield"},
@@ -112,8 +112,9 @@ function timeAgo(dateStr){
 // quando l'aggregato giornaliero sarà disponibile. Per ora mostra solo nomi.
 const MARKET_PULSE=[
   {name:"Pokémon TCG",         change:null,vol:null,trend:"neutral"},
-  {name:"Magic: The Gathering",change:null,vol:null,trend:"neutral"},
-  {name:"Yu-Gi-Oh!",           change:null,vol:null,trend:"neutral"},
+  {name:"One Piece TCG",       change:null,vol:null,trend:"neutral"},
+  {name:"Magic: The Gathering",change:null,vol:null,trend:"soon"},
+  {name:"Yu-Gi-Oh!",           change:null,vol:null,trend:"soon"},
 ];
 const BLOG=[
   // Articoli del blog. featuredCards omesso intenzionalmente: meglio nessuna immagine
@@ -134,7 +135,7 @@ const BLOG=[
    featuredCards:[],
    body:["The TCG market behaves more like the art market than the stock market. Cultural relevance, scarcity, and condition determine value. Understanding all three is the foundation of a real collector portfolio.","Cultural relevance is the most important factor and the hardest to predict. Charizard will always matter because it is the face of Pokémon. Generic commons from forgotten sets depreciate toward zero regardless of condition.","Scarcity comes from limited print runs, exclusive promos, and grading. A PSA 10 Base Set Charizard is worth 3x a raw copy because PSA 10 examples are genuinely rare. Most packs produce cards with defects that make a perfect grade unlikely."]},
 ];
-const TICKER="DraGold — Pokémon TCG   Magic: The Gathering   Yu-Gi-Oh!   Fair Market Value   EN JP KO FR DE IT ES PT   eBay Geo-routed   PSA Estimates   Digital Binder   Watchlist   Price Alerts   Portfolio Tracking   Sealed Products";
+const TICKER="DraGold — Real eBay Sell Prices   Pokémon TCG   One Piece TCG   170K+ Cards   EU Geo-Routing   PSA 10/9/8 Estimates   Price Drop Alerts   Portfolio Vault   Digital Binder   MTG coming soon   YGO coming soon";
 
 // ─── UTILS ───────────────────────────────────────────────────────────────────
 function calcFMV(card){
@@ -3008,11 +3009,13 @@ export default function DraGold(){
           {TCG_LIST.map(t=>(
             <div key={t.id} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 14px",
               background:"var(--gl)",border:"1px solid var(--gb)",borderRadius:100,
-              fontSize:12,fontWeight:700,color:"var(--txt2)",cursor:"pointer",transition:"all .2s"}}
-              onClick={()=>{setQ("");setTab("explore");}}
-              onMouseEnter={e=>{e.currentTarget.style.borderColor=t.color;e.currentTarget.style.color=t.color;}}
-              onMouseLeave={e=>{e.currentTarget.style.borderColor="rgba(255,255,255,.09)";e.currentTarget.style.color="var(--txt2)";}}>
+              fontSize:12,fontWeight:700,color:"var(--txt2)",cursor:t.soon?"default":"pointer",
+              opacity:t.soon?0.5:1,transition:"all .2s"}}
+              onClick={t.soon?undefined:()=>{setQ("");setTab("explore");}}
+              onMouseEnter={t.soon?undefined:e=>{e.currentTarget.style.borderColor=t.color;e.currentTarget.style.color=t.color;}}
+              onMouseLeave={t.soon?undefined:e=>{e.currentTarget.style.borderColor="rgba(255,255,255,.09)";e.currentTarget.style.color="var(--txt2)";}}>
               <span>{t.emoji}</span><span>{t.label}</span>
+              {t.soon&&<span style={{fontSize:9,fontWeight:800,letterSpacing:.5,padding:"1px 6px",borderRadius:100,background:"rgba(255,255,255,.08)",color:"var(--muted)",textTransform:"uppercase"}}>Soon</span>}
             </div>
           ))}
         </div>
@@ -3354,8 +3357,9 @@ export default function DraGold(){
       <div className="pulse-bar">
         {MARKET_PULSE.map(m=>(
           <div key={m.name} className="pulse-item">
-            <div className="pulse-dot" style={{background:m.trend==="up"?"var(--gain)":"var(--loss)"}}/>
-            <span className="pulse-name">{m.name}</span>
+            <div className="pulse-dot" style={{background:m.trend==="up"?"var(--gain)":m.trend==="soon"?"var(--dim)":"var(--loss)"}}/>
+            <span className="pulse-name" style={{opacity:m.trend==="soon"?0.45:1}}>{m.name}</span>
+            {m.trend==="soon"&&<span style={{fontSize:8,fontFamily:"'Space Mono',monospace",color:"var(--dim)",letterSpacing:.5}}>SOON</span>}
             {m.change!=null && <span className="pulse-chg" style={{color:m.trend==="up"?"var(--gain)":"var(--loss)"}}>{m.trend==="up"?"+":""}{m.change}%</span>}
             {m.vol && <span className="pulse-vol">{m.vol}</span>}
           </div>
@@ -3392,12 +3396,12 @@ export default function DraGold(){
           <div className="hero-inner">
             <div className="hero-cols">
               <div className="hero-left">
-                <div className="hero-badge"><span className="bdot"/>Beta · Pokémon · Magic · Yu-Gi-Oh! · One Piece</div>
-                <span className="hero-tagline gt">Fair Market Value,<br/>every card.</span>
-                <p className="hero-sub">Search 170K+ cards across Pokémon, Magic, Yu-Gi-Oh! and One Piece TCG. Real prices in EUR with EU eBay geo-routing, price alerts, vault tracking and digital binders.</p>
+                <div className="hero-badge"><span className="bdot"/>🔴 Pokémon · ⚓ One Piece · Real EU market prices</div>
+                <span className="hero-tagline gt">Do you know what your<br/>cards are really worth?</span>
+                <p className="hero-sub">DraGold shows real eBay sell prices for Pokémon and One Piece TCG cards across Europe — not estimates, not wishlists. Set alerts, track your portfolio, and buy or sell at the right moment.</p>
                 <div className="srch" style={{position:"relative"}}>
                   <input className="srch-in" type="text"
-                    placeholder='Search any card — try "charizard jp" or "pikachu japan"...'
+                    placeholder='Search any card — try "charizard 151" or "monkey d luffy"...'
                     value={q}
                     onChange={e=>setQ(e.target.value)}
                     onFocus={()=>q&&suggestions.length&&setShowSugg(true)}
@@ -3424,10 +3428,10 @@ export default function DraGold(){
                 {demo&&<div className="demo-bar">Demo mode   live search active when deployed</div>}
                 <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:14}}>
                   {[
-                    {icon:"🌍",text:"EU eBay geo-routing"},
-                    {icon:"💶",text:"Real FMV in EUR"},
-                    {icon:"170K+",text:"cards in catalog"},
-                    {icon:"🔔",text:"Price alerts"},
+                    {icon:"📈",text:"Real eBay EU sell prices"},
+                    {icon:"🔔",text:"Price drop alerts"},
+                    {icon:"💼",text:"Portfolio & ROI tracking"},
+                    {icon:"🏆",text:"PSA 10/9/8 estimates"},
                   ].map(f=>(
                     <div key={f.text} style={{display:"flex",alignItems:"center",gap:5,padding:"4px 11px",
                       background:"rgba(255,255,255,.05)",border:"1px solid rgba(255,255,255,.08)",
