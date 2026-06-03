@@ -1263,11 +1263,11 @@ export default function DraGold(){
     try{
       const u=localStorage.getItem("dg_u1");
       if(u){ setUser(JSON.parse(u)); setTab("col"); }
-      else { setShowLoginFirst(true); setAuthMode("register"); }
+      else { setShowLoginFirst(true); }
       const c=localStorage.getItem("dg_c1");if(c) setCol(JSON.parse(c));
       const w=localStorage.getItem("dg_w1");if(w) setWatchlist(JSON.parse(w));
       const b=localStorage.getItem("dg_b1");if(b) setBinders(JSON.parse(b));
-    }catch{ setShowLoginFirst(true); setAuthMode("register"); }
+    }catch{ setShowLoginFirst(true); }
     setAuthReady(true);
   },[]);
 
@@ -2095,20 +2095,20 @@ export default function DraGold(){
   const doLogout=async()=>{
     if(supabaseReady){await sbSignOut();}
     setUser(null);try{localStorage.removeItem("dg_u1");}catch{}
-    setShowLoginFirst(true);setAuthMode("register");setTab("explore");
+    setShowLoginFirst(true);setTab("explore");
   };
   useEffect(()=>{
     if(!supabaseReady) return;
     let firstLogin=false;
     (async()=>{
       const s=await getSession();
-      if(s?.user){setUser({name:s.user.email.split("@")[0],email:s.user.email,at:Date.now(),id:s.user.id});}
+      if(s?.user){setUser({name:s.user.email.split("@")[0],email:s.user.email,at:Date.now(),id:s.user.id});setShowLoginFirst(false);setAuthMode(null);}
     })();
     return onAuth(s=>{
       if(s?.user){
         const wasLoggedIn=!!user;
         setUser({name:s.user.email.split("@")[0],email:s.user.email,at:Date.now(),id:s.user.id});
-        setShowLoginFirst(false);
+        setShowLoginFirst(false);setAuthMode(null);
         // Primo login della sessione → manda l'utente al suo Vault, non Explore.
         if(!wasLoggedIn && !firstLogin){
           firstLogin=true;
