@@ -2870,7 +2870,7 @@ export default function DraGold(){
           </>
         )}
         <div style={{fontSize:10,color:"var(--dim)",textAlign:"center",marginTop:10,fontFamily:"'Space Mono',monospace"}}>
-          Sorted by FMV · {region==="EU"?"EU pricing (EUR)":"US pricing (USD)"}
+          Sorted by FMV · {cur==="EUR"?"local pricing (EUR)":"US pricing (USD)"}
         </div>
       </div>
     );
