@@ -111,8 +111,8 @@ function timeAgo(dateStr){
 // Market pulse: vol e change reali verranno calcolati dal cron compute-hot-picks
 // quando l'aggregato giornaliero sarà disponibile. Per ora mostra solo nomi.
 const MARKET_PULSE=[
-  {name:"Pokémon TCG",         change:null,vol:null,trend:"neutral"},
-  {name:"One Piece TCG",       change:null,vol:null,trend:"neutral"},
+  {name:"Pokémon TCG",         change:null,vol:"128K cards",trend:"neutral"},
+  {name:"One Piece TCG",       change:null,vol:"2.5K cards",trend:"neutral"},
   {name:"Magic: The Gathering",change:null,vol:null,trend:"soon"},
   {name:"Yu-Gi-Oh!",           change:null,vol:null,trend:"soon"},
 ];
@@ -2171,7 +2171,7 @@ export default function DraGold(){
     const cardLangF=card._lang||clang||"en";
     const langInfoF=CARD_LANGS.find(x=>x.c===cardLangF);
     const displayNameF=card._enName||card.name; // nome EN anche per carte non-EN
-    const fmvD=fmvObj?(cur==="EUR"?`€${fmvObj.fmvEUR}`:`$${fmvObj.fmv}`):"Prezzo non disp.";
+    const fmvD=fmvObj?(cur==="EUR"?`€${fmvObj.fmvEUR}`:`$${fmvObj.fmv}`):"No price data";
     const netD=fmvObj?(cur==="EUR"?`€${fmvObj.netEUR}`:`$${fmvObj.net}`):null;
     return(
       <div className="feat">
@@ -2197,12 +2197,25 @@ export default function DraGold(){
               <span className="pref-i">CM <span>€{tcgPrice?(tcgPrice*EUR_RATE*0.88).toFixed(2):(fmvObj.fmvEUR*0.88).toFixed(2)}</span></span>
               <span className="pref-i">eBay <span>{tcgPrice?`$${(tcgPrice*1.06).toFixed(2)}`:`$${(fmvObj.fmv*1.06).toFixed(2)}`}</span></span>
             </div>
+            {(()=>{const psa=psaEst(fmvObj.fmv);return(
+              <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:10,padding:"8px 10px",
+                background:"rgba(167,139,250,.07)",border:"1px solid rgba(167,139,250,.18)",borderRadius:10}}>
+                <span style={{fontSize:10,color:"var(--muted)",fontFamily:"'Space Mono',monospace"}}>🏆 PSA 10</span>
+                <span style={{fontSize:11,color:"var(--amber)",fontWeight:700,fontFamily:"'Space Mono',monospace"}}>{cur==="EUR"?`€${(psa.p10*EUR_RATE).toFixed(0)}`:`$${psa.p10.toFixed(0)}`}</span>
+                <span style={{fontSize:10,color:"var(--dim)"}}>·</span>
+                <span style={{fontSize:10,color:"var(--muted)",fontFamily:"'Space Mono',monospace"}}>PSA 9</span>
+                <span style={{fontSize:11,color:"var(--txt2)",fontWeight:700,fontFamily:"'Space Mono',monospace"}}>{cur==="EUR"?`€${(psa.p9*EUR_RATE).toFixed(0)}`:`$${psa.p9.toFixed(0)}`}</span>
+                <span style={{fontSize:10,color:"var(--dim)"}}>·</span>
+                <span style={{fontSize:10,color:"var(--muted)",fontFamily:"'Space Mono',monospace"}}>PSA 8</span>
+                <span style={{fontSize:11,color:"var(--txt2)",fontWeight:600,fontFamily:"'Space Mono',monospace"}}>{cur==="EUR"?`€${(psa.p8*EUR_RATE).toFixed(0)}`:`$${psa.p8.toFixed(0)}`}</span>
+              </div>
+            );})()}
           </>):(
-            <div className="feat-price-ref" style={{color:"var(--dim)",fontStyle:"italic",marginBottom:8}}>Prezzo temporaneamente non disponibile</div>
+            <div className="feat-price-ref" style={{color:"var(--dim)",fontStyle:"italic",marginBottom:8}}>Price temporarily unavailable</div>
           )}
           <div className="feat-actions">
             <a href={buyLink} target="_blank" rel="noopener noreferrer" className="btn-buy">
-              🛒 {region==="EU"?"EU eBay":"eBay"}
+              🛒 Buy on eBay
             </a>
             <button className={`btn-ghost${already?" in":""}`} onClick={()=>already?removeFromCol(card.id||card.name):setDetail(card)}>
               {already?"✓ Vault":"+ Vault"}
@@ -2248,8 +2261,13 @@ export default function DraGold(){
           {fmvD?(<>
             <div className="kprice">{fmvD}{card._priceIsShared&&<span className="price-en-note">🇬🇧</span>}</div>
             <div className="kprice-lbl">{card._priceIsShared?"EN price (approx)":"FMV"}</div>
+            {fmvObj&&(()=>{const psa=psaEst(fmvObj.fmv);return(
+              <div style={{fontSize:9,color:"var(--muted)",fontFamily:"'Space Mono',monospace",marginBottom:2}}>
+                🏆 PSA 10 <span style={{color:"var(--amber)",fontWeight:700}}>{cur==="EUR"?`€${(psa.p10*EUR_RATE).toFixed(0)}`:`$${psa.p10.toFixed(0)}`}</span>
+              </div>
+            );})()}
             <div className="knet">Net {netD}</div>
-          </>):<div className="kno-price">Prezzo non disp.</div>}
+          </>):<div className="kno-price">No price data</div>}
           <div className="kact">
             <a href={buyLink} target="_blank" rel="noopener noreferrer" className="btn-es">🛒 eBay</a>
             <button className={`btn-add-k${already?" in":""}`} onClick={()=>already?null:setDetail(card)}>{already?"✓":"+"}</button>
@@ -3024,6 +3042,48 @@ export default function DraGold(){
 
       {/* INVESTMENT PICKS */}
       <HotPicksSection/>
+
+      {/* SEALED PRODUCTS */}
+      <div style={{marginBottom:40}}>
+        <div className="sec-hdr">
+          <div className="sec-title gt">Sealed Products</div>
+          <span className="sec-badge" style={{background:"rgba(251,191,36,.1)",color:"var(--amber)",border:"1px solid rgba(251,191,36,.2)"}}>Investment grade</span>
+        </div>
+        <div style={{display:"flex",gap:10,overflowX:"auto",paddingBottom:6,scrollbarWidth:"none",msOverflowStyle:"none"}}>
+          {[
+            {name:"Pokémon 151 ETB",q:"pokemon 151 elite trainer box sealed",badge:"🔴",color:"#f87171"},
+            {name:"Scarlet & Violet Booster Box",q:"pokemon scarlet violet booster box sealed english",badge:"🔴",color:"#f87171"},
+            {name:"Prismatic Evolutions ETB",q:"pokemon prismatic evolutions elite trainer box",badge:"🔴",color:"#f87171"},
+            {name:"One Piece OP-09 Booster Box",q:"one piece card game op-09 booster box sealed",badge:"⚓",color:"#f97316"},
+            {name:"Crown Zenith ETB",q:"pokemon crown zenith elite trainer box sealed",badge:"🔴",color:"#f87171"},
+            {name:"One Piece OP-06 Booster Box",q:"one piece card game op-06 wings of the captain booster box",badge:"⚓",color:"#f97316"},
+            {name:"Pokémon GO ETB",q:"pokemon go elite trainer box sealed",badge:"🔴",color:"#f87171"},
+            {name:"One Piece EB-01 Extra Booster",q:"one piece extra booster memorial collection sealed",badge:"⚓",color:"#f97316"},
+          ].map((p,i)=>{
+            const site=EBAY_SITES[country]||EBAY_SITES.US;
+            const eu=EU_CC.includes(country||'');
+            const url=`https://www.${site.domain}/sch/i.html?_nkw=${encodeURIComponent(p.q)}&mkcid=1&mkrid=${site.mkrid}&siteid=${site.siteid}&campid=${EBAY_CAMP}&toolid=10001&mkevt=1${eu?"&LH_PrefLoc=1":""}`;
+            return(
+              <a key={i} href={url} target="_blank" rel="noopener noreferrer"
+                style={{flexShrink:0,width:136,background:"var(--s2)",border:"1px solid var(--gb)",borderRadius:12,
+                  padding:"10px 10px 12px",textDecoration:"none",transition:"all .2s",display:"block"}}>
+                <div style={{width:"100%",height:70,background:"var(--gl)",borderRadius:8,marginBottom:8,
+                  display:"flex",alignItems:"center",justifyContent:"center",fontSize:34,
+                  border:`1px solid ${p.color}28`}} onMouseEnter={e=>{e.currentTarget.parentElement.style.borderColor=`${p.color}55`;e.currentTarget.parentElement.style.transform="translateY(-3px)";}}
+                  onMouseLeave={e=>{e.currentTarget.parentElement.style.borderColor="var(--gb)";e.currentTarget.parentElement.style.transform="";}}>
+                  {p.badge}
+                </div>
+                <div style={{fontSize:8,color:p.color,fontWeight:700,marginBottom:3,fontFamily:"'Space Mono',monospace",letterSpacing:.5}}>📦 SEALED</div>
+                <div style={{fontSize:10,color:"var(--txt2)",fontWeight:600,lineHeight:1.45,marginBottom:6,
+                  overflow:"hidden",display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical"}}>
+                  {p.name}
+                </div>
+                <div style={{fontSize:9,color:"var(--muted)",fontFamily:"'Space Mono',monospace"}}>Find on eBay →</div>
+              </a>
+            );
+          })}
+        </div>
+      </div>
 
       {/* HOW IT WORKS */}
       <div style={{marginBottom:40}}>
