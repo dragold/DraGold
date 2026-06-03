@@ -135,7 +135,7 @@ const BLOG=[
    featuredCards:[],
    body:["The TCG market behaves more like the art market than the stock market. Cultural relevance, scarcity, and condition determine value. Understanding all three is the foundation of a real collector portfolio.","Cultural relevance is the most important factor and the hardest to predict. Charizard will always matter because it is the face of Pokémon. Generic commons from forgotten sets depreciate toward zero regardless of condition.","Scarcity comes from limited print runs, exclusive promos, and grading. A PSA 10 Base Set Charizard is worth 3x a raw copy because PSA 10 examples are genuinely rare. Most packs produce cards with defects that make a perfect grade unlikely."]},
 ];
-const TICKER="DraGold — Real eBay Sell Prices   Pokémon TCG   One Piece TCG   170K+ Cards   EU Geo-Routing   PSA 10/9/8 Estimates   Price Drop Alerts   Portfolio Vault   Digital Binder   MTG coming soon   YGO coming soon";
+const TICKER="DraGold — Real eBay Sell Prices · Your Local Market · Pokémon TCG · One Piece TCG · 170K+ Cards · Geo-Routed Prices · PSA 10/9/8 Estimates · Price Drop Alerts · Portfolio Vault · Digital Binder · MTG coming soon · YGO coming soon";
 
 // ─── UTILS ───────────────────────────────────────────────────────────────────
 function calcFMV(card){
@@ -2550,7 +2550,7 @@ export default function DraGold(){
                         </a>
                       ))}
                     </div>
-                    :<div className="ebay-live-empty">{ebayTab==='raw'?'Nessun listing trovato':'Clicca il tab per caricare'}</div>;
+                    :<div className="ebay-live-empty">{ebayTab==='raw'?'No listings found':'Click the tab to load'}</div>;
                 })()
               }
             </div>
@@ -2820,7 +2820,7 @@ export default function DraGold(){
     },[]);
     const TCG_TABS=[{id:null,label:"All"},{id:"pokemon",label:"🔴 Pokémon"},{id:"onepiece",label:"⚓ One Piece"}];
     const TCG_BADGE={pokemon:{bg:"rgba(239,68,68,.12)",color:"#ef4444"},onepiece:{bg:"var(--lime-b)",color:"var(--lime)"}};
-    const geoLabel=region==="EU"?"🇪🇺 Hot in Europa":"region"==="US"?"🇺🇸 Hot in USA":"🔥 Investment Picks";
+    const geoLabel=region==="EU"?"🔥 Investment Picks":region==="US"?"🔥 Investment Picks":"🔥 Investment Picks";
     const filtered=tcgF?picks.filter(p=>p.tcg===tcgF):picks;
     const displayed=showAll?filtered:filtered.slice(0,10);
     return(
@@ -2931,7 +2931,7 @@ export default function DraGold(){
           <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
             <span style={{fontSize:16}}>{flag}</span>
             <div style={{fontFamily:"'Fraunces',sans-serif",fontWeight:800,fontSize:15,color:"var(--txt)"}}>{title}</div>
-            <span style={{fontSize:9,color:"var(--muted)",fontFamily:"'Space Mono',monospace",marginLeft:"auto"}}>Compra Ora · live</span>
+            <span style={{fontSize:9,color:"var(--muted)",fontFamily:"'Space Mono',monospace",marginLeft:"auto"}}>Buy Now · live</span>
           </div>
           <div style={{display:"flex",gap:10,overflowX:"auto",paddingBottom:6,scrollbarWidth:"none",msOverflowStyle:"none"}}>
             {items.map((item,i)=>(
@@ -2960,15 +2960,15 @@ export default function DraGold(){
       <div style={{marginBottom:28}}>
         <div style={{color:"var(--muted)",fontSize:12,padding:"16px 0",textAlign:"center",
           background:"var(--s2)",borderRadius:12,border:"1px solid var(--gb)"}}>
-          🔥 Carico offerte eBay live…
+          🔥 Loading live eBay deals…
         </div>
       </div>
     );
     if(!euItems.length&&!usItems.length) return null;
     return(
       <div style={{marginBottom:8}}>
-        <HotRow items={euItems} title="Hot in Europa" flag="🇪🇺" currencySymbol="€"/>
-        <HotRow items={usItems} title="Hot negli USA" flag="🇺🇸" currencySymbol="$"/>
+        <HotRow items={euItems} title={`Hot in your market`} flag="📍" currencySymbol={cur==="EUR"?"€":"$"}/>
+        <HotRow items={usItems} title="Hot in the US" flag="🇺🇸" currencySymbol="$"/>
       </div>
     );
   };
@@ -2981,10 +2981,10 @@ export default function DraGold(){
       <div style={{marginBottom:48}}>
         <div style={{textAlign:"center",marginBottom:28}}>
           <div style={{fontFamily:"'Fraunces',sans-serif",fontSize:"clamp(22px,5vw,34px)",fontWeight:800,letterSpacing:"-.5px",marginBottom:10}} className="gt-gold">
-            Your TCG portfolio, under control
+            Track your cards like an investor
           </div>
           <div style={{fontSize:14,color:"var(--muted)",maxWidth:540,margin:"0 auto",lineHeight:1.7}}>
-            Track your collection value, get instant price alerts, and discover 170K+ cards across Pokémon, MTG, YGO and One Piece — all with real EU market prices.
+            Real eBay sell prices geo-routed to your country, PSA grading estimates, portfolio tracking, and instant price drop alerts — everything you need to buy smart, sell well, and hold with confidence.
           </div>
         </div>
         <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:12}}>
@@ -2992,7 +2992,7 @@ export default function DraGold(){
             {icon:"🔔",color:"var(--amber)",title:"Price Alerts",desc:"Set a target price on any card. Get notified the moment it drops below. Never miss a deal again.",action:()=>setTab("alerts")},
             {icon:"🐉",color:"var(--gain)",title:"Portfolio Vault",desc:"Track every card you own. See total value in EUR/USD, ROI, and watchlist all in one place.",action:()=>{setTab("col");setColTab("vault");}},
             {icon:"📒",color:"var(--blue)",title:"Digital Binder",desc:"Organize your collection into visual binders by set, type or value — exactly like your physical ones.",action:()=>setTab("binder")},
-            {icon:"🌍",color:"var(--purple)",title:"EU-Ready Prices",desc:"eBay geo-routing for Italy, Germany, France + more. Always EUR pricing, never USD conversions.",action:()=>setTab("explore")},
+            {icon:"🌍",color:"var(--purple)",title:"Your Local Market",desc:"eBay geo-routing for 10+ countries. Prices in your local currency — wherever you are.",action:()=>setTab("explore")},
           ].map(f=>(
             <div key={f.title} style={{background:"var(--s2)",border:"1px solid var(--gb)",borderRadius:16,padding:16,transition:"all .2s",cursor:"pointer"}}
               onClick={f.action}
@@ -3025,33 +3025,22 @@ export default function DraGold(){
       {/* INVESTMENT PICKS */}
       <HotPicksSection/>
 
-      {/* UPCOMING RELEASES */}
+      {/* HOW IT WORKS */}
       <div style={{marginBottom:40}}>
-        <div className="sec-hdr">
-          <div className="sec-title gt">Upcoming Sets</div>
+        <div className="sec-hdr" style={{marginBottom:20}}>
+          <div className="sec-title gt">How DraGold works</div>
         </div>
-        <div className="ug">
+        <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12}}>
           {[
-            {name:"Pokémon: Mega Evolution",date:"June 6, 2026",hype:96,img:"https://images.pokemontcg.io/sv3pt5/logo.png",tcg:"Pokémon"},
-            {name:"Magic: Tarkir Dragonstorm",date:"May 30, 2026",hype:88,img:null,tcg:"MTG"},
-            {name:"Pokémon: Black Bolt & White Flare",date:"Q3 2026",hype:94,img:"https://images.pokemontcg.io/sv3pt5/logo.png",tcg:"Pokémon"},
-            {name:"One Piece: EB-01 Extra Booster",date:"June 2026",hype:82,img:null,tcg:"One Piece"},
-            {name:"Yu-Gi-Oh!: Rage of the Abyss",date:"July 2026",hype:78,img:null,tcg:"YGO"},
-            {name:"Magic: Final Fantasy",date:"June 13, 2026",hype:91,img:null,tcg:"MTG"},
-          ].map((u,i)=>(
-            <div key={i} className="uc">
-              {u.img?<img src={u.img} alt={u.name} className="uc-img"/>:<div className="uc-img-ph">📦</div>}
-              <div className="uc-info">
-                <div style={{display:"flex",alignItems:"baseline",gap:6,marginBottom:2}}>
-                  <div className="uc-name" style={{flex:1}}>{u.name}</div>
-                  {u.tcg&&<span style={{fontSize:8,fontFamily:"'Space Mono',monospace",fontWeight:700,padding:"1px 5px",
-                    background:"var(--gl)",border:"1px solid var(--gb)",borderRadius:100,
-                    color:"var(--muted)",flexShrink:0}}>{u.tcg}</span>}
-                </div>
-                <div className="uc-date">{u.date}</div>
-                <div className="hype-bar"><div className="hype-fill" style={{width:`${u.hype}%`}}/></div>
-                <div style={{fontSize:9,color:"var(--muted)",marginTop:3,fontFamily:"'Space Mono',monospace"}}>Hype {u.hype}/100</div>
-              </div>
+            {step:"01",icon:"🔍",title:"Search any card",desc:"170K+ Pokémon and One Piece cards. Search by name, set, or language. Instant results."},
+            {step:"02",icon:"📊",title:"See the real price",desc:"Real eBay sell prices in your local currency. PSA 10/9/8 grading estimates included."},
+            {step:"03",icon:"🔔",title:"Set an alert or add to vault",desc:"Get notified when the price drops to your target. Track your collection value over time."},
+          ].map(s=>(
+            <div key={s.step} style={{background:"var(--s2)",border:"1px solid var(--gb)",borderRadius:16,padding:"18px 16px",position:"relative",overflow:"hidden"}}>
+              <div style={{fontFamily:"'Space Mono',monospace",fontSize:32,fontWeight:700,color:"var(--dim)",lineHeight:1,marginBottom:10,letterSpacing:-1}}>{s.step}</div>
+              <div style={{fontSize:22,marginBottom:8}}>{s.icon}</div>
+              <div style={{fontFamily:"'Fraunces',sans-serif",fontWeight:800,fontSize:14,marginBottom:6,color:"var(--amber)"}}>{s.title}</div>
+              <div style={{fontSize:12,color:"var(--muted)",lineHeight:1.6}}>{s.desc}</div>
             </div>
           ))}
         </div>
@@ -3096,7 +3085,7 @@ export default function DraGold(){
             {emoji:"📷",name:"Camera Scanning",desc:"Scan any card with your phone. Auto-adds to vault.",tag:"Q3 2026"},
             {emoji:"🎴",name:"Pack Opening Game",desc:"Open virtual packs with real market values.",tag:"Q3 2026"},
             {emoji:"💎",name:"DraGold Pro",desc:"Unlimited alerts, binders, 90-day price history. €4.99/mo.",tag:"Q3 2026"},
-            {emoji:"🏰",name:"Disney Lorcana",desc:"Full Lorcana card database with EU pricing.",tag:"Q4 2026"},
+            {emoji:"🏰",name:"Disney Lorcana",desc:"Full Lorcana card database with local market pricing.",tag:"Q4 2026"},
             {emoji:"📊",name:"Portfolio Analytics",desc:"Charts, ROI tracking, and sell timing signals.",tag:"Q3 2026"},
             {emoji:"📤",name:"CSV & PDF Export",desc:"Export your collection for insurance and records.",tag:"Q4 2026"},
           ].map((f,i)=>(
@@ -3298,7 +3287,7 @@ export default function DraGold(){
           onMouseOver={e=>e.currentTarget.style.borderColor="rgba(255,255,255,.2)"}
           onMouseOut={e=>e.currentTarget.style.borderColor="var(--gb)"}
           onClick={()=>setShowLoginFirst(false)}>
-          Esplora senza account →
+          Explore without signing in →
         </button>
       </div>
     );
@@ -3396,9 +3385,9 @@ export default function DraGold(){
           <div className="hero-inner">
             <div className="hero-cols">
               <div className="hero-left">
-                <div className="hero-badge"><span className="bdot"/>🔴 Pokémon · ⚓ One Piece · Real EU market prices</div>
+                <div className="hero-badge"><span className="bdot"/>🔴 Pokémon · ⚓ One Piece · Prices in your market</div>
                 <span className="hero-tagline gt">Do you know what your<br/>cards are really worth?</span>
-                <p className="hero-sub">DraGold shows real eBay sell prices for Pokémon and One Piece TCG cards across Europe — not estimates, not wishlists. Set alerts, track your portfolio, and buy or sell at the right moment.</p>
+                <p className="hero-sub">DraGold shows real eBay sell prices for Pokémon and One Piece TCG — geo-routed to your country, in your currency. Not estimates. Not wishlists. Set alerts, build your portfolio, and never overpay again.</p>
                 <div className="srch" style={{position:"relative"}}>
                   <input className="srch-in" type="text"
                     placeholder='Search any card — try "charizard 151" or "monkey d luffy"...'
@@ -3428,7 +3417,7 @@ export default function DraGold(){
                 {demo&&<div className="demo-bar">Demo mode   live search active when deployed</div>}
                 <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:14}}>
                   {[
-                    {icon:"📈",text:"Real eBay EU sell prices"},
+                    {icon:"📈",text:"Real eBay prices, your market"},
                     {icon:"🔔",text:"Price drop alerts"},
                     {icon:"💼",text:"Portfolio & ROI tracking"},
                     {icon:"🏆",text:"PSA 10/9/8 estimates"},
@@ -3614,7 +3603,7 @@ export default function DraGold(){
               {/* Refresh buttons */}
               {user&&<div style={{display:"flex",justifyContent:"flex-end",marginBottom:8,gap:8,alignItems:"center",flexWrap:"wrap"}}>
                 {(vaultRefreshing||ebayVaultLoading)&&<span style={{fontSize:11,color:"var(--muted)"}}>
-                  {ebayVaultLoading?"🔥 Caricamento prezzi Sold Avg…":"Aggiornamento DB prezzi..."}
+                  {ebayVaultLoading?"🔥 Loading Sold Avg prices…":"Updating price DB..."}
                 </span>}
                 <button className="btn-ghost" onClick={()=>{localStorage.setItem('dg_lastEbayRefresh','0');refreshVaultEbayPrices();}} disabled={vaultRefreshing||ebayVaultLoading}
                   style={{fontSize:11,padding:"4px 10px",background:"rgba(251,191,36,.08)",borderColor:"rgba(251,191,36,.3)",color:"var(--amber)",opacity:(vaultRefreshing||ebayVaultLoading)?0.6:1}}>
@@ -3750,14 +3739,14 @@ export default function DraGold(){
       {tab==="community"&&(
         <div className="community-wrap">
           <div className="community-hdr gt">Community</div>
-          <div className="community-sub">Il social per i collezionisti TCG europei. Condividi pull, strategie e prezzi.</div>
+          <div className="community-sub">The social layer for TCG collectors. Share pulls, market analysis, and price finds.</div>
 
           {/* Composer */}
           {user?(
             <div className="post-composer">
               <textarea
                 className="post-textarea"
-                placeholder="Condividi un pull, un'analisi di mercato, una domanda sui prezzi..."
+                placeholder="Share a pull, a market take, or a price question..."
                 value={newPost}
                 onChange={e=>setNewPost(e.target.value.slice(0,500))}
                 rows={3}
@@ -3784,7 +3773,7 @@ export default function DraGold(){
           ):commPosts.length===0?(
             <div className="col-empty">
               <span className="col-ei">📢</span>
-              <div className="col-et">Nessun post ancora</div>
+              <div className="col-et">No posts yet. Be the first.</div>
               <p className="col-es">Sii il primo a condividere qualcosa nella community!</p>
             </div>
           ):(
@@ -3811,7 +3800,7 @@ export default function DraGold(){
                       </div>
                       {!isOwn&&(
                         <button className={`post-follow${isFollowing?" following":""}`} onClick={()=>toggleFollow(post.user_id)}>
-                          {isFollowing?"Seguendo ✓":"+ Segui"}
+                          {isFollowing?"Following ✓":"+ Follow"}
                         </button>
                       )}
                     </div>
@@ -3839,7 +3828,7 @@ export default function DraGold(){
                     {showCmts&&(
                       <div className="comments-section">
                         {(postComments[post.id]||[]).length===0&&(
-                          <div style={{fontSize:12,color:"var(--muted)",marginBottom:8}}>Nessun commento ancora.</div>
+                          <div style={{fontSize:12,color:"var(--muted)",marginBottom:8}}>No comments yet.</div>
                         )}
                         {(postComments[post.id]||[]).map(c=>(
                           <div key={c.id} className="comment">
@@ -3854,12 +3843,12 @@ export default function DraGold(){
                           <div className="cmt-composer">
                             <input
                               className="cmt-in"
-                              placeholder="Scrivi un commento..."
+                              placeholder="Write a comment..."
                               value={newComment}
                               onChange={e=>setNewComment(e.target.value.slice(0,200))}
                               onKeyDown={e=>e.key==="Enter"&&submitComment(post.id)}
                             />
-                            <button className="cmt-send" onClick={()=>submitComment(post.id)}>Invia</button>
+                            <button className="cmt-send" onClick={()=>submitComment(post.id)}>Send</button>
                           </div>
                         )}
                       </div>
