@@ -1230,6 +1230,7 @@ export default function DraGold(){
   const [ebayVaultPrices,setEbayVaultPrices] = useState({}); // {cardId: {price, currency}}
   const [ebayVaultLoading,setEbayVaultLoading] = useState(false);
   const [ebayVaultTotal,setEbayVaultTotal] = useState(null); // totale vault in EUR da eBay
+  const [sparkData,setSparkData] = useState({}); // {card_id: number[]} — 7d price_history
   const [portRange,setPortRange] = useState("30d");
   const [detailPhRange,setDetailPhRange] = useState("7d");
   const [binders,setBinders]     = useState([]);
@@ -1544,6 +1545,36 @@ export default function DraGold(){
     return()=>{cancelled=true;};
     // eslint-disable-next-line react-hooks/exhaustive-deps
   },[col.length, user?.id]);
+
+  // Fetch 7-day price_history for sparklines in vault cards
+  useEffect(()=>{
+    if(!supabaseReady) return;
+    if(!col||col.length===0) return;
+    const ids=col.map(x=>x.id).filter(id=>typeof id==='string'&&id.length>0);
+    if(ids.length===0) return;
+    let cancelled=false;
+    (async()=>{
+      try{
+        const since=new Date(Date.now()-7*24*3600*1000).toISOString();
+        const {data,error}=await supabase
+          .from('price_history')
+          .select('card_id, price_market, fetched_at')
+          .in('card_id',ids)
+          .gte('fetched_at',since)
+          .order('fetched_at',{ascending:true});
+        if(cancelled||error||!Array.isArray(data)) return;
+        const map={};
+        data.forEach(r=>{
+          if(!map[r.card_id]) map[r.card_id]=[];
+          const p=+r.price_market;
+          if(p>0) map[r.card_id].push(p);
+        });
+        if(Object.keys(map).length>0) setSparkData(prev=>({...prev,...map}));
+      }catch{}
+    })();
+    return()=>{cancelled=true;};
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[col.length,user?.id]);
 
   // Vault price refresh: chiama edge function refresh-prices e ri-fetch card_prices_latest
   const refreshVaultPrices = async () => {
@@ -2866,15 +2897,13 @@ export default function DraGold(){
         try{
           const daily=getDailyPicks();
           const settled=await Promise.allSettled(daily.map(async card=>{
-            const{data,error}=await supabase.functions.invoke('fetch-ebay-sold',{body:{query:card.query,country:ctr,limit:10}});
-            if(error||!data) return null;
-            const items=Array.isArray(data.items)?data.items:[];
-            const avg=data.avgPrice??data.avg_price??data.avg??
-              (items.length?items.reduce((s,x)=>s+(x.price||0),0)/items.length:null);
+            const{data,error}=await supabase.functions.invoke('fetch-ebay-prices',{body:{query:card.query,country:ctr,limit:5}});
+            if(error||!data?.items?.length) return null;
+            const items=data.items;
+            const avg=items.reduce((s,x)=>s+(x.price||0),0)/items.length;
             if(!avg||avg>200) return null;
-            const cnt=data.count??data.soldCount??data.sold_count??items.length??0;
             const imgUrl=card.img||(items[0]?.image??items[0]?.imageUrl??null);
-            return{...card,avgPrice:avg,soldCount:cnt,imgUrl,trend:getDailyTrend(card.id)};
+            return{...card,avgPrice:avg,soldCount:items.length,imgUrl,trend:getDailyTrend(card.id)};
           }));
           if(!cancelled){
             const valid=settled.filter(r=>r.status==='fulfilled'&&r.value).map(r=>r.value);
@@ -2907,7 +2936,7 @@ export default function DraGold(){
         <div className="sec-hdr">
           <div className="sec-title gt">🔥 Investment Picks</div>
           <span className="sec-badge" style={{background:"rgba(251,191,36,.1)",color:"var(--amber)",border:"1px solid rgba(251,191,36,.2)"}}>
-            eBay sold · live
+            eBay live · prices
           </span>
         </div>
         <div className="hp-tabs">
@@ -2967,7 +2996,7 @@ export default function DraGold(){
           </div>
         )}
         <div style={{fontSize:10,color:"var(--dim)",textAlign:"center",marginTop:10,fontFamily:"'Space Mono',monospace"}}>
-          avg sold price · eBay {ctr.toUpperCase()} · rotates daily
+          avg listing price · eBay {ctr.toUpperCase()} · rotates daily
         </div>
       </div>
     );
@@ -3688,6 +3717,7 @@ export default function DraGold(){
                         {paidD&&<div className={`vcard-pnl ${pos?"pos":"neg"}`}>
                           {pos?"▲":"▼"} {pnlD} {pos?"gain":"loss"}
                         </div>}
+                        {(()=>{const sd=sparkData[item.id]?.length>=2?sparkData[item.id]:item.spark?.length>=2?item.spark:null;if(!sd)return null;const sparkPos=sd[sd.length-1]>=sd[0];return(<div style={{marginTop:5,opacity:.65}}><Spark data={sd} w={80} h={18} pos={sparkPos}/><span style={{fontSize:8,fontFamily:"'Space Mono',monospace",color:"var(--muted)",marginLeft:2,verticalAlign:"middle"}}>{sparkData[item.id]?"7d":"~"}</span></div>);})()}
                       </div>
                       <button className="vcard-rm" onClick={e=>{e.stopPropagation();removeFromCol(item.id);}}>✕</button>
                     </div>
