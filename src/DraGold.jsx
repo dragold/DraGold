@@ -2897,10 +2897,10 @@ export default function DraGold(){
         try{
           const daily=getDailyPicks();
           const settled=await Promise.allSettled(daily.map(async card=>{
-            const{data,error}=await supabase.functions.invoke('fetch-ebay-prices',{body:{query:card.query,country:ctr,limit:5}});
+            const{data,error}=await supabase.functions.invoke('fetch-ebay-sold',{body:{query:card.query,country:ctr,limit:5}});
             if(error||!data?.items?.length) return null;
             const items=data.items;
-            const avg=items.reduce((s,x)=>s+(x.price||0),0)/items.length;
+            const avg=data.avgPrice??data.avg??(items.reduce((s,x)=>s+(x.price||0),0)/items.length);
             if(!avg||avg>200) return null;
             const imgUrl=card.img||(items[0]?.image??items[0]?.imageUrl??null);
             return{...card,avgPrice:avg,soldCount:items.length,imgUrl,trend:getDailyTrend(card.id)};
