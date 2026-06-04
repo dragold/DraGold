@@ -294,20 +294,31 @@ img{display:block;}
   -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
 
 /* NAV — mobile first */
-.nav{position:sticky;top:0;z-index:90;height:54px;display:flex;align-items:center;
-  justify-content:space-between;padding:0 var(--p);
-  background:rgba(2,2,8,.94);backdrop-filter:blur(28px);position:relative;}
+.nav{position:sticky;top:0;z-index:90;height:54px;
+  display:grid;grid-template-columns:1fr auto 1fr;align-items:center;
+  padding:0 var(--p);
+  background:rgba(2,2,8,.94);backdrop-filter:blur(28px);}
 .nav::after{content:'';position:absolute;bottom:0;left:0;right:0;height:1px;
   background:linear-gradient(90deg,transparent,var(--purple),var(--blue),var(--pink),var(--amber),transparent);opacity:.28;}
 .nav-l{display:flex;align-items:center;gap:10px;}
+.nav-r{display:flex;align-items:center;gap:6px;justify-content:flex-end;}
 .logo-gem{width:40px;height:40px;flex-shrink:0;object-fit:contain;background:transparent;border:none;
   filter:drop-shadow(0 0 12px rgba(251,191,36,.45));}
 .logo-txt{font-family:'Fraunces',sans-serif;font-size:18px;font-weight:800;letter-spacing:-.5px;}
-.nav-r{display:flex;align-items:center;gap:6px;}
-.cur-row{display:none;}
-.curb{padding:4px 9px;border:none;background:none;color:var(--muted);font-size:10px;font-weight:700;
-  cursor:pointer;border-radius:5px;transition:all .18s;font-family:'Space Mono',monospace;letter-spacing:.5px;}
-.curb.on{background:var(--amber-b);color:var(--amber);}
+.cur-row{display:flex;align-items:center;gap:1px;background:rgba(255,255,255,.04);border-radius:8px;padding:2px;}
+.curb{padding:3px 9px;border:none;background:none;color:var(--muted);font-size:10px;font-weight:700;
+  cursor:pointer;border-radius:6px;transition:all .18s;font-family:'Space Mono',monospace;letter-spacing:.5px;}
+.curb.on{background:rgba(255,255,255,.1);color:#f8f8ff;}
+/* NAV TCG */
+.nav-tcg{display:flex;align-items:center;justify-content:center;gap:2px;}
+.nav-tcg-pill{display:flex;align-items:center;gap:5px;padding:5px 11px;border-radius:20px;border:none;
+  background:rgba(255,255,255,.06);color:var(--txt2);font-size:11px;font-weight:700;
+  font-family:'Plus Jakarta Sans',sans-serif;cursor:pointer;transition:all .2s;white-space:nowrap;}
+.nav-tcg-pill.core:hover{background:rgba(255,255,255,.12);color:#f8f8ff;transform:translateY(-1px);}
+.nav-tcg-pill.dim{opacity:0.35;cursor:default;background:transparent;}
+.nav-tcg-lbl{display:none;}
+.nav-tcg-soon{font-size:8px;font-family:'Space Mono',monospace;color:var(--dim);letter-spacing:.3px;}
+@media(min-width:640px){.nav-tcg-lbl{display:inline;}}
 .ldw{display:none;}/* UI translation coming soon. Hidden until i18n is implemented. */
 .ldw-x{position:relative;}
 .ldb{display:flex;align-items:center;gap:4px;padding:5px 10px;background:var(--gl);border:1px solid var(--gb);
@@ -3363,6 +3374,18 @@ export default function DraGold(){
           <img className="logo-gem" src="/logo-gold.png" alt="DraGold" />
           <span className="logo-txt gt">DraGold</span>
         </div>
+        <div className="nav-tcg">
+          {TCG_LIST.map(t=>(
+            <button key={t.id}
+              className={`nav-tcg-pill ${t.core?"core":"dim"}`}
+              style={t.core?{['--tcg-c']:t.color}:{}}
+              onClick={t.core?()=>{setTab("explore");setQ("");}:undefined}>
+              <span style={{fontSize:13}}>{t.emoji}</span>
+              <span className="nav-tcg-lbl">{t.id==="pokemon"?"Pokémon":t.id==="op"?"One Piece":t.id==="mtg"?"Magic":"Yu-Gi-Oh!"}</span>
+              {!t.core&&<span className="nav-tcg-soon">soon</span>}
+            </button>
+          ))}
+        </div>
         <div className="nav-r">
           <div className="cur-row">
             <button className={`curb${cur==="USD"?" on":""}`} onClick={()=>setCur("USD")}>USD</button>
@@ -3402,18 +3425,6 @@ export default function DraGold(){
         </div>
       </nav>
 
-      {/* MARKET PULSE */}
-      <div className="pulse-bar">
-        {MARKET_PULSE.map(m=>(
-          <div key={m.name} className="pulse-item">
-            <div className="pulse-dot" style={{background:m.trend==="up"?"var(--gain)":m.trend==="soon"?"var(--dim)":"var(--loss)"}}/>
-            <span className="pulse-name" style={{opacity:m.trend==="soon"?0.45:1}}>{m.name}</span>
-            {m.trend==="soon"&&<span style={{fontSize:8,fontFamily:"'Space Mono',monospace",color:"var(--dim)",letterSpacing:.5}}>SOON</span>}
-            {m.change!=null && <span className="pulse-chg" style={{color:m.trend==="up"?"var(--gain)":"var(--loss)"}}>{m.trend==="up"?"+":""}{m.change}%</span>}
-            {m.vol && <span className="pulse-vol">{m.vol}</span>}
-          </div>
-        ))}
-      </div>
 
       {region&&import.meta.env.DEV&&<div className="geo"><div className="geo-dot"/>
         <span>Detected: {country}   {region==="EU"?"EUR   EU eBay active":"USD   US eBay active"}</span>
