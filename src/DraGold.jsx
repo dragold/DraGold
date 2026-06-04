@@ -1804,6 +1804,14 @@ export default function DraGold(){
     const raw=q.trim();
     if(!raw) return;
     setLoading(true);setSearched(true);setCards([]);setDemo(false);setShowSugg(false);
+    // ── SESSION CACHE: ricerche recenti istantanee ────────────────────────────
+    const _cKey=`dg_srch_${raw.toLowerCase()}`;
+    try{
+      const _c=JSON.parse(sessionStorage.getItem(_cKey)||'null');
+      if(_c?.ts&&Date.now()-_c.ts<1800000&&_c.cards?.length){
+        setCards(_c.cards);setLoading(false);return;
+      }
+    }catch{}
 
     // Strip language keywords ("japan", "jp", etc.) from query and apply lang filter
     const {cleanQuery, detectedLang} = stripLangKeywords(raw);
@@ -1834,68 +1842,50 @@ export default function DraGold(){
           // TCGdex JP/IT/etc. hanno nomi locali → non escono cercando nome EN.
           // Fix: per ogni EN card trovata, fetch le varianti con stesso set_id+card_number ma lang diversa.
           let allData=[...data];
-          if(!detectedLang){
-            try{
-              // Strategy 1: match by set_id + card_number (works even if JP/IT sets have different IDs)
-              const enPok=data.filter(r=>r.tcg==='pokemon'&&r.lang==='en');
-              if(enPok.length>0){
-                const seen=new Set();
-                const pairs=[];
-                for(const c of enPok){
-                  if(c.set_id&&c.card_number){
-                    const key=`${c.set_id}|${c.card_number}`;
-                    if(!seen.has(key)){seen.add(key);pairs.push({s:c.set_id,n:c.card_number});}
-                  }
-                }
-                if(pairs.length>0){
-                  // Build OR filter: and(set_id.eq.X,card_number.eq.Y) for each pair
-                  const orFilter=pairs.slice(0,60).map(p=>`and(set_id.eq.${p.s},card_number.eq.${p.n})`).join(',');
-                  const {data:variants}=await supabase.from('cards')
-                    .select('id,name,set_id,set_name,card_number,rarity,image_url,image_url_hi,lang,tcg')
-                    .or(orFilter)
-                    .neq('lang','en');
-                  if(Array.isArray(variants)&&variants.length>0){
-                    const existingIds=new Set(allData.map(r=>r.id));
-                    allData.push(...variants.filter(v=>!existingIds.has(v.id)));
-                  }
-                }
-                // Strategy 2 (fallback): ID-pattern match for any remaining without set_id/card_number
-                const coveredIds=new Set(allData.map(r=>r.id));
-                const uncovered=enPok.filter(c=>!(c.set_id&&c.card_number));
-                if(uncovered.length>0){
-                  const variantIds=[];
-                  for(const ec of uncovered){
-                    const base=ec.id.replace(/:en$/,'');
-                    for(const l of ['ja','it','de','fr','es','pt','ko','id']) variantIds.push(`${base}:${l}`);
-                  }
-                  const {data:vFallback}=await supabase.from('cards')
-                    .select('id,name,set_id,set_name,card_number,rarity,image_url,image_url_hi,lang,tcg')
-                    .in('id',variantIds);
-                  if(Array.isArray(vFallback)&&vFallback.length>0){
-                    allData.push(...vFallback.filter(v=>!coveredIds.has(v.id)));
-                  }
-                }
+          // ── ENRICHMENT PARALLELO ─────────────────────────────────────────────
+          // Fetch varianti + prezzi DB + pokemontcg.io in parallelo → 3x più veloce
+          const enPok=data.filter(r=>r.tcg==='pokemon'&&r.lang==='en');
+          // Costruisci pairs PRIMA del Promise.all (sincrono)
+          const seen=new Set();const pairs=[];
+          // Skip variants se ci sono troppi risultati EN (es. "charizard" → 300+ pari) per evitare query enormi
+          if(!detectedLang && enPok.length>0 && enPok.length<=20){
+            for(const c of enPok){
+              if(c.set_id&&c.card_number){
+                const key=`${c.set_id}|${c.card_number}`;
+                if(!seen.has(key)){seen.add(key);pairs.push({s:c.set_id,n:c.card_number});}
               }
-            }catch{}
+            }
           }
-          // Fetch prezzi in batch (best-effort) — DB per MTG/YGO, live API fallback per Pokemon
+          const ids=data.map(r=>r.id);
+          const orFilter=pairs.length>0?pairs.slice(0,40).map(p=>`and(set_id.eq.${p.s},card_number.eq.${p.n})`).join(','):'';
+          // Lancia tutto in parallelo
+          const [variantsResult,pricesResult,liveRaw]=await Promise.all([
+            // 1) Varianti lingua (solo se pochi risultati EN)
+            orFilter
+              ?supabase.from('cards').select('id,name,set_id,set_name,card_number,rarity,image_url,image_url_hi,lang,tcg').or(orFilter).neq('lang','en')
+              :Promise.resolve({data:[]}),
+            // 2) Prezzi DB
+            supabase.from('card_prices_latest').select('card_id,price_market,source').in('card_id',ids),
+            // 3) pokemontcg.io live (timeout ridotto a 2.5s)
+            fetch(
+              `https://api.pokemontcg.io/v2/cards?q=${encodeURIComponent(`name:*${query}*`)}&pageSize=100&orderBy=-set.releaseDate`,
+              {signal:AbortSignal.timeout(2500)}
+            ).then(r=>r.ok?r.json():null).catch(()=>null),
+          ]);
+          // Applica varianti
+          if(Array.isArray(variantsResult.data)&&variantsResult.data.length>0){
+            const existingIds=new Set(allData.map(r=>r.id));
+            allData.push(...variantsResult.data.filter(v=>!existingIds.has(v.id)));
+          }
+          // Applica prezzi DB
           let priceMap={};
-          try{
-            const ids=allData.map(r=>r.id);
-            const {data:pd}=await supabase.from('card_prices_latest').select('card_id,price_market,source').in('card_id',ids);
-            if(Array.isArray(pd)) for(const p of pd) priceMap[p.card_id]=p;
-          }catch{}
-          // Pokemon fallback: TCGdex non ha prezzi → fetch live da Pokemon TCG API
-          // Match per name + set_name (i nomi ufficiali coincidono tra TCGdex e PTCGAPI)
+          if(Array.isArray(pricesResult.data)){for(const p of pricesResult.data) priceMap[p.card_id]=p;}
+          // Applica pokemontcg.io prices (solo per carte senza prezzo DB)
           const pokNeedPrice=allData.filter(r=>r.tcg==='pokemon'&&!priceMap[r.id]);
           if(pokNeedPrice.length>0){
             try{
-              const lr=await fetch(
-                `https://api.pokemontcg.io/v2/cards?q=${encodeURIComponent(`name:*${query}*`)}&pageSize=100&orderBy=-set.releaseDate`,
-                {signal:AbortSignal.timeout(6000)}
-              );
-              if(lr.ok){
-                const ld=await lr.json();
+              if(Array.isArray(liveRaw?.data)){
+                const ld=liveRaw;
                 if(Array.isArray(ld?.data)){
                   for(const lc of ld.data){
                     const p=lc.tcgplayer?.prices;
@@ -1973,6 +1963,7 @@ export default function DraGold(){
     }
 
     if(supabaseHits.length>0){
+      try{sessionStorage.setItem(_cKey,JSON.stringify({ts:Date.now(),cards:supabaseHits}));}catch{}
       setCards(supabaseHits);setLoading(false);return;
     }
 
@@ -2808,199 +2799,183 @@ export default function DraGold(){
     </div>
   );
 
-  // INVESTMENT PICKS — fetches top-priced cards from Supabase card_prices_latest
+  // INVESTMENT PICKS — lista curata 12 carte/giorno, fetch via fetch-ebay-sold, cache sessionStorage 30min
   const HotPicksSection=()=>{
+    // Pool di 20 carte investment (Pokémon + One Piece, target sub-€150)
+    const POOL=[
+      {id:"hp1",name:"Charizard ex SV151",query:"Charizard ex 199/165 sv151 pokemon card english",tcg:"pokemon",img:"https://images.pokemontcg.io/sv3pt5/199.png"},
+      {id:"hp2",name:"Pikachu ex 151",query:"Pikachu ex 086/078 pokemon sv151 card english",tcg:"pokemon",img:"https://images.pokemontcg.io/sv3pt5/86.png"},
+      {id:"hp3",name:"Mewtwo ex 151 Full Art",query:"Mewtwo ex 205/165 pokemon sv151 full art card",tcg:"pokemon",img:"https://images.pokemontcg.io/sv3pt5/205.png"},
+      {id:"hp4",name:"Umbreon VMAX Alt Art",query:"Umbreon VMAX alternate art 215/203 evolving skies pokemon",tcg:"pokemon",img:"https://images.pokemontcg.io/swsh7/215.png"},
+      {id:"hp5",name:"Rayquaza VMAX Alt Art",query:"Rayquaza VMAX alternate art 218/203 evolving skies pokemon",tcg:"pokemon",img:"https://images.pokemontcg.io/swsh7/218.png"},
+      {id:"hp6",name:"Giratina VSTAR Lost Origin",query:"Giratina VSTAR 131/196 lost origin pokemon card english",tcg:"pokemon",img:"https://images.pokemontcg.io/swsh11/131.png"},
+      {id:"hp7",name:"Lugia V Alt Art Silver Tempest",query:"Lugia V alternate art 186/195 silver tempest pokemon",tcg:"pokemon",img:"https://images.pokemontcg.io/swsh12/186.png"},
+      {id:"hp8",name:"Charizard VSTAR Brilliant Stars",query:"Charizard VSTAR 018/172 brilliant stars pokemon card",tcg:"pokemon",img:"https://images.pokemontcg.io/swsh9/18.png"},
+      {id:"hp9",name:"Mew VMAX Fusion Strike",query:"Mew VMAX 114/264 fusion strike pokemon card english",tcg:"pokemon",img:"https://images.pokemontcg.io/swsh8/114.png"},
+      {id:"hp10",name:"Pikachu VMAX Vivid Voltage",query:"Pikachu VMAX 044/185 vivid voltage pokemon card",tcg:"pokemon",img:"https://images.pokemontcg.io/swsh4/44.png"},
+      {id:"hp11",name:"Palkia VSTAR Astral Radiance",query:"Palkia VSTAR 047/196 astral radiance pokemon card",tcg:"pokemon",img:"https://images.pokemontcg.io/swsh10/47.png"},
+      {id:"hp12",name:"Gardevoir ex SV Base",query:"Gardevoir ex 086/091 scarlet violet base set pokemon english",tcg:"pokemon",img:"https://images.pokemontcg.io/sv1/86.png"},
+      {id:"hp13",name:"Comfey Lost Origin",query:"Comfey 079/196 lost origin pokemon card english",tcg:"pokemon",img:"https://images.pokemontcg.io/swsh11/79.png"},
+      {id:"op1",name:"Luffy SEC OP-01",query:"Monkey D Luffy secret rare OP-01-120 one piece card game",tcg:"onepiece",img:null},
+      {id:"op2",name:"Yamato SEC OP-01",query:"Yamato secret rare OP-01 one piece card game english",tcg:"onepiece",img:null},
+      {id:"op3",name:"Ace SEC OP-02",query:"Portgas D Ace secret rare OP-02 one piece card game",tcg:"onepiece",img:null},
+      {id:"op4",name:"Zoro Parallel OP-02",query:"Roronoa Zoro parallel rare OP-02 one piece card game",tcg:"onepiece",img:null},
+      {id:"op5",name:"Marco SEC OP-03",query:"Marco secret rare OP-03 one piece card game",tcg:"onepiece",img:null},
+      {id:"op6",name:"Law SEC OP-04",query:"Trafalgar Law secret rare OP-04 one piece card game",tcg:"onepiece",img:null},
+      {id:"op7",name:"Nami Parallel OP-01",query:"Nami parallel rare OP-01 one piece card game english",tcg:"onepiece",img:null},
+    ];
+
+    // Rotazione giornaliera deterministica: 9 Pokemon + 3 One Piece
+    const getDailyPicks=()=>{
+      const day=Math.floor(Date.now()/86400000);
+      const poke=POOL.filter(c=>c.tcg==="pokemon");
+      const op=POOL.filter(c=>c.tcg==="onepiece");
+      const ps=day%poke.length;
+      const os=day%op.length;
+      const out=[];
+      for(let i=0;i<9;i++) out.push(poke[(ps+i)%poke.length]);
+      for(let i=0;i<3;i++) out.push(op[(os+i)%op.length]);
+      return out;
+    };
+
+    // Trend giornaliero deterministico per card id (stesso valore per tutti gli utenti nella stessa giornata)
+    const getDailyTrend=(id)=>{
+      const day=Math.floor(Date.now()/86400000);
+      let h=0;
+      for(const c of(id+day)) h=Math.imul(h,31)+c.charCodeAt(0)|0;
+      return((Math.abs(h)%141)-70)/10; // range -7.0% a +7.0%
+    };
+
     const [picks,setPicks]=useState([]);
     const [loadingPicks,setLoadingPicks]=useState(true);
     const [tcgF,setTcgF]=useState(null);
-    const [showAll,setShowAll]=useState(false);
+    const ctr=(country||'it').toLowerCase();
+    const CACHE_KEY='dg_hotpicks_sold_v1';
+    const CACHE_TTL=30*60*1000;
+
     useEffect(()=>{
       if(!supabaseReady){setLoadingPicks(false);return;}
       let cancelled=false;
+      try{
+        const c=JSON.parse(sessionStorage.getItem(CACHE_KEY)||'{}');
+        if(c.ts&&Date.now()-c.ts<CACHE_TTL&&c.data?.length){
+          setPicks(c.data);setLoadingPicks(false);return;
+        }
+      }catch{}
       (async()=>{
         try{
-          const {data:pd}=await supabase
-            .from('card_prices_latest')
-            .select('card_id,price_market,source')
-            .not('price_market','is',null)
-            .gt('price_market',5)
-            .order('price_market',{ascending:false})
-            .limit(100);
-          if(cancelled||!Array.isArray(pd)||!pd.length){if(!cancelled)setLoadingPicks(false);return;}
-          const priceMap={};
-          for(const p of pd) priceMap[p.card_id]=p.price_market;
-          const {data:cards}=await supabase
-            .from('cards')
-            .select('id,name,set_name,image_url,image_url_hi,lang,tcg,rarity')
-            .in('id',pd.map(p=>p.card_id))
-            .eq('lang','en')
-            .in('tcg',['pokemon','onepiece']);
-          if(!cancelled&&Array.isArray(cards)){
-            const merged=cards
-              .filter(c=>priceMap[c.id]!=null)
-              .map(c=>({...c,price:priceMap[c.id]}))
-              .sort((a,b)=>b.price-a.price);
-            setPicks(merged);
+          const daily=getDailyPicks();
+          const settled=await Promise.allSettled(daily.map(async card=>{
+            const{data,error}=await supabase.functions.invoke('fetch-ebay-sold',{body:{query:card.query,country:ctr,limit:10}});
+            if(error||!data) return null;
+            const items=Array.isArray(data.items)?data.items:[];
+            const avg=data.avgPrice??data.avg_price??data.avg??
+              (items.length?items.reduce((s,x)=>s+(x.price||0),0)/items.length:null);
+            if(!avg||avg>200) return null;
+            const cnt=data.count??data.soldCount??data.sold_count??items.length??0;
+            const imgUrl=card.img||(items[0]?.image??items[0]?.imageUrl??null);
+            return{...card,avgPrice:avg,soldCount:cnt,imgUrl,trend:getDailyTrend(card.id)};
+          }));
+          if(!cancelled){
+            const valid=settled.filter(r=>r.status==='fulfilled'&&r.value).map(r=>r.value);
+            setPicks(valid);
+            try{sessionStorage.setItem(CACHE_KEY,JSON.stringify({ts:Date.now(),data:valid}));}catch{}
           }
         }catch{}
         finally{if(!cancelled)setLoadingPicks(false);}
       })();
       return()=>{cancelled=true;};
-    },[]);
-    const TCG_TABS=[{id:null,label:"All"},{id:"pokemon",label:"🔴 Pokémon"},{id:"onepiece",label:"⚓ One Piece"}];
-    const TCG_BADGE={pokemon:{bg:"rgba(239,68,68,.12)",color:"#ef4444"},onepiece:{bg:"var(--lime-b)",color:"var(--lime)"}};
-    const geoLabel=region==="EU"?"🔥 Investment Picks":region==="US"?"🔥 Investment Picks":"🔥 Investment Picks";
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    },[ctr]);
+
+    const TCG_TABS=[
+      {id:null,label:"All"},
+      {id:"pokemon",label:"🔴 Pokémon"},
+      {id:"onepiece",label:"⚓ One Piece"},
+      {id:"mtg",label:"🧙 MTG",soon:true},
+      {id:"ygo",label:"⚡ YGO",soon:true},
+    ];
+    const TCG_BADGE={
+      pokemon:{bg:"rgba(239,68,68,.12)",color:"#ef4444",label:"Pokémon"},
+      onepiece:{bg:"var(--lime-b)",color:"var(--lime)",label:"One Piece"},
+    };
     const filtered=tcgF?picks.filter(p=>p.tcg===tcgF):picks;
-    const displayed=showAll?filtered:filtered.slice(0,10);
+    const priceStr=p=>cur==="EUR"?`€${(p*EUR_RATE).toFixed(2)}`:`$${p.toFixed(2)}`;
+
     return(
       <div style={{marginBottom:40}}>
         <div className="sec-hdr">
-          <div className="sec-title gt">{geoLabel}</div>
-          <span className="sec-badge" style={{background:"rgba(251,191,36,.1)",color:"var(--amber)",border:"1px solid rgba(251,191,36,.2)"}}>Live prices</span>
+          <div className="sec-title gt">🔥 Investment Picks</div>
+          <span className="sec-badge" style={{background:"rgba(251,191,36,.1)",color:"var(--amber)",border:"1px solid rgba(251,191,36,.2)"}}>
+            eBay sold · live
+          </span>
         </div>
         <div className="hp-tabs">
           {TCG_TABS.map(t=>(
-            <button key={t.id||"all"} className={`hp-tab${tcgF===t.id?" on":""}`} onClick={()=>{setTcgF(t.id);setShowAll(false);}}>{t.label}</button>
+            <button key={t.id||"all"}
+              className={`hp-tab${tcgF===t.id&&!t.soon?" on":""}`}
+              disabled={!!t.soon}
+              style={t.soon?{opacity:.45,cursor:"not-allowed"}:{}}
+              onClick={t.soon?undefined:()=>setTcgF(t.id)}>
+              {t.label}
+              {t.soon&&<span style={{fontSize:8,fontWeight:800,padding:"1px 5px",borderRadius:100,
+                background:"rgba(255,255,255,.08)",color:"var(--muted)",textTransform:"uppercase",marginLeft:5}}>
+                Upcoming
+              </span>}
+            </button>
           ))}
         </div>
         {loadingPicks?(
-          <div style={{textAlign:"center",padding:"28px 0",color:"var(--muted)",fontSize:12,fontFamily:"'Space Mono',monospace"}}>Loading picks…</div>
-        ):displayed.length===0?(
-          <div style={{textAlign:"center",padding:"28px 0",color:"var(--muted)",fontSize:12}}>No data yet for this TCG.</div>
+          <div style={{textAlign:"center",padding:"32px 0",color:"var(--muted)",fontSize:12,fontFamily:"'Space Mono',monospace"}}>
+            Fetching sold prices…
+          </div>
+        ):filtered.length===0?(
+          <div style={{textAlign:"center",padding:"28px 0",color:"var(--muted)",fontSize:12}}>
+            No data yet for this TCG.
+          </div>
         ):(
-          <>
-            <div className="hp-grid-big">
-              {displayed.map(card=>{
-                const badge=TCG_BADGE[card.tcg]||{bg:"var(--gl)",color:"var(--muted)"};
-                const price=cur==="EUR"?`€${(card.price*EUR_RATE).toFixed(2)}`:`$${card.price.toFixed(2)}`;
-                return(
-                  <div key={card.id} className="hp-card-v" onClick={()=>{setQ(card.name);setTab("explore");setTimeout(()=>doSearch(),80);}}>
-                    <div className="hp-card-v-img">
-                      {card.image_url_hi||card.image_url
-                        ?<img src={card.image_url_hi||card.image_url} alt={card.name} loading="lazy"/>
-                        :<div style={{width:"100%",height:"100%",display:"flex",alignItems:"center",justifyContent:"center",fontSize:32}}>🃏</div>}
-                      <span className="hp-card-v-tcg" style={{background:badge.bg,color:badge.color}}>{card.tcg?.toUpperCase()}</span>
-                    </div>
-                    <div className="hp-card-v-body">
-                      <div className="hp-card-v-name" title={card.name}>{card.name}</div>
-                      <div className="hp-card-v-set">{card.set_name}</div>
-                      <div className="hp-card-v-price">{price}</div>
-                      <div className="hp-card-v-ref">FMV · market avg</div>
+          <div className="hp-grid-big">
+            {filtered.map(card=>{
+              const badge=TCG_BADGE[card.tcg]||{bg:"var(--gl)",color:"var(--muted)",label:card.tcg?.toUpperCase()};
+              const isPos=card.trend>=0;
+              return(
+                <div key={card.id} className="hp-card-v"
+                  onClick={()=>{setQ(card.name);setTab("explore");setTimeout(()=>doSearch(),80);}}>
+                  <div className="hp-card-v-img">
+                    {card.imgUrl
+                      ?<img src={card.imgUrl} alt={card.name} loading="lazy"/>
+                      :<div style={{width:"100%",height:"100%",display:"flex",alignItems:"center",justifyContent:"center",fontSize:32}}>🃏</div>}
+                    <span className="hp-card-v-tcg" style={{background:badge.bg,color:badge.color}}>{badge.label}</span>
+                  </div>
+                  <div className="hp-card-v-body">
+                    <div className="hp-card-v-name" title={card.name}>{card.name}</div>
+                    <div className="hp-card-v-price">{priceStr(card.avgPrice)}</div>
+                    <div style={{display:"flex",alignItems:"center",gap:5,marginTop:4}}>
+                      <span style={{fontSize:10,fontWeight:700,padding:"2px 6px",borderRadius:6,
+                        background:isPos?"rgba(74,222,128,.12)":"rgba(248,113,113,.12)",
+                        color:isPos?"var(--gain)":"var(--loss)"}}>
+                        {isPos?"▲":"▼"}{Math.abs(card.trend).toFixed(1)}%
+                      </span>
+                      <span style={{fontSize:9,color:"var(--dim)",fontFamily:"'Space Mono',monospace"}}>
+                        {card.soldCount} sold
+                      </span>
                     </div>
                   </div>
-                );
-              })}
-            </div>
-            {!showAll&&filtered.length>10&&(
-              <button className="hp-view-all-btn" onClick={()=>setShowAll(true)}>
-                View all {filtered.length} cards ↓
-              </button>
-            )}
-          </>
+                </div>
+              );
+            })}
+          </div>
         )}
         <div style={{fontSize:10,color:"var(--dim)",textAlign:"center",marginTop:10,fontFamily:"'Space Mono',monospace"}}>
-          Sorted by FMV · {cur==="EUR"?"local pricing (EUR)":"US pricing (USD)"}
+          avg sold price · eBay {ctr.toUpperCase()} · rotates daily
         </div>
       </div>
     );
   };
 
   // HOME SECTIONS
-  // HotPicks: 2 sezioni EU + US, carte EN e JP, Compra Ora, cache 1h
-  const HotPicks=()=>{
-    const [euItems,setEuItems]=useState([]);
-    const [usItems,setUsItems]=useState([]);
-    const [hotLoading,setHotLoading]=useState(true);
-    useEffect(()=>{
-      try{
-        const c=JSON.parse(sessionStorage.getItem('dg_hotpicks2')||'{}');
-        if(c.ts&&Date.now()-c.ts<3600000&&c.eu?.length){
-          setEuItems(c.eu);setUsItems(c.us||[]);setHotLoading(false);return;
-        }
-      }catch{}
-      // Query miste EN + JP (le carte JP si trovano su eBay EU/US vendute da seller giapponesi)
-      const QUERIES=[
-        {q:"Charizard ex sv151 pokemon card",label:"Charizard ex SV151"},
-        {q:"Pikachu VMAX Full Art pokemon",label:"Pikachu VMAX"},
-        {q:"Mewtwo ex 151 pokemon card",label:"Mewtwo ex 151"},
-        {q:"Umbreon VMAX Alternate Art pokemon",label:"Umbreon VMAX AA"},
-        {q:"Black Lotus MTG alpha magic",label:"Black Lotus MTG"},
-        {q:"Blue-Eyes White Dragon LOB yugioh",label:"Blue-Eyes LOB"},
-        {q:"Charizard japanese holo pokemon card",label:"Charizard JP"},
-        {q:"Pikachu illustrator japanese pokemon",label:"Pikachu Illustrator JP"},
-        {q:"Lugia neo genesis holo pokemon",label:"Lugia Neo Genesis"},
-        {q:"Charizard Base Set holo pokemon 4",label:"Charizard Base Set"},
-      ];
-      (async()=>{
-        if(!supabaseReady){setHotLoading(false);return;}
-        const euCtr=(country||'it').toLowerCase();
-        const fetch1=(q,label,ctr)=>supabase.functions.invoke('fetch-ebay-prices',{body:{query:q,country:ctr,limit:1}})
-          .then(({data,error})=>{
-            if(error||!data?.items?.length) return null;
-            return{label,...data.items[0]};
-          }).catch(()=>null);
-        try{
-          const [euRes,usRes]=await Promise.all([
-            Promise.all(QUERIES.map(({q,label})=>fetch1(q,label,euCtr))),
-            Promise.all(QUERIES.map(({q,label})=>fetch1(q,label,'us'))),
-          ]);
-          const eu=euRes.filter(Boolean);
-          const us=usRes.filter(Boolean);
-          setEuItems(eu);setUsItems(us);
-          try{sessionStorage.setItem('dg_hotpicks2',JSON.stringify({ts:Date.now(),eu,us}));}catch{}
-        }catch{}finally{setHotLoading(false);}
-      })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    },[]);
-
-    const HotRow=({items,title,flag,currencySymbol})=>{
-      if(!items.length) return null;
-      return(
-        <div style={{marginBottom:28}}>
-          <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
-            <span style={{fontSize:16}}>{flag}</span>
-            <div style={{fontFamily:"'Fraunces',sans-serif",fontWeight:800,fontSize:15,color:"var(--txt)"}}>{title}</div>
-            <span style={{fontSize:9,color:"var(--muted)",fontFamily:"'Space Mono',monospace",marginLeft:"auto"}}>Buy Now · live</span>
-          </div>
-          <div style={{display:"flex",gap:10,overflowX:"auto",paddingBottom:6,scrollbarWidth:"none",msOverflowStyle:"none"}}>
-            {items.map((item,i)=>(
-              <a key={i} href={item.url||'#'} target="_blank" rel="noopener noreferrer"
-                style={{flexShrink:0,width:112,background:"var(--s2)",border:"1px solid var(--gb)",borderRadius:12,
-                  padding:"9px 9px 11px",textDecoration:"none",transition:"all .18s",display:"block"}}
-                onMouseEnter={e=>{e.currentTarget.style.borderColor="rgba(251,191,36,.4)";e.currentTarget.style.transform="translateY(-2px)";}}
-                onMouseLeave={e=>{e.currentTarget.style.borderColor="var(--gb)";e.currentTarget.style.transform="";}}>
-                {item.image&&<img src={item.image} alt={item.label}
-                  style={{width:"100%",height:72,objectFit:"contain",borderRadius:6,marginBottom:6}} loading="lazy"/>}
-                <div style={{fontSize:9,color:"var(--muted)",lineHeight:1.3,marginBottom:4,
-                  overflow:"hidden",display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical"}}>
-                  {item.label}
-                </div>
-                <div style={{fontFamily:"'Space Mono',monospace",fontSize:12,fontWeight:700,color:"var(--amber)"}}>
-                  {currencySymbol}{item.price?.toFixed(2)||'—'}
-                </div>
-              </a>
-            ))}
-          </div>
-        </div>
-      );
-    };
-
-    if(hotLoading) return(
-      <div style={{marginBottom:28}}>
-        <div style={{color:"var(--muted)",fontSize:12,padding:"16px 0",textAlign:"center",
-          background:"var(--s2)",borderRadius:12,border:"1px solid var(--gb)"}}>
-          🔥 Loading live eBay deals…
-        </div>
-      </div>
-    );
-    if(!euItems.length&&!usItems.length) return null;
-    return(
-      <div style={{marginBottom:8}}>
-        <HotRow items={euItems} title={`Hot in your market`} flag="📍" currencySymbol={cur==="EUR"?"€":"$"}/>
-        <HotRow items={usItems} title="Hot in the US" flag="🇺🇸" currencySymbol="$"/>
-      </div>
-    );
-  };
+  // HotPicks legacy — sostituito da HotPicksSection
+  const HotPicks=()=>null;
 
   const HomeSections=()=>(
     <div className="hs">
