@@ -3678,7 +3678,7 @@ export default function DraGold(){
                 </span>}
                 <button className="btn-ghost" onClick={()=>{localStorage.setItem('dg_lastEbayRefresh','0');refreshVaultEbayPrices();}} disabled={vaultRefreshing||ebayVaultLoading}
                   style={{fontSize:11,padding:"4px 10px",background:"rgba(251,191,36,.08)",borderColor:"rgba(251,191,36,.3)",color:"var(--amber)",opacity:(vaultRefreshing||ebayVaultLoading)?0.6:1}}>
-                  🔥 Aggiorna Sold Avg
+                  🔥 Update Sold Avg
                 </button>
               </div>}
               {/* Vault grid */}
