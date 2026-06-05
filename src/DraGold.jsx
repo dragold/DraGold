@@ -357,7 +357,7 @@ img{display:block;}
 @keyframes gp{0%,100%{opacity:1}50%{opacity:.3}}
 
 /* TABS — horizontal scroll on mobile */
-.tbar{background:var(--bg);border-bottom:1px solid rgba(255,255,255,.05);}
+.tbar{position:sticky;top:54px;z-index:89;background:rgba(2,2,8,.92);backdrop-filter:blur(28px);border-bottom:1px solid rgba(255,255,255,.06);}
 .tabs{display:flex;overflow-x:auto;-webkit-overflow-scrolling:touch;padding:0 4px;}
 .tabs::-webkit-scrollbar{display:none;}
 .tb{flex:0 0 auto;padding:12px 16px;background:none;border:none;border-bottom:2px solid transparent;
@@ -1109,6 +1109,7 @@ img{display:block;}
   :root{--p:24px;}
   .cur-row{display:flex;}
   .nav{height:60px;}
+  .tbar{top:60px;}
   .logo-txt{font-size:20px;}
   .logo-gem{width:32px;height:32px;font-size:16px;}
   .tabs{justify-content:center;padding:0;}
@@ -1155,6 +1156,7 @@ img{display:block;}
 @media(min-width:1024px){
   :root{--p:36px;}
   .nav{height:62px;padding:0 var(--p);}
+  .tbar{top:62px;}
   .logo-txt{font-size:22px;}
   .hero{padding:70px var(--p) 50px;}
   .hero-cols{flex-direction:row;}
