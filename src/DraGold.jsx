@@ -776,6 +776,9 @@ img{display:block;}
 .vcard-sub{font-size:9px;color:var(--muted);margin-bottom:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .vcard-price{font-family:'Space Mono',monospace;font-size:14px;font-weight:700;color:var(--amber);margin-bottom:2px;}
 .vcard-pnl{font-family:'Space Mono',monospace;font-size:10px;font-weight:700;}
+.vcard-chg{font-size:10px;font-weight:700;font-family:'Space Mono',monospace;padding:1px 5px;border-radius:5px;}
+.vcard-chg.pos{color:var(--gain);background:var(--gain-g);}
+.vcard-chg.neg{color:var(--loss);background:var(--loss-g);}
 .vcard-rm{position:absolute;top:7px;right:7px;width:22px;height:22px;background:rgba(0,0,0,.7);border:none;border-radius:50%;color:var(--loss);font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .2s;z-index:2;}
 .vcard:hover .vcard-rm{opacity:1;}
 /* Set completion */
@@ -3775,7 +3778,7 @@ export default function DraGold(){
                         {paidD&&<div className={`vcard-pnl ${pos?"pos":"neg"}`}>
                           {pos?"▲":"▼"} {pnlD} {pos?"gain":"loss"}
                         </div>}
-                        {(()=>{const sd=sparkData[item.id]?.length>=2?sparkData[item.id]:item.spark?.length>=2?item.spark:null;if(!sd)return null;const sparkPos=sd[sd.length-1]>=sd[0];return(<div style={{marginTop:5,opacity:.65}}><Spark data={sd} w={80} h={18} pos={sparkPos}/><span style={{fontSize:8,fontFamily:"'Space Mono',monospace",color:"var(--muted)",marginLeft:2,verticalAlign:"middle"}}>{sparkData[item.id]?sparkRange:"~"}</span></div>);})()}
+                        {(()=>{const sd=sparkData[item.id]?.length>=2?sparkData[item.id]:item.spark?.length>=2?item.spark:null;if(!sd)return null;const sparkPos=sd[sd.length-1]>=sd[0];const chg=sd[0]>0?((sd[sd.length-1]-sd[0])/sd[0])*100:0;const rl=sparkData[item.id]?sparkRange:"~";return(<div style={{marginTop:6,display:"flex",alignItems:"center",gap:6}}><Spark data={sd} w={68} h={18} pos={sparkPos}/><span className={`vcard-chg ${sparkPos?"pos":"neg"}`}>{sparkPos?"+":""}{chg.toFixed(1)}%</span><span style={{fontSize:8,fontFamily:"'Space Mono',monospace",color:"var(--dim)"}}>{rl}</span></div>);})()}
                       </div>
                       <button className="vcard-rm" onClick={e=>{e.stopPropagation();removeFromCol(item.id);}}>✕</button>
                     </div>
