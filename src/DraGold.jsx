@@ -282,7 +282,7 @@ img{display:block;}
   --lime:#a3e635;  --lime-b:rgba(163,230,53,.08);
   --gain:#34d399;  --gain-g:rgba(52,211,153,.12);
   --loss:#f87171;  --loss-g:rgba(248,113,113,.12);
-  --txt2:#b4b4cc;--muted:#8a8aa8;--dim:#3a3a52;
+  --txt2:#bcbcd4;--muted:#9a9ab8;--dim:#5e5e7c;
   --p:16px;
 }
 
@@ -823,15 +823,15 @@ img{display:block;}
 .as-triggered{background:var(--amber-b);color:var(--amber);border:1px solid rgba(251,191,36,.2);}
 
 /* WATCHLIST ITEM */
-.wi{background:var(--gl);border:1px solid var(--gb);border-radius:14px;padding:12px;
+.wi{background:var(--gl);border:1px solid var(--gb);border-radius:14px;padding:14px;
   display:flex;align-items:center;gap:11px;transition:border-color .2s;cursor:pointer;}
 .wi:hover{border-color:rgba(244,114,182,.18);}
-.wi img{width:46px;border-radius:8px;flex-shrink:0;}
+.wi img{width:58px;border-radius:9px;flex-shrink:0;box-shadow:0 4px 12px rgba(0,0,0,.4);}
 .wi-info{flex:1;min-width:0;}
-.wi-name{font-family:'Fraunces',sans-serif;font-weight:800;font-size:12px;margin-bottom:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.wi-set{font-size:10px;color:var(--muted);margin-bottom:5px;}
-.wi-price{font-family:'Space Mono',monospace;font-size:13px;font-weight:700;color:var(--amber);}
-.wi-alert{font-size:9px;color:var(--blue);font-family:'Space Mono',monospace;}
+.wi-name{font-family:'Fraunces',sans-serif;font-weight:800;font-size:15px;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.wi-set{font-size:11px;color:var(--muted);margin-bottom:6px;}
+.wi-price{font-family:'Space Mono',monospace;font-size:16px;font-weight:700;color:var(--amber);}
+.wi-alert{font-size:10px;color:var(--blue);font-family:'Space Mono',monospace;display:inline-flex;align-items:center;gap:4px;margin-top:7px;background:var(--blue-b);border:1px solid rgba(56,189,248,.22);border-radius:100px;padding:3px 10px;}
 
 /* OVERLAY */
 .ov{position:fixed;inset:0;background:rgba(1,1,5,.88);display:flex;align-items:flex-end;justify-content:center;z-index:300;padding:0;animation:fi .18s ease;}
