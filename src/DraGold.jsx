@@ -869,12 +869,13 @@ img{display:block;}
   animation:slideup .3s cubic-bezier(.34,1.56,.64,1);max-height:92vh;overflow-y:auto;
   box-shadow:0 -24px 60px rgba(0,0,0,.6);}
 @keyframes slideup{from{transform:translateY(60px);opacity:0}to{transform:translateY(0);opacity:1}}
+@keyframes cardpop{from{transform:scale(.8);opacity:0}to{transform:scale(1);opacity:1}}
 .dmod-handle{width:36px;height:3px;background:rgba(255,255,255,.2);border-radius:2px;margin:10px auto 0;}
 .dmod-top{display:flex;flex-direction:column;background:var(--s1);position:relative;padding:16px;gap:14px;}
 .dmod-img{width:100%;max-width:180px;margin:0 auto;flex-shrink:0;position:relative;overflow:hidden;border-radius:14px;cursor:zoom-in;}
 .dmod-img img{width:100%;border-radius:14px;box-shadow:0 16px 44px rgba(0,0,0,.7),0 0 0 1px rgba(251,191,36,.15);transition:transform .2s;}
 .dmod-img:hover img{transform:scale(1.04);}
-.dmod-img-wrap{width:100%;max-width:180px;margin:0 auto;flex-shrink:0;}
+.dmod-img-wrap{width:100%;max-width:240px;margin:0 auto;flex-shrink:0;animation:cardpop .45s cubic-bezier(.22,1,.36,1);}
 .comp-prices{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;}
 .comp-i{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:10px;}
 .comp-lbl{font-family:'Space Mono',monospace;font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px;}
@@ -1134,9 +1135,9 @@ img{display:block;}
   .feat-name{font-size:24px;}
   .feat-price{font-size:30px;}
   .dmod{border-radius:22px 22px 0 0;max-width:560px;}
-  .dmod-top{flex-direction:row;padding:20px;gap:0;}
+  .dmod-top{flex-direction:row;padding:20px;gap:22px;align-items:center;}
   .dmod-img{width:150px;max-width:150px;margin:0;}
-  .dmod-img-wrap{width:150px;max-width:150px;margin:0;}
+  .dmod-img-wrap{width:250px;max-width:250px;margin:0;}
   .dmod-name{font-size:19px;}
   .fmv-val{font-size:28px;}
   .smod{border-radius:20px 20px 0 0;max-width:440px;}
@@ -1169,7 +1170,7 @@ img{display:block;}
   .col-list .ci{padding:14px;}
   /* Centered modals on desktop */
   .ov{align-items:center;padding:16px;}
-  .dmod{border-radius:26px;max-width:560px;animation:pop .22s cubic-bezier(.34,1.56,.64,1);}
+  .dmod{border-radius:26px;max-width:620px;animation:pop .22s cubic-bezier(.34,1.56,.64,1);}
   @keyframes pop{from{transform:translateY(14px) scale(.97);opacity:0}to{transform:translateY(0) scale(1);opacity:1}}
   .dmod-handle,.smod-handle,.plans-handle{display:none;}
   .dmod{border-radius:26px;}
