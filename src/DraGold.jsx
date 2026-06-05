@@ -183,7 +183,6 @@ function rLvl(r){
   return 1;
 }
 function mkSpark(base,n=20){const a=[base];for(let i=1;i<n;i++) a.push(Math.max(0.5,a[i-1]*(0.93+Math.random()*0.14)));return a;}
-function mkPortChart(v,days=30){const a=[v];for(let i=1;i<days;i++) a.unshift(Math.max(1,a[0]*(0.96+Math.random()*0.09)));return a;}
 function mkPriceHist(fmv,days=30){
   const a=[fmv];
   for(let i=1;i<days;i++) a.unshift(Math.max(fmv*0.4,a[0]*(0.97+Math.random()*0.07)));
@@ -234,7 +233,8 @@ function HoloCard({src,alt,onClick,big=false,small=false,bgFallback=true}){
     <div ref={ref} className={`holocard${big?' big':''}${small?' sm':''}`}
          onMouseMove={onMove} onMouseLeave={onLeave} onClick={onClick}>
       <div className="holocard-tilt">
-        {src?<img src={src} alt={alt||''} loading="lazy"/>:(bgFallback?<div className="holocard-ph"/>:null)}
+        {src?<img src={src} alt={alt||''} loading="lazy" onError={e=>{e.currentTarget.style.display='none';const ph=e.currentTarget.nextSibling;if(ph&&ph.classList.contains('holocard-ph'))ph.style.display='block';}}/>:null}
+        <div className="holocard-ph" style={src?{display:'none'}:(bgFallback?{}:{display:'none'})}/>
         <div className="holocard-shine"/>
         <div className="holocard-holo"/>
         <div className="holocard-edge"/>
@@ -454,7 +454,7 @@ img{display:block;}
 .feat-holo{position:absolute;inset:-80%;width:260%;height:260%;
   background:conic-gradient(from 0deg at 50% 50%,rgba(255,0,100,.28),rgba(255,150,0,.28),rgba(255,255,0,.28),rgba(0,255,100,.28),rgba(0,150,255,.28),rgba(150,0,255,.28),rgba(255,0,100,.28));
   pointer-events:none;opacity:0;transition:opacity .4s;mix-blend-mode:color-dodge;}
-.feat:hover .feat-holo{opacity:1;animation:hs 4s linear infinite;}
+.feat:hover .feat-holo{opacity:0;}/* rainbow spin disabled */
 @keyframes hs{to{transform:rotate(360deg)}}
 .feat-img-wrap{padding:24px;background:var(--s1);display:flex;align-items:center;justify-content:center;min-height:180px;}
 .feat-img-wrap .holocard{max-width:200px;}
@@ -501,7 +501,7 @@ img{display:block;}
 .holo-s{position:absolute;inset:-80%;width:260%;height:260%;
   background:conic-gradient(from 0deg at 50% 50%,rgba(255,0,100,.32),rgba(255,140,0,.32),rgba(255,255,0,.32),rgba(0,255,100,.32),rgba(0,180,255,.32),rgba(150,0,255,.32),rgba(255,0,100,.32));
   mix-blend-mode:color-dodge;opacity:0;transition:opacity .35s;pointer-events:none;}
-.kcard:hover .holo-s{opacity:1;animation:hs 3.5s linear infinite;}
+.kcard:hover .holo-s{opacity:0;}/* rainbow spin disabled — keep clean shine only */
 .holo-sh{position:absolute;inset:0;pointer-events:none;
   background:linear-gradient(105deg,transparent 30%,rgba(255,255,255,.5) 50%,transparent 70%);
   background-size:300% 100%;background-position:-100% 0;opacity:0;}
@@ -1231,7 +1231,9 @@ export default function DraGold(){
   const [ebayVaultPrices,setEbayVaultPrices] = useState({}); // {cardId: {price, currency}}
   const [ebayVaultLoading,setEbayVaultLoading] = useState(false);
   const [ebayVaultTotal,setEbayVaultTotal] = useState(null); // totale vault in EUR da eBay
-  const [sparkData,setSparkData] = useState({}); // {card_id: number[]} — 7d price_history
+  const [sparkData,setSparkData] = useState({}); // {card_id: number[]} — price_history per sparkRange
+  const [sparkRange,setSparkRange] = useState("7d"); // "7d"|"30d" (free) | "90d"|"6m"|"reg" (pro)
+  const [portHistory,setPortHistory] = useState([]); // [{d:"YYYY-MM-DD",t:number}] localStorage snapshots
   const [portRange,setPortRange] = useState("30d");
   const [detailPhRange,setDetailPhRange] = useState("7d");
   const [binders,setBinders]     = useState([]);
@@ -1261,6 +1263,7 @@ export default function DraGold(){
   const activeTCG = TCG_LIST.find(x=>x.id===tcg)||TCG_LIST[0];
   const bt = BINDER_TYPES.find(x=>x.id===(activeBinder?.type||"9p"))||BINDER_TYPES[0];
   const disp = usd=>cur==="EUR"?`€${(usd*EUR_RATE).toFixed(2)}`:`$${usd.toFixed(2)}`;
+  const isPro=false; // will be true when Stripe plans activated
 
   useEffect(()=>{
     (async()=>{
@@ -1420,8 +1423,37 @@ export default function DraGold(){
   const totalPaid = col.reduce((s,c)=>s+c.paid,0);
   const netVal    = totalVal*0.87;
   const roi       = totalPaid>0?((netVal/totalPaid-1)*100).toFixed(1):null;
-  const portData  = useMemo(()=>totalVal>0?mkPortChart(totalVal):null,[totalVal]);
-  const portChg   = portData?portData[portData.length-1]-portData[0]:0;
+  // Portfolio history: snapshot giornaliero reale in localStorage
+  // Salva il totale di oggi, carica la storia per il grafico
+  useEffect(()=>{
+    try{
+      const stored=JSON.parse(localStorage.getItem('dg_port_hist')||'[]');
+      setPortHistory(stored);
+    }catch{}
+  },[]);
+  useEffect(()=>{
+    if(totalVal<=0) return;
+    const today=new Date().toISOString().slice(0,10);
+    try{
+      const stored=JSON.parse(localStorage.getItem('dg_port_hist')||'[]');
+      const updated=[...stored.filter(x=>x.d!==today),{d:today,t:+totalVal.toFixed(2)}]
+        .sort((a,b)=>a.d.localeCompare(b.d)).slice(-90);
+      localStorage.setItem('dg_port_hist',JSON.stringify(updated));
+      setPortHistory(updated);
+    }catch{}
+  },[totalVal]);
+
+  const portData=useMemo(()=>{
+    const map={"1d":1,"2d":2,"3d":3,"7d":7,"30d":30,"90d":90,"1y":365};
+    const days=map[portRange]||30;
+    const cutoff=new Date(Date.now()-days*24*3600*1000).toISOString().slice(0,10);
+    const filtered=portHistory.filter(x=>x.d>=cutoff);
+    // Onesta: niente linea finta. Servono almeno 2 giorni REALI registrati.
+    if(filtered.length<2) return null;
+    return filtered.map(x=>x.t);
+  },[portHistory,portRange]);
+  const portChg=portData&&portData.length>=2?portData[portData.length-1]-portData[0]:null;
+  const portTracking=portHistory.length>0;
 
   // Auto-detect card language from the search query (Japanese kana, Korean hangul, or text keywords)
   function detectLang(s){
@@ -1475,7 +1507,7 @@ export default function DraGold(){
           rarity:r.rarity||'',
           img:r.image_url||null,
           lang:r.language||'en',
-          flag:r.tcg==='pokemon'?'🇺🇸':TCG_LIST.find(t=>t.id===r.tcg)?.emoji||'🃏',
+          flag:r.tcg==='pokemon'?(CARD_LANGS.find(x=>x.c===(r.language||'en'))?.f||'🇺🇸'):TCG_LIST.find(t=>t.id===r.tcg)?.emoji||'🃏',
           tcgType:r.tcg,
           condition:r.condition||'NM',
           market:+r.fmv_snapshot||0,
@@ -1496,13 +1528,25 @@ export default function DraGold(){
           .eq('user_id',user.id)
           .order('added_at',{ascending:false});
         if(cancelled||error||!Array.isArray(wrows)||wrows.length===0) return;
+        const wIds=wrows.map(r=>r.card_api_id).filter(Boolean);
+        // Fetch live prices for watchlist cards
+        let priceMap={};
+        if(wIds.length>0){
+          try{
+            const {data:priceRows}=await supabase
+              .from('card_prices_latest')
+              .select('card_id, price_market')
+              .in('card_id',wIds);
+            if(Array.isArray(priceRows)) priceMap=Object.fromEntries(priceRows.map(r=>[r.card_id,+r.price_market||0]));
+          }catch{}
+        }
         const remote=wrows.map(r=>({
           id:r.card_api_id,
           name:r.card_name||r.card_api_id,
           set:r.set_name||'',
           img:r.image_url||null,
           tcgType:r.tcg,
-          market:0,
+          market:priceMap[r.card_api_id]||0,
           addedAt:r.added_at?new Date(r.added_at).getTime():Date.now(),
         }));
         const remoteIds=new Set(remote.map(x=>x.id));
@@ -1547,7 +1591,7 @@ export default function DraGold(){
     // eslint-disable-next-line react-hooks/exhaustive-deps
   },[col.length, user?.id]);
 
-  // Fetch 7-day price_history for sparklines in vault cards
+  // Fetch price_history for sparklines in vault cards (range driven by sparkRange + tier)
   useEffect(()=>{
     if(!supabaseReady) return;
     if(!col||col.length===0) return;
@@ -1556,7 +1600,14 @@ export default function DraGold(){
     let cancelled=false;
     (async()=>{
       try{
-        const since=new Date(Date.now()-7*24*3600*1000).toISOString();
+        // Compute 'since' from sparkRange
+        const now=Date.now();
+        let since;
+        if(sparkRange==="30d")       since=new Date(now-30*24*3600*1000).toISOString();
+        else if(sparkRange==="90d")  since=new Date(now-90*24*3600*1000).toISOString();
+        else if(sparkRange==="6m")   since=new Date(now-182*24*3600*1000).toISOString();
+        else if(sparkRange==="reg")  since=user?.created_at||new Date(now-365*24*3600*1000).toISOString();
+        else                         since=new Date(now-7*24*3600*1000).toISOString(); // default 7d
         const {data,error}=await supabase
           .from('price_history')
           .select('card_id, price_market, fetched_at')
@@ -1570,12 +1621,12 @@ export default function DraGold(){
           const p=+r.price_market;
           if(p>0) map[r.card_id].push(p);
         });
-        if(Object.keys(map).length>0) setSparkData(prev=>({...prev,...map}));
+        if(Object.keys(map).length>0) setSparkData(map); // replace so stale ranges don't bleed through
       }catch{}
     })();
     return()=>{cancelled=true;};
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  },[col.length,user?.id]);
+  },[col.length,user?.id,sparkRange]);
 
   // Vault price refresh: chiama edge function refresh-prices e ri-fetch card_prices_latest
   const refreshVaultPrices = async () => {
@@ -3613,20 +3664,6 @@ export default function DraGold(){
               </div>
             </div>
           )}
-          {/* Valore totale in cima — geolocalizzato (EUR/USD) */}
-          {col.length>0&&(
-            <div style={{padding:'12px 0 4px',display:'flex',alignItems:'baseline',gap:14,flexWrap:'wrap'}}>
-              <div style={{fontFamily:"'Space Mono',monospace",fontSize:28,fontWeight:700,color:"var(--amber)",letterSpacing:-1}}>
-                {disp(totalVal)}
-              </div>
-              <div style={{fontSize:12,color:'var(--muted)',fontFamily:"'Space Mono',monospace"}}>
-                Portfolio · {Object.keys(ebayVaultPrices).length>0?<span style={{color:"var(--amber)"}}>🔥 Sold Avg</span>:"FMV"}
-              </div>
-              {roi&&<div className={`${parseFloat(roi)>=0?"pos":"neg"}`} style={{fontFamily:"'Space Mono',monospace",fontSize:12,fontWeight:700}}>
-                ROI {roi}%
-              </div>}
-            </div>
-          )}
           <div className="col-tabs">
             <button className={`col-tab${colTab==="vault"?" on":""}`} onClick={()=>setColTab("vault")}>
               🐉 Vault {col.length>0&&`(${col.length})`}
@@ -3658,11 +3695,16 @@ export default function DraGold(){
               <div className="bento">
                 <div className="bento-main">
                   <div className="port-val gt">{disp(totalVal)}</div>
-                  <div className={`port-chg ${portChg>=0?"pos":"neg"}`}>{portChg>=0?"+":""}{disp(Math.abs(portChg))} (30d)</div>
+                  {portChg!=null
+                    ? <div className={`port-chg ${portChg>=0?"pos":"neg"}`}>{portChg>=0?"+":"−"}{disp(Math.abs(portChg))} <span style={{opacity:.6}}>({portRange})</span></div>
+                    : <div className="port-chg" style={{color:"var(--muted)"}}>{portTracking?"📈 Andamento da domani":"Aggiungi una carta per iniziare"}</div>}
                   <div className="port-lbl">Portfolio · {col.length} card{col.length!==1?"s":""} · {Object.keys(ebayVaultPrices).length>0?"🔥 Sold Avg":"FMV"}</div>
-                  {portData&&<div className="port-chart"><LineChart data={portData} color={portChg>=0?"#34d399":"#f87171"} id="pc" h={68}/></div>}
+                  {portData
+                    ? <div className="port-chart"><LineChart data={portData} color={portChg>=0?"#34d399":"#f87171"} id="pc" h={68}/></div>
+                    : portTracking&&<div className="port-chart" style={{height:68,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,color:"var(--dim)",fontFamily:"'Space Mono',monospace",textAlign:"center",padding:"0 10px"}}>Sto registrando il tuo portfolio da quando hai aggiunto la prima carta. L'andamento compare dopo 2 giorni.</div>}
                   <div className="range-row">
-                    {["7d","30d","90d"].map(r=><button key={r} className={`rbtn${portRange===r?" on":""}`} onClick={()=>setPortRange(r)}>{r}</button>)}
+                    {["1d","7d","30d"].map(r=><button key={r} className={`rbtn${portRange===r?" on":""}`} onClick={()=>setPortRange(r)}>{r}</button>)}
+                    {["90d","1y"].map(r=><button key={r} className={`rbtn${portRange===r?" on":""}`} onClick={()=>isPro?setPortRange(r):setPlansOpen(true)}>{r}{!isPro&&" 🔒"}</button>)}
                   </div>
                   <div className="port-stats">
                     <div className="pst"><span className="pst-v pos">{disp(col.length>0?totalVal/col.length:0)}</span><span className="pst-l">Avg Sold</span></div>
@@ -3685,6 +3727,19 @@ export default function DraGold(){
                   🔥 Update Sold Avg
                 </button>
               </div>}
+              {/* Sparkline range selector */}
+              <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:8,flexWrap:"wrap"}}>
+                <span style={{fontSize:10,color:"var(--muted)",fontFamily:"'Space Mono',monospace",marginRight:2}}>Sparkline:</span>
+                {["7d","30d"].map(r=>(
+                  <button key={r} className={`rbtn${sparkRange===r?" on":""}`} onClick={()=>setSparkRange(r)}>{r}</button>
+                ))}
+                {["90d","6m","reg"].map(r=>(
+                  <button key={r} className={`rbtn${sparkRange===r?" on":""}`}
+                    onClick={()=>isPro?setSparkRange(r):setPlansOpen(true)}>
+                    {r==="reg"?"∞ reg":r}{!isPro&&" 🔒"}
+                  </button>
+                ))}
+              </div>
               {/* Vault grid */}
               <div className="vault-grid">
                 {col.map((item,i)=>{
@@ -3717,7 +3772,7 @@ export default function DraGold(){
                         {paidD&&<div className={`vcard-pnl ${pos?"pos":"neg"}`}>
                           {pos?"▲":"▼"} {pnlD} {pos?"gain":"loss"}
                         </div>}
-                        {(()=>{const sd=sparkData[item.id]?.length>=2?sparkData[item.id]:item.spark?.length>=2?item.spark:null;if(!sd)return null;const sparkPos=sd[sd.length-1]>=sd[0];return(<div style={{marginTop:5,opacity:.65}}><Spark data={sd} w={80} h={18} pos={sparkPos}/><span style={{fontSize:8,fontFamily:"'Space Mono',monospace",color:"var(--muted)",marginLeft:2,verticalAlign:"middle"}}>{sparkData[item.id]?"7d":"~"}</span></div>);})()}
+                        {(()=>{const sd=sparkData[item.id]?.length>=2?sparkData[item.id]:item.spark?.length>=2?item.spark:null;if(!sd)return null;const sparkPos=sd[sd.length-1]>=sd[0];return(<div style={{marginTop:5,opacity:.65}}><Spark data={sd} w={80} h={18} pos={sparkPos}/><span style={{fontSize:8,fontFamily:"'Space Mono',monospace",color:"var(--muted)",marginLeft:2,verticalAlign:"middle"}}>{sparkData[item.id]?sparkRange:"~"}</span></div>);})()}
                       </div>
                       <button className="vcard-rm" onClick={e=>{e.stopPropagation();removeFromCol(item.id);}}>✕</button>
                     </div>
