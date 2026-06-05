@@ -739,8 +739,9 @@ img{display:block;}
 /* COLLECTION */
 .col-wrap{padding:0 var(--p) 72px;}
 .col-tabs{display:flex;gap:6px;margin-bottom:18px;flex-wrap:wrap;}
-.col-tab{padding:8px 18px;border:1px solid var(--gb);background:var(--gl);color:var(--muted);
+.col-tab{padding:8px 18px;border:1px solid var(--gb2);background:var(--gl);color:var(--txt2);
   border-radius:10px;font-size:12px;font-weight:700;cursor:pointer;transition:all .2s;}
+.col-tab:hover{border-color:rgba(255,255,255,.22);color:#f8f8ff;}
 .col-tab.on{border-color:var(--amber);background:var(--amber-b);color:var(--amber);}
 .col-empty{text-align:center;padding:60px 20px;}
 .col-ei{font-size:48px;margin-bottom:14px;display:block;}
@@ -1275,7 +1276,7 @@ export default function DraGold(){
   useEffect(()=>{
     try{
       const u=localStorage.getItem("dg_u1");
-      if(u){ setUser(JSON.parse(u)); setTab("col"); }
+      if(u){ setUser(JSON.parse(u)); }
       else { setShowLoginFirst(true); setAuthMode("register"); }
       const c=localStorage.getItem("dg_c1");if(c) setCol(JSON.parse(c));
       const w=localStorage.getItem("dg_w1");if(w) setWatchlist(JSON.parse(w));
@@ -2116,7 +2117,7 @@ export default function DraGold(){
     }
     const u={name:authName||authEmail.split("@")[0],email:authEmail,at:Date.now()};
     setUser(u);try{localStorage.setItem("dg_u1",JSON.stringify(u));}catch{}
-    setAuthMode(null);setShowLoginFirst(false);setTab("col");
+    setAuthMode(null);setShowLoginFirst(false);
     if(authPending){await addToCol(authPending.card,authPending.fmvObj,authPending.img,authPending.tcgType);setAuthPending(null);}
     setAuthName("");setAuthEmail("");setAuthPass("");
   };
@@ -2130,7 +2131,7 @@ export default function DraGold(){
     }
     const u={name:authEmail.split("@")[0],email:authEmail,at:Date.now()};
     setUser(u);try{localStorage.setItem("dg_u1",JSON.stringify(u));}catch{}
-    setAuthMode(null);setShowLoginFirst(false);setTab("col");
+    setAuthMode(null);setShowLoginFirst(false);
     if(authPending){await addToCol(authPending.card,authPending.fmvObj,authPending.img,authPending.tcgType);setAuthPending(null);}
     setAuthEmail("");setAuthPass("");
   };
@@ -2154,7 +2155,6 @@ export default function DraGold(){
         // Primo login della sessione → manda l'utente al suo Vault, non Explore.
         if(!wasLoggedIn && !firstLogin){
           firstLogin=true;
-          setTab('col');
         }
       }
       else setUser(null);
