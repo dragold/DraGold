@@ -3546,18 +3546,7 @@ export default function DraGold(){
           <img className="logo-gem" src="/logo-gold.png" alt="DraGold" />
           <span className="logo-txt gt">DraGold</span>
         </div>
-        <div className="nav-tcg">
-          {TCG_LIST.filter(t=>t.core).map(t=>(
-            <button key={t.id}
-              className="nav-tcg-pill core"
-              style={{'--tcg-c':t.color}}
-              onClick={()=>{setTab("explore");setQ("");}}>
-              <span className="nav-tcg-lbl" style={{fontSize:11,fontWeight:800,fontFamily:"'Space Mono',monospace",letterSpacing:.3}}>
-                {t.id==="pokemon"?"PKM":t.id==="op"?"OP":t.id==="mtg"?"MTG":"YGO"}
-              </span>
-            </button>
-          ))}
-        </div>
+        <div style={{flex:1}}/>
         <div className="nav-r">
           <div className="cur-row">
             <button className={`curb${cur==="USD"?" on":""}`} onClick={()=>setCur("USD")}>USD</button>
