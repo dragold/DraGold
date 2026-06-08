@@ -3030,7 +3030,7 @@ export default function DraGold(){
                     <div className="hp-card-v-name" title={card.name}>{card.name}</div>
                     <div className="hp-card-v-price">{priceStr(card.avgPrice)}</div>
                     <div style={{display:"flex",alignItems:"center",gap:5,marginTop:4}}>
-                      <span style={{fontSize:9,color:"var(--dim)",fontFamily:"'Space Mono',monospace"}}>
+                      <span style={{fontSize:9,color:"var(--txt2)",fontFamily:"'Space Mono',monospace"}}>
                         {card.soldCount} eBay listings
                       </span>
                     </div>
