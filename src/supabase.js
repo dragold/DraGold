@@ -15,7 +15,7 @@ export async function sendMagicLink(email) {
   if (!supabase) return { error: { message: 'Backend not configured' } }
   return supabase.auth.signInWithOtp({
     email,
-    options: { emailRedirectTo: window.location.origin }
+    options: { emailRedirectTo: window.location.origin, data: { app_name: 'DraGold' } }
   })
 }
 export async function getSession() {
