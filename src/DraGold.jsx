@@ -321,6 +321,7 @@ img{display:block;}
 .nav-tcg-lbl{display:none;}
 .nav-tcg-soon{font-size:8px;font-family:'Space Mono',monospace;color:var(--dim);letter-spacing:.3px;}
 @media(min-width:640px){.nav-tcg-lbl{display:inline;}}
+@media(max-width:639px){.nav-tcg{display:none;}}
 .ldw{display:none;}/* UI translation coming soon. Hidden until i18n is implemented. */
 .ldw-x{position:relative;}
 .ldb{display:flex;align-items:center;gap:4px;padding:5px 10px;background:var(--gl);border:1px solid var(--gb);
@@ -465,7 +466,7 @@ img{display:block;}
 .feat-name{font-family:'Fraunces',sans-serif;font-size:22px;font-weight:800;letter-spacing:-.5px;line-height:1.1;}
 .feat-set{font-size:12px;color:var(--muted);}
 .feat-badges{display:flex;gap:5px;flex-wrap:wrap;}
-.feat-price{font-family:'Space Mono',monospace;font-size:28px;font-weight:700;margin-bottom:1px;}
+.feat-price{font-family:'Space Mono',monospace;font-size:28px;font-weight:700;margin-bottom:1px;word-break:break-word;max-width:100%;}
 .feat-price-ref{font-size:10px;color:var(--dim);font-family:'Space Mono',monospace;}
 .feat-net{font-size:12px;color:var(--gain);font-family:'Space Mono',monospace;}
 .feat-actions{display:flex;gap:7px;flex-wrap:wrap;}
@@ -768,6 +769,7 @@ img{display:block;}
 .roi-lbl{font-size:10px;color:var(--muted);}
 /* Vault grid — same as search results */
 .vault-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:28px;}
+@media(max-width:400px){.vault-grid{grid-template-columns:1fr;}}
 .vcard{background:var(--s2);border:1px solid rgba(255,255,255,.07);border-radius:16px;overflow:hidden;position:relative;cursor:pointer;transition:transform .25s,border-color .25s;}
 .vcard:hover{transform:translateY(-6px);border-color:rgba(251,191,36,.22);}
 .vcard-img{position:relative;background:var(--s1);overflow:hidden;height:110px;display:flex;align-items:center;justify-content:center;}
@@ -2193,8 +2195,7 @@ export default function DraGold(){
     if(supabaseReady){
       const {error}=await sendMagicLink(authEmail);
       if(error){alert("Sign-in error: "+error.message);return;}
-      alert("Check your inbox for the sign-in link.");
-      setAuthMode(null);setAuthEmail("");setAuthPass("");return;
+      setMagicSent(true);return;
     }
     // supabase non disponibile → non creare utente senza id, rischio dati persi
     alert("Service loading, try again in a moment.");
@@ -2800,29 +2801,43 @@ export default function DraGold(){
     );
   };
 
+  const closeAuthModal=()=>{setAuthMode(null);setMagicSent(false);setAuthEmail("");setAuthPass("");};
   const AuthModal=()=>(
-    <div className="smod-ov" onClick={e=>e.target===e.currentTarget&&setAuthMode(null)}>
+    <div className="smod-ov" onClick={e=>e.target===e.currentTarget&&closeAuthModal()}>
       <div className="smod">
         <div className="smod-handle"/>
         <div style={{display:"flex",justifyContent:"flex-end",marginBottom:4}}>
-          <button className="smod-x" onClick={()=>setAuthMode(null)}>✕</button>
+          <button className="smod-x" onClick={closeAuthModal}>✕</button>
         </div>
         <div className="auth-logo"><img className="auth-gem" src="/logo-gold.png" alt="DraGold"/>
           <span className="auth-brand gt">DraGold</span>
         </div>
-        <div className="smod-hdr" style={{marginBottom:5}}><div className="smod-t">{authMode==="register"?"Join DraGold":"Welcome back"}</div></div>
-        <p className="smod-desc">No password needed. Enter your email and we'll send you a magic sign-in link.</p>
-        <input className="smod-in" type="email" placeholder="Email address" value={authEmail} onChange={e=>setAuthEmail(e.target.value)} style={{marginBottom:12}} onKeyDown={e=>e.key==="Enter"&&(authMode==="register"?doRegister():doLogin())}/>
-        <button className="smod-btn" onClick={authMode==="register"?doRegister:doLogin}>
-          Send magic link
-        </button>
-        <div className="smod-switch">
-          {authMode==="register"
-            ?<span className="smod-lnk" onClick={()=>setAuthMode("login")}>Already have an account? Sign in</span>
-            :<span className="smod-lnk" onClick={()=>setAuthMode("register")}>New? Create free account</span>
-          }
-        </div>
-        {authMode==="register"&&<div className="smod-legal">By registering you agree to receive product updates. No spam.</div>}
+        {magicSent?(
+          <>
+            <div style={{background:"#1a3a2a",border:"1px solid #2d6a4f",borderRadius:12,padding:"20px 16px",textAlign:"center",margin:"12px 0"}}>
+              <div style={{fontSize:32,marginBottom:8}}>✉️</div>
+              <div style={{color:"#52b788",fontWeight:700,fontSize:16,marginBottom:6}}>Link sent!</div>
+              <div style={{color:"#b7e4c7",fontSize:14}}>Check your email and click the magic link to sign in.</div>
+            </div>
+            <button className="smod-btn" style={{background:"#2d2d2d",color:"#ccc",marginTop:4}} onClick={()=>setMagicSent(false)}>← Back</button>
+          </>
+        ):(
+          <>
+            <div className="smod-hdr" style={{marginBottom:5}}><div className="smod-t">{authMode==="register"?"Join DraGold":"Welcome back"}</div></div>
+            <p className="smod-desc">No password needed. Enter your email and we'll send you a magic sign-in link.</p>
+            <input className="smod-in" type="email" placeholder="Email address" value={authEmail} onChange={e=>setAuthEmail(e.target.value)} style={{marginBottom:12}} onKeyDown={e=>e.key==="Enter"&&(authMode==="register"?doRegister():doLogin())}/>
+            <button className="smod-btn" onClick={authMode==="register"?doRegister:doLogin}>
+              Send magic link
+            </button>
+            <div className="smod-switch">
+              {authMode==="register"
+                ?<span className="smod-lnk" onClick={()=>setAuthMode("login")}>Already have an account? Sign in</span>
+                :<span className="smod-lnk" onClick={()=>setAuthMode("register")}>New? Create free account</span>
+              }
+            </div>
+            {authMode==="register"&&<div className="smod-legal">By registering you agree to receive product updates. No spam.</div>}
+          </>
+        )}
       </div>
     </div>
   );
@@ -3499,18 +3514,31 @@ export default function DraGold(){
           Track your TCG collection, monitor prices and set alerts across Pokémon, Magic, Yu-Gi-Oh! and One Piece.
         </p>
         <div style={{background:"linear-gradient(155deg,var(--s2) 0%,var(--s1) 100%)",border:"1px solid rgba(255,255,255,.1)",borderRadius:20,padding:28,width:"100%",maxWidth:400,boxShadow:"0 24px 64px rgba(0,0,0,.5)"}}>
-          <div className="smod-hdr" style={{marginBottom:6}}><div className="smod-t">{authMode==="login"?"Welcome back":"Join DraGold"}</div></div>
-          <p className="smod-desc">No password needed — we'll send a magic sign-in link.</p>
-          <input className="smod-in" type="email" placeholder="Email address" value={authEmail}
-            onChange={e=>setAuthEmail(e.target.value)} style={{marginBottom:12}}
-            onKeyDown={e=>e.key==="Enter"&&(authMode==="login"?doLogin():doRegister())}/>
-          <button className="smod-btn" onClick={authMode==="login"?doLogin:doRegister}>Send magic link</button>
-          <div className="smod-switch" style={{marginTop:12}}>
-            {authMode==="login"
-              ?<span className="smod-lnk" onClick={()=>setAuthMode("register")}>New? Create free account</span>
-              :<span className="smod-lnk" onClick={()=>setAuthMode("login")}>Already have an account? Sign in</span>
-            }
-          </div>
+          {magicSent?(
+            <>
+              <div style={{background:"#1a3a2a",border:"1px solid #2d6a4f",borderRadius:12,padding:"20px 16px",textAlign:"center",margin:"4px 0 12px"}}>
+                <div style={{fontSize:32,marginBottom:8}}>✉️</div>
+                <div style={{color:"#52b788",fontWeight:700,fontSize:16,marginBottom:6}}>Link sent!</div>
+                <div style={{color:"#b7e4c7",fontSize:14}}>Check your email and click the magic link to sign in.</div>
+              </div>
+              <button className="smod-btn" style={{background:"#2d2d2d",color:"#ccc"}} onClick={()=>setMagicSent(false)}>← Back</button>
+            </>
+          ):(
+            <>
+              <div className="smod-hdr" style={{marginBottom:6}}><div className="smod-t">{authMode==="login"?"Welcome back":"Join DraGold"}</div></div>
+              <p className="smod-desc">No password needed — we'll send a magic sign-in link.</p>
+              <input className="smod-in" type="email" placeholder="Email address" value={authEmail}
+                onChange={e=>setAuthEmail(e.target.value)} style={{marginBottom:12}}
+                onKeyDown={e=>e.key==="Enter"&&(authMode==="login"?doLogin():doRegister())}/>
+              <button className="smod-btn" onClick={authMode==="login"?doLogin:doRegister}>Send magic link</button>
+              <div className="smod-switch" style={{marginTop:12}}>
+                {authMode==="login"
+                  ?<span className="smod-lnk" onClick={()=>setAuthMode("register")}>New? Create free account</span>
+                  :<span className="smod-lnk" onClick={()=>setAuthMode("login")}>Already have an account? Sign in</span>
+                }
+              </div>
+            </>
+          )}
         </div>
         <button
           style={{marginTop:20,background:"none",border:"1px solid var(--gb)",borderRadius:10,color:"var(--muted)",fontSize:12,padding:"10px 22px",cursor:"pointer",transition:"border-color .2s"}}
