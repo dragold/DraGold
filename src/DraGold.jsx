@@ -3096,20 +3096,38 @@ export default function DraGold(){
             </div>
           ))}
         </div>
-        {/* TCG logos strip */}
-        <div style={{display:"flex",gap:10,justifyContent:"center",flexWrap:"wrap",marginTop:22}}>
-          {TCG_LIST.map(t=>(
-            <div key={t.id} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 14px",
-              background:"var(--gl)",border:"1px solid var(--gb)",borderRadius:100,
-              fontSize:12,fontWeight:700,color:"var(--txt2)",cursor:t.soon?"default":"pointer",
-              opacity:t.soon?0.5:1,transition:"all .2s"}}
-              onClick={t.soon?undefined:()=>{setQ("");setTab("explore");}}
-              onMouseEnter={t.soon?undefined:e=>{e.currentTarget.style.borderColor=t.color;e.currentTarget.style.color=t.color;}}
-              onMouseLeave={t.soon?undefined:e=>{e.currentTarget.style.borderColor="rgba(255,255,255,.09)";e.currentTarget.style.color="var(--txt2)";}}>
-              <span>{t.emoji}</span><span>{t.label}</span>
-              {t.soon&&<span style={{fontSize:9,fontWeight:800,letterSpacing:.5,padding:"1px 6px",borderRadius:100,background:"rgba(255,255,255,.08)",color:"var(--muted)",textTransform:"uppercase"}}>Soon</span>}
-            </div>
-          ))}
+        {/* Supported Games grid */}
+        <div style={{marginTop:28}}>
+          <div style={{fontSize:11,fontWeight:700,color:"var(--muted)",letterSpacing:.8,textTransform:"uppercase",fontFamily:"'Space Mono',monospace",marginBottom:14,textAlign:"center"}}>Supported games</div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(148px,1fr))",gap:10}}>
+            {[
+              {id:"pokemon",short:"PKM",name:"Pokémon TCG",color:"#f87171",cards:"128K",sets:292,img:"https://images.pokemontcg.io/base1/logo.png",live:true},
+              {id:"op",short:"OP",name:"One Piece TCG",color:"#f97316",cards:"2.5K",sets:76,img:"https://en.onepiece-cardgame.com/img/common/logo.png",live:true},
+              {id:"mtg",short:"MTG",name:"Magic: The Gathering",color:"#60a5fa",cards:"27K",sets:526,img:"https://c2.scryfall.com/file/scryfall-symbols/sets/m15.svg",live:true},
+              {id:"ygo",short:"YGO",name:"Yu-Gi-Oh!",color:"#fbbf24",cards:"14K",sets:656,img:"https://images.ygoprodeck.com/images/misc/yugioh_logo_duel_links.png",live:true},
+              {id:"lorcana",short:"LRC",name:"Disney Lorcana",color:"#a78bfa",cards:"5.7K",sets:21,live:false},
+              {id:"fab",short:"FAB",name:"Flesh & Blood",color:"#f43f5e",cards:"16K",sets:97,live:false},
+            ].map(g=>(
+              <div key={g.id}
+                onClick={g.live?()=>{setQ("");setTab("explore");}:undefined}
+                style={{background:`${g.color}0d`,border:`1px solid ${g.color}22`,borderRadius:14,padding:"14px 14px 12px",
+                  cursor:g.live?"pointer":"default",transition:"all .2s",opacity:g.live?1:0.55,position:"relative"}}>
+                {!g.live&&<span style={{position:"absolute",top:8,right:8,fontSize:8,fontWeight:800,letterSpacing:.6,
+                  padding:"1px 6px",borderRadius:100,background:"rgba(255,255,255,.06)",color:"var(--muted)",textTransform:"uppercase",fontFamily:"'Space Mono',monospace"}}>Soon</span>}
+                <div onMouseEnter={g.live?e=>{const p=e.currentTarget.parentElement;p.style.borderColor=`${g.color}55`;p.style.transform="translateY(-2px)";}:undefined}
+                  onMouseLeave={g.live?e=>{const p=e.currentTarget.parentElement;p.style.borderColor=`${g.color}22`;p.style.transform="";}:undefined}>
+                  <div style={{width:38,height:38,borderRadius:9,background:`${g.color}20`,display:"flex",alignItems:"center",justifyContent:"center",
+                    marginBottom:10,fontSize:11,fontWeight:800,color:g.color,fontFamily:"'Space Mono',monospace",letterSpacing:.3}}>
+                    {g.short}
+                  </div>
+                  <div style={{fontFamily:"'Fraunces',sans-serif",fontWeight:800,fontSize:12,color:"var(--txt)",marginBottom:5,lineHeight:1.3}}>{g.name}</div>
+                  <div style={{fontSize:10,color:"var(--muted)",fontFamily:"'Space Mono',monospace"}}>
+                    <span style={{color:g.color,fontWeight:700}}>{g.cards}</span> cards · {g.sets} sets
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
         <NewSetsStrip/>
       </div>
@@ -3126,14 +3144,14 @@ export default function DraGold(){
         </div>
         <div style={{display:"flex",gap:10,overflowX:"auto",paddingBottom:6,scrollbarWidth:"none",msOverflowStyle:"none"}}>
           {[
-            {name:"Pokémon 151 ETB",q:"pokemon 151 elite trainer box sealed",badge:"🔴",color:"#f87171"},
-            {name:"Scarlet & Violet Booster Box",q:"pokemon scarlet violet booster box sealed english",badge:"🔴",color:"#f87171"},
-            {name:"Prismatic Evolutions ETB",q:"pokemon prismatic evolutions elite trainer box",badge:"🔴",color:"#f87171"},
-            {name:"One Piece OP-09 Booster Box",q:"one piece card game op-09 booster box sealed",badge:"⚓",color:"#f97316"},
-            {name:"Crown Zenith ETB",q:"pokemon crown zenith elite trainer box sealed",badge:"🔴",color:"#f87171"},
-            {name:"One Piece OP-06 Booster Box",q:"one piece card game op-06 wings of the captain booster box",badge:"⚓",color:"#f97316"},
-            {name:"Pokémon GO ETB",q:"pokemon go elite trainer box sealed",badge:"🔴",color:"#f87171"},
-            {name:"One Piece EB-01 Extra Booster",q:"one piece extra booster memorial collection sealed",badge:"⚓",color:"#f97316"},
+            {name:"Pokémon 151 ETB",q:"pokemon 151 elite trainer box sealed",color:"#f87171",game:"PKM",img:"https://images.pokemontcg.io/sv3pt5/logo.png"},
+            {name:"Scarlet & Violet Booster Box",q:"pokemon scarlet violet booster box sealed english",color:"#f87171",game:"PKM",img:"https://images.pokemontcg.io/sv1/logo.png"},
+            {name:"Prismatic Evolutions ETB",q:"pokemon prismatic evolutions elite trainer box",color:"#f87171",game:"PKM",img:"https://images.pokemontcg.io/sve/logo.png"},
+            {name:"One Piece OP-09 Booster",q:"one piece card game op-09 booster box sealed",color:"#f97316",game:"OP",img:null},
+            {name:"Crown Zenith ETB",q:"pokemon crown zenith elite trainer box sealed",color:"#f87171",game:"PKM",img:"https://images.pokemontcg.io/swsh12pt5/logo.png"},
+            {name:"One Piece OP-06 Booster",q:"one piece card game op-06 wings of the captain booster box",color:"#f97316",game:"OP",img:null},
+            {name:"Modern Horizons 3 Booster Box",q:"magic the gathering modern horizons 3 booster box sealed",color:"#60a5fa",game:"MTG",img:"https://c2.scryfall.com/file/scryfall-symbols/sets/mh3.svg"},
+            {name:"One Piece EB-01 Extra Booster",q:"one piece extra booster memorial collection sealed",color:"#f97316",game:"OP",img:null},
           ].map((p,i)=>{
             const site=EBAY_SITES[country]||EBAY_SITES.US;
             const eu=EU_CC.includes(country||'');
@@ -3142,11 +3160,19 @@ export default function DraGold(){
               <a key={i} href={url} target="_blank" rel="noopener noreferrer"
                 style={{flexShrink:0,width:136,background:"var(--s2)",border:"1px solid var(--gb)",borderRadius:12,
                   padding:"10px 10px 12px",textDecoration:"none",transition:"all .2s",display:"block"}}>
-                <div style={{width:"100%",height:70,background:"var(--gl)",borderRadius:8,marginBottom:8,
-                  display:"flex",alignItems:"center",justifyContent:"center",fontSize:34,
+                <div style={{width:"100%",height:70,background:`${p.color}10`,borderRadius:8,marginBottom:8,
+                  display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden",
                   border:`1px solid ${p.color}28`}} onMouseEnter={e=>{e.currentTarget.parentElement.style.borderColor=`${p.color}55`;e.currentTarget.parentElement.style.transform="translateY(-3px)";}}
                   onMouseLeave={e=>{e.currentTarget.parentElement.style.borderColor="var(--gb)";e.currentTarget.parentElement.style.transform="";}}>
-                  {p.badge}
+                  {p.img
+                    ?<img src={p.img} alt={p.name} style={{maxWidth:"90%",maxHeight:60,objectFit:"contain"}}
+                        onError={e=>{e.target.style.display="none";e.target.nextSibling.style.display="flex";}}/>
+                    :null}
+                  <span style={{display:p.img?"none":"flex",alignItems:"center",justifyContent:"center",
+                    width:36,height:36,borderRadius:8,background:`${p.color}22`,color:p.color,
+                    fontFamily:"'Space Mono',monospace",fontSize:10,fontWeight:800,letterSpacing:.3}}>
+                    {p.game}
+                  </span>
                 </div>
                 <div style={{fontSize:8,color:p.color,fontWeight:700,marginBottom:3,fontFamily:"'Space Mono',monospace",letterSpacing:.5}}>📦 SEALED</div>
                 <div style={{fontSize:10,color:"var(--txt2)",fontWeight:600,lineHeight:1.45,marginBottom:6,
@@ -3521,14 +3547,14 @@ export default function DraGold(){
           <span className="logo-txt gt">DraGold</span>
         </div>
         <div className="nav-tcg">
-          {TCG_LIST.map(t=>(
+          {TCG_LIST.filter(t=>t.core).map(t=>(
             <button key={t.id}
-              className={`nav-tcg-pill ${t.core?"core":"dim"}`}
-              style={t.core?{['--tcg-c']:t.color}:{}}
-              onClick={t.core?()=>{setTab("explore");setQ("");}:undefined}>
-              <span style={{fontSize:13}}>{t.emoji}</span>
-              <span className="nav-tcg-lbl">{t.id==="pokemon"?"Pokémon":t.id==="op"?"One Piece":t.id==="mtg"?"Magic":"Yu-Gi-Oh!"}</span>
-              {!t.core&&<span className="nav-tcg-soon">soon</span>}
+              className="nav-tcg-pill core"
+              style={{'--tcg-c':t.color}}
+              onClick={()=>{setTab("explore");setQ("");}}>
+              <span className="nav-tcg-lbl" style={{fontSize:11,fontWeight:800,fontFamily:"'Space Mono',monospace",letterSpacing:.3}}>
+                {t.id==="pokemon"?"PKM":t.id==="op"?"OP":t.id==="mtg"?"MTG":"YGO"}
+              </span>
             </button>
           ))}
         </div>
@@ -3602,9 +3628,9 @@ export default function DraGold(){
           <div className="hero-inner">
             <div className="hero-cols">
               <div className="hero-left">
-                <div className="hero-badge"><span className="bdot"/>🔴 Pokémon · ⚓ One Piece · 🟦 Magic · ⭐ Yu-Gi-Oh! · Real eBay prices</div>
+                <div className="hero-badge"><span className="bdot"/>4 TCG games · 170K+ cards · Real eBay prices, your market</div>
                 <span className="hero-tagline gt">Do you know what your<br/>cards are really worth?</span>
-                <p className="hero-sub">DraGold shows real eBay sell prices for Pokémon, One Piece, Magic: The Gathering and Yu-Gi-Oh! — geo-routed to your country, in your currency. Not estimates. Not wishlists. Set alerts, build your portfolio, and never overpay again.</p>
+                <p className="hero-sub">Real eBay sell prices for Pokémon, One Piece, Magic: The Gathering and Yu-Gi-Oh! — geo-routed to your country, in your currency. Not estimates. Not wishlists. Set alerts, build your portfolio, never overpay again.</p>
                 <div className="srch" style={{position:"relative"}}>
                   <input className="srch-in" type="text"
                     placeholder='Search any card — try "charizard 151" or "monkey d luffy"...'
