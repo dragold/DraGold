@@ -46,10 +46,12 @@ const PLANS=[
 
 // ─── TCG / BINDER ────────────────────────────────────────────────────────────
 const TCG_LIST=[
-  {id:"pokemon", label:"Pokémon TCG",         emoji:"🔴",color:"#f87171",core:true},
-  {id:"op",      label:"One Piece TCG",        emoji:"⚓",color:"#f97316",core:true},
-  {id:"mtg",     label:"Magic: The Gathering", emoji:"🟦",color:"#60a5fa",soon:true},
-  {id:"ygo",     label:"Yu-Gi-Oh!",            emoji:"⭐",color:"#fbbf24",soon:true},
+  {id:"pokemon", label:"Pokémon TCG",         emoji:"🔴",color:"#f87171",core:true, setsGame:"pokemon"},
+  {id:"op",      label:"One Piece TCG",        emoji:"⚓",color:"#f97316",core:true, setsGame:"onepiece"},
+  {id:"mtg",     label:"Magic: The Gathering", emoji:"🟦",color:"#60a5fa",core:true, setsGame:"mtg"},
+  {id:"ygo",     label:"Yu-Gi-Oh!",            emoji:"⭐",color:"#fbbf24",core:true, setsGame:"yugioh"},
+  {id:"lorcana", label:"Disney Lorcana",       emoji:"✨",color:"#a78bfa",soon:true, setsGame:"lorcana"},
+  {id:"fab",     label:"Flesh & Blood",        emoji:"⚔️", color:"#f43f5e",soon:true, setsGame:"fab"},
 ];
 const BINDER_TYPES=[
   {id:"9p", name:"9-Pocket (3x3)",   cols:3,rows:3,slots:9,  desc:"Ultra Pro / Dragon Shield"},
@@ -3109,6 +3111,7 @@ export default function DraGold(){
             </div>
           ))}
         </div>
+        <NewSetsStrip/>
       </div>
 
 
@@ -3238,6 +3241,74 @@ export default function DraGold(){
     </div>
   );
 
+  // NEW SETS STRIP — mostra i set più recenti per gioco dalla tabella sets
+  const NewSetsStrip=()=>{
+    const [newSets,setNewSets]=useState([]);
+    const [loadingNS,setLoadingNS]=useState(true);
+    useEffect(()=>{
+      if(!supabaseReady) return;
+      (async()=>{
+        try{
+          // Prendi i 3 set più recenti per ogni gioco live (UUID v7 = time-ordered)
+          const liveGames=TCG_LIST.filter(t=>!t.soon).map(t=>t.setsGame);
+          const {data,error}=await supabase
+            .from('sets')
+            .select('id,slug,game,name,card_count')
+            .in('game',liveGames)
+            .order('id',{ascending:false})
+            .limit(20);
+          if(!error&&data) setNewSets(data);
+        }catch{}
+        setLoadingNS(false);
+      })();
+    },[supabaseReady]);
+    if(loadingNS||newSets.length===0) return null;
+    // Raggruppa per gioco e prendi i 2 più recenti per ognuno
+    const byGame={};
+    for(const s of newSets){
+      if(!byGame[s.game]) byGame[s.game]=[];
+      if(byGame[s.game].length<2) byGame[s.game].push(s);
+    }
+    const tcgMeta={
+      pokemon:{emoji:"🔴",color:"#f87171",label:"Pokémon"},
+      onepiece:{emoji:"⚓",color:"#f97316",label:"One Piece"},
+      mtg:{emoji:"🟦",color:"#60a5fa",label:"Magic"},
+      yugioh:{emoji:"⭐",color:"#fbbf24",label:"Yu-Gi-Oh!"},
+    };
+    const entries=Object.entries(byGame);
+    return(
+      <div style={{marginTop:32,marginBottom:8}}>
+        <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:14}}>
+          <div className="sec-title gt" style={{fontSize:15,margin:0}}>Recently in DB</div>
+          <span style={{fontSize:10,fontWeight:800,letterSpacing:.6,padding:"2px 8px",borderRadius:100,
+            background:"rgba(99,102,241,.15)",color:"#818cf8",border:"1px solid rgba(99,102,241,.3)",textTransform:"uppercase"}}>
+            Live
+          </span>
+        </div>
+        <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+          {entries.map(([game,sets])=>{
+            const meta=tcgMeta[game]||{emoji:"🃏",color:"var(--muted)",label:game};
+            return sets.map(s=>(
+              <div key={s.id}
+                onClick={()=>{setQ(s.name);setTab("explore");setTimeout(()=>doSearch(),80);}}
+                style={{display:"flex",alignItems:"center",gap:7,padding:"6px 12px",
+                  background:"var(--gl)",border:`1px solid rgba(255,255,255,.07)`,borderRadius:10,
+                  cursor:"pointer",transition:"all .18s",fontSize:12,maxWidth:220}}
+                onMouseEnter={e=>{e.currentTarget.style.borderColor=meta.color;e.currentTarget.style.background="var(--s1)";}}
+                onMouseLeave={e=>{e.currentTarget.style.borderColor="rgba(255,255,255,.07)";e.currentTarget.style.background="var(--gl)";}}>
+                <span style={{fontSize:15}}>{meta.emoji}</span>
+                <div style={{minWidth:0}}>
+                  <div style={{fontWeight:700,color:"var(--txt)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",maxWidth:160}}>{s.name}</div>
+                  <div style={{fontSize:10,color:"var(--muted)",marginTop:1}}>{meta.label} · {s.card_count??'?'} cards</div>
+                </div>
+              </div>
+            ));
+          })}
+        </div>
+      </div>
+    );
+  };
+
   // SET COMPLETION TAB — raggruppa le carte del vault per set e mostra avanzamento
   const SetCompletionTab=()=>{
     const [setTotals,setSetTotals]=useState({});
@@ -3252,7 +3323,9 @@ export default function DraGold(){
       });
       return Object.values(m);
     },[col]);
-    // Carica totali set da Supabase
+    // Carica totali set dalla tabella sets (più precisa, evita count su cards)
+    // Mappa: ygo→yugioh, op→onepiece (card table IDs vs sets table IDs)
+    const tcgToSetsGame=(tcg)=>({ygo:"yugioh",op:"onepiece"}[tcg]||tcg);
     useEffect(()=>{
       if(!supabaseReady||grouped.length===0) return;
       let cancelled=false;
@@ -3261,6 +3334,18 @@ export default function DraGold(){
         const results={};
         await Promise.all(grouped.map(async g=>{
           try{
+            // Prima prova dalla tabella sets (nome esatto)
+            const setsGame=tcgToSetsGame(g.tcg);
+            const {data:setsData}=await supabase.from('sets')
+              .select('card_count')
+              .eq('game',setsGame)
+              .ilike('name',g.name)
+              .limit(1);
+            if(setsData?.[0]?.card_count){
+              if(!cancelled) results[g.name]=setsData[0].card_count;
+              return;
+            }
+            // Fallback: count dalla tabella cards
             const {count}=await supabase.from('cards')
               .select('id',{count:'exact',head:true})
               .eq('set_name',g.name);
@@ -3517,9 +3602,9 @@ export default function DraGold(){
           <div className="hero-inner">
             <div className="hero-cols">
               <div className="hero-left">
-                <div className="hero-badge"><span className="bdot"/>🔴 Pokémon · ⚓ One Piece · Prices in your market</div>
+                <div className="hero-badge"><span className="bdot"/>🔴 Pokémon · ⚓ One Piece · 🟦 Magic · ⭐ Yu-Gi-Oh! · Real eBay prices</div>
                 <span className="hero-tagline gt">Do you know what your<br/>cards are really worth?</span>
-                <p className="hero-sub">DraGold shows real eBay sell prices for Pokémon and One Piece TCG — geo-routed to your country, in your currency. Not estimates. Not wishlists. Set alerts, build your portfolio, and never overpay again.</p>
+                <p className="hero-sub">DraGold shows real eBay sell prices for Pokémon, One Piece, Magic: The Gathering and Yu-Gi-Oh! — geo-routed to your country, in your currency. Not estimates. Not wishlists. Set alerts, build your portfolio, and never overpay again.</p>
                 <div className="srch" style={{position:"relative"}}>
                   <input className="srch-in" type="text"
                     placeholder='Search any card — try "charizard 151" or "monkey d luffy"...'
