@@ -1221,6 +1221,7 @@ export default function DraGold(){
   const [showLoginFirst,setShowLoginFirst] = useState(false);
   const [authReady,setAuthReady]           = useState(false);
   const [authMode,setAuthMode]     = useState(null);
+  const [magicSent,setMagicSent]   = useState(false);
   const [zoomImg,setZoomImg]       = useState(null);
   const [suggestions,setSuggestions] = useState([]);
   const [showSugg,setShowSugg]       = useState(false);
@@ -2179,8 +2180,7 @@ export default function DraGold(){
     if(supabaseReady){
       const {error}=await sendMagicLink(authEmail);
       if(error){alert("Sign-in error: "+error.message);return;}
-      alert("Check your inbox for the sign-in link.");
-      setAuthMode(null);setAuthName("");setAuthEmail("");setAuthPass("");return;
+      setMagicSent(true);return;
     }
     const u={name:authName||authEmail.split("@")[0],email:authEmail,at:Date.now()};
     setUser(u);try{localStorage.setItem("dg_u1",JSON.stringify(u));}catch{}
