@@ -1,0 +1,56 @@
+name: Sync Cards
+
+on:
+  schedule:
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+    inputs:
+      tcg:
+        description: 'TCG (pokemon, mtg, ygo, op)'
+        required: false
+        default: 'pokemon,mtg,ygo,op'
+      lang:
+        description: 'Lingue (en,ja,it,fr,de,es,pt,id)'
+        required: false
+        default: 'en,ja,it,fr,de,es,pt,id'
+      set:
+        description: 'Set specifico (es: sv3pt5). Vuoto = tutti.'
+        required: false
+        default: ''
+
+jobs:
+  sync:
+    name: Sync card catalog
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install @supabase/supabase-js
+
+      - name: Run sync (scheduled)
+        if: github.event_name == 'schedule'
+        run: node scripts/sync-cards.js --tcg=pokemon,mtg,ygo,op --lang=en,ja,it,fr,de,es,pt,id
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+
+      - name: Run sync (manuale)
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          ARGS="--tcg=${{ github.event.inputs.tcg }} --lang=${{ github.event.inputs.lang }}"
+          if [ -n "${{ github.event.inputs.set }}" ]; then
+            ARGS="$ARGS --set=${{ github.event.inputs.set }}"
+          fi
+          node scripts/sync-cards.js $ARGS
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
