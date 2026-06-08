@@ -2928,14 +2928,6 @@ export default function DraGold(){
       return out;
     };
 
-    // Trend giornaliero deterministico per card id (stesso valore per tutti gli utenti nella stessa giornata)
-    const getDailyTrend=(id)=>{
-      const day=Math.floor(Date.now()/86400000);
-      let h=0;
-      for(const c of(id+day)) h=Math.imul(h,31)+c.charCodeAt(0)|0;
-      return((Math.abs(h)%141)-70)/10; // range -7.0% a +7.0%
-    };
-
     const [picks,setPicks]=useState([]);
     const [loadingPicks,setLoadingPicks]=useState(true);
     const [tcgF,setTcgF]=useState(null);
@@ -2962,7 +2954,7 @@ export default function DraGold(){
             const avg=data.avgPrice??data.avg??(items.reduce((s,x)=>s+(x.price||0),0)/items.length);
             if(!avg||avg>200) return null;
             const imgUrl=card.img||(items[0]?.image??items[0]?.imageUrl??null);
-            return{...card,avgPrice:avg,soldCount:items.length,imgUrl,trend:getDailyTrend(card.id)};
+            return{...card,avgPrice:avg,soldCount:items.length,imgUrl};
           }));
           if(!cancelled){
             const valid=settled.filter(r=>r.status==='fulfilled'&&r.value).map(r=>r.value);
@@ -3025,7 +3017,6 @@ export default function DraGold(){
           <div className="hp-grid-big">
             {filtered.map(card=>{
               const badge=TCG_BADGE[card.tcg]||{bg:"var(--gl)",color:"var(--muted)",label:card.tcg?.toUpperCase()};
-              const isPos=card.trend>=0;
               return(
                 <div key={card.id} className="hp-card-v"
                   onClick={()=>{setQ(card.name);setTab("explore");setTimeout(()=>doSearch(),80);}}>
@@ -3039,13 +3030,8 @@ export default function DraGold(){
                     <div className="hp-card-v-name" title={card.name}>{card.name}</div>
                     <div className="hp-card-v-price">{priceStr(card.avgPrice)}</div>
                     <div style={{display:"flex",alignItems:"center",gap:5,marginTop:4}}>
-                      <span style={{fontSize:10,fontWeight:700,padding:"2px 6px",borderRadius:6,
-                        background:isPos?"rgba(74,222,128,.12)":"rgba(248,113,113,.12)",
-                        color:isPos?"var(--gain)":"var(--loss)"}}>
-                        {isPos?"▲":"▼"}{Math.abs(card.trend).toFixed(1)}%
-                      </span>
                       <span style={{fontSize:9,color:"var(--dim)",fontFamily:"'Space Mono',monospace"}}>
-                        {card.soldCount} sold
+                        {card.soldCount} eBay listings
                       </span>
                     </div>
                   </div>
@@ -3055,7 +3041,7 @@ export default function DraGold(){
           </div>
         )}
         <div style={{fontSize:10,color:"var(--dim)",textAlign:"center",marginTop:10,fontFamily:"'Space Mono',monospace"}}>
-          avg listing price · eBay {ctr.toUpperCase()} · rotates daily
+          avg active listing price · eBay {ctr.toUpperCase()} · updates daily
         </div>
       </div>
     );
