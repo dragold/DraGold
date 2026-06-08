@@ -3,7 +3,7 @@ import { supabase, supabaseReady, sendMagicLink, getSession, onAuth, signOut as 
 
 // ─── CONFIG ───────────────────────────────────────────────────────────────────
 const EBAY_CAMP = "5339152703";
-const EUR_RATE  = 0.92;
+// EUR_RATE is dynamic — see useState inside DraGold component
 const EU_CC = ["IT","DE","FR","ES","PT","NL","BE","AT","PL","SE","FI","DK","NO","CH","GB","GR","CZ","HU"];
 const EBAY_SITES = {
   IT:{domain:"ebay.it",    siteid:"101",mkrid:"724-53478-19255-0"},
@@ -137,7 +137,7 @@ const BLOG=[
    featuredCards:[],
    body:["The TCG market behaves more like the art market than the stock market. Cultural relevance, scarcity, and condition determine value. Understanding all three is the foundation of a real collector portfolio.","Cultural relevance is the most important factor and the hardest to predict. Charizard will always matter because it is the face of Pokémon. Generic commons from forgotten sets depreciate toward zero regardless of condition.","Scarcity comes from limited print runs, exclusive promos, and grading. A PSA 10 Base Set Charizard is worth 3x a raw copy because PSA 10 examples are genuinely rare. Most packs produce cards with defects that make a perfect grade unlikely."]},
 ];
-const TICKER="DraGold — Real eBay Sell Prices · Your Local Market · Pokémon TCG · One Piece TCG · 170K+ Cards · Geo-Routed Prices · PSA 10/9/8 Estimates · Price Drop Alerts · Portfolio Vault · Digital Binder · MTG coming soon · YGO coming soon";
+const TICKER="DraGold — Real eBay Sell Prices · Your Local Market · Pokémon TCG · One Piece TCG · Magic: The Gathering · Yu-Gi-Oh! · 170K+ Cards · Geo-Routed Prices · PSA 10/9/8 Estimates · Price Drop Alerts · Portfolio Vault · Digital Binder";
 
 // ─── UTILS ───────────────────────────────────────────────────────────────────
 function calcFMV(card){
@@ -291,7 +291,7 @@ img{display:block;}
 /* GRADIENT ANIMATION */
 @keyframes gf{0%{background-position:0% 50%}100%{background-position:300% 50%}}
 .gt{background:linear-gradient(90deg,var(--blue),var(--purple),var(--pink),var(--amber),var(--lime),var(--blue));
-  background-size:300% 100%;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:gf 6s linear infinite;}
+  background-size:300% 100%;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:gf 20s linear infinite;}
 .gt-gold{background:linear-gradient(135deg,#fff 0%,#e0e0ff 30%,var(--amber) 60%,var(--pink) 100%);
   -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
 
@@ -569,7 +569,7 @@ img{display:block;}
 .hp-card-v:hover .hp-card-v-img img{transform:scale(1.06);}
 .hp-card-v-tcg{position:absolute;top:6px;left:6px;font-size:8px;font-weight:700;padding:2px 6px;border-radius:100px;backdrop-filter:blur(6px);font-family:'Space Mono',monospace;}
 .hp-card-v-body{padding:10px 10px 12px;}
-.hp-card-v-name{font-family:'Fraunces',sans-serif;font-weight:800;font-size:13px;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:linear-gradient(135deg,#fff 30%,var(--amber) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.hp-card-v-name{font-family:'Fraunces',sans-serif;font-weight:800;font-size:12px;margin-bottom:4px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.35;background:linear-gradient(135deg,#fff 30%,var(--amber) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
 .hp-card-v-set{font-size:9px;color:var(--muted);margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .hp-card-v-price{font-family:'Space Mono',monospace;font-size:18px;font-weight:700;color:var(--amber);margin-bottom:1px;}
 .hp-card-v-ref{font-size:8px;color:var(--dim);font-family:'Space Mono',monospace;}
@@ -1263,6 +1263,7 @@ export default function DraGold(){
   const [openComments,setOpenComments]   = useState(null);
   const [postComments,setPostComments]   = useState({});
   const [newComment,setNewComment]       = useState("");
+  const [EUR_RATE,setEUR_RATE]           = useState(0.92); // fetched at mount from frankfurter.app
 
   const langRef = useRef(null);
   const userRef = useRef(null);
@@ -1280,6 +1281,12 @@ export default function DraGold(){
         const d=await r.json();setCountry(d.country_code);
         if(EU_CC.includes(d.country_code)){setRegion("EU");setCur("EUR");}
         else if(["US","CA"].includes(d.country_code)){setRegion("US");setCur("USD");}
+      }catch{}
+      try{
+        const fx=await fetch("https://api.frankfurter.app/latest?from=USD&to=EUR",{signal:AbortSignal.timeout(3000)});
+        const fxd=await fx.json();
+        const rate=fxd?.rates?.EUR;
+        if(typeof rate==="number"&&rate>=0.80&&rate<=1.10) setEUR_RATE(rate);
       }catch{}
     })();
   },[]);
@@ -1329,6 +1336,7 @@ export default function DraGold(){
     // Persist to Supabase. Schema reale tabella `collection`:
     // card_api_id, card_name, set_name, card_number, rarity, image_url, language,
     // condition, purchase_price, fmv_snapshot, fmv_currency, added_at, ...
+    if(!user?.id){console.warn('addToCol: user.id mancante, salvo solo localStorage');return;}
     if(supabaseReady && user.id){
       try{
         const cardNumber=card.number||card.card_number||null;
@@ -1506,7 +1514,7 @@ export default function DraGold(){
           .order('added_at',{ascending:false});
         if(cancelled) return;
         if(error){console.warn('collection load error:',error.message);return;}
-        if(!Array.isArray(rows)||rows.length===0) return; // niente da remoto → mantiene col attuale (localStorage)
+        if(!Array.isArray(rows)||rows.length===0) return; // DB vuoto → mantieni localStorage attuale
         const remote=rows.map(r=>({
           id:r.card_api_id,
           name:r.card_name||r.card_api_id,
@@ -2188,10 +2196,8 @@ export default function DraGold(){
       alert("Check your inbox for the sign-in link.");
       setAuthMode(null);setAuthEmail("");setAuthPass("");return;
     }
-    const u={name:authEmail.split("@")[0],email:authEmail,at:Date.now()};
-    setUser(u);try{localStorage.setItem("dg_u1",JSON.stringify(u));}catch{}
-    setAuthMode(null);setShowLoginFirst(false);
-    if(authPending){await addToCol(authPending.card,authPending.fmvObj,authPending.img,authPending.tcgType);setAuthPending(null);}
+    // supabase non disponibile → non creare utente senza id, rischio dati persi
+    alert("Service loading, try again in a moment.");
     setAuthEmail("");setAuthPass("");
   };
   const doLogout=async()=>{
@@ -3029,11 +3035,6 @@ export default function DraGold(){
                   <div className="hp-card-v-body">
                     <div className="hp-card-v-name" title={card.name}>{card.name}</div>
                     <div className="hp-card-v-price">{priceStr(card.avgPrice)}</div>
-                    <div style={{display:"flex",alignItems:"center",gap:5,marginTop:4}}>
-                      <span style={{fontSize:9,color:"var(--txt2)",fontFamily:"'Space Mono',monospace"}}>
-                        {card.soldCount} eBay listings
-                      </span>
-                    </div>
                   </div>
                 </div>
               );
@@ -3608,7 +3609,7 @@ export default function DraGold(){
                 <p className="hero-sub">Real eBay sell prices for Pokémon, One Piece, Magic: The Gathering and Yu-Gi-Oh! — geo-routed to your country, in your currency. Not estimates. Not wishlists. Set alerts, build your portfolio, never overpay again.</p>
                 <div className="srch" style={{position:"relative"}}>
                   <input className="srch-in" type="text"
-                    placeholder='Search any card — try "charizard 151" or "monkey d luffy"...'
+                    placeholder='Search any card — try "charizard" or "monkey d luffy"...'
                     value={q}
                     onChange={e=>setQ(e.target.value)}
                     onFocus={()=>q&&suggestions.length&&setShowSugg(true)}
@@ -3936,7 +3937,7 @@ export default function DraGold(){
                   <div key={a.id} className="alert-item">
                     <div style={{width:8,height:8,borderRadius:"50%",flexShrink:0,background:isTriggered?"var(--amber)":isActive?"var(--gain)":"var(--dim)"}}/>
                     <div className="alert-info">
-                      <div className="alert-name">{a.card_api_id||a.card_id}</div>
+                      <div className="alert-name">{a.card_name||a.card_api_id||a.card_id}</div>
                       <div className="alert-target">
                         {a.direction==="below"?"▼":"▲"} Target: {a.target_eur!=null?`€${a.target_eur}`:"—"}
                         {a.email&&<span style={{color:"var(--muted)",marginLeft:8}}>→ {a.email}</span>}
