@@ -1286,7 +1286,7 @@ export default function DraGold(){
         else if(["US","CA"].includes(d.country_code)){setRegion("US");setCur("USD");}
       }catch{}
       try{
-        const fx=await fetch("https://api.frankfurter.app/latest?from=USD&to=EUR",{signal:AbortSignal.timeout(3000)});
+        const fx=await fetch("https://open.er-api.com/v6/latest/USD",{signal:AbortSignal.timeout(3000)});
         const fxd=await fx.json();
         const rate=fxd?.rates?.EUR;
         if(typeof rate==="number"&&rate>=0.80&&rate<=1.10) setEUR_RATE(rate);
@@ -1647,26 +1647,42 @@ export default function DraGold(){
     // eslint-disable-next-line react-hooks/exhaustive-deps
   },[col.length,user?.id,sparkRange]);
 
-  // Vault price refresh: chiama edge function refresh-prices e ri-fetch card_prices_latest
+  // Vault price refresh: chiama edge function refresh-prices poi ri-fetch completo collection + card_prices_latest
   const refreshVaultPrices = async () => {
     if(!supabaseReady||!user?.id||vaultRefreshing) return;
     setVaultRefreshing(true);
     try{
       // Trigger edge function (aggiorna card_prices_latest per tutte le carte in collection+alerts)
       await supabase.functions.invoke('refresh-prices');
-      // Ri-fetch prezzi aggiornati
-      const ids=col.map(x=>x.id).filter(id=>typeof id==='string'&&id.length>0);
-      if(ids.length>0){
-        const {data}=await supabase.from('card_prices_latest').select('card_id, price_market').in('card_id',ids);
-        if(Array.isArray(data)&&data.length){
-          const pm=new Map(data.map(r=>[r.card_id,+r.price_market]));
-          const updated=col.map(it=>{
-            const lm=pm.get(it.id);
-            if(!lm||isNaN(lm)) return it;
-            return{...it,market:lm};
-          });
-          saveCol(updated);
+      // Re-fetch completo collection da Supabase (non dal col state che potrebbe essere stale)
+      const {data:colRows,error:colErr}=await supabase
+        .from('collection')
+        .select('card_api_id, tcg, condition, purchase_price, fmv_snapshot, fmv_currency, added_at, card_name, set_name, card_number, rarity, image_url, language')
+        .eq('user_id',user.id)
+        .order('added_at',{ascending:false});
+      if(!colErr&&Array.isArray(colRows)&&colRows.length>0){
+        const priceIds=colRows.map(r=>r.card_api_id).filter(Boolean);
+        let pm=new Map();
+        if(priceIds.length>0){
+          const {data:priceRows}=await supabase.from('card_prices_latest').select('card_id, price_market').in('card_id',priceIds);
+          if(Array.isArray(priceRows)) pm=new Map(priceRows.map(r=>[r.card_id,+r.price_market||0]));
         }
+        const refreshed=colRows.map(r=>({
+          id:r.card_api_id,
+          name:r.card_name||r.card_api_id,
+          set:r.set_name||'',
+          number:r.card_number||'',
+          rarity:r.rarity||'',
+          img:r.image_url||null,
+          lang:r.language||'en',
+          flag:r.tcg==='pokemon'?(CARD_LANGS.find(x=>x.c===(r.language||'en'))?.f||'🇺🇸'):TCG_LIST.find(t=>t.id===r.tcg)?.emoji||'🃏',
+          tcgType:r.tcg,
+          condition:r.condition||'NM',
+          market:pm.get(r.card_api_id)||+r.fmv_snapshot||0,
+          paid:+r.purchase_price||0,
+          spark:mkSpark(pm.get(r.card_api_id)||+r.fmv_snapshot||10),
+        }));
+        saveCol(refreshed);
       }
       localStorage.setItem('dg_lastPriceRefresh',Date.now().toString());
     }catch(e){console.warn('Vault price refresh error',e);}
@@ -3820,6 +3836,7 @@ export default function DraGold(){
                     ? <div className={`port-chg ${portChg>=0?"pos":"neg"}`}>{portChg>=0?"+":"−"}{disp(Math.abs(portChg))} <span style={{opacity:.6}}>({portRange})</span></div>
                     : <div className="port-chg" style={{color:"var(--muted)"}}>{portTracking?"📈 Andamento da domani":"Aggiungi una carta per iniziare"}</div>}
                   <div className="port-lbl">Portfolio · {col.length} card{col.length!==1?"s":""} · {Object.keys(ebayVaultPrices).length>0?"🔥 Sold Avg":"FMV"}</div>
+                  {totalPaid>0&&(()=>{const gl=totalVal-totalPaid;const glPct=(gl/totalPaid*100).toFixed(1);const pos=gl>=0;return(<div style={{fontFamily:"'Space Mono',monospace",fontSize:10,color:"var(--dim)",marginTop:3}}>Cost basis: {disp(totalPaid)} · <span style={{color:pos?"var(--gain)":"var(--loss)"}}>{pos?"+":""}{disp(Math.abs(gl))} ({pos?"+":""}{glPct}%)</span></div>);})()}
                   {portData
                     ? <div className="port-chart"><LineChart data={portData} color={portChg>=0?"#34d399":"#f87171"} id="pc" h={68}/></div>
                     : portTracking&&<div className="port-chart" style={{height:68,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,color:"var(--dim)",fontFamily:"'Space Mono',monospace",textAlign:"center",padding:"0 10px"}}>Sto registrando il tuo portfolio da quando hai aggiunto la prima carta. L'andamento compare dopo 2 giorni.</div>}
@@ -3872,6 +3889,7 @@ export default function DraGold(){
                   const priceD=mkt?(cur==="EUR"?`€${(mkt*EUR_RATE).toFixed(2)}`:`$${mkt.toFixed(2)}`):(ebayVaultLoading?"…":"—");
                   const paidD=item.paid>0?(cur==="EUR"?`€${(item.paid*EUR_RATE).toFixed(2)}`:`$${item.paid.toFixed(2)}`):null;
                   const pnlD=(item.paid>0&&mkt>0)?(cur==="EUR"?`€${Math.abs(profit*EUR_RATE).toFixed(2)}`:`$${Math.abs(profit).toFixed(2)}`):null;
+                  const roiPct=(item.paid>0&&mkt>0)?((mkt-item.paid)/item.paid*100):null;
                   const langInfo=item.tcgType==="pokemon"?CARD_LANGS.find(x=>x.c===item.lang):null;
                   return(
                     <div key={item.id} className="vcard" onClick={()=>setDetail({
@@ -3893,6 +3911,7 @@ export default function DraGold(){
                         {paidD&&<div className={`vcard-pnl ${pos?"pos":"neg"}`}>
                           {pos?"▲":"▼"} {pnlD} {pos?"gain":"loss"}
                         </div>}
+                        {roiPct!=null&&<span className={`vcard-chg ${roiPct>=0?"pos":"neg"}`} style={{display:"inline-block",marginTop:2}}>{roiPct>=0?"+":""}{roiPct.toFixed(1)}%</span>}
                         {(()=>{const sd=sparkData[item.id]?.length>=2?sparkData[item.id]:item.spark?.length>=2?item.spark:null;if(!sd)return null;const sparkPos=sd[sd.length-1]>=sd[0];const chg=sd[0]>0?((sd[sd.length-1]-sd[0])/sd[0])*100:0;const rl=sparkData[item.id]?sparkRange:"~";return(<div style={{marginTop:6,display:"flex",alignItems:"center",gap:6}}><Spark data={sd} w={68} h={18} pos={sparkPos}/><span className={`vcard-chg ${sparkPos?"pos":"neg"}`}>{sparkPos?"+":""}{chg.toFixed(1)}%</span><span style={{fontSize:8,fontFamily:"'Space Mono',monospace",color:"var(--dim)"}}>{rl}</span></div>);})()}
                       </div>
                       <button className="vcard-rm" onClick={e=>{e.stopPropagation();removeFromCol(item.id);}}>✕</button>
