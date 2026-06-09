@@ -3,7 +3,7 @@ import { supabase, supabaseReady, sendMagicLink, getSession, onAuth, signOut as 
 
 // ─── CONFIG ───────────────────────────────────────────────────────────────────
 const EBAY_CAMP = "5339152703";
-// EUR_RATE is dynamic — see useState inside DraGold component
+let _eurRate = 0.92; // module-level fallback; synced from useState on fetch
 const EU_CC = ["IT","DE","FR","ES","PT","NL","BE","AT","PL","SE","FI","DK","NO","CH","GB","GR","CZ","HU"];
 const EBAY_SITES = {
   IT:{domain:"ebay.it",    siteid:"101",mkrid:"724-53478-19255-0"},
@@ -146,36 +146,36 @@ function calcFMV(card){
   if(card&&card._supabasePrice!=null&&!isNaN(+card._supabasePrice)){
     const tcg=+card._supabasePrice; if(!tcg) return null;
     const fmv=+tcg.toFixed(2);
-    return{fmv,fmvEUR:+(fmv*EUR_RATE).toFixed(2),net:+(fmv*0.87).toFixed(2),netEUR:+(fmv*EUR_RATE*0.87).toFixed(2),tcg,low:null,high:null,_src:card._priceSource||'db'};
+    return{fmv,fmvEUR:+(fmv*_eurRate).toFixed(2),net:+(fmv*0.87).toFixed(2),netEUR:+(fmv*_eurRate*0.87).toFixed(2),tcg,low:null,high:null,_src:card._priceSource||'db'};
   }
   const p=card.tcgplayer?.prices;if(!p) return null;
   const t=p.holofoil||p["1stEditionHolofoil"]||p.normal||p.reverseHolofoil||p.unlimited||Object.values(p)[0];
   if(!t) return null;
   const tcg=t.market||t.mid||((t.low+t.high)/2)||null;if(!tcg) return null;
   const fmv=+(tcg*0.40+(tcg*0.88)*0.35+(tcg*1.06)*0.25).toFixed(2);
-  return{fmv,fmvEUR:+(fmv*EUR_RATE).toFixed(2),net:+(fmv*0.87).toFixed(2),netEUR:+(fmv*EUR_RATE*0.87).toFixed(2),tcg,low:t.low,high:t.high};
+  return{fmv,fmvEUR:+(fmv*_eurRate).toFixed(2),net:+(fmv*0.87).toFixed(2),netEUR:+(fmv*_eurRate*0.87).toFixed(2),tcg,low:t.low,high:t.high};
 }
 function calcMTGFMV(card){
   const p=card.prices;if(!p) return null;
   const usd=parseFloat(p.usd||p.usd_foil||0)||null;
   const eur=parseFloat(p.eur||p.eur_foil||0)||null;
   if(!usd&&!eur) return null;
-  const fmv=+((usd||(eur/EUR_RATE))*0.55+((eur||(usd*EUR_RATE))/EUR_RATE)*0.45).toFixed(2);
-  return{fmv,fmvEUR:+(fmv*EUR_RATE).toFixed(2),net:+(fmv*0.87).toFixed(2),netEUR:+(fmv*EUR_RATE*0.87).toFixed(2)};
+  const fmv=+((usd||(eur/_eurRate))*0.55+((eur||(usd*_eurRate))/_eurRate)*0.45).toFixed(2);
+  return{fmv,fmvEUR:+(fmv*_eurRate).toFixed(2),net:+(fmv*0.87).toFixed(2),netEUR:+(fmv*_eurRate*0.87).toFixed(2)};
 }
 function calcYGOFMV(card){
   const pr=card.card_prices?.[0];if(!pr) return null;
   const tcg=parseFloat(pr.tcgplayer_price||0)||null;
   const cm=parseFloat(pr.cardmarket_price||0)||null;
   if(!tcg&&!cm) return null;
-  const t=tcg||(cm/EUR_RATE);const c=cm||(tcg*EUR_RATE*0.88);
-  const fmv=+(t*0.40+(c/EUR_RATE)*0.35+(t*1.05)*0.25).toFixed(2);
-  return{fmv,fmvEUR:+(fmv*EUR_RATE).toFixed(2),net:+(fmv*0.87).toFixed(2),netEUR:+(fmv*EUR_RATE*0.87).toFixed(2)};
+  const t=tcg||(cm/_eurRate);const c=cm||(tcg*_eurRate*0.88);
+  const fmv=+(t*0.40+(c/_eurRate)*0.35+(t*1.05)*0.25).toFixed(2);
+  return{fmv,fmvEUR:+(fmv*_eurRate).toFixed(2),net:+(fmv*0.87).toFixed(2),netEUR:+(fmv*_eurRate*0.87).toFixed(2)};
 }
 function psaEst(fmv){
-  return{p10:+(fmv*3.2).toFixed(2),p10e:+(fmv*3.2*EUR_RATE).toFixed(2),
-    p9:+(fmv*1.6).toFixed(2),p9e:+(fmv*1.6*EUR_RATE).toFixed(2),
-    p8:+(fmv*1.1).toFixed(2),p8e:+(fmv*1.1*EUR_RATE).toFixed(2)};
+  return{p10:+(fmv*3.2).toFixed(2),p10e:+(fmv*3.2*_eurRate).toFixed(2),
+    p9:+(fmv*1.6).toFixed(2),p9e:+(fmv*1.6*_eurRate).toFixed(2),
+    p8:+(fmv*1.1).toFixed(2),p8e:+(fmv*1.1*_eurRate).toFixed(2)};
 }
 function rLvl(r){
   if(!r) return 0;const rl=r.toLowerCase();
@@ -1289,7 +1289,7 @@ export default function DraGold(){
         const fx=await fetch("https://open.er-api.com/v6/latest/USD",{signal:AbortSignal.timeout(3000)});
         const fxd=await fx.json();
         const rate=fxd?.rates?.EUR;
-        if(typeof rate==="number"&&rate>=0.80&&rate<=1.10) setEUR_RATE(rate);
+        if(typeof rate==="number"&&rate>=0.80&&rate<=1.10){_eurRate=rate;setEUR_RATE(rate);}
       }catch{}
     })();
   },[]);
