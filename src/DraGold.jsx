@@ -2930,26 +2930,30 @@ export default function DraGold(){
   const HotPicksSection=()=>{
     // Pool di 20 carte investment (Pokémon + One Piece, target sub-€150)
     const POOL=[
+      // 2025-2026 — Prismatic Evolutions & Surging Sparks
+      {id:"hp14",name:"Charizard ex Prismatic Evolutions",query:"Charizard ex Prismatic Evolutions 006/131 pokemon card",tcg:"pokemon",img:"https://images.pokemontcg.io/sv8pt5/6.png"},
+      {id:"hp15",name:"Pikachu ex Prismatic Evolutions",query:"Pikachu ex Prismatic Evolutions 031/131 pokemon card",tcg:"pokemon",img:"https://images.pokemontcg.io/sv8pt5/31.png"},
+      {id:"hp16",name:"Umbreon ex Prismatic Evolutions",query:"Umbreon ex Prismatic Evolutions 060/131 pokemon card",tcg:"pokemon",img:"https://images.pokemontcg.io/sv8pt5/60.png"},
+      {id:"hp17",name:"Eevee ex Prismatic Evolutions SIR",query:"Eevee ex 167/131 Prismatic Evolutions special illustration rare pokemon card",tcg:"pokemon",img:"https://images.pokemontcg.io/sv8pt5/167.png"},
+      {id:"hp18",name:"Pikachu ex Surging Sparks SAR",query:"Pikachu ex 238/191 Surging Sparks special art rare pokemon card",tcg:"pokemon",img:"https://images.pokemontcg.io/sv8/238.png"},
+      {id:"hp19",name:"Raging Bolt ex Temporal Forces SIR",query:"Raging Bolt ex 208/162 Temporal Forces special illustration rare pokemon card",tcg:"pokemon",img:"https://images.pokemontcg.io/sv5/208.png"},
+      // 2023-2024 — SV & SV151
       {id:"hp1",name:"Charizard ex SV151",query:"Charizard ex 199/165 sv151 pokemon card english",tcg:"pokemon",img:"https://images.pokemontcg.io/sv3pt5/199.png"},
       {id:"hp2",name:"Pikachu ex 151",query:"Pikachu ex 086/078 pokemon sv151 card english",tcg:"pokemon",img:"https://images.pokemontcg.io/sv3pt5/86.png"},
       {id:"hp3",name:"Mewtwo ex 151 Full Art",query:"Mewtwo ex 205/165 pokemon sv151 full art card",tcg:"pokemon",img:"https://images.pokemontcg.io/sv3pt5/205.png"},
+      {id:"hp12",name:"Gardevoir ex SV Base",query:"Gardevoir ex 086/091 scarlet violet base set pokemon english",tcg:"pokemon",img:"https://images.pokemontcg.io/sv1/86.png"},
+      // SWSH — Alt Art evergreen
       {id:"hp4",name:"Umbreon VMAX Alt Art",query:"Umbreon VMAX alternate art 215/203 evolving skies pokemon",tcg:"pokemon",img:"https://images.pokemontcg.io/swsh7/215.png"},
       {id:"hp5",name:"Rayquaza VMAX Alt Art",query:"Rayquaza VMAX alternate art 218/203 evolving skies pokemon",tcg:"pokemon",img:"https://images.pokemontcg.io/swsh7/218.png"},
       {id:"hp6",name:"Giratina VSTAR Lost Origin",query:"Giratina VSTAR 131/196 lost origin pokemon card english",tcg:"pokemon",img:"https://images.pokemontcg.io/swsh11/131.png"},
       {id:"hp7",name:"Lugia V Alt Art Silver Tempest",query:"Lugia V alternate art 186/195 silver tempest pokemon",tcg:"pokemon",img:"https://images.pokemontcg.io/swsh12/186.png"},
-      {id:"hp8",name:"Charizard VSTAR Brilliant Stars",query:"Charizard VSTAR 018/172 brilliant stars pokemon card",tcg:"pokemon",img:"https://images.pokemontcg.io/swsh9/18.png"},
-      {id:"hp9",name:"Mew VMAX Fusion Strike",query:"Mew VMAX 114/264 fusion strike pokemon card english",tcg:"pokemon",img:"https://images.pokemontcg.io/swsh8/114.png"},
-      {id:"hp10",name:"Pikachu VMAX Vivid Voltage",query:"Pikachu VMAX 044/185 vivid voltage pokemon card",tcg:"pokemon",img:"https://images.pokemontcg.io/swsh4/44.png"},
-      {id:"hp11",name:"Palkia VSTAR Astral Radiance",query:"Palkia VSTAR 047/196 astral radiance pokemon card",tcg:"pokemon",img:"https://images.pokemontcg.io/swsh10/47.png"},
-      {id:"hp12",name:"Gardevoir ex SV Base",query:"Gardevoir ex 086/091 scarlet violet base set pokemon english",tcg:"pokemon",img:"https://images.pokemontcg.io/sv1/86.png"},
-      {id:"hp13",name:"Comfey Lost Origin",query:"Comfey 079/196 lost origin pokemon card english",tcg:"pokemon",img:"https://images.pokemontcg.io/swsh11/79.png"},
+      // One Piece
       {id:"op1",name:"Luffy SEC OP-01",query:"Monkey D Luffy secret rare OP-01-120 one piece card game",tcg:"onepiece",img:null},
       {id:"op2",name:"Yamato SEC OP-01",query:"Yamato secret rare OP-01 one piece card game english",tcg:"onepiece",img:null},
       {id:"op3",name:"Ace SEC OP-02",query:"Portgas D Ace secret rare OP-02 one piece card game",tcg:"onepiece",img:null},
       {id:"op4",name:"Zoro Parallel OP-02",query:"Roronoa Zoro parallel rare OP-02 one piece card game",tcg:"onepiece",img:null},
       {id:"op5",name:"Marco SEC OP-03",query:"Marco secret rare OP-03 one piece card game",tcg:"onepiece",img:null},
       {id:"op6",name:"Law SEC OP-04",query:"Trafalgar Law secret rare OP-04 one piece card game",tcg:"onepiece",img:null},
-      {id:"op7",name:"Nami Parallel OP-01",query:"Nami parallel rare OP-01 one piece card game english",tcg:"onepiece",img:null},
     ];
 
     // Rotazione giornaliera deterministica: 9 Pokemon + 3 One Piece
