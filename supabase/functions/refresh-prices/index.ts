@@ -152,7 +152,9 @@ serve(async (_req) => {
       })
     }
 
-    const result = await tryPriceChain(supabase, chain, `${tcg}:${card_api_id}`)
+    // card_api_id IS the cards.id (FK target of card_prices.card_id).
+    // Do NOT prefix with tcg — that breaks the FK and the insert fails silently.
+    const result = await tryPriceChain(supabase, chain, card_api_id)
     if (result.price != null) refreshed++
     else errors.push({ tcg, card_api_id, reason: 'all sources failed' })
   }
