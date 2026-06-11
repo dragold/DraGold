@@ -1193,6 +1193,14 @@ img{display:block;}
   .pulse-vol{display:inline;}
   .feat img{max-width:none;}
 }
+
+/* ── MICRO SCREENS ≤400px ─────────────────────────────────────────────────── */
+@media(max-width:400px){.hp-grid-big{grid-template-columns:1fr;}}
+@media(max-width:380px){.blist{grid-template-columns:1fr;}}
+@media(max-width:380px){.psa-row{grid-template-columns:1fr 1fr;}}
+@media(max-width:360px){.srch-in{padding:12px 78px 12px 14px;font-size:13px;}}
+@media(max-width:360px){.srch-go{padding:7px 12px;font-size:11px;}}
+@media(max-width:340px){.logo-txt{display:none;}}
 `;
 
 // ─── MAIN ─────────────────────────────────────────────────────────────────────
@@ -1266,7 +1274,8 @@ export default function DraGold(){
   const [openComments,setOpenComments]   = useState(null);
   const [postComments,setPostComments]   = useState({});
   const [newComment,setNewComment]       = useState("");
-  const [EUR_RATE,setEUR_RATE]           = useState(0.92); // fetched at mount from frankfurter.app
+  const [EUR_RATE,setEUR_RATE]           = useState(0.92); // fetched at mount
+  const [GBP_RATE,setGBP_RATE]           = useState(1.27); // fetched at mount
 
   const langRef = useRef(null);
   const userRef = useRef(null);
@@ -1290,6 +1299,8 @@ export default function DraGold(){
         const fxd=await fx.json();
         const rate=fxd?.rates?.EUR;
         if(typeof rate==="number"&&rate>=0.80&&rate<=1.10){_eurRate=rate;setEUR_RATE(rate);}
+        const gbp=fxd?.rates?.GBP;
+        if(typeof gbp==="number"&&gbp>=0.65&&gbp<=0.95){setGBP_RATE(1/gbp);}
       }catch{}
     })();
   },[]);
@@ -1430,7 +1441,7 @@ export default function DraGold(){
   const ebayToUsd = (price, currency) => {
     if(!price) return 0;
     if(currency==='USD') return price;
-    if(currency==='GBP') return price / 0.79; // stima GBP→USD
+    if(currency==='GBP') return price * GBP_RATE; // GBP→USD (dynamic)
     return price / EUR_RATE; // EUR→USD (default)
   };
   const effectiveMkt = (c) => {
@@ -1941,19 +1952,66 @@ export default function DraGold(){
       setLangFilter(null);
     }
 
+    // ── TOKENIZER ──────────────────────────────────────────────────────────────
+    // Scompone la query in pezzi e cerca ogni pezzo nel campo giusto:
+    //   "charizard 151"  → nome:charizard AND (set:151 OR numero:151)
+    //   "OP01-001"       → numero One Piece (TCG auto-rilevato)
+    //   "6/165"          → numero Pokemon vecchio formato
+    //   "pokemon jp"     → browse: tutte le Pokemon giapponesi
+    let detectedTcg=null;
+    let qWork=query;
+    if(/\bone\s*piece\b/i.test(qWork)){detectedTcg='onepiece';qWork=qWork.replace(/\bone\s*piece\b/gi,' ');}
+    const TCG_WORDS={pokemon:'pokemon',pkmn:'pokemon',magic:'mtg',mtg:'mtg',ygo:'ygo',yugioh:'ygo',onepiece:'onepiece'};
+    const wordTokens=[];let numToken=null;
+    const rawTokens=qWork.split(/\s+/).filter(Boolean);
+    for(const t of rawTokens){
+      const tl=t.toLowerCase().replace(/[,()"]/g,'');
+      if(!tl) continue;
+      if(TCG_WORDS[tl]){detectedTcg=detectedTcg||TCG_WORDS[tl];continue;}
+      // "OP01-001", "ST13-003", "PRB01-001" ecc.
+      if(/^[a-z]{1,4}\d{1,3}-\d{1,4}$/i.test(tl)){numToken=tl.toUpperCase();if(!detectedTcg&&/^(op|st|eb|prb)\d/i.test(tl))detectedTcg='onepiece';continue;}
+      // "6/165" o "#6/165"
+      if(/^#?\d{1,4}\/\d{1,4}$/.test(tl)){numToken=tl.replace('#','');continue;}
+      // "#25" esplicito
+      if(/^#\d{1,4}[a-z]?$/.test(tl)){numToken=tl.slice(1);continue;}
+      // numero nudo SOLO se accompagnato da altre parole ("pikachu 25");
+      // da solo ("151") resta parola → matcha anche il set "151"
+      if(/^\d{1,4}[a-z]?$/.test(tl)&&rawTokens.length>1){numToken=tl;continue;}
+      wordTokens.push(t.replace(/[,()"]/g,''));
+    }
+    const nameQuery=wordTokens.join(' ');
+    const liveQ=nameQuery||query;
+    const browseMode=!wordTokens.length&&!numToken&&!!(detectedTcg||detectedLang);
+
     // 1) SUPABASE CATALOG — query diretta su cards per TUTTE le varianti lingua
-    // Usiamo * come wildcard PostgREST (non %) nel filter .or().
-    // Ogni riga = una variante lingua separata. Risultati ordinati: EN→JP→IT→ES→altri.
+    // AND tra token; dentro ogni token: nome OR nome EN OR set (wildcard * PostgREST).
     let supabaseHits=[];
     if(supabaseReady){
       try{
         let dbQuery = supabase
           .from('cards')
-          .select('id,name,set_id,set_name,card_number,rarity,image_url,image_url_hi,lang,tcg')
-          .or(`name.ilike.*${query}*,card_number.eq.${query},name_en.ilike.*${query}*`)
+          .select('id,name,name_en,set_id,set_name,card_number,rarity,image_url,image_url_hi,lang,tcg')
           .limit(500);
-        // If user specified a language, filter DB results to that lang only
-        if(detectedLang) dbQuery = dbQuery.eq('lang', detectedLang);
+        if(detectedTcg) dbQuery=dbQuery.eq('tcg',detectedTcg);
+        if(detectedLang) dbQuery=dbQuery.eq('lang',detectedLang);
+        for(const t of wordTokens){
+          dbQuery=dbQuery.or(`name.ilike.*${t}*,name_en.ilike.*${t}*,set_name.ilike.*${t}*`);
+        }
+        if(numToken){
+          // Varianti del numero: "4" → 4, 004, 4/*; "6/165" → esatto + 6, 006, 6/*
+          const vars=new Set([numToken]);
+          const first=numToken.includes('/')?numToken.split('/')[0]:numToken;
+          vars.add(first);
+          if(/^\d+$/.test(first)){vars.add(String(+first));vars.add(first.padStart(3,'0'));}
+          const ors=[];
+          for(const n of vars){ors.push(`card_number.eq.${n}`,`card_number.ilike.${n}/*`);}
+          if(/[a-z]/i.test(numToken)) ors.push(`card_number.ilike.*${numToken}*`);
+          dbQuery=dbQuery.or(ors.join(','));
+        }
+        // Nessun token riconosciuto e non in browse mode → fallback al match classico
+        if(!wordTokens.length&&!numToken&&!browseMode){
+          dbQuery=dbQuery.or(`name.ilike.*${query}*,card_number.eq.${query},name_en.ilike.*${query}*`);
+        }
         const {data,error}=await dbQuery;
         if(!error && Array.isArray(data) && data.length){
           // Aggiungi varianti lingua per carte Pokemon EN:
@@ -1980,13 +2038,13 @@ export default function DraGold(){
           const [variantsResult,pricesResult,liveRaw]=await Promise.all([
             // 1) Varianti lingua (solo se pochi risultati EN)
             orFilter
-              ?supabase.from('cards').select('id,name,set_id,set_name,card_number,rarity,image_url,image_url_hi,lang,tcg').or(orFilter).neq('lang','en')
+              ?supabase.from('cards').select('id,name,name_en,set_id,set_name,card_number,rarity,image_url,image_url_hi,lang,tcg').or(orFilter).neq('lang','en')
               :Promise.resolve({data:[]}),
             // 2) Prezzi DB
             supabase.from('card_prices_latest').select('card_id,price_market,source').in('card_id',ids),
             // 3) pokemontcg.io live (timeout ridotto a 2.5s)
             fetch(
-              `https://api.pokemontcg.io/v2/cards?q=${encodeURIComponent(`name:*${query}*`)}&pageSize=100&orderBy=-set.releaseDate`,
+              `https://api.pokemontcg.io/v2/cards?q=${encodeURIComponent(`name:*${liveQ}*`)}&pageSize=100&orderBy=-set.releaseDate`,
               {signal:AbortSignal.timeout(2500)}
             ).then(r=>r.ok?r.json():null).catch(()=>null),
           ]);
@@ -2070,9 +2128,22 @@ export default function DraGold(){
               })()
               :null,
             _langRank:_langOrder[r.lang||"en"]??99,
+            _rawEn:r.name_en||"",
           }));
-          // Ordina: lingua filtrata prima, poi EN, poi altre
+          // ── RANKING ──────────────────────────────────────────────────────────
+          // 1) match esatto numero  2) rilevanza nome  3) lingua  4) alfabetico
+          // Browse mode (es. "pokemon jp"): ordina per valore, come fanno i competitor
+          const nq=nameQuery.toLowerCase();
+          for(const h of supabaseHits){
+            const n=(h.name||'').toLowerCase(), ne=(h._rawEn||'').toLowerCase();
+            h._rel=!nq?2:(n===nq||ne===nq)?0:(n.startsWith(nq)||ne.startsWith(nq))?1:(n.includes(nq)||ne.includes(nq))?2:3;
+            const cn=(h.number||'').toUpperCase();
+            h._numHit=!numToken?0:(cn===numToken.toUpperCase()||cn.split('/')[0].replace(/^0+/,'')===numToken.replace(/^0+/,''))?0:1;
+          }
           supabaseHits.sort((a,b)=>{
+            if(a._numHit!==b._numHit) return a._numHit-b._numHit;
+            if(browseMode){const pd=(b._supabasePrice||0)-(a._supabasePrice||0);if(pd) return pd;}
+            if(a._rel!==b._rel) return a._rel-b._rel;
             if(a._langRank!==b._langRank) return a._langRank-b._langRank;
             return a.name.localeCompare(b.name);
           });
@@ -2089,7 +2160,7 @@ export default function DraGold(){
     const liveResults=[];
     const live=[
       // Pokemon TCG API — wildcard search, più risultati, aggiunge varianti lingue
-      fetch(`https://api.pokemontcg.io/v2/cards?q=${encodeURIComponent(`name:*${query}*`)}&pageSize=100&orderBy=-set.releaseDate`,{signal:AbortSignal.timeout(6000)})
+      fetch(`https://api.pokemontcg.io/v2/cards?q=${encodeURIComponent(`name:*${liveQ}*`)}&pageSize=100&orderBy=-set.releaseDate`,{signal:AbortSignal.timeout(6000)})
         .then(r=>r.ok?r.json():null).then(d=>{
           if(!d?.data?.length) return;
           // Risultati EN
@@ -2107,12 +2178,12 @@ export default function DraGold(){
           }
         }).catch(()=>{}),
       // Scryfall MTG
-      fetch(`https://api.scryfall.com/cards/search?q=${encodeURIComponent(query)}&unique=cards&order=released`,{signal:AbortSignal.timeout(5500)})
+      fetch(`https://api.scryfall.com/cards/search?q=${encodeURIComponent(liveQ)}&unique=cards&order=released`,{signal:AbortSignal.timeout(5500)})
         .then(r=>r.ok?r.json():null).then(d=>{
           if(d?.data?.length) liveResults.push(...d.data.slice(0,30).map(c=>({...c,_tcg:'mtg'})));
         }).catch(()=>{}),
       // YGOPRODeck
-      fetch(`https://db.ygoprodeck.com/api/v7/cardinfo.php?fname=${encodeURIComponent(query)}`,{signal:AbortSignal.timeout(5500)})
+      fetch(`https://db.ygoprodeck.com/api/v7/cardinfo.php?fname=${encodeURIComponent(liveQ)}`,{signal:AbortSignal.timeout(5500)})
         .then(r=>r.ok?r.json():null).then(d=>{
           if(d?.data?.length) liveResults.push(...d.data.slice(0,30).map(c=>({...c,_tcg:'ygo'})));
         }).catch(()=>{}),
@@ -2120,7 +2191,7 @@ export default function DraGold(){
       (async()=>{
         try{
           // Prova 1: optcgdb
-          const r1=await fetch(`https://api.optcgdb.com/cards?name=${encodeURIComponent(query)}&limit=30`,{signal:AbortSignal.timeout(5000)});
+          const r1=await fetch(`https://api.optcgdb.com/cards?name=${encodeURIComponent(liveQ)}&limit=30`,{signal:AbortSignal.timeout(5000)});
           if(r1.ok){
             const d1=await r1.json();
             const cards1=Array.isArray(d1)?d1:(d1?.data||d1?.cards||[]);
@@ -2141,7 +2212,7 @@ export default function DraGold(){
         }catch{}
         try{
           // Prova 2: op-tcg-api alternativa
-          const r2=await fetch(`https://op-tcg-api.onrender.com/api/cards?name=${encodeURIComponent(query)}`,{signal:AbortSignal.timeout(5000)});
+          const r2=await fetch(`https://op-tcg-api.onrender.com/api/cards?name=${encodeURIComponent(liveQ)}`,{signal:AbortSignal.timeout(5000)});
           if(r2.ok){
             const d2=await r2.json();
             const cards2=Array.isArray(d2)?d2:(d2?.data||d2?.cards||[]);
@@ -2164,7 +2235,7 @@ export default function DraGold(){
         const JUSTTCG_KEY=import.meta.env.VITE_JUSTTCG_API_KEY;
         if(JUSTTCG_KEY){
           try{
-            const r3=await fetch(`https://api.justtcg.com/v1/cards?q=${encodeURIComponent(query)}&game=one-piece&limit=20`,
+            const r3=await fetch(`https://api.justtcg.com/v1/cards?q=${encodeURIComponent(liveQ)}&game=one-piece&limit=20`,
               {signal:AbortSignal.timeout(6000),headers:{'X-API-Key':JUSTTCG_KEY}});
             if(r3.ok){
               const d3=await r3.json();
@@ -3638,7 +3709,7 @@ export default function DraGold(){
           </button>
           <button className={`tb${tab==="binder"?" on":""}`} onClick={()=>setTab("binder")}>Binder</button>
           <button className={`tb${tab==="blog"?" on":""}`} onClick={()=>setTab("blog")}>Blog</button>
-          <button className={`tb${tab==="community"?" on":""}`} onClick={()=>setTab("community")} style={tab==="community"?{borderColor:"var(--pink)",background:"var(--pink-b)",color:"var(--pink)"}:{}}>🌐 Community</button>
+          {user&&<button className={`tb${tab==="community"?" on":""}`} onClick={()=>setTab("community")} style={tab==="community"?{borderColor:"var(--pink)",background:"var(--pink-b)",color:"var(--pink)"}:{}}>🌐 Community</button>}
         </div>
       </div>
 
@@ -3916,7 +3987,7 @@ export default function DraGold(){
                           {pos?"▲":"▼"} {pnlD} {pos?"gain":"loss"}
                         </div>}
                         {roiPct!=null&&<span className={`vcard-chg ${roiPct>=0?"pos":"neg"}`} style={{display:"inline-block",marginTop:2}}>{roiPct>=0?"+":""}{roiPct.toFixed(1)}%</span>}
-                        {(()=>{const sd=sparkData[item.id]?.length>=2?sparkData[item.id]:item.spark?.length>=2?item.spark:null;if(!sd)return null;const sparkPos=sd[sd.length-1]>=sd[0];const chg=sd[0]>0?((sd[sd.length-1]-sd[0])/sd[0])*100:0;const rl=sparkData[item.id]?sparkRange:"~";return(<div style={{marginTop:6,display:"flex",alignItems:"center",gap:6}}><Spark data={sd} w={68} h={18} pos={sparkPos}/><span className={`vcard-chg ${sparkPos?"pos":"neg"}`}>{sparkPos?"+":""}{chg.toFixed(1)}%</span><span style={{fontSize:8,fontFamily:"'Space Mono',monospace",color:"var(--dim)"}}>{rl}</span></div>);})()}
+                        {(()=>{const sd=sparkData[item.id]?.length>=2?sparkData[item.id]:null;if(!sd)return null;const sparkPos=sd[sd.length-1]>=sd[0];const chg=sd[0]>0?((sd[sd.length-1]-sd[0])/sd[0])*100:0;return(<div style={{marginTop:6,display:"flex",alignItems:"center",gap:6}}><Spark data={sd} w={68} h={18} pos={sparkPos}/><span className={`vcard-chg ${sparkPos?"pos":"neg"}`}>{sparkPos?"+":""}{chg.toFixed(1)}%</span><span style={{fontSize:8,fontFamily:"'Space Mono',monospace",color:"var(--dim)"}}>{sparkRange}</span></div>);})()}
                       </div>
                       <button className="vcard-rm" onClick={e=>{e.stopPropagation();removeFromCol(item.id);}}>✕</button>
                     </div>
