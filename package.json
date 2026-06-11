@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "build:esbuild": "node build-esbuild.mjs",
     "preview": "vite preview"
   },
   "dependencies": {
