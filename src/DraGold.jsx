@@ -17,7 +17,7 @@ const EBAY_SITES = {
 // eBay category IDs per TCG — filtra risultati alla categoria corretta
 const EBAY_CATS = {pokemon:"183454",mtg:"183448",ygo:"183468",onepiece:"183454"};
 // Set code interni PokémonTCG.io (es. bw8, dp7, sv3pt5) — non riconoscibili su eBay dai collezionisti
-const _isInternalSetCode=s=>!!s&&/^[a-z]{1,5}\d{1,3}(\.\d+)?(pt\d+)?$/i.test(s)&&s.length<=10;
+const _isInternalSetCode=s=>!!s&&/^[a-z]{1,5}\d{0,3}(\.\d+)?(pt\d+)?$/i.test(s)&&s.length<=10;
 function ebayURL(name,setName,country,grade=null,tcg="pokemon",cardNumber=""){
   const site=EBAY_SITES[country]||EBAY_SITES.US;
   const eu=EU_CC.includes(country);
