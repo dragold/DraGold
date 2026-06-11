@@ -1,8 +1,4 @@
 {
-  "buildCommand": "npm run build:esbuild",
-  "outputDirectory": "dist",
-  "installCommand": "npm install",
-  "framework": null,
   "rewrites": [
     { "source": "/((?!api/).*)", "destination": "/" }
   ],
