@@ -1309,11 +1309,11 @@ export default function DraGold(){
     try{
       const u=localStorage.getItem("dg_u1");
       if(u){ setUser(JSON.parse(u)); }
-      else { setShowLoginFirst(true); setAuthMode("register"); }
+      else { setShowLoginFirst(false); }
       const c=localStorage.getItem("dg_c1");if(c) setCol(JSON.parse(c));
       const w=localStorage.getItem("dg_w1");if(w) setWatchlist(JSON.parse(w));
       const b=localStorage.getItem("dg_b1");if(b) setBinders(JSON.parse(b));
-    }catch{ setShowLoginFirst(true); setAuthMode("register"); }
+    }catch{ setShowLoginFirst(false); }
     setAuthReady(true);
   },[]);
 
@@ -2291,7 +2291,7 @@ export default function DraGold(){
   const doLogout=async()=>{
     if(supabaseReady){await sbSignOut();}
     setUser(null);try{localStorage.removeItem("dg_u1");}catch{}
-    setShowLoginFirst(true);setAuthMode("register");setTab("explore");
+    setShowLoginFirst(false);setAuthMode(null);setTab("explore");
   };
   useEffect(()=>{
     if(!supabaseReady) return;
@@ -2489,9 +2489,9 @@ export default function DraGold(){
     const fmvD=effectiveFmv?(cur==="EUR"?`€${effectiveFmv.fmvEUR}`:`$${effectiveFmv.fmv}`):ebayLoading?"…":"Prezzo non disp.";
     const netD=effectiveFmv?(cur==="EUR"?`€${effectiveFmv.netEUR}`:`$${effectiveFmv.net}`):null;
     const psaD=(u,e)=>cur==="EUR"?`€${e}`:`$${u}`;
-    const priceHist=useMemo(()=>effectiveFmv?mkPriceHist(effectiveFmv.fmv,30):null,[effectiveFmv?.fmv]);
-    const histColor=priceHist&&priceHist[priceHist.length-1]>=priceHist[0]?"#34d399":"#f87171";
-    const hist7=priceHist?.slice(-7);
+    const priceHist=null; // TODO: query real price_history table — mkPriceHist was generating fake random data
+    const histColor="#34d399";
+    const hist7=null;
     const isPro=false; // will be true when plans activated
     const cardTcg=card._tcg||tcg;
     const cardLangCode=card._lang||clang||"en";
@@ -3709,7 +3709,7 @@ export default function DraGold(){
           </button>
           <button className={`tb${tab==="binder"?" on":""}`} onClick={()=>setTab("binder")}>Binder</button>
           <button className={`tb${tab==="blog"?" on":""}`} onClick={()=>setTab("blog")}>Blog</button>
-          {user&&<button className={`tb${tab==="community"?" on":""}`} onClick={()=>setTab("community")} style={tab==="community"?{borderColor:"var(--pink)",background:"var(--pink-b)",color:"var(--pink)"}:{}}>🌐 Community</button>}
+          {/* Community tab: disabled until posts/likes/followers/comments tables are set up in Supabase */}
         </div>
       </div>
 
@@ -4207,8 +4207,8 @@ export default function DraGold(){
         </div>
       )}
 
-      {/* DONATION */}
-      <div className="donate-section">
+      {/* DONATION — only on Explore tab */}
+      {tab==="explore"&&<div className="donate-section">
         <div className="donate-inner">
           <div className="donate-left">
             <div className="donate-emoji">☕</div>
@@ -4224,7 +4224,7 @@ export default function DraGold(){
             <div className="donate-note">via BuyMeACoffee   No account needed</div>
           </div>
         </div>
-      </div>
+      </div>}
 
       <footer className="footer">
         <span>© 2026 DraGold</span>
