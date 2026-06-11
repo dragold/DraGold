@@ -379,7 +379,7 @@ img{display:block;}
   font-size:9px;font-family:'Space Mono',monospace;margin-left:4px;}
 
 /* HERO — mobile first */
-.hero{position:relative;overflow:hidden;padding:40px var(--p) 32px;}
+.hero{position:relative;padding:40px var(--p) 32px;}
 .aurora{position:absolute;inset:0;pointer-events:none;overflow:hidden;}
 .ab{position:absolute;border-radius:50%;}
 .ab1{width:500px;height:500px;background:radial-gradient(circle,rgba(56,189,248,.07),transparent 60%);top:-240px;left:-180px;animation:aa1 18s ease-in-out infinite;}
@@ -409,8 +409,8 @@ img{display:block;}
 .tcg-btn{display:flex;align-items:center;gap:6px;padding:9px 14px;border-radius:11px;
   border:1px solid var(--gb);background:var(--gl);font-size:12px;font-weight:700;
   cursor:pointer;transition:all .25s;color:var(--muted);}
-.srch{position:relative;max-width:520px;margin-bottom:16px;}
-.srch-in{width:100%;padding:14px 110px 14px 18px;background:rgba(255,255,255,.05);
+.srch{position:relative;max-width:520px;margin-bottom:16px;display:flex;align-items:center;gap:6px;}
+.srch-in{flex:1;min-width:0;padding:14px 18px;background:rgba(255,255,255,.05);
   border:1px solid rgba(255,255,255,.12);border-radius:14px;color:#f8f8ff;font-size:14px;
   font-weight:500;outline:none;transition:all .3s;}
 .srch-in:focus{border-color:var(--amber);box-shadow:0 0 0 3px var(--amber-b);}
@@ -422,10 +422,10 @@ img{display:block;}
 .sugg-img{width:36px;height:50px;object-fit:cover;border-radius:5px;flex-shrink:0;background:#1a1a30;}
 .sugg-name{font-family:'Fraunces',serif;font-weight:700;font-size:14px;color:#f5f0e3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .sugg-meta{font-size:11px;color:#8a8aa8;text-transform:capitalize;}
-.srch-go{position:absolute;right:6px;top:50%;transform:translateY(-50%);padding:9px 18px;
+.srch-go{flex-shrink:0;padding:10px 18px;
   background:linear-gradient(135deg,var(--amber),var(--pink));color:#020208;border:none;
   border-radius:10px;font-size:12px;font-weight:800;cursor:pointer;transition:all .2s;
-  box-shadow:0 4px 16px rgba(251,191,36,.3);}
+  box-shadow:0 4px 16px rgba(251,191,36,.3);white-space:nowrap;}
 .srch-go:hover{filter:brightness(1.1);}
 .demo-bar{background:var(--purple-b);border:1px solid rgba(167,139,250,.18);border-radius:9px;
   padding:7px 13px;font-size:11px;color:var(--purple);font-family:'Space Mono',monospace;max-width:520px;margin-bottom:14px;}
@@ -1131,7 +1131,7 @@ img{display:block;}
   .tb{padding:13px 20px;font-size:12px;}
   .hero{padding:54px var(--p) 42px;}
   .hero-tagline{font-size:clamp(44px,9vw,92px);}
-  .srch-in{padding:16px 120px 16px 20px;font-size:15px;}
+  .srch-in{padding:16px 20px;font-size:15px;}
   .grid{grid-template-columns:repeat(3,1fr);gap:14px;}
   .kcard-img{min-height:190px;}
   .kcard-body{padding:13px;}
@@ -1206,8 +1206,8 @@ img{display:block;}
 @media(max-width:400px){.hp-grid-big{grid-template-columns:1fr;}}
 @media(max-width:380px){.blist{grid-template-columns:1fr;}}
 @media(max-width:380px){.psa-row{grid-template-columns:1fr 1fr;}}
-@media(max-width:360px){.srch-in{padding:12px 78px 12px 14px;font-size:13px;}}
-@media(max-width:360px){.srch-go{padding:7px 12px;font-size:11px;}}
+@media(max-width:360px){.srch-in{padding:11px 14px;font-size:13px;}}
+@media(max-width:360px){.srch-go{padding:8px 12px;font-size:11px;}}
 @media(max-width:340px){.logo-txt{display:none;}}
 `;
 
@@ -2050,10 +2050,10 @@ export default function DraGold(){
               :Promise.resolve({data:[]}),
             // 2) Prezzi DB
             supabase.from('card_prices_latest').select('card_id,price_market,source').in('card_id',ids),
-            // 3) pokemontcg.io live (timeout ridotto a 2.5s)
+            // 3) pokemontcg.io live — timeout 600ms: non blocca display se lento
             fetch(
               `https://api.pokemontcg.io/v2/cards?q=${encodeURIComponent(`name:*${liveQ}*`)}&pageSize=100&orderBy=-set.releaseDate`,
-              {signal:AbortSignal.timeout(2500)}
+              {signal:AbortSignal.timeout(600)}
             ).then(r=>r.ok?r.json():null).catch(()=>null),
           ]);
           // Applica varianti
@@ -3187,9 +3187,159 @@ export default function DraGold(){
   // HotPicks legacy — sostituito da HotPicksSection
   const HotPicks=()=>null;
 
+  // ─── LIVE MARKET SECTION — carte reali dal DB, ordinate per prezzo ───────
+  const LiveMarketSection=()=>{
+    const [featured,setFeatured]=useState([]);
+    const [lmLoad,setLmLoad]=useState(true);
+    useEffect(()=>{
+      if(!supabaseReady){setLmLoad(false);return;}
+      const CK='dg_lmarket_v2';
+      try{
+        const c=JSON.parse(sessionStorage.getItem(CK)||'null');
+        if(c?.ts&&Date.now()-c.ts<3600000&&c.data?.length>=4){setFeatured(c.data);setLmLoad(false);return;}
+      }catch{}
+      (async()=>{
+        try{
+          const {data:prices}=await supabase
+            .from('card_prices_latest')
+            .select('card_id,price_market')
+            .gt('price_market',1)
+            .order('price_market',{ascending:false})
+            .limit(500);
+          if(!prices?.length) return;
+          const priceMap={};
+          prices.forEach(r=>{priceMap[r.card_id]=r.price_market;});
+          const ids=prices.map(r=>r.card_id);
+          const {data:rawCards}=await supabase
+            .from('cards')
+            .select('id,name,set_name,image_url,tcg,rarity')
+            .in('id',ids)
+            .eq('lang','en')
+            .not('image_url','is',null)
+            .limit(400);
+          if(!rawCards?.length) return;
+          const withPrice=rawCards
+            .map(c=>({...c,price:priceMap[c.id]||0}))
+            .filter(c=>c.price>0)
+            .sort((a,b)=>b.price-a.price);
+          const byTcg={};
+          for(const c of withPrice){
+            if(!byTcg[c.tcg]) byTcg[c.tcg]=[];
+            if(byTcg[c.tcg].length<3) byTcg[c.tcg].push(c);
+          }
+          const result=Object.values(byTcg).flat().sort((a,b)=>b.price-a.price).slice(0,12);
+          setFeatured(result);
+          try{sessionStorage.setItem(CK,JSON.stringify({ts:Date.now(),data:result}));}catch{}
+        }catch(e){console.warn('LiveMarket',e);}
+        finally{setLmLoad(false);}
+      })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    },[]);
+    const TCG_LABEL={pokemon:'Pokémon',mtg:'MTG',ygo:'Yu-Gi-Oh!',onepiece:'One Piece'};
+    const TCG_COL={pokemon:'#ef4444',mtg:'#60a5fa',ygo:'#f59e0b',onepiece:'#f97316'};
+    return(
+      <div style={{marginBottom:40}}>
+        <div className="sec-hdr">
+          <div style={{fontFamily:"'Fraunces',sans-serif",fontWeight:800,fontSize:17,letterSpacing:"-.3px"}} className="gt">
+            Top assets by market value
+          </div>
+          <span style={{fontSize:9,fontWeight:700,fontFamily:"'Space Mono',monospace",color:"var(--muted)",letterSpacing:.4,textTransform:"uppercase"}}>
+            DB · live · EN
+          </span>
+        </div>
+        {lmLoad?(
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(100px,1fr))",gap:10}}>
+            {[...Array(8)].map((_,i)=>(
+              <div key={i} style={{borderRadius:10,background:"var(--s2)",border:"1px solid var(--gb)",aspectRatio:"3/5",opacity:.35}}/>
+            ))}
+          </div>
+        ):featured.length===0?null:(
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(100px,1fr))",gap:10}}>
+            {featured.map(card=>{
+              const col=TCG_COL[card.tcg]||'#888';
+              const priceStr=cur==="EUR"?`€${(card.price*EUR_RATE).toFixed(2)}`:`$${card.price.toFixed(2)}`;
+              return(
+                <div key={card.id}
+                  style={{cursor:"pointer",borderRadius:10,overflow:"hidden",background:"var(--s2)",
+                    border:"1px solid var(--gb)",transition:"all .18s"}}
+                  onClick={()=>{setQ(card.name);setTimeout(()=>doSearch(),50);}}
+                  onMouseEnter={e=>{e.currentTarget.style.borderColor=col;e.currentTarget.style.transform="translateY(-3px)";}}
+                  onMouseLeave={e=>{e.currentTarget.style.borderColor="var(--gb)";e.currentTarget.style.transform="";}}>
+                  <img src={card.image_url} alt={card.name} loading="lazy" style={{width:"100%",display:"block"}}/>
+                  <div style={{padding:"6px 7px 8px"}}>
+                    <div style={{fontSize:9,fontWeight:700,color:"var(--txt)",lineHeight:1.25,marginBottom:2,
+                      overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{card.name}</div>
+                    <div style={{fontSize:8,color:"var(--dim)",fontFamily:"'Space Mono',monospace",marginBottom:5,
+                      overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{card.set_name||""}</div>
+                    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:4}}>
+                      <span style={{fontSize:11,fontWeight:800,color:"var(--gain)",fontFamily:"'Space Mono',monospace"}}>{priceStr}</span>
+                      <span style={{fontSize:7,fontWeight:800,padding:"1px 4px",borderRadius:4,
+                        background:col+"18",color:col,fontFamily:"'Space Mono',monospace",letterSpacing:.4}}>
+                        {TCG_LABEL[card.tcg]||card.tcg?.toUpperCase()}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   const HomeSections=()=>(
     <div className="hs">
       <HotPicks/>
+
+      {/* ── TOP ASSETS — carte reali dal DB ── */}
+      <LiveMarketSection/>
+
+      {/* ── MARKETS — giochi supportati ── */}
+      <div style={{marginBottom:32}}>
+        <div style={{fontSize:11,fontWeight:700,color:"var(--muted)",letterSpacing:.8,textTransform:"uppercase",fontFamily:"'Space Mono',monospace",marginBottom:14,textAlign:"center"}}>Markets</div>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(148px,1fr))",gap:10}}>
+          {[
+            {id:"pokemon",short:"PKM",name:"Pokémon TCG",color:"#f87171",cards:"128K",sets:292,live:true,q:"charizard",
+             logo:"https://images.pokemontcg.io/base1/logo.png"},
+            {id:"op",short:"OP",name:"One Piece TCG",color:"#f97316",cards:"2.5K",sets:76,live:true,q:"monkey d luffy",
+             logo:"https://en.onepiece-cardgame.com/img/common/logo.png"},
+            {id:"mtg",short:"MTG",name:"Magic: The Gathering",color:"#60a5fa",cards:"27K",sets:526,live:true,q:"lightning bolt",
+             logo:"https://c2.scryfall.com/file/scryfall-symbols/sets/m15.svg"},
+            {id:"ygo",short:"YGO",name:"Yu-Gi-Oh!",color:"#fbbf24",cards:"14K",sets:656,live:true,q:"dark magician",
+             logo:"https://images.ygoprodeck.com/images/misc/yugioh_logo_duel_links.png"},
+            {id:"lorcana",short:"LRC",name:"Disney Lorcana",color:"#a78bfa",cards:"5.7K",sets:21,live:false,q:"",logo:null},
+            {id:"fab",short:"FAB",name:"Flesh & Blood",color:"#f43f5e",cards:"16K",sets:97,live:false,q:"",logo:null},
+          ].map(g=>(
+            <div key={g.id}
+              onClick={g.live?()=>{setQ(g.q);setTimeout(()=>doSearch(),50);}:undefined}
+              style={{background:`${g.color}0d`,border:`1px solid ${g.color}22`,borderRadius:14,padding:"14px 14px 12px",
+                cursor:g.live?"pointer":"default",transition:"all .2s",opacity:g.live?1:0.55,position:"relative"}}>
+              {!g.live&&<span style={{position:"absolute",top:8,right:8,fontSize:8,fontWeight:800,letterSpacing:.6,
+                padding:"1px 6px",borderRadius:100,background:"rgba(255,255,255,.06)",color:"var(--muted)",textTransform:"uppercase",fontFamily:"'Space Mono',monospace"}}>Soon</span>}
+              <div onMouseEnter={g.live?e=>{const p=e.currentTarget.parentElement;p.style.borderColor=`${g.color}55`;p.style.transform="translateY(-2px)";}:undefined}
+                onMouseLeave={g.live?e=>{const p=e.currentTarget.parentElement;p.style.borderColor=`${g.color}22`;p.style.transform="";}:undefined}>
+                <div style={{width:44,height:32,borderRadius:8,background:`${g.color}15`,display:"flex",alignItems:"center",
+                  justifyContent:"center",marginBottom:10,overflow:"hidden"}}>
+                  {g.logo
+                    ?<img src={g.logo} alt={g.name} style={{maxWidth:38,maxHeight:24,objectFit:"contain",filter:"brightness(1.15) saturate(1.1)"}}
+                        onError={e=>{e.currentTarget.style.display="none";e.currentTarget.nextSibling.style.display="flex";}}/>
+                    :null}
+                  <span style={{display:g.logo?"none":"flex",alignItems:"center",justifyContent:"center",
+                    fontSize:11,fontWeight:800,color:g.color,fontFamily:"'Space Mono',monospace",letterSpacing:.3,width:"100%"}}>
+                    {g.short}
+                  </span>
+                </div>
+                <div style={{fontFamily:"'Fraunces',sans-serif",fontWeight:800,fontSize:12,color:"var(--txt)",marginBottom:5,lineHeight:1.3}}>{g.name}</div>
+                <div style={{fontSize:10,color:"var(--muted)",fontFamily:"'Space Mono',monospace"}}>
+                  <span style={{color:g.color,fontWeight:700}}>{g.cards}</span> cards · {g.sets} sets
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+        <NewSetsStrip/>
+      </div>
 
       {/* ── WHY DRAGOLD — landing explainer ── */}
       <div style={{marginBottom:48}}>
@@ -3203,55 +3353,26 @@ export default function DraGold(){
         </div>
         <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:12}}>
           {[
-            {icon:"🔔",color:"var(--amber)",title:"Price Alerts",desc:"Set a target price on any card. Get notified the moment it drops below. Never miss a deal again.",action:()=>setTab("alerts")},
-            {icon:"🐉",color:"var(--gain)",title:"Portfolio Vault",desc:"Track every card you own. See total value in EUR/USD, ROI, and watchlist all in one place.",action:()=>{setTab("col");setColTab("vault");}},
-            {icon:"📒",color:"var(--blue)",title:"Digital Binder",desc:"Organize your collection into visual binders by set, type or value — exactly like your physical ones.",action:()=>setTab("binder")},
-            {icon:"🌍",color:"var(--purple)",title:"Your Local Market",desc:"eBay geo-routing for 10+ countries. Prices in your local currency — wherever you are.",action:()=>setTab("explore")},
+            {svg:<svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 2a5 5 0 0 1 5 5c0 2.5.7 4 1.5 5H2.5C3.3 11 4 9.5 4 7a5 5 0 0 1 5-5zm0 14a2 2 0 0 1-2-2h4a2 2 0 0 1-2 2z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round"/></svg>,
+              color:"var(--amber)",title:"Price Alerts",desc:"Set a target price on any card. Get notified the moment it drops below. Never miss a deal again.",action:()=>setTab("alerts")},
+            {svg:<svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="2" y="9" width="3" height="7" rx="1" stroke="currentColor" strokeWidth="1.4"/><rect x="7.5" y="6" width="3" height="10" rx="1" stroke="currentColor" strokeWidth="1.4"/><rect x="13" y="2" width="3" height="14" rx="1" stroke="currentColor" strokeWidth="1.4"/></svg>,
+              color:"var(--gain)",title:"Portfolio Vault",desc:"Track every card you own. See total value in EUR/USD, ROI, and watchlist all in one place.",action:()=>{setTab("col");setColTab("vault");}},
+            {svg:<svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="3" y="2" width="12" height="14" rx="2" stroke="currentColor" strokeWidth="1.4"/><path d="M6 6h6M6 9h6M6 12h4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/></svg>,
+              color:"var(--blue)",title:"Digital Binder",desc:"Organize your collection into visual binders by set, type or value — exactly like your physical ones.",action:()=>setTab("binder")},
+            {svg:<svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="7" stroke="currentColor" strokeWidth="1.4"/><path d="M2 9h14M9 2a10 10 0 0 1 0 14M9 2a10 10 0 0 0 0 14" stroke="currentColor" strokeWidth="1.4"/></svg>,
+              color:"var(--purple)",title:"Your Local Market",desc:"eBay geo-routing for 10+ countries. Prices in your local currency — wherever you are.",action:()=>setTab("explore")},
           ].map(f=>(
             <div key={f.title} style={{background:"var(--s2)",border:"1px solid var(--gb)",borderRadius:16,padding:16,transition:"all .2s",cursor:"pointer"}}
               onClick={f.action}
               onMouseEnter={e=>{e.currentTarget.style.borderColor=f.color;e.currentTarget.style.transform="translateY(-2px)";}}
               onMouseLeave={e=>{e.currentTarget.style.borderColor="rgba(255,255,255,.09)";e.currentTarget.style.transform="";}}>
-              <div style={{fontSize:24,marginBottom:8}}>{f.icon}</div>
+              <div style={{width:34,height:34,borderRadius:9,background:`${f.color}18`,color:f.color,display:"flex",alignItems:"center",
+                justifyContent:"center",marginBottom:10}}>{f.svg}</div>
               <div style={{fontFamily:"'Fraunces',sans-serif",fontWeight:800,fontSize:14,marginBottom:5,color:f.color}}>{f.title}</div>
               <div style={{fontSize:11,color:"var(--muted)",lineHeight:1.55}}>{f.desc}</div>
             </div>
           ))}
         </div>
-        {/* Supported Games grid */}
-        <div style={{marginTop:28}}>
-          <div style={{fontSize:11,fontWeight:700,color:"var(--muted)",letterSpacing:.8,textTransform:"uppercase",fontFamily:"'Space Mono',monospace",marginBottom:14,textAlign:"center"}}>Supported games</div>
-          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(148px,1fr))",gap:10}}>
-            {[
-              {id:"pokemon",short:"PKM",name:"Pokémon TCG",color:"#f87171",cards:"128K",sets:292,img:"https://images.pokemontcg.io/base1/logo.png",live:true},
-              {id:"op",short:"OP",name:"One Piece TCG",color:"#f97316",cards:"2.5K",sets:76,img:"https://en.onepiece-cardgame.com/img/common/logo.png",live:true},
-              {id:"mtg",short:"MTG",name:"Magic: The Gathering",color:"#60a5fa",cards:"27K",sets:526,img:"https://c2.scryfall.com/file/scryfall-symbols/sets/m15.svg",live:true},
-              {id:"ygo",short:"YGO",name:"Yu-Gi-Oh!",color:"#fbbf24",cards:"14K",sets:656,img:"https://images.ygoprodeck.com/images/misc/yugioh_logo_duel_links.png",live:true},
-              {id:"lorcana",short:"LRC",name:"Disney Lorcana",color:"#a78bfa",cards:"5.7K",sets:21,live:false},
-              {id:"fab",short:"FAB",name:"Flesh & Blood",color:"#f43f5e",cards:"16K",sets:97,live:false},
-            ].map(g=>(
-              <div key={g.id}
-                onClick={g.live?()=>{setQ("");setTab("explore");}:undefined}
-                style={{background:`${g.color}0d`,border:`1px solid ${g.color}22`,borderRadius:14,padding:"14px 14px 12px",
-                  cursor:g.live?"pointer":"default",transition:"all .2s",opacity:g.live?1:0.55,position:"relative"}}>
-                {!g.live&&<span style={{position:"absolute",top:8,right:8,fontSize:8,fontWeight:800,letterSpacing:.6,
-                  padding:"1px 6px",borderRadius:100,background:"rgba(255,255,255,.06)",color:"var(--muted)",textTransform:"uppercase",fontFamily:"'Space Mono',monospace"}}>Soon</span>}
-                <div onMouseEnter={g.live?e=>{const p=e.currentTarget.parentElement;p.style.borderColor=`${g.color}55`;p.style.transform="translateY(-2px)";}:undefined}
-                  onMouseLeave={g.live?e=>{const p=e.currentTarget.parentElement;p.style.borderColor=`${g.color}22`;p.style.transform="";}:undefined}>
-                  <div style={{width:38,height:38,borderRadius:9,background:`${g.color}20`,display:"flex",alignItems:"center",justifyContent:"center",
-                    marginBottom:10,fontSize:11,fontWeight:800,color:g.color,fontFamily:"'Space Mono',monospace",letterSpacing:.3}}>
-                    {g.short}
-                  </div>
-                  <div style={{fontFamily:"'Fraunces',sans-serif",fontWeight:800,fontSize:12,color:"var(--txt)",marginBottom:5,lineHeight:1.3}}>{g.name}</div>
-                  <div style={{fontSize:10,color:"var(--muted)",fontFamily:"'Space Mono',monospace"}}>
-                    <span style={{color:g.color,fontWeight:700}}>{g.cards}</span> cards · {g.sets} sets
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-        <NewSetsStrip/>
       </div>
 
 
@@ -3315,13 +3436,12 @@ export default function DraGold(){
         </div>
         <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12}}>
           {[
-            {step:"01",icon:"🔍",title:"Search any card",desc:"170K+ Pokémon and One Piece cards. Search by name, set, or language. Instant results."},
-            {step:"02",icon:"📊",title:"See the real price",desc:"Real eBay sell prices in your local currency. PSA 10/9/8 grading estimates included."},
-            {step:"03",icon:"🔔",title:"Set an alert or add to vault",desc:"Get notified when the price drops to your target. Track your collection value over time."},
+            {step:"01",title:"Search any card",desc:"170K+ cards across Pokémon, One Piece, MTG, and Yu-Gi-Oh! Search by name, set, or language."},
+            {step:"02",title:"See the real price",desc:"Real eBay sold prices in your local currency. PSA 10/9/8 grading estimates included."},
+            {step:"03",title:"Set an alert or add to vault",desc:"Get notified when the price drops to your target. Track your collection value over time."},
           ].map(s=>(
             <div key={s.step} style={{background:"var(--s2)",border:"1px solid var(--gb)",borderRadius:16,padding:"18px 16px",position:"relative",overflow:"hidden"}}>
-              <div style={{fontFamily:"'Space Mono',monospace",fontSize:32,fontWeight:700,color:"var(--dim)",lineHeight:1,marginBottom:10,letterSpacing:-1}}>{s.step}</div>
-              <div style={{fontSize:22,marginBottom:8}}>{s.icon}</div>
+              <div style={{fontFamily:"'Space Mono',monospace",fontSize:32,fontWeight:700,color:"var(--dim)",lineHeight:1,marginBottom:12,letterSpacing:-1}}>{s.step}</div>
               <div style={{fontFamily:"'Fraunces',sans-serif",fontWeight:800,fontSize:14,marginBottom:6,color:"var(--amber)"}}>{s.title}</div>
               <div style={{fontSize:12,color:"var(--muted)",lineHeight:1.6}}>{s.desc}</div>
             </div>
@@ -3752,10 +3872,10 @@ export default function DraGold(){
           <div className="hero-inner">
             <div className="hero-cols">
               <div className="hero-left">
-                <div className="hero-badge"><span className="bdot"/>4 TCG games · 170K+ cards · Real eBay prices, your market</div>
-                <span className="hero-tagline gt">Do you know what your<br/>cards are really worth?</span>
-                <p className="hero-sub">Real eBay sell prices for Pokémon, One Piece, Magic: The Gathering and Yu-Gi-Oh! — geo-routed to your country, in your currency. Not estimates. Not wishlists. Set alerts, build your portfolio, never overpay again.</p>
-                <div className="srch" style={{position:"relative"}}>
+                <div className="hero-badge"><span className="bdot"/>Pokémon · One Piece · MTG · Yu-Gi-Oh!  ·  170,000+ cards</div>
+                <span className="hero-tagline gt">The market tracker<br/>for TCG assets.</span>
+                <p className="hero-sub">Real eBay sold prices for Pokémon, One Piece, MTG and Yu-Gi-Oh! — geo-routed to your country, in your currency. Portfolio tracking, price alerts, PSA grading estimates. Not estimates. Actual sold data.</p>
+                <div className="srch">
                   <input className="srch-in" type="text"
                     placeholder='Search any card — try "charizard" or "monkey d luffy"...'
                     value={q}
@@ -3782,19 +3902,39 @@ export default function DraGold(){
                   )}
                 </div>
                 {demo&&<div className="demo-bar">Demo mode   live search active when deployed</div>}
-                <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:14}}>
+                {/* ── Markets quick-access — official game logos ── */}
+                <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:6,marginBottom:12}}>
                   {[
-                    {icon:"📈",text:"Real eBay prices, your market"},
-                    {icon:"🔔",text:"Price drop alerts"},
-                    {icon:"💼",text:"Portfolio & ROI tracking"},
-                    {icon:"🏆",text:"PSA 10/9/8 estimates"},
-                  ].map(f=>(
-                    <div key={f.text} style={{display:"flex",alignItems:"center",gap:5,padding:"4px 11px",
-                      background:"rgba(255,255,255,.05)",border:"1px solid rgba(255,255,255,.08)",
-                      borderRadius:100,fontSize:11,fontWeight:600,color:"var(--txt2)"}}>
-                      <span style={{fontSize:f.icon.length>2?10:13}}>{f.icon}</span>
-                      <span>{f.text}</span>
-                    </div>
+                    {abbr:"PKM",name:"Pokémon",cards:"128K",color:"#f87171",
+                     logo:"https://images.pokemontcg.io/base1/logo.png",q:"charizard"},
+                    {abbr:"OP",name:"One Piece",cards:"2.5K",color:"#f97316",
+                     logo:"https://en.onepiece-cardgame.com/img/common/logo.png",q:"monkey d luffy"},
+                    {abbr:"MTG",name:"MTG",cards:"27K",color:"#60a5fa",
+                     logo:"https://c2.scryfall.com/file/scryfall-symbols/sets/m15.svg",q:"lightning bolt"},
+                    {abbr:"YGO",name:"Yu-Gi-Oh!",cards:"14K",color:"#fbbf24",
+                     logo:"https://images.ygoprodeck.com/images/misc/yugioh_logo_duel_links.png",q:"dark magician"},
+                  ].map(g=>(
+                    <button key={g.abbr}
+                      style={{padding:"9px 6px 8px",background:`${g.color}0d`,border:`1px solid ${g.color}22`,borderRadius:10,
+                        cursor:"pointer",transition:"all .15s",textAlign:"center",outline:"none",display:"flex",
+                        flexDirection:"column",alignItems:"center",gap:3}}
+                      onClick={()=>{setQ(g.q);setTimeout(()=>doSearch(),50);}}
+                      onMouseEnter={e=>{e.currentTarget.style.background=`${g.color}1a`;e.currentTarget.style.borderColor=`${g.color}55`;}}
+                      onMouseLeave={e=>{e.currentTarget.style.background=`${g.color}0d`;e.currentTarget.style.borderColor=`${g.color}22`;}}>
+                      <img src={g.logo} alt={g.name}
+                        style={{height:18,maxWidth:44,objectFit:"contain",display:"block",filter:"brightness(1.1) saturate(1.2)"}}
+                        onError={e=>{e.currentTarget.style.display="none";e.currentTarget.nextSibling.style.display="block";}}/>
+                      <span style={{display:"none",fontSize:9,fontWeight:800,fontFamily:"'Space Mono',monospace",color:g.color}}>{g.abbr}</span>
+                      <span style={{fontSize:9,fontWeight:700,color:"var(--muted)",fontFamily:"'Space Mono',monospace"}}>{g.cards}</span>
+                    </button>
+                  ))}
+                </div>
+                <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:10}}>
+                  {["Real eBay sold prices","Price drop alerts","Portfolio ROI","PSA 10/9/8 estimates"].map(t=>(
+                    <span key={t} style={{padding:"3px 10px",background:"rgba(255,255,255,.04)",border:"1px solid rgba(255,255,255,.08)",
+                      borderRadius:100,fontSize:10,fontWeight:600,color:"var(--txt2)",fontFamily:"'Space Mono',monospace"}}>
+                      {t}
+                    </span>
                   ))}
                 </div>
                 <div className="mq-wrap"><div className="mq">{TICKER}   {TICKER}</div></div>
