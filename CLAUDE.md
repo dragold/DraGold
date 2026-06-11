@@ -1,6 +1,6 @@
 # CLAUDE.md — DraGold
 
-> Aggiornato: 2026-06-03
+> Aggiornato: 2026-06-11
 
 ## Stato Reale del Progetto
 
@@ -46,15 +46,29 @@ api/             ← Serverless functions Vercel (eBay search)
 - `CARD_LANGS`: en🇺🇸 ja🇯🇵 it🇮🇹 es🇪🇸 pt🇧🇷 id🇮🇩 (live=true) + ko fr de (live=false)
 - `CONDITIONS`: NM, LP, MP, HP, DMG
 
-## DB Supabase (7 tabelle, RLS attivo)
+## DB Supabase (RLS attivo)
 
 - `profiles`: metadata utente, tier, country
 - `collection`: vault carte (card_id, condition, grade, purchase_price)
-- `alerts`: soglie prezzo (tcg, card_id, threshold_price, direction)
+- `alerts`: soglie prezzo (tcg, card_api_id, card_name, threshold_price, direction, is_active)
 - `binders`: binder virtuali
 - `watchlist`: carte tracciate (max 20 free tier)
-- `price_history`: snapshot giornalieri prezzi
+- `cards`: catalogo carte (~170k righe: Pokemon, MTG, YGO, One Piece)
+- `card_prices`: snapshot prezzi (card_id, source, price_market, captured_at) ← tabella REALE dei prezzi
+- `price_history`: VUOTA, legacy — NON usare, lo schema attuale scrive su `card_prices`
+- `api_call_log`: log di ogni chiamata API esterna (source, endpoint, status, error_message)
+- `price_sources`: health delle fonti prezzo
 - `newsletter`: iscritti email
+
+## Pipeline prezzi (verificato 2026-06-11)
+
+- Edge Function `refresh-prices` gira via pg_cron ogni 6h (`refresh-prices-6h`)
+  → prende card da alerts attivi + collection → chain di fonti per TCG → insert su `card_prices`
+- JustTCG: game slug One Piece = `one-piece-card-game` (NON `one-piece` → HTTP 400);
+  il param `q` è ricerca testuale → si cerca il numero carta (es. OP05-119), non l'ID interno
+- Altri cron: `bulk-import-weekly`, `compute-hot-picks-daily`
+- GitHub Action `Sync Cards` (giornaliero 03:00 UTC): aggiorna SOLO il catalogo `cards`, non i prezzi
+- Debug: tabella `api_call_log` contiene status + body errore di ogni chiamata
 
 ## Env Vars
 
@@ -77,7 +91,7 @@ EBAY_CLIENT_SECRET        → eBay OAuth (opzionale, Vercel only)
 - **GitHub repo**: https://github.com/dragold/DraGold (user: dragold)
 - **Upload file GitHub**: https://github.com/dragold/DraGold/upload/main/{cartella}
 - **Modifica file GitHub**: https://github.com/dragold/DraGold/edit/main/{file}
-- **Vercel dashboard**: https://vercel.com/dragold
+- **Vercel dashboard**: https://vercel.com/dra-gold-s-projects (NON /dragold → 404)
 - **Supabase dashboard**: https://supabase.com/dashboard/project/pimwkmwrduqkaydyvxqz
 - **Supabase SQL**: https://supabase.com/dashboard/project/pimwkmwrduqkaydyvxqz/editor
 - **Supabase Functions**: https://supabase.com/dashboard/project/pimwkmwrduqkaydyvxqz/functions
