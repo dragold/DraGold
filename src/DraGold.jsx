@@ -35,7 +35,8 @@ function ebayURL(name,setName,country,grade=null,tcg="pokemon",cardNumber=""){
   const catP=cat?`&_sacat=${cat}`:"";
   // _sop=12=Best Match; LH_BIN=1=Buy It Now; _sacat=categoria TCG; LH_PrefLoc=1=paese utente
   return `https://www.${site.domain}/sch/i.html?_nkw=${encodeURIComponent(q)}&_sop=12&LH_BIN=1${catP}&mkcid=1&mkrid=${site.mkrid}&siteid=${site.siteid}&campid=${EBAY_CAMP}&toolid=10001&mkevt=1${loc}`;
-}ebaySellURL(name,setName,country){
+}
+function ebaySellURL(name,setName,country){
   const site=EBAY_SITES[country]||EBAY_SITES.US;
   const q=`${name} ${setName||""} pokemon card`.trim();
   return `https://www.${site.domain}/sell?kw=${encodeURIComponent(q)}&mkrid=${site.mkrid}&campid=${EBAY_CAMP}&toolid=10001`;
