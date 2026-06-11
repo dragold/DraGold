@@ -14,6 +14,8 @@ const EBAY_SITES = {
   AU:{domain:"ebay.com.au",siteid:"15", mkrid:"705-53470-19255-0"},
   US:{domain:"ebay.com",   siteid:"0",  mkrid:"711-53200-19255-0"},
 };
+// eBay category IDs per TCG — filtra risultati alla categoria corretta
+const EBAY_CATS = {pokemon:"183454",mtg:"183448",ygo:"183468",onepiece:"183454"};
 function ebayURL(name,setName,country,grade=null,tcg="pokemon",cardNumber=""){
   const site=EBAY_SITES[country]||EBAY_SITES.US;
   const eu=EU_CC.includes(country);
@@ -26,7 +28,10 @@ function ebayURL(name,setName,country,grade=null,tcg="pokemon",cardNumber=""){
   else if(tcg==="ygo") q=`${name}${num}${set} yugioh`.replace(/\s+/g," ").trim();
   else if(tcg==="onepiece") q=`${name}${num}${set} one piece card game`.replace(/\s+/g," ").trim();
   else q=`${name}${num}${set} pokemon card`.replace(/\s+/g," ").trim();
-  return `https://www.${site.domain}/sch/i.html?_nkw=${encodeURIComponent(q)}&mkcid=1&mkrid=${site.mkrid}&siteid=${site.siteid}&campid=${EBAY_CAMP}&toolid=10001&mkevt=1${loc}`;
+  const cat=EBAY_CATS[tcg]||"";
+  const catP=cat?`&_sacat=${cat}`:"";
+  // _sop=12 = Best Match; _sacat = categoria TCG; LH_PrefLoc=1 = venditori paese utente
+  return `https://www.${site.domain}/sch/i.html?_nkw=${encodeURIComponent(q)}&_sop=12${catP}&mkcid=1&mkrid=${site.mkrid}&siteid=${site.siteid}&campid=${EBAY_CAMP}&toolid=10001&mkevt=1${loc}`;
 }
 function ebaySellURL(name,setName,country){
   const site=EBAY_SITES[country]||EBAY_SITES.US;
@@ -2548,10 +2553,11 @@ export default function DraGold(){
             onepiece:buildQ('one piece'),
           };
           const q=qMap[cardTcg]||buildQ('tcg');
-          const ctr=(country||'us').toLowerCase();
-          const{data,error}=await supabase.functions.invoke('fetch-ebay-prices',{body:{query:q,country:ctr,limit:5}});
-          if(cancelled||error) return;
-          setEbayListings(data?.items||[]);
+          const market=(country||'US').toUpperCase();
+          const resp=await fetch(`/api/ebay-search?q=${encodeURIComponent(q)}&market=${market}&limit=5`);
+          if(cancelled||!resp.ok) return;
+          const data=await resp.json();
+          if(!cancelled) setEbayListings(data?.items||[]);
         }catch{}finally{if(!cancelled)setEbayLoading(false);}
       })();
       return()=>{cancelled=true;};
@@ -2565,10 +2571,11 @@ export default function DraGold(){
       if(existing.length>0) return; // già fetchato
       setEbayPsaLoading(true);
       try{
-        const ctr=(country||'us').toLowerCase();
+        const market=(country||'US').toUpperCase();
         const q=`${card.name} PSA ${grade} ${cardTcg==='pokemon'?'pokemon':cardTcg==='mtg'?'magic gathering':cardTcg} graded`;
-        const{data,error}=await supabase.functions.invoke('fetch-ebay-prices',{body:{query:q,country:ctr,limit:5}});
-        if(error) return;
+        const resp=await fetch(`/api/ebay-search?q=${encodeURIComponent(q)}&market=${market}&limit=5`);
+        if(!resp.ok) return;
+        const data=await resp.json();
         if(grade===10) setEbayPsa10(data?.items||[]);
         else setEbayPsa9(data?.items||[]);
       }catch{}finally{setEbayPsaLoading(false);}
