@@ -2553,11 +2553,10 @@ export default function DraGold(){
             onepiece:buildQ('one piece'),
           };
           const q=qMap[cardTcg]||buildQ('tcg');
-          const market=(country||'US').toUpperCase();
-          const resp=await fetch(`/api/ebay-search?q=${encodeURIComponent(q)}&market=${market}&limit=5`);
-          if(cancelled||!resp.ok) return;
-          const data=await resp.json();
-          if(!cancelled) setEbayListings(data?.items||[]);
+          const ctr=(country||'us').toLowerCase();
+          const{data,error}=await supabase.functions.invoke('fetch-ebay-prices',{body:{query:q,country:ctr,limit:5}});
+          if(cancelled||error) return;
+          setEbayListings(data?.items||[]);
         }catch{}finally{if(!cancelled)setEbayLoading(false);}
       })();
       return()=>{cancelled=true;};
@@ -2571,11 +2570,10 @@ export default function DraGold(){
       if(existing.length>0) return; // già fetchato
       setEbayPsaLoading(true);
       try{
-        const market=(country||'US').toUpperCase();
+        const ctr=(country||'us').toLowerCase();
         const q=`${card.name} PSA ${grade} ${cardTcg==='pokemon'?'pokemon':cardTcg==='mtg'?'magic gathering':cardTcg} graded`;
-        const resp=await fetch(`/api/ebay-search?q=${encodeURIComponent(q)}&market=${market}&limit=5`);
-        if(!resp.ok) return;
-        const data=await resp.json();
+        const{data,error}=await supabase.functions.invoke('fetch-ebay-prices',{body:{query:q,country:ctr,limit:5}});
+        if(error) return;
         if(grade===10) setEbayPsa10(data?.items||[]);
         else setEbayPsa9(data?.items||[]);
       }catch{}finally{setEbayPsaLoading(false);}
