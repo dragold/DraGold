@@ -737,7 +737,6 @@ function AlertsView({ isAuthed, onLogin, onExplore }) {
 
 /* --- CSS --- */
 const CSS = `
-@function PortfolioView({ isAuthed, onLogin, onExplore }) {
 @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700;9..144,800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap');
 
 :root{
