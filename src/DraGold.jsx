@@ -130,9 +130,9 @@ function AuthModal({ open, onClose }) {
         {status==="sent" ? (
           <div className="auth-sent">
             <div className="auth-sent-ic"><Icon name="mail" size={28}/></div>
-            <h3>Controlla la tua email</h3>
-            <p>Abbiamo inviato un link di accesso a <b>{email}</b>. Aprilo da questo dispositivo per entrare.</p>
-            <button className="btn btn-ghost" onClick={onClose}>Ho capito</button>
+            <h3>Check your email</h3>
+            <p>We sent a magic link to <b>{email}</b>. Open it on this device to sign in.</p>
+            <button className="btn btn-ghost" onClick={onClose}>Got it</button>
           </div>
         ) : (
           <form onSubmit={submit} className="auth-form">
@@ -266,7 +266,7 @@ export default function DraGold() {
                     <div className="menu">
                       <div className="menu-email">{userEmail}</div>
                       <button className="menu-i" onClick={signOut}>
-                        <Icon name="logout" size={16}/> Esci
+                        <Icon name="logout" size={16}/> Sign out
                       </button>
                     </div>
                   </>
@@ -403,8 +403,7 @@ function SearchResults({ loading, results, priceMap, error, term, country, cur, 
     <div className="card-grid">
       {Array.from({ length: 6 }).map((_, i) => (
         <div key={i} className="skel-card">
-          <div className="skel-img" /><div className="skel-line w7"/>
-          <div className="skel-line w40" />
+          <div className="skel-img" /><div className="skel-line w70" /><div className="skel-line w40" />
         </div>
       ))}
     </div>
@@ -635,7 +634,7 @@ function MarketsView({ tcgFilter, setTcgFilter, langFilter, setLangFilter, count
     <section className="view">
       <div className="hero">
         <h1 className="hero-t">Find a card.<br/>See its real market value.</h1>
-        <p className="hero-s">Un prezzo equo su Pokémon, One Piece, Magic e Yu-Gi-Oh!. Tracciala come un asset.</p>
+        <p className="hero-s">Fair market price on Pokémon, One Piece, Magic and Yu-Gi-Oh!. Track it like an asset.</p>
       </div>
 
       {/* Fix #2: form submit = invio da tastiera */}
@@ -657,7 +656,7 @@ function MarketsView({ tcgFilter, setTcgFilter, langFilter, setLangFilter, count
 
       <div className="filters">
         <div className="chip-row">
-          <button className={`chip ${!tcgFilter?"on":""}`} onClick={()=>setTcgFilter(null)}>Tutti</button>
+          <button className={`chip ${!tcgFilter?"on":""}`} onClick={()=>setTcgFilter(null)}>All</button>
           {TCG_LIST.map(t => (
             <button key={t.id} className={`chip ${tcgFilter===t.id?"on":""}`}
               onClick={()=>setTcgFilter(tcgFilter===t.id?null:t.id)}
@@ -667,7 +666,7 @@ function MarketsView({ tcgFilter, setTcgFilter, langFilter, setLangFilter, count
           ))}
         </div>
         <div className="chip-row">
-          <button className={`chip sm ${!langFilter?"on":""}`} onClick={()=>setLangFilter(null)}>Tutte</button>
+          <button className={`chip sm ${!langFilter?"on":""}`} onClick={()=>setLangFilter(null)}>All</button>
           {CARD_LANGS.map(l => (
             <button key={l.c} className={`chip sm ${langFilter===l.c?"on":""}`}
               onClick={()=>setLangFilter(langFilter===l.c?null:l.c)}>
@@ -738,6 +737,7 @@ function AlertsView({ isAuthed, onLogin, onExplore }) {
 
 /* --- CSS --- */
 const CSS = `
+@function PortfolioView({ isAuthed, onLogin, onExplore }) {
 @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700;9..144,800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap');
 
 :root{
