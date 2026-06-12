@@ -55,8 +55,8 @@ const TABS = [
 ];
 const UPCOMING = [
   { id:"binder",    label:"Binder",    icon:"grid",    desc:"Sfoglia la collezione in binder virtuali." },
-  { id:"blog",      label:"Blog",      icon:"doc",     desc:"Guide, analisi di mercato, novità." },
-  { id:"community", label:"Community", icon:"users",   desc:"Condividi e confronta le tue carte." },
+  { id:"blog",      label:"Blog",      icon:"doc",     desc:"Guides, market analysis, news." },
+  { id:"community", label:"Community", icon:"users",   desc:"Share and compare your cards." },
 ];
 
 /* ─── Icone SVG inline (no librerie) ─── */
@@ -118,7 +118,7 @@ function AuthModal({ open, onClose }) {
     if (!supabaseReady) { setStatus("error"); setMsg("Backend non configurato."); return; }
     setStatus("sending"); setMsg("");
     const { error } = await sendMagicLink(email.trim());
-    if (error) { setStatus("error"); setMsg(error.message || "Invio non riuscito, riprova."); }
+    if (error) { setStatus("error"); setMsg(error.message || "Send failed, please try again."); }
     else { setStatus("sent"); }
   };
 
@@ -136,16 +136,16 @@ function AuthModal({ open, onClose }) {
           </div>
         ) : (
           <form onSubmit={submit} className="auth-form">
-            <h3>Accedi o registrati</h3>
-            <p className="auth-p">Nessuna password. Ti mandiamo un link magico via email.</p>
+            <h3>Sign in or create account</h3>
+            <p className="auth-p">No password needed. We'll send you a magic link by email.</p>
             <input
               type="email" inputMode="email" autoComplete="email" required
-              placeholder="tu@email.com" value={email}
+              placeholder="your@email.com" value={email}
               onChange={e=>setEmail(e.target.value)} className="input"
             />
             {status==="error" && <div className="auth-err">{msg}</div>}
             <button type="submit" className="btn btn-primary btn-block" disabled={status==="sending"}>
-              {status==="sending" ? "Invio…" : "Invia link di accesso"}
+              {status==="sending" ? "Sending…" : "Send magic link"}
             </button>
           </form>
         )}
@@ -273,7 +273,7 @@ export default function DraGold() {
                 )}
               </div>
             ) : (
-              <button className="btn btn-primary btn-sm" onClick={()=>setAuthOpen(true)}>Accedi</button>
+              <button className="btn btn-primary btn-sm" onClick={()=>setAuthOpen(true)}>Sign in</button>
             )}
           </div>
         </div>
@@ -285,6 +285,7 @@ export default function DraGold() {
           <MarketsView
             tcgFilter={tcgFilter} setTcgFilter={setTcgFilter}
             langFilter={langFilter} setLangFilter={setLangFilter}
+            country={country} cur={cur} eurRate={eurRate}
           />
         )}
         {tab==="portfolio" && (
@@ -297,7 +298,7 @@ export default function DraGold() {
         {/* Upcoming — solo badge, zero logica */}
         <section className="upcoming">
           <div className="sec-h">
-            <span className="sec-h-t">In arrivo</span>
+            <span className="sec-h-t">Coming soon</span>
             <span className="sec-h-line" />
           </div>
           <div className="up-grid">
@@ -305,7 +306,7 @@ export default function DraGold() {
               <div key={u.id} className="up-card" aria-disabled="true">
                 <div className="up-top">
                   <span className="up-ic"><Icon name={u.icon} size={18}/></span>
-                  <span className="badge-soon">Presto</span>
+                  <span className="badge-soon">Soon</span>
                 </div>
                 <div className="up-label">{u.label}</div>
                 <div className="up-desc">{u.desc}</div>
@@ -316,11 +317,11 @@ export default function DraGold() {
 
         <footer className="foot">
           <span className="font-syne foot-logo">DraGold</span>
-          <span className="foot-sub">Fair Market Value per collezionisti TCG seri.</span>
+          <span className="foot-sub">Fair Market Value for serious TCG collectors.</span>
           <div className="foot-links">
-            <a href="mailto:hello@dragold.org">Contatti</a>
+            <a href="mailto:hello@dragold.org">Contact</a>
             <span>·</span>
-            <a href="https://buymeacoffee.com/dragold" target="_blank" rel="noreferrer">Offrici un caffè</a>
+            <a href="https://buymeacoffee.com/dragold" target="_blank" rel="noreferrer">Buy us a coffee</a>
           </div>
         </footer>
       </main>
@@ -340,33 +341,318 @@ export default function DraGold() {
   );
 }
 
-/* ════════════════════════════════════════════════════════════════════════
-   MARKETS — ricerca (placeholder shell) + hot picks + watchlist
-   ════════════════════════════════════════════════════════════════════════ */
-function MarketsView({ tcgFilter, setTcgFilter, langFilter, setLangFilter }) {
-  const [q, setQ] = useState("");
+/* ─── norm: normalizza per confronto punteggiatura (Fix #1) ─── */
+function norm(s) {
+  return (s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+}
 
-  const onSubmit = (e) => {
-    e.preventDefault();
-    /* TASK 3: qui partirà la ricerca su `cards`. Per ora shell. */
+/* ─── CardItem — componente riusabile: Markets + Hot picks + Portfolio ─── */
+function CardItem({ card, priceInfo, country = "IT", cur = "EUR", eurRate = 0.92 }) {
+  const [imgFailed, setImgFailed] = useState(false);
+  const imgUrl = card.image_url || card.imgUrl || card.img || null;
+  const cardName = card.name || "—";
+  const tcgInfo = TCG_LIST.find(t => t.id === card.tcg);
+  const langInfo = CARD_LANGS.find(l => l.c === card.lang);
+  const priceUSD = priceInfo?.price_market ?? card.avgPrice ?? null;
+  const priceStr = priceUSD != null
+    ? cur === "EUR" ? `€${(priceUSD * eurRate).toFixed(2)}` : `$${Number(priceUSD).toFixed(2)}`
+    : null;
+  const initials = cardName.replace(/[^a-zA-Z ]/g, '').trim()
+    .split(/\s+/).slice(0, 2).map(w => w[0] || '').join('').toUpperCase() || '?';
+
+  return (
+    <div className="card-item">
+      <div className="card-item-img">
+        {imgUrl && !imgFailed ? (
+          <img src={imgUrl} alt={cardName} loading="lazy" onError={() => setImgFailed(true)} />
+        ) : (
+          <div className="card-img-ph">
+            {tcgInfo && <span className="card-img-ph-tcg" style={{ color: tcgInfo.color }}>{tcgInfo.short}</span>}
+            <span className="card-img-ph-init">{initials}</span>
+          </div>
+        )}
+      </div>
+      <div className="card-item-body">
+        <div className="card-item-name" title={cardName}>{cardName}</div>
+        <div className="card-item-meta">
+          {card.set_name && <span className="card-item-set">{card.set_name}</span>}
+          {card.card_number && <span className="card-item-num">#{card.card_number}</span>}
+          {langInfo && <span className="card-item-lang">{langInfo.flag}</span>}
+        </div>
+        <div className="card-item-footer">
+          {priceStr
+            ? <span className="price-tag">{priceStr}</span>
+            : (
+              <a className="btn-ebay"
+                href={ebayURL(cardName, card.set_name || '', country, card.tcg || 'pokemon', card.card_number || '')}
+                target="_blank" rel="noreferrer"
+                onClick={e => e.stopPropagation()}>
+                View on eBay ↗
+              </a>
+            )
+          }
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── SearchResults — stati: loading / error / vuoto / risultati ─── */
+function SearchResults({ loading, results, priceMap, error, term, country, cur, eurRate, onRetry }) {
+  if (loading) return (
+    <div className="card-grid">
+      {Array.from({ length: 6 }).map((_, i) => (
+        <div key={i} className="skel-card">
+          <div className="skel-img" /><div className="skel-line w7"/>
+          <div className="skel-line w40" />
+        </div>
+      ))}
+    </div>
+  );
+  if (error) return (
+    <div className="search-error">
+      <span style={{ flexShrink: 0 }}><Icon name="close" size={16} /></span>
+      <span>Search failed, please try.</span>
+      <button className="btn btn-ghost btn-sm" style={{ marginLeft: 'auto' }} onClick={onRetry}>Retry</button>
+    </div>
+  );
+  if (!results.length) return (
+    <div className="zero-state">
+      <div className="zero-title">No results for "{term}"</div>
+      <div className="zero-sub">Try fewer words or the card number.</div>
+      <a className="btn btn-ghost"
+        href={`https://www.ebay.it/sch/i.html?_nkw=${encodeURIComponent(term)}`}
+        target="_blank" rel="noreferrer">
+        Search "{term}" on eBay
+      </a>
+    </div>
+  );
+  return (
+    <div className="card-grid">
+      {results.map(card => (
+        <CardItem key={card.id} card={card} priceInfo={priceMap[card.id] || null}
+          country={country} cur={cur} eurRate={eurRate} />
+      ))}
+    </div>
+  );
+}
+
+/* ─── HotPicksSection — logica legacy, card UI riusabile ─── */
+function HotPicksSection({ country = "IT", cur = "EUR", eurRate = 0.92 }) {
+  const POOL = [
+    {id:"hp14",name:"Charizard ex Prismatic Evolutions",query:"Charizard ex Prismatic Evolutions 006/131 pokemon card",tcg:"pokemon",img:"https://images.pokemontcg.io/sv8pt5/6.png"},
+    {id:"hp15",name:"Pikachu ex Prismatic Evolutions",query:"Pikachu ex Prismatic Evolutions 031/131 pokemon card",tcg:"pokemon",img:"https://images.pokemontcg.io/sv8pt5/31.png"},
+    {id:"hp16",name:"Umbreon ex Prismatic Evolutions",query:"Umbreon ex Prismatic Evolutions 060/131 pokemon card",tcg:"pokemon",img:"https://images.pokemontcg.io/sv8pt5/60.png"},
+    {id:"hp17",name:"Eevee ex Prismatic Evolutions SIR",query:"Eevee ex 167/131 Prismatic Evolutions special illustration rare pokemon card",tcg:"pokemon",img:"https://images.pokemontcg.io/sv8pt5/167.png"},
+    {id:"hp18",name:"Pikachu ex Surging Sparks SAR",query:"Pikachu ex 238/191 Surging Sparks special art rare pokemon card",tcg:"pokemon",img:"https://images.pokemontcg.io/sv8/238.png"},
+    {id:"hp19",name:"Raging Bolt ex Temporal Forces SIR",query:"Raging Bolt ex 208/162 Temporal Forces special illustration rare pokemon card",tcg:"pokemon",img:"https://images.pokemontcg.io/sv5/208.png"},
+    {id:"hp1",name:"Charizard ex SV151",query:"Charizard ex 199/165 sv151 pokemon card english",tcg:"pokemon",img:"https://images.pokemontcg.io/sv3pt5/199.png"},
+    {id:"hp2",name:"Pikachu ex 151",query:"Pikachu ex 086/078 pokemon sv151 card english",tcg:"pokemon",img:"https://images.pokemontcg.io/sv3pt5/86.png"},
+    {id:"hp3",name:"Mewtwo ex 151 Full Art",query:"Mewtwo ex 205/165 pokemon sv151 full art card",tcg:"pokemon",img:"https://images.pokemontcg.io/sv3pt5/205.png"},
+    {id:"hp12",name:"Gardevoir ex SV Base",query:"Gardevoir ex 086/091 scarlet violet base set pokemon english",tcg:"pokemon",img:"https://images.pokemontcg.io/sv1/86.png"},
+    {id:"hp4",name:"Umbreon VMAX Alt Art",query:"Umbreon VMAX alternate art 215/203 evolving skies pokemon",tcg:"pokemon",img:"https://images.pokemontcg.io/swsh7/215.png"},
+    {id:"hp5",name:"Rayquaza VMAX Alt Art",query:"Rayquaza VMAX alternate art 218/203 evolving skies pokemon",tcg:"pokemon",img:"https://images.pokemontcg.io/swsh7/218.png"},
+    {id:"hp6",name:"Giratina VSTAR Lost Origin",query:"Giratina VSTAR 131/196 lost origin pokemon card english",tcg:"pokemon",img:"https://images.pokemontcg.io/swsh11/131.png"},
+    {id:"hp7",name:"Lugia V Alt Art Silver Tempest",query:"Lugia V alternate art 186/195 silver tempest pokemon",tcg:"pokemon",img:"https://images.pokemontcg.io/swsh12/186.png"},
+    {id:"op1",name:"Monkey D. Luffy SEC OP-01",query:"Monkey D Luffy secret rare OP-01-120 one piece card game",tcg:"op",img:null},
+    {id:"op2",name:"Yamato SEC OP-01",query:"Yamato secret rare OP-01 one piece card game english",tcg:"op",img:null},
+    {id:"op3",name:"Portgas D. Ace SEC OP-02",query:"Portgas D Ace secret rare OP-02 one piece card game",tcg:"op",img:null},
+    {id:"op4",name:"Roronoa Zoro Parallel OP-02",query:"Roronoa Zoro parallel rare OP-02 one piece card game",tcg:"op",img:null},
+    {id:"op5",name:"Marco SEC OP-03",query:"Marco secret rare OP-03 one piece card game",tcg:"op",img:null},
+    {id:"op6",name:"Trafalgar Law SEC OP-04",query:"Trafalgar Law secret rare OP-04 one piece card game",tcg:"op",img:null},
+  ];
+
+  const getDailyPicks = () => {
+    const day = Math.floor(Date.now() / 86400000);
+    const poke = POOL.filter(c => c.tcg === "pokemon");
+    const op   = POOL.filter(c => c.tcg === "op");
+    const ps = day % poke.length, os = day % op.length;
+    const out = [];
+    for (let i = 0; i < 9; i++) out.push(poke[(ps + i) % poke.length]);
+    for (let i = 0; i < 3; i++) out.push(op[(os + i) % op.length]);
+    return out;
   };
+
+  const [picks, setPicks] = useState([]);
+  const [loadingPicks, setLoadingPicks] = useState(true);
+  const ctr = (country || 'it').toLowerCase();
+  const CACHE_KEY = 'dg_hotpicks_v3';
+  const CACHE_TTL = 30 * 60 * 1000;
+
+  useEffect(() => {
+    if (!supabaseReady) { setLoadingPicks(false); return; }
+    let cancelled = false;
+    try {
+      const c = JSON.parse(sessionStorage.getItem(CACHE_KEY) || '{}');
+      if (c.ts && Date.now() - c.ts < CACHE_TTL && c.data?.length) {
+        setPicks(c.data); setLoadingPicks(false); return;
+      }
+    } catch {}
+    (async () => {
+      try {
+        const daily = getDailyPicks();
+        const settled = await Promise.allSettled(daily.map(async card => {
+          const { data, error } = await supabase.functions.invoke('fetch-ebay-sold', {
+            body: { query: card.query, country: ctr, limit: 5 }
+          });
+          if (error || !data?.items?.length) return null;
+          const items = data.items;
+          const avg = data.avgPrice ?? data.avg ?? (items.reduce((s, x) => s + (x.price || 0), 0) / items.length);
+          if (!avg || avg > 200) return null;
+          const imgUrl = card.img || (items[0]?.image ?? items[0]?.imageUrl ?? null);
+          return { ...card, avgPrice: avg, soldCount: items.length, image_url: imgUrl };
+        }));
+        if (!cancelled) {
+          const valid = settled.filter(r => r.status === 'fulfilled' && r.value).map(r => r.value);
+          setPicks(valid);
+          try { sessionStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), data: valid })); } catch {}
+        }
+      } catch {}
+      finally { if (!cancelled) setLoadingPicks(false); }
+    })();
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ctr]);
+
+  return (
+    <>
+      <div className="sec-h">
+        <span className="sec-h-t"><Icon name="spark" size={14} /> Hot picks</span>
+        <span className="sec-h-line" />
+      </div>
+      {loadingPicks ? (
+        <div className="card-grid">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="skel-card">
+              <div className="skel-img" /><div className="skel-line w70" /><div className="skel-line w40" />
+            </div>
+          ))}
+        </div>
+      ) : picks.length > 0 ? (
+        <div className="card-grid">
+          {picks.map(card => (
+            <CardItem key={card.id} card={card} priceInfo={null}
+              country={country} cur={cur} eurRate={eurRate} />
+          ))}
+        </div>
+      ) : (
+        <p className="hint-center">Live data unavailable. Start by searching a card above.</p>
+      )}
+    </>
+  );
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   MARKETS — ricerca + hot picks
+   ════════════════════════════════════════════════════════════════════════ */
+function MarketsView({ tcgFilter, setTcgFilter, langFilter, setLangFilter, country, cur, eurRate }) {
+  const [q, setQ] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [results, setResults] = useState([]);
+  const [priceMap, setPriceMap] = useState({});
+  const [error, setError] = useState(null);
+  const [searched, setSearched] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const runSearch = useCallback(async (query, tcg, lang) => {
+    const trimmed = query.trim();
+    if (!trimmed) return;
+    setLoading(true); setError(null); setSearched(true); setSearchTerm(trimmed);
+    try {
+      if (!supabaseReady) throw new Error("Backend non configurato.");
+      const normQ = norm(trimmed);
+      const hasSpaces = trimmed.includes(' ');
+      // Normalizza query: rimuove punteggiatura, splitta in token significativi (≥2 char)
+      const words = trimmed.toLowerCase().replace(/[^a-z0-9 ]/gi, ' ')
+        .trim().split(/\s+/).filter(w => w.length >= 2);
+
+      let dbQuery = supabase
+        .from('cards')
+        .select('id,name,set_name,card_number,image_url,lang,tcg')
+        .limit(80);
+      if (tcg)  dbQuery = dbQuery.eq('tcg', tcg);
+      if (lang) dbQuery = dbQuery.eq('lang', lang);
+
+      if (words.length > 0) {
+        // AND tra token: ogni parola deve comparire in nome/numero/set
+        for (const w of words) {
+          const sw = w.replace(/[*%()]/g, '');
+          if (sw) dbQuery = dbQuery.or(`name.ilike.*${sw}*,card_number.ilike.*${sw}*,set_name.ilike.*${sw}*`);
+        }
+      } else {
+        const sw = trimmed.replace(/[*%()]/g, '');
+        dbQuery = dbQuery.ilike('name', `*${sw}*`);
+      }
+
+      const { data, error: dbErr } = await dbQuery;
+      if (dbErr) throw dbErr;
+
+      let cards = data || [];
+
+      // Client-side normalization (Fix #1): gestisce "monkeydluffy" → "Monkey.D.Luffy"
+      // Solo per query senza spazi (caso raro), le query con spazi sono già gestite da ilike
+      if (!hasSpaces && normQ.length >= 3) {
+        cards = cards.filter(c =>
+          norm((c.name || '') + (c.set_name || '') + (c.card_number || '')).includes(normQ)
+        );
+      }
+
+      setResults(cards);
+
+      // Prezzi: ultimo snapshot da card_prices per ogni carta trovata
+      if (cards.length > 0) {
+        const ids = cards.map(c => c.id);
+        const { data: priceRows } = await supabase
+          .from('card_prices')
+          .select('card_id,price_market,source,captured_at')
+          .in('card_id', ids)
+          .order('captured_at', { ascending: false })
+          .limit(ids.length * 3);
+        const pm = {};
+        for (const p of (priceRows || [])) { if (!pm[p.card_id]) pm[p.card_id] = p; }
+        setPriceMap(pm);
+      } else {
+        setPriceMap({});
+      }
+    } catch (e) {
+      setError(e.message || "Unknown error.");
+      setResults([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Re-run se filtri cambiano con ricerca attiva
+  useEffect(() => {
+    if (searched && searchTerm) runSearch(searchTerm, tcgFilter, langFilter);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tcgFilter, langFilter]);
+
+  const onSubmit = (e) => { e.preventDefault(); runSearch(q, tcgFilter, langFilter); };
+  const clearSearch = () => { setSearched(false); setResults([]); setPriceMap({}); setError(null); };
 
   return (
     <section className="view">
       <div className="hero">
-        <h1 className="hero-t">Cerca una carta.<br/>Vedi il suo valore reale.</h1>
+        <h1 className="hero-t">Find a card.<br/>See its real market value.</h1>
         <p className="hero-s">Un prezzo equo su Pokémon, One Piece, Magic e Yu-Gi-Oh!. Tracciala come un asset.</p>
       </div>
 
+      {/* Fix #2: form submit = invio da tastiera */}
       <form className="search" onSubmit={onSubmit}>
         <span className="search-ic"><Icon name="search" size={20}/></span>
         <input
           className="search-in"
-          placeholder="Cerca una carta… (es. Charizard, Monkey D Luffy)"
-          value={q} onChange={e=>setQ(e.target.value)}
+          placeholder="Search a card… (e.g. Charizard, Monkey D Luffy)"
+          value={q} onChange={e => setQ(e.target.value)}
           enterKeyHint="search" autoComplete="off"
         />
-        <button type="submit" className="search-go">Cerca</button>
+        {searched && (
+          <button type="button" className="search-clear" onClick={clearSearch} aria-label="Clear search">
+            <Icon name="close" size={15}/>
+          </button>
+        )}
+        <button type="submit" className="search-go">Search</button>
       </form>
 
       <div className="filters">
@@ -391,28 +677,22 @@ function MarketsView({ tcgFilter, setTcgFilter, langFilter, setLangFilter }) {
         </div>
       </div>
 
-      {/* Stato vuoto / hot picks placeholder (logica in TASK 3) */}
-      <div className="sec-h">
-        <span className="sec-h-t"><Icon name="spark" size={14}/> Hot picks</span>
-        <span className="sec-h-line" />
-      </div>
-      <div className="skel-grid" aria-hidden="true">
-        {Array.from({length:6}).map((_,i)=>(
-          <div key={i} className="skel-card">
-            <div className="skel-img" />
-            <div className="skel-line w70" />
-            <div className="skel-line w40" />
-          </div>
-        ))}
-      </div>
-      <p className="hint-center">Le carte più cercate appariranno qui a breve. Inizia cercando una carta.</p>
+      {searched ? (
+        <SearchResults
+          loading={loading} results={results} priceMap={priceMap}
+          error={error} term={searchTerm}
+          country={country} cur={cur} eurRate={eurRate}
+          onRetry={() => runSearch(searchTerm, tcgFilter, langFilter)}
+        />
+      ) : (
+        <HotPicksSection country={country} cur={cur} eurRate={eurRate} />
+      )}
     </section>
   );
 }
 
-/* ════════════════════════════════════════════════════════════════════════
-   PORTFOLIO
-   ════════════════════════════════════════════════════════════════════════ */
+/* ------------------------------------------------------------------------
+/* --- PORTFOLIO --- */
 function PortfolioView({ isAuthed, onLogin, onExplore }) {
   return (
     <section className="view">
@@ -421,22 +701,20 @@ function PortfolioView({ isAuthed, onLogin, onExplore }) {
       </div>
       {!isAuthed ? (
         <Empty icon="wallet"
-          title="Accedi per salvare il tuo portfolio"
-          sub="Aggiungi le carte che possiedi e segui valore e P&L nel tempo."
-          cta="Accedi" onCta={onLogin} />
+          title="Sign in to save your portfolio"
+          sub="Add the cards you own and track their value and P&L over time."
+          cta="Sign in" onCta={onLogin} />
       ) : (
         <Empty icon="wallet"
-          title="Il tuo portfolio è vuoto"
-          sub="Cerca una carta e aggiungila per seguirne valore e guadagno."
-          cta="Cerca una carta" onCta={onExplore} />
+          title="Your portfolio is empty"
+          sub="Search a card and add it to track its value and gain."
+          cta="Find a card" onCta={onExplore} />
       )}
     </section>
   );
 }
 
-/* ════════════════════════════════════════════════════════════════════════
-   ALERTS
-   ════════════════════════════════════════════════════════════════════════ */
+/* --- ALERTS --- */
 function AlertsView({ isAuthed, onLogin, onExplore }) {
   return (
     <section className="view">
@@ -445,22 +723,20 @@ function AlertsView({ isAuthed, onLogin, onExplore }) {
       </div>
       {!isAuthed ? (
         <Empty icon="bell"
-          title="Accedi per creare alert"
-          sub="Ricevi un'email quando una carta supera o scende sotto la tua soglia."
-          cta="Accedi" onCta={onLogin} />
+          title="Sign in to create alerts"
+          sub="Get an email when a card exceeds or drops below your price threshold."
+          cta="Sign in" onCta={onLogin} />
       ) : (
         <Empty icon="bell"
-          title="Nessun alert"
-          sub="Crea il tuo primo alert da una carta: scegli soglia e direzione."
-          cta="Cerca una carta" onCta={onExplore} />
+          title="No alerts yet"
+          sub="Create your first alert from any card: set a threshold and direction."
+          cta="Find a card" onCta={onExplore} />
       )}
     </section>
   );
 }
 
-/* ════════════════════════════════════════════════════════════════════════
-   CSS — dark fintech (Trade Republic), mobile-first
-   ════════════════════════════════════════════════════════════════════════ */
+/* --- CSS --- */
 const CSS = `
 @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700;9..144,800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap');
 
@@ -483,7 +759,7 @@ input{font-family:inherit;font-size:16px;}
 
 .app{min-height:100vh;min-height:100svh;display:flex;flex-direction:column;}
 
-/* ── header ── */
+/* header */
 .hdr{position:sticky;top:0;z-index:40;background:rgba(2,2,8,.82);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-bottom:1px solid var(--border);}
 .hdr-in{max-width:var(--maxw);margin:0 auto;height:58px;display:flex;align-items:center;gap:14px;padding:0 var(--p);}
 .brand{display:flex;align-items:center;gap:9px;}
@@ -508,7 +784,7 @@ input{font-family:inherit;font-size:16px;}
 .menu-i{display:flex;align-items:center;gap:9px;width:100%;padding:10px;border-radius:8px;font-size:14px;font-weight:600;color:var(--text);}
 .menu-i:hover{background:var(--surface-3);}
 
-/* ── main ── */
+/* main */
 .main{flex:1;width:100%;max-width:var(--maxw);margin:0 auto;padding:18px var(--p) calc(var(--tabh) + 28px);}
 .view{margin-bottom:30px;}
 .view-h{margin:4px 0 16px;}
@@ -585,12 +861,12 @@ input{font-family:inherit;font-size:16px;}
 .foot-links{margin-top:12px;display:flex;gap:8px;justify-content:center;font-size:13px;color:var(--dim);}
 .foot-links a:hover{color:var(--text);}
 
-/* ── bottom tab (mobile) ── */
+/* bottom tab (mobile) */
 .tabbar{position:fixed;bottom:0;left:0;right:0;z-index:40;display:flex;background:rgba(11,11,24,.92);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border-top:1px solid var(--border);padding-bottom:env(safe-area-inset-bottom);}
 .tab-i{flex:1;height:var(--tabh);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;color:var(--dim);font-size:11px;font-weight:600;transition:.15s;}
 .tab-i.on{color:var(--gold);}
 
-/* ── modal ── */
+/* modal */
 .modal-backdrop{position:fixed;inset:0;z-index:60;background:rgba(2,2,8,.7);backdrop-filter:blur(6px);display:flex;align-items:flex-end;justify-content:center;padding:0;}
 .modal{position:relative;width:100%;max-width:430px;background:var(--surface);border:1px solid var(--border-2);border-radius:22px 22px 0 0;padding:28px 22px calc(26px + env(safe-area-inset-bottom));box-shadow:0 -20px 60px rgba(0,0,0,.6);}
 .modal-x{position:absolute;top:16px;right:16px;color:var(--muted);width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;}
@@ -606,13 +882,41 @@ input{font-family:inherit;font-size:16px;}
 .auth-sent p{color:var(--muted);font-size:14px;line-height:1.5;margin:8px 0 18px;}
 .auth-sent b{color:var(--text);}
 
-/* ── desktop ── */
+/* card grid + card item */
+.card-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:8px;}
+.card-item{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;transition:.15s;cursor:pointer;}
+.card-item:hover{border-color:var(--border-2);background:var(--surface-2);}
+.card-item-img{aspect-ratio:3/4;width:100%;overflow:hidden;background:var(--surface-2);}
+.card-item-img img{width:100%;height:100%;object-fit:contain;}
+.card-img-ph{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;background:linear-gradient(150deg,var(--surface-3),var(--surface-2));padding:12px;}
+.card-img-ph-tcg{font-family:'Space Mono',monospace;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;opacity:.7;}
+.card-img-ph-init{font-family:'Space Mono',monospace;font-size:22px;font-weight:700;color:var(--dim);}
+.card-item-body{padding:10px 10px 12px;}
+.card-item-name{font-size:12px;font-weight:700;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-bottom:6px;}
+.card-item-meta{display:flex;flex-wrap:wrap;gap:3px;align-items:center;margin-bottom:8px;}
+.card-item-set{font-size:10px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100px;}
+.card-item-num{font-size:10px;font-family:'Space Mono',monospace;color:var(--muted);}
+.card-item-lang{font-size:12px;}
+.price-tag{font-family:'Space Mono',monospace;font-size:13px;font-weight:700;color:var(--gain);}
+.btn-ebay{font-size:10px;font-weight:700;color:var(--gold);text-decoration:none;background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.2);padding:4px 8px;border-radius:7px;display:inline-block;white-space:nowrap;}
+.btn-ebay:hover{background:rgba(251,191,36,.16);}
+/* search states */
+.search-clear{color:var(--dim);display:flex;padding:5px;border-radius:6px;flex-shrink:0;}
+.search-clear:hover{color:var(--text);background:var(--surface-3);}
+.search-error{display:flex;align-items:center;gap:10px;background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.22);color:var(--loss);border-radius:12px;padding:13px 15px;margin:10px 0;font-size:14px;}
+.zero-state{text-align:center;padding:36px 16px;border:1px dashed var(--border-2);border-radius:16px;background:var(--glass);}
+.zero-title{font-size:16px;font-weight:700;margin-bottom:6px;}
+.zero-sub{font-size:13px;color:var(--muted);margin-bottom:16px;}
+
+/* desktop */
 @media(min-width:760px){
   :root{--tabh:0px;}
   .topnav{display:flex;}
   .tabbar{display:none;}
   .main{padding:26px var(--p) 60px;}
   .skel-grid{grid-template-columns:repeat(4,1fr);}
+  .card-grid{grid-template-columns:repeat(4,1fr);}
+  .card-item-name{font-size:13px;}
   .up-grid{grid-template-columns:repeat(3,1fr);}
   .modal-backdrop{align-items:center;padding:20px;}
   .modal{border-radius:22px;}
