@@ -22,9 +22,11 @@ serve(async (_req) => {
   // 1) Get distinct card_ids that need price refresh
   const { data: alerts } = await supabase.from('alerts').select('tcg, card_api_id').eq('is_active', true)
   const { data: collection } = await supabase.from('collection').select('tcg, card_api_id').limit(2000)
+  const { data: watchlist } = await supabase.from('watchlist').select('tcg, card_api_id').limit(2000)
   const cards = new Map<string, { tcg: string; card_api_id: string }>()
   ;(alerts || []).forEach(a => cards.set(`${a.tcg}|${a.card_api_id}`, a as any))
   ;(collection || []).forEach(c => cards.set(`${c.tcg}|${c.card_api_id}`, c as any))
+  ;(watchlist || []).forEach(w => cards.set(`${w.tcg}|${w.card_api_id}`, w as any))
 
   const TCGLOOKUP_KEY = Deno.env.get('TCGLOOKUP_API_KEY')
   const JUSTTCG_KEY = Deno.env.get('JUSTTCG_API_KEY')
