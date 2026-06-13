@@ -957,9 +957,17 @@ function AssetView({ card, onBack, isAuthed, onLogin, country, cur, eurRate }) {
     }
   }, [card.id]);
 
-  /* eBay live: solo listing col numero carta nel titolo, max 5 (Fix #3) */
+  // Numero carta "distintivo" = filtrabile in modo affidabile su eBay (es. OP12-079,
+  // 006/165, swsh1-1). Un numero corto puro come "5" o "199" matcha qualunque titolo
+  // ("DP5", "...199...") → falsi positivi: in quel caso NON mostriamo eBay Live. (Fix #3)
+  const numNorm = cardNum.replace(/[^a-z0-9]/gi, "").toLowerCase();
+  const numDistinctive = !!cardNum && (
+    /[a-z]/i.test(cardNum) || /[-/]/.test(cardNum) || numNorm.length >= 5
+  );
+
+  /* eBay live: solo listing col numero carta (distintivo) nel titolo, max 5 (Fix #3) */
   const loadEbay = useCallback(async () => {
-    if (!cardNum) { setEbayItems([]); return; }
+    if (!numDistinctive) { setEbayItems([]); return; }
     try {
       const market = EBAY_MARKETS.includes(country) ? country : "US";
       const suffix = card.tcg === "mtg" ? "magic the gathering"
@@ -971,15 +979,14 @@ function AssetView({ card, onBack, isAuthed, onLogin, country, cur, eurRate }) {
       }).catch(() => null);
       if (!r || !r.ok) { setEbayItems([]); return; }
       const d = await r.json();
-      const numNorm = cardNum.replace(/\s+/g, "").toLowerCase();
       const matches = (d.items || [])
-        .filter(it => (it.title || "").replace(/\s+/g, "").toLowerCase().includes(numNorm))
+        .filter(it => (it.title || "").replace(/[^a-z0-9]/gi, "").toLowerCase().includes(numNorm))
         .slice(0, 5);
       setEbayItems(matches);
     } catch {
       setEbayItems([]);
     }
-  }, [card.id, cardNum, country]);
+  }, [card.id, cardNum, numNorm, numDistinctive, country]);
 
   useEffect(() => { loadPrice(); loadEbay(); }, [loadPrice, loadEbay]);
 
