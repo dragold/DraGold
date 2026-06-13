@@ -766,12 +766,11 @@ const CONDITIONS = ["NM", "LP", "MP", "HP", "DMG"];
 // market code accettato da /api/ebay-search; fallback US
 const EBAY_MARKETS = ["US","GB","DE","IT","FR","ES","CA"];
 
-// card_api_id = cards.id senza il prefisso "<tcg>:" → refresh-prices ricostruisce
-// `${tcg}:${card_api_id}` === card_prices.card_id (= cards.id).
+// card_api_id === cards.id (forma completa "<tcg>:<source>:<number>:<lang>",
+// es. "onepiece:optcg:OP05-119:en"). refresh-prices e check-alerts usano card_api_id
+// direttamente come card_prices.card_id, quindi NON va spogliato del prefisso.
 function toApiId(card) {
-  const id = card?.id || "";
-  const tcg = card?.tcg || "";
-  return tcg && id.startsWith(tcg + ":") ? id.slice(tcg.length + 1) : id;
+  return card?.id || "";
 }
 
 /* ─── Sparkline SVG (no librerie) — solo se ≥ 2 punti ─── */
