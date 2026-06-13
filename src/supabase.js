@@ -38,7 +38,11 @@ export async function listAlerts() {
 }
 export async function createAlert({ tcg, cardId, cardName, language='en', threshold, direction='below', currency='EUR', country='IT' }) {
   if (!supabase) return { error: 'Backend not configured' }
+  const { data: u } = await supabase.auth.getUser()
+  const userId = u?.user?.id
+  if (!userId) return { error: 'Not signed in' }
   return supabase.from('alerts').insert({
+    user_id: userId,
     tcg, card_api_id: cardId, card_name: cardName, language,
     threshold_price: threshold, direction, currency, country,
     region: ['IT','DE','FR','ES','PT','NL','BE','AT','PL','SE','FI','DK','GR'].includes(country) ? 'EU' : country,
@@ -56,12 +60,46 @@ export async function listCollection() {
   return data || []
 }
 export async function addToCollection(card) {
-  if (!supabase) return
-  return supabase.from('collection').insert(card)
+  if (!supabase) return { error: 'Backend not configured' }
+  const { data: u } = await supabase.auth.getUser()
+  const userId = u?.user?.id
+  if (!userId) return { error: 'Not signed in' }
+  // onConflict su (user_id, card_api_id): aggiorna se la carta è già in collezione
+  return supabase.from('collection').upsert(
+    { user_id: userId, ...card },
+    { onConflict: 'user_id,card_api_id' }
+  )
 }
 export async function removeFromCollection(id) {
   if (!supabase) return
   return supabase.from('collection').delete().eq('id', id)
+}
+
+// ---- Watchlist (tracked cards → included in future price refreshes) ----
+// Live schema (proven in prod): user_id, card_api_id, tcg, card_name, set_name, image_url.
+// card_api_id is cards.id WITHOUT the leading "<tcg>:" prefix, so refresh-prices can
+// reconstruct `${tcg}:${card_api_id}` === card_prices.card_id (= cards.id).
+export async function listWatchlist() {
+  if (!supabase) return []
+  const { data } = await supabase.from('watchlist').select('*').order('added_at', { ascending: false })
+  return data || []
+}
+export async function addToWatchlist({ tcg, cardApiId, cardName, setName = '', imageUrl = null }) {
+  if (!supabase) return { error: 'Backend not configured' }
+  const { data: u } = await supabase.auth.getUser()
+  const userId = u?.user?.id
+  if (!userId) return { error: 'Not signed in' }
+  return supabase.from('watchlist').upsert({
+    user_id: userId, card_api_id: cardApiId, tcg,
+    card_name: cardName, set_name: setName, image_url: imageUrl,
+  }, { onConflict: 'user_id,card_api_id' })
+}
+export async function removeFromWatchlist(cardApiId) {
+  if (!supabase) return
+  const { data: u } = await supabase.auth.getUser()
+  const userId = u?.user?.id
+  if (!userId) return
+  return supabase.from('watchlist').delete().eq('user_id', userId).eq('card_api_id', cardApiId)
 }
 
 // ---- Newsletter ----
