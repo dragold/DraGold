@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import {
   supabase, supabaseReady,
   sendMagicLink, getSession, onAuth, signOut as sbSignOut,
+  addToCollection, createAlert, addToWatchlist,
 } from "./supabase.js";
 
 /* ════════════════════════════════════════════════════════════════════════
@@ -22,13 +23,13 @@ const EBAY_SITES = {
   GB:{domain:"ebay.co.uk",  mkrid:"710-53481-19255-0", siteid:"3"},
   US:{domain:"ebay.com",    mkrid:"711-53200-19255-0", siteid:"0"},
 };
-const EBAY_CATS = { pokemon:"183454", mtg:"183448", ygo:"183468", op:"183454" };
+const EBAY_CATS = { pokemon:"183454", mtg:"183448", ygo:"183468", onepiece:"183454" };
 export function ebayURL(name, setName="", country="US", tcg="pokemon", cardNumber="") {
   const site = EBAY_SITES[country] || EBAY_SITES.US;
   const loc = EU_CC.includes(country) ? "&LH_PrefLoc=1" : "";
   const suffix = tcg==="mtg" ? "magic the gathering card"
     : tcg==="ygo" ? "yugioh card"
-    : tcg==="op" ? "one piece card game" : "pokemon card";
+    : tcg==="onepiece" ? "one piece card game" : "pokemon card";
   const q = `${name} ${cardNumber||""} ${setName||""} ${suffix}`.replace(/\s+/g," ").trim();
   const cat = EBAY_CATS[tcg] ? `&_sacat=${EBAY_CATS[tcg]}` : "";
   return `https://www.${site.domain}/sch/i.html?_nkw=${encodeURIComponent(q)}&_sop=12&LH_BIN=1${cat}&mkcid=1&mkrid=${site.mkrid}&siteid=${site.siteid}&campid=${EBAY_CAMP}&toolid=10001&mkevt=1${loc}`;
@@ -36,10 +37,10 @@ export function ebayURL(name, setName="", country="US", tcg="pokemon", cardNumbe
 
 /* ─── Cataloghi di riferimento (UI) ─── */
 const TCG_LIST = [
-  { id:"pokemon", label:"Pokémon",   short:"PKM", color:"#f87171" },
-  { id:"op",      label:"One Piece", short:"OP",  color:"#f97316" },
-  { id:"mtg",     label:"Magic",     short:"MTG", color:"#60a5fa" },
-  { id:"ygo",     label:"Yu-Gi-Oh!", short:"YGO", color:"#fbbf24" },
+  { id:"pokemon",   label:"Pokémon",   short:"PKM", color:"#f87171", logo:"https://upload.wikimedia.org/wikipedia/commons/thumb/9/98/International_Pok%C3%A9mon_logo.svg/200px-International_Pok%C3%A9mon_logo.svg.png" },
+  { id:"onepiece",  label:"One Piece", short:"OP",  color:"#f97316", logo:"https://upload.wikimedia.org/wikipedia/en/thumb/9/90/One_Piece_logo.svg/200px-One_Piece_logo.svg.png" },
+  { id:"mtg",       label:"Magic",     short:"MTG", color:"#60a5fa", logo:"https://upload.wikimedia.org/wikipedia/en/thumb/a/a9/MagicTheGatheringHorizontalLogo.svg/200px-MagicTheGatheringHorizontalLogo.svg.png" },
+  { id:"ygo",       label:"Yu-Gi-Oh!", short:"YGO", color:"#fbbf24", logo:"https://upload.wikimedia.org/wikipedia/en/thumb/7/7c/Yu-Gi-Oh%21_Logo.svg/200px-Yu-Gi-Oh%21_Logo.svg.png" },
 ];
 const CARD_LANGS = [
   { c:"en", flag:"🇺🇸", label:"EN", live:true },
@@ -164,6 +165,7 @@ export default function DraGold() {
   const [menuOpen, setMenuOpen] = useState(false);
 
   const [tab, setTab]   = useState("markets");
+  const [asset, setAsset] = useState(null);      // carta aperta (Asset page) o null
   const [cur, setCur]   = useState("EUR");       // EUR | USD
   const [country, setCountry] = useState("IT");
   const [eurRate, setEurRate] = useState(0.92);  // 1 USD = X EUR
@@ -216,6 +218,12 @@ export default function DraGold() {
     if (isAuthed) fn?.();
     else setAuthOpen(true);
   }, [isAuthed]);
+
+  const openAsset = useCallback((card) => {
+    setAsset(card);
+    window.scrollTo({ top: 0, behavior: "auto" });
+  }, []);
+  const closeAsset = useCallback(() => setAsset(null), []);
 
   /* ── formattatore valuta (i prezzi DB sono in USD) ── */
   const fmt = useCallback((usd) => {
@@ -281,11 +289,20 @@ export default function DraGold() {
 
       {/* ░░ MAIN ░░ */}
       <main className="main">
+        {asset ? (
+          <AssetView
+            card={asset} onBack={closeAsset}
+            isAuthed={isAuthed} onLogin={()=>setAuthOpen(true)}
+            country={country} cur={cur} eurRate={eurRate}
+          />
+        ) : (
+        <>
         {tab==="markets" && (
           <MarketsView
             tcgFilter={tcgFilter} setTcgFilter={setTcgFilter}
             langFilter={langFilter} setLangFilter={setLangFilter}
             country={country} cur={cur} eurRate={eurRate}
+            onOpenAsset={openAsset}
           />
         )}
         {tab==="portfolio" && (
@@ -324,6 +341,8 @@ export default function DraGold() {
             <a href="https://buymeacoffee.com/dragold" target="_blank" rel="noreferrer">Buy us a coffee</a>
           </div>
         </footer>
+        </>
+        )}
       </main>
 
       {/* ░░ BOTTOM TAB (mobile) ░░ */}
@@ -347,7 +366,7 @@ function norm(s) {
 }
 
 /* ─── CardItem — componente riusabile: Markets + Hot picks + Portfolio ─── */
-function CardItem({ card, priceInfo, country = "IT", cur = "EUR", eurRate = 0.92 }) {
+function CardItem({ card, priceInfo, country = "IT", cur = "EUR", eurRate = 0.92, onOpen }) {
   const [imgFailed, setImgFailed] = useState(false);
   const imgUrl = card.image_url || card.imgUrl || card.img || null;
   const cardName = card.name || "—";
@@ -361,7 +380,9 @@ function CardItem({ card, priceInfo, country = "IT", cur = "EUR", eurRate = 0.92
     .split(/\s+/).slice(0, 2).map(w => w[0] || '').join('').toUpperCase() || '?';
 
   return (
-    <div className="card-item">
+    <div className="card-item" onClick={() => onOpen?.(card)}
+      role="button" tabIndex={0}
+      onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onOpen?.(card); } }}>
       <div className="card-item-img">
         {imgUrl && !imgFailed ? (
           <img src={imgUrl} alt={cardName} loading="lazy" onError={() => setImgFailed(true)} />
@@ -398,7 +419,7 @@ function CardItem({ card, priceInfo, country = "IT", cur = "EUR", eurRate = 0.92
 }
 
 /* ─── SearchResults — stati: loading / error / vuoto / risultati ─── */
-function SearchResults({ loading, results, priceMap, error, term, country, cur, eurRate, onRetry }) {
+function SearchResults({ loading, results, priceMap, error, term, country, cur, eurRate, onRetry, onOpen }) {
   if (loading) return (
     <div className="card-grid">
       {Array.from({ length: 6 }).map((_, i) => (
@@ -430,14 +451,14 @@ function SearchResults({ loading, results, priceMap, error, term, country, cur, 
     <div className="card-grid">
       {results.map(card => (
         <CardItem key={card.id} card={card} priceInfo={priceMap[card.id] || null}
-          country={country} cur={cur} eurRate={eurRate} />
+          country={country} cur={cur} eurRate={eurRate} onOpen={onOpen} />
       ))}
     </div>
   );
 }
 
 /* ─── HotPicksSection — logica legacy, card UI riusabile ─── */
-function HotPicksSection({ country = "IT", cur = "EUR", eurRate = 0.92 }) {
+function HotPicksSection({ country = "IT", cur = "EUR", eurRate = 0.92, onOpen }) {
   const POOL = [
     {id:"hp14",name:"Charizard ex Prismatic Evolutions",query:"Charizard ex Prismatic Evolutions 006/131 pokemon card",tcg:"pokemon",img:"https://images.pokemontcg.io/sv8pt5/6.png"},
     {id:"hp15",name:"Pikachu ex Prismatic Evolutions",query:"Pikachu ex Prismatic Evolutions 031/131 pokemon card",tcg:"pokemon",img:"https://images.pokemontcg.io/sv8pt5/31.png"},
@@ -453,18 +474,18 @@ function HotPicksSection({ country = "IT", cur = "EUR", eurRate = 0.92 }) {
     {id:"hp5",name:"Rayquaza VMAX Alt Art",query:"Rayquaza VMAX alternate art 218/203 evolving skies pokemon",tcg:"pokemon",img:"https://images.pokemontcg.io/swsh7/218.png"},
     {id:"hp6",name:"Giratina VSTAR Lost Origin",query:"Giratina VSTAR 131/196 lost origin pokemon card english",tcg:"pokemon",img:"https://images.pokemontcg.io/swsh11/131.png"},
     {id:"hp7",name:"Lugia V Alt Art Silver Tempest",query:"Lugia V alternate art 186/195 silver tempest pokemon",tcg:"pokemon",img:"https://images.pokemontcg.io/swsh12/186.png"},
-    {id:"op1",name:"Monkey D. Luffy SEC OP-01",query:"Monkey D Luffy secret rare OP-01-120 one piece card game",tcg:"op",img:null},
-    {id:"op2",name:"Yamato SEC OP-01",query:"Yamato secret rare OP-01 one piece card game english",tcg:"op",img:null},
-    {id:"op3",name:"Portgas D. Ace SEC OP-02",query:"Portgas D Ace secret rare OP-02 one piece card game",tcg:"op",img:null},
-    {id:"op4",name:"Roronoa Zoro Parallel OP-02",query:"Roronoa Zoro parallel rare OP-02 one piece card game",tcg:"op",img:null},
-    {id:"op5",name:"Marco SEC OP-03",query:"Marco secret rare OP-03 one piece card game",tcg:"op",img:null},
-    {id:"op6",name:"Trafalgar Law SEC OP-04",query:"Trafalgar Law secret rare OP-04 one piece card game",tcg:"op",img:null},
+    {id:"op1",name:"Monkey D. Luffy SEC OP-01",query:"Monkey D Luffy secret rare OP-01-120 one piece card game",tcg:"onepiece",img:null},
+    {id:"op2",name:"Yamato SEC OP-01",query:"Yamato secret rare OP-01 one piece card game english",tcg:"onepiece",img:null},
+    {id:"op3",name:"Portgas D. Ace SEC OP-02",query:"Portgas D Ace secret rare OP-02 one piece card game",tcg:"onepiece",img:null},
+    {id:"op4",name:"Roronoa Zoro Parallel OP-02",query:"Roronoa Zoro parallel rare OP-02 one piece card game",tcg:"onepiece",img:null},
+    {id:"op5",name:"Marco SEC OP-03",query:"Marco secret rare OP-03 one piece card game",tcg:"onepiece",img:null},
+    {id:"op6",name:"Trafalgar Law SEC OP-04",query:"Trafalgar Law secret rare OP-04 one piece card game",tcg:"onepiece",img:null},
   ];
 
   const getDailyPicks = () => {
     const day = Math.floor(Date.now() / 86400000);
     const poke = POOL.filter(c => c.tcg === "pokemon");
-    const op   = POOL.filter(c => c.tcg === "op");
+    const op   = POOL.filter(c => c.tcg === "onepiece");
     const ps = day % poke.length, os = day % op.length;
     const out = [];
     for (let i = 0; i < 9; i++) out.push(poke[(ps + i) % poke.length]);
@@ -531,7 +552,7 @@ function HotPicksSection({ country = "IT", cur = "EUR", eurRate = 0.92 }) {
         <div className="card-grid">
           {picks.map(card => (
             <CardItem key={card.id} card={card} priceInfo={null}
-              country={country} cur={cur} eurRate={eurRate} />
+              country={country} cur={cur} eurRate={eurRate} onOpen={onOpen} />
           ))}
         </div>
       ) : (
@@ -544,7 +565,7 @@ function HotPicksSection({ country = "IT", cur = "EUR", eurRate = 0.92 }) {
 /* ════════════════════════════════════════════════════════════════════════
    MARKETS — ricerca + hot picks
    ════════════════════════════════════════════════════════════════════════ */
-function MarketsView({ tcgFilter, setTcgFilter, langFilter, setLangFilter, country, cur, eurRate }) {
+function MarketsView({ tcgFilter, setTcgFilter, langFilter, setLangFilter, country, cur, eurRate, onOpenAsset }) {
   const [q, setQ] = useState("");
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState([]);
@@ -658,10 +679,11 @@ function MarketsView({ tcgFilter, setTcgFilter, langFilter, setLangFilter, count
         <div className="chip-row">
           <button className={`chip ${!tcgFilter?"on":""}`} onClick={()=>setTcgFilter(null)}>All</button>
           {TCG_LIST.map(t => (
-            <button key={t.id} className={`chip ${tcgFilter===t.id?"on":""}`}
+            <button key={t.id} className={`chip tcg-chip ${tcgFilter===t.id?"on":""}`}
               onClick={()=>setTcgFilter(tcgFilter===t.id?null:t.id)}
               style={tcgFilter===t.id?{borderColor:t.color,color:t.color}:{}}>
-              {t.label}
+              {t.logo && <img src={t.logo} alt={t.label} className="tcg-chip-logo" onError={e=>{e.currentTarget.style.display='none';}} />}
+              <span className="tcg-chip-label">{t.short}</span>
             </button>
           ))}
         </div>
@@ -682,9 +704,10 @@ function MarketsView({ tcgFilter, setTcgFilter, langFilter, setLangFilter, count
           error={error} term={searchTerm}
           country={country} cur={cur} eurRate={eurRate}
           onRetry={() => runSearch(searchTerm, tcgFilter, langFilter)}
+          onOpen={onOpenAsset}
         />
       ) : (
-        <HotPicksSection country={country} cur={cur} eurRate={eurRate} />
+        <HotPicksSection country={country} cur={cur} eurRate={eurRate} onOpen={onOpenAsset} />
       )}
     </section>
   );
@@ -731,6 +754,366 @@ function AlertsView({ isAuthed, onLogin, onExplore }) {
           sub="Create your first alert from any card: set a threshold and direction."
           cta="Find a card" onCta={onExplore} />
       )}
+    </section>
+  );
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   ASSET — dettaglio carta (TASK 4)
+   ════════════════════════════════════════════════════════════════════════ */
+const CONDITIONS = ["NM", "LP", "MP", "HP", "DMG"];
+
+// market code accettato da /api/ebay-search; fallback US
+const EBAY_MARKETS = ["US","GB","DE","IT","FR","ES","CA"];
+
+// card_api_id = cards.id senza il prefisso "<tcg>:" → refresh-prices ricostruisce
+// `${tcg}:${card_api_id}` === card_prices.card_id (= cards.id).
+function toApiId(card) {
+  const id = card?.id || "";
+  const tcg = card?.tcg || "";
+  return tcg && id.startsWith(tcg + ":") ? id.slice(tcg.length + 1) : id;
+}
+
+/* ─── Sparkline SVG (no librerie) — solo se ≥ 2 punti ─── */
+function Sparkline({ values, gain }) {
+  const W = 300, H = 64, pad = 4;
+  const min = Math.min(...values), max = Math.max(...values);
+  const span = max - min || 1;
+  const pts = values.map((v, i) => {
+    const x = pad + (i / (values.length - 1)) * (W - pad * 2);
+    const y = H - pad - ((v - min) / span) * (H - pad * 2);
+    return [x, y];
+  });
+  const d = pts.map((p, i) => `${i ? "L" : "M"}${p[0].toFixed(1)} ${p[1].toFixed(1)}`).join(" ");
+  const area = `${d} L${pts[pts.length - 1][0].toFixed(1)} ${H} L${pts[0][0].toFixed(1)} ${H} Z`;
+  const col = gain ? "var(--gain)" : "var(--loss)";
+  return (
+    <svg className="spark-svg" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" aria-hidden="true">
+      <defs>
+        <linearGradient id="sparkfill" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={col} stopOpacity="0.22" />
+          <stop offset="100%" stopColor={col} stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      <path d={area} fill="url(#sparkfill)" stroke="none" />
+      <path d={d} fill="none" stroke={col} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+/* ─── Modal generico (riusa stili .modal) ─── */
+function Sheet({ title, onClose, children }) {
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <div className="modal" onClick={e => e.stopPropagation()}>
+        <button className="modal-x" onClick={onClose} aria-label="Close"><Icon name="close" size={18} /></button>
+        <h3 className="sheet-title">{title}</h3>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+/* ─── Modal: Aggiungi a Portfolio ─── */
+function PortfolioModal({ card, cur, onClose, onDone }) {
+  const [paid, setPaid] = useState("");
+  const [cond, setCond] = useState("NM");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+
+  const submit = async (e) => {
+    e.preventDefault();
+    if (busy) return;
+    setBusy(true); setErr("");
+    const paidNum = parseFloat(paid);
+    const res = await addToCollection({
+      card_api_id: toApiId(card),
+      tcg: card.tcg,
+      card_name: card.name,
+      set_name: card.set_name || "",
+      card_number: card.card_number || null,
+      image_url: card.image_url || null,
+      language: card.lang || "en",
+      condition: cond,
+      purchase_price: isNaN(paidNum) ? null : paidNum,
+      fmv_currency: cur,
+    });
+    setBusy(false);
+    if (res?.error) { setErr(typeof res.error === "string" ? res.error : res.error.message || "Could not add."); return; }
+    onDone?.("Added to portfolio");
+  };
+
+  return (
+    <Sheet title="Add to portfolio" onClose={onClose}>
+      <form onSubmit={submit} className="sheet-form">
+        <label className="field-lbl">Price paid ({cur})</label>
+        <input className="input" type="number" inputMode="decimal" step="0.01" min="0"
+          placeholder="0.00" value={paid} onChange={e => setPaid(e.target.value)} autoFocus />
+        <label className="field-lbl">Condition</label>
+        <div className="cond-row">
+          {CONDITIONS.map(c => (
+            <button type="button" key={c}
+              className={`cond-b ${cond === c ? "on" : ""}`}
+              onClick={() => setCond(c)}>{c}</button>
+          ))}
+        </div>
+        {err && <div className="auth-err">{err}</div>}
+        <button type="submit" className="btn btn-primary btn-block" disabled={busy}>
+          {busy ? "Adding…" : "Add to portfolio"}
+        </button>
+      </form>
+    </Sheet>
+  );
+}
+
+/* ─── Modal: Crea Alert ─── */
+function AlertModal({ card, cur, country, fmvUSD, eurRate, onClose, onDone }) {
+  const [dir, setDir] = useState("above");
+  const [threshold, setThreshold] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+
+  const submit = async (e) => {
+    e.preventDefault();
+    if (busy) return;
+    const t = parseFloat(threshold);
+    if (isNaN(t) || t <= 0) { setErr("Enter a valid threshold."); return; }
+    setBusy(true); setErr("");
+    const res = await createAlert({
+      tcg: card.tcg, cardId: toApiId(card), cardName: card.name,
+      language: card.lang || "en", threshold: t, direction: dir,
+      currency: cur, country,
+    });
+    setBusy(false);
+    if (res?.error) { setErr(typeof res.error === "string" ? res.error : res.error.message || "Could not create alert."); return; }
+    onDone?.("Alert created");
+  };
+
+  const hintFmv = fmvUSD != null
+    ? (cur === "EUR" ? `€${(fmvUSD * eurRate).toFixed(2)}` : `$${Number(fmvUSD).toFixed(2)}`)
+    : null;
+
+  return (
+    <Sheet title="Create alert" onClose={onClose}>
+      <form onSubmit={submit} className="sheet-form">
+        <p className="auth-p">Get an email when the price crosses your threshold.{hintFmv && <> Current FMV: <b>{hintFmv}</b>.</>}</p>
+        <label className="field-lbl">Trigger when price goes</label>
+        <div className="seg">
+          <button type="button" className={`seg-b ${dir === "above" ? "on" : ""}`} onClick={() => setDir("above")}>Above ↑</button>
+          <button type="button" className={`seg-b ${dir === "below" ? "on" : ""}`} onClick={() => setDir("below")}>Below ↓</button>
+        </div>
+        <label className="field-lbl">Threshold ({cur})</label>
+        <input className="input" type="number" inputMode="decimal" step="0.01" min="0"
+          placeholder="0.00" value={threshold} onChange={e => setThreshold(e.target.value)} autoFocus />
+        {err && <div className="auth-err">{err}</div>}
+        <button type="submit" className="btn btn-primary btn-block" disabled={busy}>
+          {busy ? "Creating…" : "Create alert"}
+        </button>
+      </form>
+    </Sheet>
+  );
+}
+
+/* ─── ASSET VIEW ─── */
+function AssetView({ card, onBack, isAuthed, onLogin, country, cur, eurRate }) {
+  const [snaps, setSnaps] = useState([]);       // [{price_market, source, captured_at}] asc
+  const [loadingPrice, setLoadingPrice] = useState(true);
+  const [priceErr, setPriceErr] = useState(false);
+  const [ebayItems, setEbayItems] = useState([]);
+  const [imgFailed, setImgFailed] = useState(false);
+  const [modal, setModal] = useState(null);     // 'portfolio' | 'alert' | null
+  const [watching, setWatching] = useState(false);
+  const [watchBusy, setWatchBusy] = useState(false);
+  const [toast, setToast] = useState("");
+
+  const tcgInfo = TCG_LIST.find(t => t.id === card.tcg);
+  const langInfo = CARD_LANGS.find(l => l.c === card.lang);
+  const imgUrl = card.image_url || card.imgUrl || card.img || null;
+  const cardNum = card.card_number || "";
+
+  const latest = snaps.length ? snaps[snaps.length - 1] : null;
+  const fmvUSD = latest?.price_market ?? null;
+  const priceStr = (usd) => usd == null ? "—"
+    : cur === "EUR" ? `€${(usd * eurRate).toFixed(2)}` : `$${Number(usd).toFixed(2)}`;
+
+  const flash = (m) => { setToast(m); setTimeout(() => setToast(""), 2600); };
+
+  /* prezzi: tutti gli snapshot per card.id, ordine cronologico */
+  const loadPrice = useCallback(async () => {
+    setLoadingPrice(true); setPriceErr(false);
+    try {
+      if (!supabaseReady) throw new Error("no backend");
+      const { data, error } = await supabase
+        .from("card_prices")
+        .select("price_market,source,captured_at")
+        .eq("card_id", card.id)
+        .order("captured_at", { ascending: true })
+        .limit(60);
+      if (error) throw error;
+      setSnaps((data || []).filter(r => r.price_market != null));
+    } catch {
+      setPriceErr(true); setSnaps([]);
+    } finally {
+      setLoadingPrice(false);
+    }
+  }, [card.id]);
+
+  /* eBay live: solo listing col numero carta nel titolo, max 5 (Fix #3) */
+  const loadEbay = useCallback(async () => {
+    if (!cardNum) { setEbayItems([]); return; }
+    try {
+      const market = EBAY_MARKETS.includes(country) ? country : "US";
+      const suffix = card.tcg === "mtg" ? "magic the gathering"
+        : card.tcg === "ygo" ? "yugioh"
+        : card.tcg === "onepiece" ? "one piece card" : "pokemon card";
+      const q = `${card.name} ${cardNum} ${suffix}`.replace(/\s+/g, " ").trim();
+      const r = await fetch(`/api/ebay-search?q=${encodeURIComponent(q)}&market=${market}&limit=20`, {
+        signal: AbortSignal.timeout(8000),
+      }).catch(() => null);
+      if (!r || !r.ok) { setEbayItems([]); return; }
+      const d = await r.json();
+      const numNorm = cardNum.replace(/\s+/g, "").toLowerCase();
+      const matches = (d.items || [])
+        .filter(it => (it.title || "").replace(/\s+/g, "").toLowerCase().includes(numNorm))
+        .slice(0, 5);
+      setEbayItems(matches);
+    } catch {
+      setEbayItems([]);
+    }
+  }, [card.id, cardNum, country]);
+
+  useEffect(() => { loadPrice(); loadEbay(); }, [loadPrice, loadEbay]);
+
+  const track = async () => {
+    if (!isAuthed) { onLogin?.(); return; }
+    if (watchBusy || watching) return;
+    setWatchBusy(true);
+    const res = await addToWatchlist({
+      tcg: card.tcg, cardApiId: toApiId(card), cardName: card.name,
+      setName: card.set_name || "", imageUrl: imgUrl,
+    });
+    setWatchBusy(false);
+    if (res?.error) { flash(typeof res.error === "string" ? res.error : "Could not track."); return; }
+    setWatching(true);
+    flash("Tracking — we'll price it on the next refresh");
+  };
+
+  const gateAuth = (m) => { if (!isAuthed) { onLogin?.(); } else { setModal(m); } };
+
+  const ebayHref = ebayURL(card.name, card.set_name || "", country, card.tcg || "pokemon", cardNum);
+
+  return (
+    <section className="view asset">
+      <button className="back-btn" onClick={onBack}>
+        <span style={{ transform: "rotate(180deg)", display: "flex" }}><Icon name="chevron" size={18} /></span>
+        Back
+      </button>
+
+      <div className="asset-head">
+        <div className="asset-img">
+          {imgUrl && !imgFailed ? (
+            <img src={imgUrl} alt={card.name} onError={() => setImgFailed(true)} />
+          ) : (
+            <div className="card-img-ph">
+              {tcgInfo && <span className="card-img-ph-tcg" style={{ color: tcgInfo.color }}>{tcgInfo.short}</span>}
+              <span className="card-img-ph-init">{(card.name || "?").replace(/[^a-zA-Z ]/g, "").trim().split(/\s+/).slice(0, 2).map(w => w[0] || "").join("").toUpperCase() || "?"}</span>
+            </div>
+          )}
+        </div>
+        <div className="asset-info">
+          {tcgInfo && <span className="asset-tcg" style={{ color: tcgInfo.color }}>{tcgInfo.label}</span>}
+          <h1 className="asset-name">{card.name}</h1>
+          <div className="asset-meta">
+            {card.set_name && <span>{card.set_name}</span>}
+            {cardNum && <span className="asset-num">#{cardNum}</span>}
+            {langInfo && <span>{langInfo.flag} {langInfo.label}</span>}
+          </div>
+
+          {/* PREZZO */}
+          {loadingPrice ? (
+            <div className="price-skel" />
+          ) : priceErr ? (
+            <div className="search-error" style={{ margin: "14px 0" }}>
+              <span>Couldn't load the price.</span>
+              <button className="btn btn-ghost btn-sm" style={{ marginLeft: "auto" }} onClick={loadPrice}>Retry</button>
+            </div>
+          ) : fmvUSD != null ? (
+            <div className="fmv-block">
+              <div className="fmv-row">
+                <span className="fmv-val">{priceStr(fmvUSD)}</span>
+                <span className="fmv-tag">FMV</span>
+              </div>
+              <div className="fmv-sub">{latest.source || "market"} · updated {new Date(latest.captured_at).toLocaleDateString()}</div>
+              {snaps.length >= 2 && (
+                <div className="spark-wrap">
+                  <Sparkline
+                    values={snaps.map(s => s.price_market)}
+                    gain={snaps[snaps.length - 1].price_market >= snaps[0].price_market}
+                  />
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="noprice-block">
+              <div className="noprice-txt">No market price yet for this card.</div>
+              <a className="btn btn-primary btn-block" href={ebayHref} target="_blank" rel="noreferrer">
+                See price on eBay ↗
+              </a>
+              <button className="btn btn-ghost btn-block" onClick={track} disabled={watchBusy || watching}>
+                {watching ? "Tracking ✓" : watchBusy ? "…" : "Track this card"}
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* AZIONI */}
+      <div className="asset-actions">
+        <button className="btn btn-primary" onClick={() => gateAuth("portfolio")}>
+          <Icon name="wallet" size={18} /> Add to portfolio
+        </button>
+        <button className="btn btn-ghost" onClick={() => gateAuth("alert")}>
+          <Icon name="bell" size={18} /> Create alert
+        </button>
+      </div>
+
+      {/* eBAY LIVE — nascosta se zero match */}
+      {ebayItems.length > 0 && (
+        <div className="ebay-live">
+          <div className="sec-h">
+            <span className="sec-h-t">eBay live · {cardNum}</span>
+            <span className="sec-h-line" />
+          </div>
+          <div className="ebay-list">
+            {ebayItems.map((it, i) => (
+              <a key={i} className="ebay-row" href={it.url} target="_blank" rel="noreferrer">
+                <div className="ebay-thumb">
+                  {it.thumb ? <img src={it.thumb} alt="" loading="lazy" /> : <Icon name="card" size={18} />}
+                </div>
+                <div className="ebay-body">
+                  <div className="ebay-title">{it.title}</div>
+                  {it.condition && <div className="ebay-cond">{it.condition}</div>}
+                </div>
+                <div className="ebay-price">
+                  {it.currency === "EUR" ? "€" : it.currency === "GBP" ? "£" : "$"}{Number(it.price).toFixed(2)}
+                </div>
+              </a>
+            ))}
+          </div>
+          <a className="ebay-all" href={ebayHref} target="_blank" rel="noreferrer">See all on eBay ↗</a>
+        </div>
+      )}
+
+      {modal === "portfolio" && (
+        <PortfolioModal card={card} cur={cur} onClose={() => setModal(null)}
+          onDone={(m) => { setModal(null); flash(m); }} />
+      )}
+      {modal === "alert" && (
+        <AlertModal card={card} cur={cur} country={country} fmvUSD={fmvUSD} eurRate={eurRate}
+          onClose={() => setModal(null)} onDone={(m) => { setModal(null); flash(m); }} />
+      )}
+
+      {toast && <div className="toast">{toast}</div>}
     </section>
   );
 }
@@ -809,6 +1192,10 @@ input{font-family:inherit;font-size:16px;}
 .chip.sm{font-size:12px;padding:6px 11px;}
 .chip:hover{color:var(--text);}
 .chip.on{color:var(--text);background:var(--surface-3);border-color:var(--border-2);}
+.tcg-chip{display:flex;align-items:center;gap:6px;}
+.tcg-chip-logo{height:15px;width:auto;object-fit:contain;filter:brightness(0) invert(1);opacity:.85;}
+.tcg-chip.on .tcg-chip-logo{filter:none;opacity:1;}
+.tcg-chip-label{font-family:'Space Mono',monospace;font-size:12px;font-weight:700;letter-spacing:.04em;}
 
 /* section heading */
 .sec-h{display:flex;align-items:center;gap:12px;margin:24px 0 14px;}
@@ -885,6 +1272,7 @@ input{font-family:inherit;font-size:16px;}
 .card-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:8px;}
 .card-item{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;transition:.15s;cursor:pointer;}
 .card-item:hover{border-color:var(--border-2);background:var(--surface-2);}
+.card-item:focus-visible{outline:2px solid var(--gold);outline-offset:2px;}
 .card-item-img{aspect-ratio:3/4;width:100%;overflow:hidden;background:var(--surface-2);}
 .card-item-img img{width:100%;height:100%;object-fit:contain;}
 .card-img-ph{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;background:linear-gradient(150deg,var(--surface-3),var(--surface-2));padding:12px;}
@@ -907,6 +1295,59 @@ input{font-family:inherit;font-size:16px;}
 .zero-title{font-size:16px;font-weight:700;margin-bottom:6px;}
 .zero-sub{font-size:13px;color:var(--muted);margin-bottom:16px;}
 
+/* asset page */
+.asset{margin-bottom:30px;}
+.back-btn{display:inline-flex;align-items:center;gap:4px;color:var(--muted);font-size:14px;font-weight:600;padding:8px 4px;margin-bottom:10px;}
+.back-btn:hover{color:var(--text);}
+.asset-head{display:flex;flex-direction:column;gap:18px;}
+.asset-img{width:160px;align-self:center;aspect-ratio:3/4;border-radius:14px;overflow:hidden;background:var(--surface-2);border:1px solid var(--border);}
+.asset-img img{width:100%;height:100%;object-fit:contain;}
+.asset-info{flex:1;min-width:0;}
+.asset-tcg{font-family:'Space Mono',monospace;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;}
+.asset-name{font-family:'Fraunces',serif;font-weight:800;font-size:clamp(22px,5vw,30px);line-height:1.1;letter-spacing:-.02em;margin:6px 0 10px;}
+.asset-meta{display:flex;flex-wrap:wrap;gap:10px;align-items:center;color:var(--muted);font-size:13px;}
+.asset-num{font-family:'Space Mono',monospace;}
+.price-skel{height:78px;border-radius:14px;background:linear-gradient(100deg,var(--surface-2) 30%,var(--surface-3) 50%,var(--surface-2) 70%);background-size:200% 100%;animation:sh 1.4s linear infinite;margin-top:16px;}
+.fmv-block{margin-top:16px;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:16px;}
+.fmv-row{display:flex;align-items:baseline;gap:10px;}
+.fmv-val{font-family:'Space Mono',monospace;font-size:30px;font-weight:700;color:var(--text);}
+.fmv-tag{font-size:10px;font-weight:700;font-family:'Space Mono',monospace;letter-spacing:.1em;color:var(--gold);background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.25);padding:3px 7px;border-radius:6px;}
+.fmv-sub{margin-top:5px;font-size:12px;color:var(--dim);font-family:'Space Mono',monospace;}
+.spark-wrap{margin-top:14px;}
+.spark-svg{width:100%;height:64px;display:block;}
+.noprice-block{margin-top:16px;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:10px;}
+.noprice-txt{font-size:14px;color:var(--muted);margin-bottom:2px;}
+.asset-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:20px;}
+.asset-actions .btn{width:100%;}
+
+/* ebay live */
+.ebay-live{margin-top:26px;}
+.ebay-list{display:flex;flex-direction:column;gap:8px;}
+.ebay-row{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px;transition:.15s;}
+.ebay-row:hover{border-color:var(--border-2);background:var(--surface-2);}
+.ebay-thumb{width:46px;height:46px;border-radius:8px;overflow:hidden;background:var(--surface-2);display:flex;align-items:center;justify-content:center;color:var(--dim);flex-shrink:0;}
+.ebay-thumb img{width:100%;height:100%;object-fit:cover;}
+.ebay-body{flex:1;min-width:0;}
+.ebay-title{font-size:12px;font-weight:600;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.ebay-cond{font-size:10px;color:var(--dim);margin-top:3px;}
+.ebay-price{font-family:'Space Mono',monospace;font-size:14px;font-weight:700;color:var(--gain);flex-shrink:0;}
+.ebay-all{display:inline-block;margin-top:12px;font-size:13px;font-weight:600;color:var(--gold);}
+.ebay-all:hover{filter:brightness(1.1);}
+
+/* sheet (modal) extras */
+.sheet-title{font-size:20px;font-weight:800;letter-spacing:-.01em;margin-bottom:16px;}
+.sheet-form{display:flex;flex-direction:column;}
+.field-lbl{font-size:12px;font-weight:600;color:var(--muted);margin-bottom:7px;}
+.cond-row{display:flex;gap:7px;margin-bottom:14px;flex-wrap:wrap;}
+.cond-b{flex:1;min-width:48px;padding:10px 0;border-radius:9px;font-size:13px;font-weight:700;font-family:'Space Mono',monospace;color:var(--muted);background:var(--surface-2);border:1px solid var(--border);transition:.15s;}
+.cond-b.on{color:#1a1200;background:var(--gold);border-color:var(--gold);}
+.seg{display:flex;gap:7px;margin-bottom:14px;}
+.seg-b{flex:1;padding:11px 0;border-radius:9px;font-size:13px;font-weight:700;color:var(--muted);background:var(--surface-2);border:1px solid var(--border);transition:.15s;}
+.seg-b.on{color:var(--text);background:var(--surface-3);border-color:var(--border-2);}
+
+/* toast */
+.toast{position:fixed;left:50%;bottom:calc(var(--tabh) + 18px);transform:translateX(-50%);z-index:80;background:var(--surface-3);border:1px solid var(--border-2);color:var(--text);font-size:13px;font-weight:600;padding:11px 18px;border-radius:100px;box-shadow:0 12px 40px rgba(0,0,0,.5);max-width:90vw;text-align:center;}
+
 /* desktop */
 @media(min-width:760px){
   :root{--tabh:0px;}
@@ -919,5 +1360,8 @@ input{font-family:inherit;font-size:16px;}
   .up-grid{grid-template-columns:repeat(3,1fr);}
   .modal-backdrop{align-items:center;padding:20px;}
   .modal{border-radius:22px;}
+  .asset-head{flex-direction:row;align-items:flex-start;gap:26px;}
+  .asset-img{width:220px;align-self:flex-start;}
+  .asset-actions{max-width:420px;}
 }
 `;
