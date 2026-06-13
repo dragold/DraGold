@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback } from "react";
 import {
   supabase, supabaseReady,
   sendMagicLink, getSession, onAuth, signOut as sbSignOut,
-  addToCollection, createAlert, addToWatchlist,
+  addToCollection, listCollection, removeFromCollection,
+  createAlert, addToWatchlist,
 } from "./supabase.js";
 
 /* ════════════════════════════════════════════════════════════════════════
@@ -37,10 +38,10 @@ export function ebayURL(name, setName="", country="US", tcg="pokemon", cardNumbe
 
 /* ─── Cataloghi di riferimento (UI) ─── */
 const TCG_LIST = [
-  { id:"pokemon",   label:"Pokémon",   short:"PKM", color:"#f87171", logo:"https://upload.wikimedia.org/wikipedia/commons/thumb/9/98/International_Pok%C3%A9mon_logo.svg/200px-International_Pok%C3%A9mon_logo.svg.png" },
-  { id:"onepiece",  label:"One Piece", short:"OP",  color:"#f97316", logo:"https://upload.wikimedia.org/wikipedia/en/thumb/9/90/One_Piece_logo.svg/200px-One_Piece_logo.svg.png" },
-  { id:"mtg",       label:"Magic",     short:"MTG", color:"#60a5fa", logo:"https://upload.wikimedia.org/wikipedia/en/thumb/a/a9/MagicTheGatheringHorizontalLogo.svg/200px-MagicTheGatheringHorizontalLogo.svg.png" },
-  { id:"ygo",       label:"Yu-Gi-Oh!", short:"YGO", color:"#fbbf24", logo:"https://upload.wikimedia.org/wikipedia/en/thumb/7/7c/Yu-Gi-Oh%21_Logo.svg/200px-Yu-Gi-Oh%21_Logo.svg.png" },
+  { id:"pokemon",   label:"Pokémon",   short:"PKM", color:"#f87171", logo:"/logos/pkm.png" },
+  { id:"onepiece",  label:"One Piece", short:"OP",  color:"#f97316", logo:"/logos/op.png" },
+  { id:"mtg",       label:"Magic",     short:"MTG", color:"#60a5fa", logo:"/logos/mtg.png" },
+  { id:"ygo",       label:"Yu-Gi-Oh!", short:"YGO", color:"#fbbf24", logo:"/logos/ygo.png" },
 ];
 const CARD_LANGS = [
   { c:"en", flag:"🇺🇸", label:"EN", live:true },
@@ -306,7 +307,7 @@ export default function DraGold() {
           />
         )}
         {tab==="portfolio" && (
-          <PortfolioView isAuthed={isAuthed} onLogin={()=>setAuthOpen(true)} onExplore={()=>setTab("markets")} />
+          <PortfolioView isAuthed={isAuthed} onLogin={()=>setAuthOpen(true)} onExplore={()=>setTab("markets")} cur={cur} eurRate={eurRate} />
         )}
         {tab==="alerts" && (
           <AlertsView isAuthed={isAuthed} onLogin={()=>setAuthOpen(true)} onExplore={()=>setTab("markets")} />
@@ -565,7 +566,7 @@ function HotPicksSection({ country = "IT", cur = "EUR", eurRate = 0.92, onOpen }
 /* ════════════════════════════════════════════════════════════════════════
    MARKETS — ricerca + hot picks
    ════════════════════════════════════════════════════════════════════════ */
-function MarketsView({ tcgFilter, setTcgFilter, langFilter, setLangFilter, country, cur, eurRate }) {
+function MarketsView({ tcgFilter, setTcgFilter, langFilter, setLangFilter, country, cur, eurRate, onOpenAsset }) {
   const [q, setQ] = useState("");
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState([]);
@@ -704,33 +705,310 @@ function MarketsView({ tcgFilter, setTcgFilter, langFilter, setLangFilter, count
           error={error} term={searchTerm}
           country={country} cur={cur} eurRate={eurRate}
           onRetry={() => runSearch(searchTerm, tcgFilter, langFilter)}
+          onOpen={onOpenAsset}
         />
       ) : (
-        <HotPicksSection country={country} cur={cur} eurRate={eurRate} />
+        <HotPicksSection country={country} cur={cur} eurRate={eurRate} onOpen={onOpenAsset} />
       )}
     </section>
   );
 }
 
-/* ------------------------------------------------------------------------
-/* --- PORTFOLIO --- */
-function PortfolioView({ isAuthed, onLogin, onExplore }) {
+/* ════════════════════════════════════════════════════════════════════════
+   PORTFOLIO (TASK 5)
+   ════════════════════════════════════════════════════════════════════════ */
+
+/* ─── PortfolioRow — separato per rispettare la regola degli hooks ─── */
+function PortfolioRow({ pos, priceInfo, cur, eurRate, fmt, isConfirm, onConfirm, onCancelConfirm, onRemove, onTrack, trackBusy, trackDone, removeBusy }) {
+  const [imgFailed, setImgFailed] = useState(false);
+  const imgUrl = pos.image_url || null;
+  const initials = (pos.card_name || "")
+    .replace(/[^a-zA-Z ]/g, "").trim()
+    .split(/\s+/).slice(0, 2).map(w => w[0] || "").join("").toUpperCase() || "?";
+  const tcgInfo = TCG_LIST.find(t => t.id === pos.tcg);
+
+  const currentUSD = priceInfo?.price_market ?? null;
+  const paidRaw    = pos.purchase_price;
+  const fmvCur     = pos.fmv_currency || cur;
+  // purchase_price is stored in the currency the user had active (fmv_currency)
+  const paidUSD    = paidRaw != null
+    ? (fmvCur === "EUR" ? paidRaw / eurRate : Number(paidRaw))
+    : null;
+  const rowPnlUSD  = (currentUSD != null && paidUSD != null) ? currentUSD - paidUSD : null;
+  const rowPnlPos  = rowPnlUSD != null ? rowPnlUSD >= 0 : null;
+
+  const paidDisplay = paidRaw != null
+    ? (fmvCur === "EUR" ? `€${Number(paidRaw).toFixed(2)}` : `$${Number(paidRaw).toFixed(2)}`)
+    : "—";
+
+  return (
+    <div className="pf-row">
+      {/* Thumbnail */}
+      <div className="pf-img">
+        {imgUrl && !imgFailed ? (
+          <img src={imgUrl} alt={pos.card_name} loading="lazy" onError={() => setImgFailed(true)} />
+        ) : (
+          <div className="card-img-ph" style={{ width:"100%", height:"100%" }}>
+            {tcgInfo && <span className="card-img-ph-tcg" style={{ color:tcgInfo.color, fontSize:8 }}>{tcgInfo.short}</span>}
+            <span className="card-img-ph-init" style={{ fontSize:13 }}>{initials}</span>
+          </div>
+        )}
+      </div>
+
+      {/* Body */}
+      <div className="pf-body">
+        <div className="pf-name">{pos.card_name || "—"}</div>
+        <div className="pf-meta">
+          {pos.condition && <span className="pf-cond">{pos.condition}</span>}
+          {pos.set_name  && <span className="pf-set">{pos.set_name}</span>}
+        </div>
+        <div className="pf-prices">
+          <div className="pf-price-col">
+            <span className="pf-price-lbl">Paid</span>
+            <span className="pf-price-val">{paidDisplay}</span>
+          </div>
+          <div className="pf-price-col">
+            <span className="pf-price-lbl">Now</span>
+            <span className="pf-price-val">{currentUSD != null ? fmt(currentUSD) : "—"}</span>
+          </div>
+          <div className="pf-price-col">
+            <span className="pf-price-lbl">P&amp;L</span>
+            <span className={`pf-price-val${rowPnlPos === true ? " gain" : rowPnlPos === false ? " loss" : ""}`}>
+              {rowPnlUSD != null ? `${rowPnlPos ? "+" : ""}${fmt(rowPnlUSD)}` : "—"}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Actions */}
+      <div className="pf-actions">
+        {currentUSD == null && (
+          <button className="btn btn-ghost btn-sm pf-track-btn"
+            disabled={trackBusy || trackDone} onClick={onTrack}>
+            {trackDone ? "✓" : trackBusy ? "…" : "Track"}
+          </button>
+        )}
+        {!isConfirm ? (
+          <button className="pf-remove-btn" onClick={onConfirm} aria-label="Remove position">
+            <Icon name="close" size={14} />
+          </button>
+        ) : (
+          <div className="pf-confirm">
+            <span className="pf-confirm-txt">Remove?</span>
+            <button className="btn btn-ghost btn-sm" onClick={onCancelConfirm}>Cancel</button>
+            <button className="btn btn-sm pf-confirm-yes" disabled={removeBusy} onClick={onRemove}>
+              {removeBusy ? "…" : "Yes"}
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* --- PORTFOLIO VIEW --- */
+function PortfolioView({ isAuthed, onLogin, onExplore, cur, eurRate }) {
+  const [positions, setPositions]   = useState([]);
+  const [priceMap, setPriceMap]     = useState({});
+  const [loading, setLoading]       = useState(true);
+  const [error, setError]           = useState(null);
+  const [confirmId, setConfirmId]   = useState(null);
+  const [removeBusy, setRemoveBusy] = useState(false);
+  const [watchBusy, setWatchBusy]   = useState({});   // { rowId: true }
+  const [watched, setWatched]       = useState({});    // { rowId: true }
+  const [toast, setToast]           = useState("");
+
+  const flash = useCallback((m) => { setToast(m); setTimeout(() => setToast(""), 2800); }, []);
+
+  const fmt = useCallback((usd) => {
+    if (usd == null || isNaN(usd)) return "—";
+    return cur === "EUR" ? `€${(usd * eurRate).toFixed(2)}` : `$${Number(usd).toFixed(2)}`;
+  }, [cur, eurRate]);
+
+  const load = useCallback(async () => {
+    setLoading(true); setError(null);
+    try {
+      const data = await listCollection();
+      setPositions(data);
+      if (data.length > 0) {
+        const ids = [...new Set(data.map(p => p.card_api_id).filter(Boolean))];
+        if (ids.length) {
+          const { data: priceRows } = await supabase
+            .from("card_prices")
+            .select("card_id,price_market,captured_at")
+            .in("card_id", ids)
+            .order("captured_at", { ascending: false })
+            .limit(ids.length * 4);
+          const pm = {};
+          for (const p of (priceRows || [])) { if (!pm[p.card_id]) pm[p.card_id] = p; }
+          setPriceMap(pm);
+        }
+      } else {
+        setPriceMap({});
+      }
+    } catch (e) {
+      setError(e.message || "Unknown error");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!isAuthed) { setLoading(false); return; }
+    load();
+  }, [isAuthed, load]);
+
+  const doRemove = useCallback(async (id) => {
+    setRemoveBusy(true);
+    await removeFromCollection(id);
+    setPositions(ps => ps.filter(p => p.id !== id));
+    setConfirmId(null);
+    setRemoveBusy(false);
+    flash("Removed from portfolio");
+  }, [flash]);
+
+  const doTrack = useCallback(async (pos) => {
+    setWatchBusy(b => ({ ...b, [pos.id]: true }));
+    const res = await addToWatchlist({
+      tcg: pos.tcg,
+      cardApiId: pos.card_api_id,
+      cardName: pos.card_name,
+      setName: pos.set_name || "",
+      imageUrl: pos.image_url || null,
+    });
+    setWatchBusy(b => ({ ...b, [pos.id]: false }));
+    if (res?.error) { flash("Could not track."); return; }
+    setWatched(w => ({ ...w, [pos.id]: true }));
+    flash("Tracking — we'll price it on the next refresh");
+  }, [flash]);
+
+  /* ── not authenticated ── */
+  if (!isAuthed) return (
+    <section className="view">
+      <div className="view-h"><h2 className="view-t">Portfolio</h2></div>
+      <Empty icon="wallet"
+        title="Sign in to save your portfolio"
+        sub="Add the cards you own and track their value and P&L over time."
+        cta="Sign in" onCta={onLogin} />
+    </section>
+  );
+
+  /* ── loading ── */
+  if (loading) return (
+    <section className="view">
+      <div className="view-h"><h2 className="view-t">Portfolio</h2></div>
+      <div className="pf-header-skel">
+        <div className="skel-line" style={{ height:30, width:"52%", marginBottom:10 }} />
+        <div className="skel-line" style={{ height:16, width:"32%" }} />
+      </div>
+      {[0,1,2].map(i => (
+        <div key={i} className="pf-row">
+          <div style={{ width:44, height:62, borderRadius:8, flexShrink:0,
+            background:"linear-gradient(100deg,var(--surface-2) 30%,var(--surface-3) 50%,var(--surface-2) 70%)",
+            backgroundSize:"200% 100%", animation:"sh 1.4s linear infinite" }} />
+          <div style={{ flex:1, display:"flex", flexDirection:"column", gap:7 }}>
+            <div className="skel-line" style={{ width:"60%" }} />
+            <div className="skel-line" style={{ width:"35%" }} />
+          </div>
+        </div>
+      ))}
+    </section>
+  );
+
+  /* ── error ── */
+  if (error) return (
+    <section className="view">
+      <div className="view-h"><h2 className="view-t">Portfolio</h2></div>
+      <div className="search-error">
+        <Icon name="close" size={16} />
+        <span>Could not load portfolio.</span>
+        <button className="btn btn-ghost btn-sm" style={{ marginLeft:"auto" }} onClick={load}>Retry</button>
+      </div>
+    </section>
+  );
+
+  /* ── empty ── */
+  if (!positions.length) return (
+    <section className="view">
+      <div className="view-h"><h2 className="view-t">Portfolio</h2></div>
+      <Empty icon="wallet"
+        title="Your portfolio is empty"
+        sub="Search a card and add it to track its value and gain."
+        cta="Find a card" onCta={onExplore} />
+    </section>
+  );
+
+  /* ── compute totals (only priced positions contribute) ── */
+  let totalValueUSD = 0, totalPaidUSD = 0, unpricedCount = 0;
+  for (const pos of positions) {
+    const priceRow  = priceMap[pos.card_api_id];
+    const currentUSD = priceRow?.price_market ?? null;
+    const paidRaw    = pos.purchase_price;
+    const fmvCur     = pos.fmv_currency || cur;
+    const paidUSD    = paidRaw != null
+      ? (fmvCur === "EUR" ? paidRaw / eurRate : Number(paidRaw))
+      : null;
+    if (currentUSD != null) {
+      totalValueUSD += currentUSD;
+      if (paidUSD != null) totalPaidUSD += paidUSD;
+    } else {
+      unpricedCount++;
+    }
+  }
+  const pnlUSD  = totalValueUSD - totalPaidUSD;
+  const pnlPct  = totalPaidUSD > 0 ? (pnlUSD / totalPaidUSD) * 100 : null;
+  const pnlPos  = pnlUSD >= 0;
+
   return (
     <section className="view">
-      <div className="view-h">
-        <h2 className="view-t">Portfolio</h2>
+      <div className="view-h"><h2 className="view-t">Portfolio</h2></div>
+
+      {/* ── HEADER ── */}
+      <div className="pf-header">
+        <div className="pf-header-top">
+          <span className="pf-label">Total Value</span>
+          {unpricedCount > 0 && (
+            <span className="pf-unpriced">{unpricedCount} unpriced</span>
+          )}
+        </div>
+        <div className="pf-total">{fmt(totalValueUSD)}</div>
+        {totalPaidUSD > 0 && (
+          <div className={`pf-pnl ${pnlPos ? "gain" : "loss"}`}>
+            <span>{pnlPos ? "+" : ""}{fmt(pnlUSD)}</span>
+            {pnlPct != null && (
+              <span className="pf-pnl-pct">{pnlPos ? "+" : ""}{pnlPct.toFixed(2)}%</span>
+            )}
+            <span className="pf-pnl-vs">vs paid</span>
+          </div>
+        )}
+        <div className="pf-count">
+          {positions.length - unpricedCount} of {positions.length} position{positions.length !== 1 ? "s" : ""} priced
+        </div>
       </div>
-      {!isAuthed ? (
-        <Empty icon="wallet"
-          title="Sign in to save your portfolio"
-          sub="Add the cards you own and track their value and P&L over time."
-          cta="Sign in" onCta={onLogin} />
-      ) : (
-        <Empty icon="wallet"
-          title="Your portfolio is empty"
-          sub="Search a card and add it to track its value and gain."
-          cta="Find a card" onCta={onExplore} />
-      )}
+
+      {/* ── LIST ── */}
+      <div className="pf-list">
+        {positions.map(pos => (
+          <PortfolioRow
+            key={pos.id}
+            pos={pos}
+            priceInfo={priceMap[pos.card_api_id] || null}
+            cur={cur}
+            eurRate={eurRate}
+            fmt={fmt}
+            isConfirm={confirmId === pos.id}
+            onConfirm={() => setConfirmId(pos.id)}
+            onCancelConfirm={() => setConfirmId(null)}
+            onRemove={() => doRemove(pos.id)}
+            onTrack={() => doTrack(pos)}
+            trackBusy={!!watchBusy[pos.id]}
+            trackDone={!!watched[pos.id]}
+            removeBusy={removeBusy && confirmId === pos.id}
+          />
+        ))}
+      </div>
+
+      {toast && <div className="toast">{toast}</div>}
     </section>
   );
 }
@@ -753,6 +1031,372 @@ function AlertsView({ isAuthed, onLogin, onExplore }) {
           sub="Create your first alert from any card: set a threshold and direction."
           cta="Find a card" onCta={onExplore} />
       )}
+    </section>
+  );
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   ASSET — dettaglio carta (TASK 4)
+   ════════════════════════════════════════════════════════════════════════ */
+const CONDITIONS = ["NM", "LP", "MP", "HP", "DMG"];
+
+// market code accettato da /api/ebay-search; fallback US
+const EBAY_MARKETS = ["US","GB","DE","IT","FR","ES","CA"];
+
+// card_api_id === cards.id (forma completa "<tcg>:<source>:<number>:<lang>",
+// es. "onepiece:optcg:OP05-119:en"). refresh-prices e check-alerts usano card_api_id
+// direttamente come card_prices.card_id, quindi NON va spogliato del prefisso.
+function toApiId(card) {
+  return card?.id || "";
+}
+
+/* ─── Sparkline SVG (no librerie) — solo se ≥ 2 punti ─── */
+function Sparkline({ values, gain }) {
+  const W = 300, H = 64, pad = 4;
+  const min = Math.min(...values), max = Math.max(...values);
+  const span = max - min || 1;
+  const pts = values.map((v, i) => {
+    const x = pad + (i / (values.length - 1)) * (W - pad * 2);
+    const y = H - pad - ((v - min) / span) * (H - pad * 2);
+    return [x, y];
+  });
+  const d = pts.map((p, i) => `${i ? "L" : "M"}${p[0].toFixed(1)} ${p[1].toFixed(1)}`).join(" ");
+  const area = `${d} L${pts[pts.length - 1][0].toFixed(1)} ${H} L${pts[0][0].toFixed(1)} ${H} Z`;
+  const col = gain ? "var(--gain)" : "var(--loss)";
+  return (
+    <svg className="spark-svg" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" aria-hidden="true">
+      <defs>
+        <linearGradient id="sparkfill" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={col} stopOpacity="0.22" />
+          <stop offset="100%" stopColor={col} stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      <path d={area} fill="url(#sparkfill)" stroke="none" />
+      <path d={d} fill="none" stroke={col} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+/* ─── Modal generico (riusa stili .modal) ─── */
+function Sheet({ title, onClose, children }) {
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <div className="modal" onClick={e => e.stopPropagation()}>
+        <button className="modal-x" onClick={onClose} aria-label="Close"><Icon name="close" size={18} /></button>
+        <h3 className="sheet-title">{title}</h3>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+/* ─── Modal: Aggiungi a Portfolio ─── */
+function PortfolioModal({ card, cur, onClose, onDone }) {
+  const [paid, setPaid] = useState("");
+  const [cond, setCond] = useState("NM");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+
+  const submit = async (e) => {
+    e.preventDefault();
+    if (busy) return;
+    setBusy(true); setErr("");
+    const paidNum = parseFloat(paid);
+    const res = await addToCollection({
+      card_api_id: toApiId(card),
+      tcg: card.tcg,
+      card_name: card.name,
+      set_name: card.set_name || "",
+      card_number: card.card_number || null,
+      image_url: card.image_url || null,
+      language: card.lang || "en",
+      condition: cond,
+      purchase_price: isNaN(paidNum) ? null : paidNum,
+      fmv_currency: cur,
+    });
+    setBusy(false);
+    if (res?.error) { setErr(typeof res.error === "string" ? res.error : res.error.message || "Could not add."); return; }
+    onDone?.("Added to portfolio");
+  };
+
+  return (
+    <Sheet title="Add to portfolio" onClose={onClose}>
+      <form onSubmit={submit} className="sheet-form">
+        <label className="field-lbl">Price paid ({cur})</label>
+        <input className="input" type="number" inputMode="decimal" step="0.01" min="0"
+          placeholder="0.00" value={paid} onChange={e => setPaid(e.target.value)} autoFocus />
+        <label className="field-lbl">Condition</label>
+        <div className="cond-row">
+          {CONDITIONS.map(c => (
+            <button type="button" key={c}
+              className={`cond-b ${cond === c ? "on" : ""}`}
+              onClick={() => setCond(c)}>{c}</button>
+          ))}
+        </div>
+        {err && <div className="auth-err">{err}</div>}
+        <button type="submit" className="btn btn-primary btn-block" disabled={busy}>
+          {busy ? "Adding…" : "Add to portfolio"}
+        </button>
+      </form>
+    </Sheet>
+  );
+}
+
+/* ─── Modal: Crea Alert ─── */
+function AlertModal({ card, cur, country, fmvUSD, eurRate, onClose, onDone }) {
+  const [dir, setDir] = useState("above");
+  const [threshold, setThreshold] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+
+  const submit = async (e) => {
+    e.preventDefault();
+    if (busy) return;
+    const t = parseFloat(threshold);
+    if (isNaN(t) || t <= 0) { setErr("Enter a valid threshold."); return; }
+    setBusy(true); setErr("");
+    const res = await createAlert({
+      tcg: card.tcg, cardId: toApiId(card), cardName: card.name,
+      language: card.lang || "en", threshold: t, direction: dir,
+      currency: cur, country,
+    });
+    setBusy(false);
+    if (res?.error) { setErr(typeof res.error === "string" ? res.error : res.error.message || "Could not create alert."); return; }
+    onDone?.("Alert created");
+  };
+
+  const hintFmv = fmvUSD != null
+    ? (cur === "EUR" ? `€${(fmvUSD * eurRate).toFixed(2)}` : `$${Number(fmvUSD).toFixed(2)}`)
+    : null;
+
+  return (
+    <Sheet title="Create alert" onClose={onClose}>
+      <form onSubmit={submit} className="sheet-form">
+        <p className="auth-p">Get an email when the price crosses your threshold.{hintFmv && <> Current FMV: <b>{hintFmv}</b>.</>}</p>
+        <label className="field-lbl">Trigger when price goes</label>
+        <div className="seg">
+          <button type="button" className={`seg-b ${dir === "above" ? "on" : ""}`} onClick={() => setDir("above")}>Above ↑</button>
+          <button type="button" className={`seg-b ${dir === "below" ? "on" : ""}`} onClick={() => setDir("below")}>Below ↓</button>
+        </div>
+        <label className="field-lbl">Threshold ({cur})</label>
+        <input className="input" type="number" inputMode="decimal" step="0.01" min="0"
+          placeholder="0.00" value={threshold} onChange={e => setThreshold(e.target.value)} autoFocus />
+        {err && <div className="auth-err">{err}</div>}
+        <button type="submit" className="btn btn-primary btn-block" disabled={busy}>
+          {busy ? "Creating…" : "Create alert"}
+        </button>
+      </form>
+    </Sheet>
+  );
+}
+
+/* ─── ASSET VIEW ─── */
+function AssetView({ card, onBack, isAuthed, onLogin, country, cur, eurRate }) {
+  const [snaps, setSnaps] = useState([]);       // [{price_market, source, captured_at}] asc
+  const [loadingPrice, setLoadingPrice] = useState(true);
+  const [priceErr, setPriceErr] = useState(false);
+  const [ebayItems, setEbayItems] = useState([]);
+  const [imgFailed, setImgFailed] = useState(false);
+  const [modal, setModal] = useState(null);     // 'portfolio' | 'alert' | null
+  const [watching, setWatching] = useState(false);
+  const [watchBusy, setWatchBusy] = useState(false);
+  const [toast, setToast] = useState("");
+
+  const tcgInfo = TCG_LIST.find(t => t.id === card.tcg);
+  const langInfo = CARD_LANGS.find(l => l.c === card.lang);
+  const imgUrl = card.image_url || card.imgUrl || card.img || null;
+  const cardNum = card.card_number || "";
+
+  const latest = snaps.length ? snaps[snaps.length - 1] : null;
+  const fmvUSD = latest?.price_market ?? null;
+  const priceStr = (usd) => usd == null ? "—"
+    : cur === "EUR" ? `€${(usd * eurRate).toFixed(2)}` : `$${Number(usd).toFixed(2)}`;
+
+  const flash = (m) => { setToast(m); setTimeout(() => setToast(""), 2600); };
+
+  /* prezzi: tutti gli snapshot per card.id, ordine cronologico */
+  const loadPrice = useCallback(async () => {
+    setLoadingPrice(true); setPriceErr(false);
+    try {
+      if (!supabaseReady) throw new Error("no backend");
+      const { data, error } = await supabase
+        .from("card_prices")
+        .select("price_market,source,captured_at")
+        .eq("card_id", card.id)
+        .order("captured_at", { ascending: true })
+        .limit(60);
+      if (error) throw error;
+      setSnaps((data || []).filter(r => r.price_market != null));
+    } catch {
+      setPriceErr(true); setSnaps([]);
+    } finally {
+      setLoadingPrice(false);
+    }
+  }, [card.id]);
+
+  // Numero carta "distintivo" = filtrabile in modo affidabile su eBay (es. OP12-079,
+  // 006/165, swsh1-1). Un numero corto puro come "5" o "199" matcha qualunque titolo
+  // ("DP5", "...199...") → falsi positivi: in quel caso NON mostriamo eBay Live. (Fix #3)
+  const numNorm = cardNum.replace(/[^a-z0-9]/gi, "").toLowerCase();
+  const numDistinctive = !!cardNum && (
+    /[a-z]/i.test(cardNum) || /[-/]/.test(cardNum) || numNorm.length >= 5
+  );
+
+  /* eBay live: solo listing col numero carta (distintivo) nel titolo, max 5 (Fix #3) */
+  const loadEbay = useCallback(async () => {
+    if (!numDistinctive) { setEbayItems([]); return; }
+    try {
+      const market = EBAY_MARKETS.includes(country) ? country : "US";
+      const suffix = card.tcg === "mtg" ? "magic the gathering"
+        : card.tcg === "ygo" ? "yugioh"
+        : card.tcg === "onepiece" ? "one piece card" : "pokemon card";
+      const q = `${card.name} ${cardNum} ${suffix}`.replace(/\s+/g, " ").trim();
+      const r = await fetch(`/api/ebay-search?q=${encodeURIComponent(q)}&market=${market}&limit=20`, {
+        signal: AbortSignal.timeout(8000),
+      }).catch(() => null);
+      if (!r || !r.ok) { setEbayItems([]); return; }
+      const d = await r.json();
+      const matches = (d.items || [])
+        .filter(it => (it.title || "").replace(/[^a-z0-9]/gi, "").toLowerCase().includes(numNorm))
+        .slice(0, 5);
+      setEbayItems(matches);
+    } catch {
+      setEbayItems([]);
+    }
+  }, [card.id, cardNum, numNorm, numDistinctive, country]);
+
+  useEffect(() => { loadPrice(); loadEbay(); }, [loadPrice, loadEbay]);
+
+  const track = async () => {
+    if (!isAuthed) { onLogin?.(); return; }
+    if (watchBusy || watching) return;
+    setWatchBusy(true);
+    const res = await addToWatchlist({
+      tcg: card.tcg, cardApiId: toApiId(card), cardName: card.name,
+      setName: card.set_name || "", imageUrl: imgUrl,
+    });
+    setWatchBusy(false);
+    if (res?.error) { flash(typeof res.error === "string" ? res.error : "Could not track."); return; }
+    setWatching(true);
+    flash("Tracking — we'll price it on the next refresh");
+  };
+
+  const gateAuth = (m) => { if (!isAuthed) { onLogin?.(); } else { setModal(m); } };
+
+  const ebayHref = ebayURL(card.name, card.set_name || "", country, card.tcg || "pokemon", cardNum);
+
+  return (
+    <section className="view asset">
+      <button className="back-btn" onClick={onBack}>
+        <span style={{ transform: "rotate(180deg)", display: "flex" }}><Icon name="chevron" size={18} /></span>
+        Back
+      </button>
+
+      <div className="asset-head">
+        <div className="asset-img">
+          {imgUrl && !imgFailed ? (
+            <img src={imgUrl} alt={card.name} onError={() => setImgFailed(true)} />
+          ) : (
+            <div className="card-img-ph">
+              {tcgInfo && <span className="card-img-ph-tcg" style={{ color: tcgInfo.color }}>{tcgInfo.short}</span>}
+              <span className="card-img-ph-init">{(card.name || "?").replace(/[^a-zA-Z ]/g, "").trim().split(/\s+/).slice(0, 2).map(w => w[0] || "").join("").toUpperCase() || "?"}</span>
+            </div>
+          )}
+        </div>
+        <div className="asset-info">
+          {tcgInfo && <span className="asset-tcg" style={{ color: tcgInfo.color }}>{tcgInfo.label}</span>}
+          <h1 className="asset-name">{card.name}</h1>
+          <div className="asset-meta">
+            {card.set_name && <span>{card.set_name}</span>}
+            {cardNum && <span className="asset-num">#{cardNum}</span>}
+            {langInfo && <span>{langInfo.flag} {langInfo.label}</span>}
+          </div>
+
+          {/* PREZZO */}
+          {loadingPrice ? (
+            <div className="price-skel" />
+          ) : priceErr ? (
+            <div className="search-error" style={{ margin: "14px 0" }}>
+              <span>Couldn't load the price.</span>
+              <button className="btn btn-ghost btn-sm" style={{ marginLeft: "auto" }} onClick={loadPrice}>Retry</button>
+            </div>
+          ) : fmvUSD != null ? (
+            <div className="fmv-block">
+              <div className="fmv-row">
+                <span className="fmv-val">{priceStr(fmvUSD)}</span>
+                <span className="fmv-tag">FMV</span>
+              </div>
+              <div className="fmv-sub">{latest.source || "market"} · updated {new Date(latest.captured_at).toLocaleDateString()}</div>
+              {snaps.length >= 2 && (
+                <div className="spark-wrap">
+                  <Sparkline
+                    values={snaps.map(s => s.price_market)}
+                    gain={snaps[snaps.length - 1].price_market >= snaps[0].price_market}
+                  />
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="noprice-block">
+              <div className="noprice-txt">No market price yet for this card.</div>
+              <a className="btn btn-primary btn-block" href={ebayHref} target="_blank" rel="noreferrer">
+                See price on eBay ↗
+              </a>
+              <button className="btn btn-ghost btn-block" onClick={track} disabled={watchBusy || watching}>
+                {watching ? "Tracking ✓" : watchBusy ? "…" : "Track this card"}
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* AZIONI */}
+      <div className="asset-actions">
+        <button className="btn btn-primary" onClick={() => gateAuth("portfolio")}>
+          <Icon name="wallet" size={18} /> Add to portfolio
+        </button>
+        <button className="btn btn-ghost" onClick={() => gateAuth("alert")}>
+          <Icon name="bell" size={18} /> Create alert
+        </button>
+      </div>
+
+      {/* eBAY LIVE — nascosta se zero match */}
+      {ebayItems.length > 0 && (
+        <div className="ebay-live">
+          <div className="sec-h">
+            <span className="sec-h-t">eBay live · {cardNum}</span>
+            <span className="sec-h-line" />
+          </div>
+          <div className="ebay-list">
+            {ebayItems.map((it, i) => (
+              <a key={i} className="ebay-row" href={it.url} target="_blank" rel="noreferrer">
+                <div className="ebay-thumb">
+                  {it.thumb ? <img src={it.thumb} alt="" loading="lazy" /> : <Icon name="card" size={18} />}
+                </div>
+                <div className="ebay-body">
+                  <div className="ebay-title">{it.title}</div>
+                  {it.condition && <div className="ebay-cond">{it.condition}</div>}
+                </div>
+                <div className="ebay-price">
+                  {it.currency === "EUR" ? "€" : it.currency === "GBP" ? "£" : "$"}{Number(it.price).toFixed(2)}
+                </div>
+              </a>
+            ))}
+          </div>
+          <a className="ebay-all" href={ebayHref} target="_blank" rel="noreferrer">See all on eBay ↗</a>
+        </div>
+      )}
+
+      {modal === "portfolio" && (
+        <PortfolioModal card={card} cur={cur} onClose={() => setModal(null)}
+          onDone={(m) => { setModal(null); flash(m); }} />
+      )}
+      {modal === "alert" && (
+        <AlertModal card={card} cur={cur} country={country} fmvUSD={fmvUSD} eurRate={eurRate}
+          onClose={() => setModal(null)} onDone={(m) => { setModal(null); flash(m); }} />
+      )}
+
+      {toast && <div className="toast">{toast}</div>}
     </section>
   );
 }
@@ -831,10 +1475,10 @@ input{font-family:inherit;font-size:16px;}
 .chip.sm{font-size:12px;padding:6px 11px;}
 .chip:hover{color:var(--text);}
 .chip.on{color:var(--text);background:var(--surface-3);border-color:var(--border-2);}
-.tcg-chip{display:flex;align-items:center;gap:5px;padding:5px 11px;}
-.tcg-chip-logo{height:16px;width:auto;max-width:60px;object-fit:contain;opacity:.7;transition:.15s;}
-.tcg-chip.on .tcg-chip-logo,.tcg-chip:hover .tcg-chip-logo{opacity:1;}
-.tcg-chip-label{font-size:11px;font-weight:700;letter-spacing:.04em;}
+.tcg-chip{display:flex;align-items:center;gap:6px;}
+.tcg-chip-logo{height:15px;width:auto;object-fit:contain;filter:brightness(0) invert(1);opacity:.85;}
+.tcg-chip.on .tcg-chip-logo{filter:none;opacity:1;}
+.tcg-chip-label{font-family:'Space Mono',monospace;font-size:12px;font-weight:700;letter-spacing:.04em;}
 
 /* section heading */
 .sec-h{display:flex;align-items:center;gap:12px;margin:24px 0 14px;}
@@ -911,6 +1555,7 @@ input{font-family:inherit;font-size:16px;}
 .card-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:8px;}
 .card-item{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;transition:.15s;cursor:pointer;}
 .card-item:hover{border-color:var(--border-2);background:var(--surface-2);}
+.card-item:focus-visible{outline:2px solid var(--gold);outline-offset:2px;}
 .card-item-img{aspect-ratio:3/4;width:100%;overflow:hidden;background:var(--surface-2);}
 .card-item-img img{width:100%;height:100%;object-fit:contain;}
 .card-img-ph{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;background:linear-gradient(150deg,var(--surface-3),var(--surface-2));padding:12px;}
@@ -928,4 +1573,116 @@ input{font-family:inherit;font-size:16px;}
 /* search states */
 .search-clear{color:var(--dim);display:flex;padding:5px;border-radius:6px;flex-shrink:0;}
 .search-clear:hover{color:var(--text);background:var(--surface-3);}
-.search-error{display:flex;align-items:
+.search-error{display:flex;align-items:center;gap:10px;background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.22);color:var(--loss);border-radius:12px;padding:13px 15px;margin:10px 0;font-size:14px;}
+.zero-state{text-align:center;padding:36px 16px;border:1px dashed var(--border-2);border-radius:16px;background:var(--glass);}
+.zero-title{font-size:16px;font-weight:700;margin-bottom:6px;}
+.zero-sub{font-size:13px;color:var(--muted);margin-bottom:16px;}
+
+/* asset page */
+.asset{margin-bottom:30px;}
+.back-btn{display:inline-flex;align-items:center;gap:4px;color:var(--muted);font-size:14px;font-weight:600;padding:8px 4px;margin-bottom:10px;}
+.back-btn:hover{color:var(--text);}
+.asset-head{display:flex;flex-direction:column;gap:18px;}
+.asset-img{width:160px;align-self:center;aspect-ratio:3/4;border-radius:14px;overflow:hidden;background:var(--surface-2);border:1px solid var(--border);}
+.asset-img img{width:100%;height:100%;object-fit:contain;}
+.asset-info{flex:1;min-width:0;}
+.asset-tcg{font-family:'Space Mono',monospace;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;}
+.asset-name{font-family:'Fraunces',serif;font-weight:800;font-size:clamp(22px,5vw,30px);line-height:1.1;letter-spacing:-.02em;margin:6px 0 10px;}
+.asset-meta{display:flex;flex-wrap:wrap;gap:10px;align-items:center;color:var(--muted);font-size:13px;}
+.asset-num{font-family:'Space Mono',monospace;}
+.price-skel{height:78px;border-radius:14px;background:linear-gradient(100deg,var(--surface-2) 30%,var(--surface-3) 50%,var(--surface-2) 70%);background-size:200% 100%;animation:sh 1.4s linear infinite;margin-top:16px;}
+.fmv-block{margin-top:16px;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:16px;}
+.fmv-row{display:flex;align-items:baseline;gap:10px;}
+.fmv-val{font-family:'Space Mono',monospace;font-size:30px;font-weight:700;color:var(--text);}
+.fmv-tag{font-size:10px;font-weight:700;font-family:'Space Mono',monospace;letter-spacing:.1em;color:var(--gold);background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.25);padding:3px 7px;border-radius:6px;}
+.fmv-sub{margin-top:5px;font-size:12px;color:var(--dim);font-family:'Space Mono',monospace;}
+.spark-wrap{margin-top:14px;}
+.spark-svg{width:100%;height:64px;display:block;}
+.noprice-block{margin-top:16px;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:10px;}
+.noprice-txt{font-size:14px;color:var(--muted);margin-bottom:2px;}
+.asset-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:20px;}
+.asset-actions .btn{width:100%;}
+
+/* ebay live */
+.ebay-live{margin-top:26px;}
+.ebay-list{display:flex;flex-direction:column;gap:8px;}
+.ebay-row{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px;transition:.15s;}
+.ebay-row:hover{border-color:var(--border-2);background:var(--surface-2);}
+.ebay-thumb{width:46px;height:46px;border-radius:8px;overflow:hidden;background:var(--surface-2);display:flex;align-items:center;justify-content:center;color:var(--dim);flex-shrink:0;}
+.ebay-thumb img{width:100%;height:100%;object-fit:cover;}
+.ebay-body{flex:1;min-width:0;}
+.ebay-title{font-size:12px;font-weight:600;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.ebay-cond{font-size:10px;color:var(--dim);margin-top:3px;}
+.ebay-price{font-family:'Space Mono',monospace;font-size:14px;font-weight:700;color:var(--gain);flex-shrink:0;}
+.ebay-all{display:inline-block;margin-top:12px;font-size:13px;font-weight:600;color:var(--gold);}
+.ebay-all:hover{filter:brightness(1.1);}
+
+/* sheet (modal) extras */
+.sheet-title{font-size:20px;font-weight:800;letter-spacing:-.01em;margin-bottom:16px;}
+.sheet-form{display:flex;flex-direction:column;}
+.field-lbl{font-size:12px;font-weight:600;color:var(--muted);margin-bottom:7px;}
+.cond-row{display:flex;gap:7px;margin-bottom:14px;flex-wrap:wrap;}
+.cond-b{flex:1;min-width:48px;padding:10px 0;border-radius:9px;font-size:13px;font-weight:700;font-family:'Space Mono',monospace;color:var(--muted);background:var(--surface-2);border:1px solid var(--border);transition:.15s;}
+.cond-b.on{color:#1a1200;background:var(--gold);border-color:var(--gold);}
+.seg{display:flex;gap:7px;margin-bottom:14px;}
+.seg-b{flex:1;padding:11px 0;border-radius:9px;font-size:13px;font-weight:700;color:var(--muted);background:var(--surface-2);border:1px solid var(--border);transition:.15s;}
+.seg-b.on{color:var(--text);background:var(--surface-3);border-color:var(--border-2);}
+
+/* toast */
+.toast{position:fixed;left:50%;bottom:calc(var(--tabh) + 18px);transform:translateX(-50%);z-index:80;background:var(--surface-3);border:1px solid var(--border-2);color:var(--text);font-size:13px;font-weight:600;padding:11px 18px;border-radius:100px;box-shadow:0 12px 40px rgba(0,0,0,.5);max-width:90vw;text-align:center;}
+
+/* portfolio */
+.pf-header{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:20px;margin-bottom:20px;}
+.pf-header-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;}
+.pf-label{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-family:'Space Mono',monospace;}
+.pf-unpriced{font-size:10px;font-weight:700;font-family:'Space Mono',monospace;color:var(--dim);background:var(--surface-2);border:1px solid var(--border);padding:2px 8px;border-radius:100px;}
+.pf-total{font-family:'Space Mono',monospace;font-size:32px;font-weight:700;letter-spacing:-.02em;margin:2px 0 6px;}
+.pf-pnl{display:flex;align-items:center;gap:8px;font-family:'Space Mono',monospace;font-size:15px;font-weight:700;margin-bottom:8px;}
+.pf-pnl.gain{color:var(--gain);}
+.pf-pnl.loss{color:var(--loss);}
+.pf-pnl-pct{font-size:13px;opacity:.85;}
+.pf-pnl-vs{font-size:11px;font-weight:500;color:var(--dim);font-family:'Plus Jakarta Sans',sans-serif;}
+.pf-count{font-size:12px;color:var(--dim);}
+.pf-header-skel{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:20px;margin-bottom:20px;}
+.pf-list{display:flex;flex-direction:column;}
+.pf-row{display:flex;align-items:flex-start;gap:12px;padding:14px 0;border-bottom:1px solid var(--border);}
+.pf-row:first-child{border-top:1px solid var(--border);}
+.pf-img{width:44px;height:62px;border-radius:8px;overflow:hidden;background:var(--surface-2);border:1px solid var(--border);flex-shrink:0;}
+.pf-img img{width:100%;height:100%;object-fit:contain;}
+.pf-body{flex:1;min-width:0;}
+.pf-name{font-size:13px;font-weight:700;line-height:1.3;margin-bottom:4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.pf-meta{display:flex;gap:7px;align-items:center;margin-bottom:8px;}
+.pf-cond{font-size:10px;font-weight:700;font-family:'Space Mono',monospace;color:var(--gold);background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.2);padding:2px 6px;border-radius:5px;}
+.pf-set{font-size:10px;color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:130px;}
+.pf-prices{display:flex;gap:14px;}
+.pf-price-col{display:flex;flex-direction:column;gap:2px;}
+.pf-price-lbl{font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);font-family:'Space Mono',monospace;}
+.pf-price-val{font-size:12px;font-weight:700;font-family:'Space Mono',monospace;color:var(--text);}
+.pf-price-val.gain{color:var(--gain);}
+.pf-price-val.loss{color:var(--loss);}
+.pf-actions{display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0;padding-top:2px;}
+.pf-remove-btn{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--dim);transition:.15s;}
+.pf-remove-btn:hover{background:rgba(248,113,113,.12);color:var(--loss);}
+.pf-track-btn{font-size:11px;padding:5px 10px;border-radius:7px;}
+.pf-confirm{display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end;max-width:200px;}
+.pf-confirm-txt{font-size:12px;font-weight:700;color:var(--loss);width:100%;text-align:right;}
+.pf-confirm-yes{background:var(--loss);color:#fff;padding:8px 14px;border-radius:9px;font-size:13px;font-weight:700;}
+.pf-confirm-yes:disabled{opacity:.6;cursor:default;}
+
+/* desktop */
+@media(min-width:760px){
+  :root{--tabh:0px;}
+  .topnav{display:flex;}
+  .tabbar{display:none;}
+  .main{padding:26px var(--p) 60px;}
+  .skel-grid{grid-template-columns:repeat(4,1fr);}
+  .card-grid{grid-template-columns:repeat(4,1fr);}
+  .card-item-name{font-size:13px;}
+  .up-grid{grid-template-columns:repeat(3,1fr);}
+  .modal-backdrop{align-items:center;padding:20px;}
+  .modal{border-radius:22px;}
+  .asset-head{flex-direction:row;align-items:flex-start;gap:26px;}
+  .asset-img{width:220px;align-self:flex-start;}
+  .asset-actions{max-width:420px;}
+}
+`;
