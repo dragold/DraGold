@@ -608,14 +608,49 @@ function MarketsView({ tcgFilter, setTcgFilter, langFilter, setLangFilter, count
       const { data, error: dbErr } = await dbQuery;
       if (dbErr) throw dbErr;
 
-      let cards = data || [];
+      let nameMatches = data || [];
 
       // Client-side normalization (Fix #1): gestisce "monkeydluffy" → "Monkey.D.Luffy"
       // Solo per query senza spazi (caso raro), le query con spazi sono già gestite da ilike
       if (!hasSpaces && normQ.length >= 3) {
-        cards = cards.filter(c =>
+        nameMatches = nameMatches.filter(c =>
           norm((c.name || '') + (c.set_name || '') + (c.card_number || '')).includes(normQ)
         );
+      }
+
+      // Multi-language expand: trova tutte le versioni linguistiche delle stesse carte.
+      // Logica: EN è la base → cerchi "Charizard" → trovi EN; poi recuperi JA/IT/ES/PT/ID
+      // usando lo stesso card_number (es. OP01-001 è uguale in tutte le lingue One Piece).
+      let cards = nameMatches;
+      if (!lang && nameMatches.length > 0) {
+        // Raggruppa i card_number per TCG (evita collisioni cross-TCG)
+        const byTcg = {};
+        for (const c of nameMatches) {
+          if (!c.card_number) continue;
+          if (!byTcg[c.tcg]) byTcg[c.tcg] = new Set();
+          byTcg[c.tcg].add(c.card_number);
+        }
+        const knownIds = new Set(nameMatches.map(c => c.id));
+        const allCards = [...nameMatches];
+        for (const [tcgKey, numSet] of Object.entries(byTcg)) {
+          const nums = [...numSet];
+          if (!nums.length || nums.length > 60) continue;
+          const { data: expanded } = await supabase
+            .from('cards')
+            .select('id,name,set_name,card_number,image_url,lang,tcg')
+            .eq('tcg', tcgKey)
+            .in('card_number', nums)
+            .limit(400);
+          for (const c of (expanded || [])) {
+            if (!knownIds.has(c.id)) { knownIds.add(c.id); allCards.push(c); }
+          }
+        }
+        // Raggruppa varianti: stesso card_number affiancate, ordinate per lingua
+        allCards.sort((a, b) => {
+          const n = (a.card_number || '').localeCompare(b.card_number || '');
+          return n !== 0 ? n : (a.lang || '').localeCompare(b.lang || '');
+        });
+        cards = allCards;
       }
 
       setResults(cards);
@@ -1656,33 +1691,4 @@ input{font-family:inherit;font-size:16px;}
 .pf-set{font-size:10px;color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:130px;}
 .pf-prices{display:flex;gap:14px;}
 .pf-price-col{display:flex;flex-direction:column;gap:2px;}
-.pf-price-lbl{font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);font-family:'Space Mono',monospace;}
-.pf-price-val{font-size:12px;font-weight:700;font-family:'Space Mono',monospace;color:var(--text);}
-.pf-price-val.gain{color:var(--gain);}
-.pf-price-val.loss{color:var(--loss);}
-.pf-actions{display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0;padding-top:2px;}
-.pf-remove-btn{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--dim);transition:.15s;}
-.pf-remove-btn:hover{background:rgba(248,113,113,.12);color:var(--loss);}
-.pf-track-btn{font-size:11px;padding:5px 10px;border-radius:7px;}
-.pf-confirm{display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end;max-width:200px;}
-.pf-confirm-txt{font-size:12px;font-weight:700;color:var(--loss);width:100%;text-align:right;}
-.pf-confirm-yes{background:var(--loss);color:#fff;padding:8px 14px;border-radius:9px;font-size:13px;font-weight:700;}
-.pf-confirm-yes:disabled{opacity:.6;cursor:default;}
-
-/* desktop */
-@media(min-width:760px){
-  :root{--tabh:0px;}
-  .topnav{display:flex;}
-  .tabbar{display:none;}
-  .main{padding:26px var(--p) 60px;}
-  .skel-grid{grid-template-columns:repeat(4,1fr);}
-  .card-grid{grid-template-columns:repeat(4,1fr);}
-  .card-item-name{font-size:13px;}
-  .up-grid{grid-template-columns:repeat(3,1fr);}
-  .modal-backdrop{align-items:center;padding:20px;}
-  .modal{border-radius:22px;}
-  .asset-head{flex-direction:row;align-items:flex-start;gap:26px;}
-  .asset-img{width:220px;align-self:flex-start;}
-  .asset-actions{max-width:420px;}
-}
-`;
+.pf-price-lbl{font-size:9px;font-weigh
