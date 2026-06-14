@@ -171,9 +171,6 @@ export default function DraGold() {
   const [country, setCountry] = useState("IT");
   const [eurRate, setEurRate] = useState(0.92);  // 1 USD = X EUR
 
-  const [tcgFilter, setTcgFilter]   = useState(null); // null = tutti
-  const [langFilter, setLangFilter] = useState(null);
-
   /* ── sessione globale ── */
   useEffect(() => {
     let off = () => {};
@@ -239,7 +236,7 @@ export default function DraGold() {
       {/* ░░ HEADER ░░ */}
       <header className="hdr">
         <div className="hdr-in">
-          <button className="brand" onClick={()=>setTab("markets")}>
+          <button className="brand" onClick={()=>{ setAsset(null); setTab("markets"); }}>
             <span className="brand-dot" />
             <span className="logo-txt font-syne">DraGold</span>
           </button>
@@ -249,7 +246,7 @@ export default function DraGold() {
             {TABS.map(t => (
               <button key={t.id}
                 className={`topnav-i ${tab===t.id?"on":""}`}
-                onClick={()=>setTab(t.id)}>
+                onClick={()=>{ setAsset(null); setTab(t.id); }}>
                 {t.label}
               </button>
             ))}
@@ -300,8 +297,6 @@ export default function DraGold() {
         <>
         {tab==="markets" && (
           <MarketsView
-            tcgFilter={tcgFilter} setTcgFilter={setTcgFilter}
-            langFilter={langFilter} setLangFilter={setLangFilter}
             country={country} cur={cur} eurRate={eurRate}
             onOpenAsset={openAsset}
           />
@@ -350,7 +345,7 @@ export default function DraGold() {
       {/* ░░ BOTTOM TAB (mobile) ░░ */}
       <nav className="tabbar">
         {TABS.map(t => (
-          <button key={t.id} className={`tab-i ${tab===t.id?"on":""}`} onClick={()=>setTab(t.id)}>
+          <button key={t.id} className={`tab-i ${tab===t.id?"on":""}`} onClick={()=>{ setAsset(null); setTab(t.id); }}>
             <Icon name={t.icon} size={22} stroke={tab===t.id?2.4:2} />
             <span>{t.label}</span>
           </button>
@@ -605,14 +600,18 @@ function Onboarding({ onDismiss }) {
 /* ════════════════════════════════════════════════════════════════════════
    MARKETS — ricerca + hot picks
    ════════════════════════════════════════════════════════════════════════ */
-function MarketsView({ tcgFilter, setTcgFilter, langFilter, setLangFilter, country, cur, eurRate, onOpenAsset }) {
-  const [q, setQ] = useState("");
+
+// Cache module-level: sopravvive all'unmount di MarketsView (es. apertura card detail)
+let _savedSearch = null;
+
+function MarketsView({ country, cur, eurRate, onOpenAsset }) {
+  const [q, setQ] = useState(() => _savedSearch?.q || "");
   const [loading, setLoading] = useState(false);
-  const [results, setResults] = useState([]);
-  const [priceMap, setPriceMap] = useState({});
+  const [results, setResults] = useState(() => _savedSearch?.results || []);
+  const [priceMap, setPriceMap] = useState(() => _savedSearch?.priceMap || {});
   const [error, setError] = useState(null);
-  const [searched, setSearched] = useState(false);
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searched, setSearched] = useState(() => _savedSearch?.searched || false);
+  const [searchTerm, setSearchTerm] = useState(() => _savedSearch?.searchTerm || "");
   const [showOnboard, setShowOnboard] = useState(() => {
     try { return !localStorage.getItem(ONBOARD_KEY); } catch { return false; }
   });
@@ -621,7 +620,7 @@ function MarketsView({ tcgFilter, setTcgFilter, langFilter, setLangFilter, count
     setShowOnboard(false);
   };
 
-  const runSearch = useCallback(async (query, tcg, lang) => {
+  const runSearch = useCallback(async (query) => {
     const trimmed = query.trim();
     if (!trimmed) return;
     setLoading(true); setError(null); setSearched(true); setSearchTerm(trimmed);
@@ -637,8 +636,6 @@ function MarketsView({ tcgFilter, setTcgFilter, langFilter, setLangFilter, count
         .from('cards')
         .select('id,name,set_name,card_number,image_url,lang,tcg')
         .limit(80);
-      if (tcg)  dbQuery = dbQuery.eq('tcg', tcg);
-      if (lang) dbQuery = dbQuery.eq('lang', lang);
 
       if (words.length > 0) {
         // AND tra token: ogni parola deve comparire in nome/numero/set
@@ -668,7 +665,7 @@ function MarketsView({ tcgFilter, setTcgFilter, langFilter, setLangFilter, count
       // Logica: EN è la base → cerchi "Charizard" → trovi EN; poi recuperi JA/IT/ES/PT/ID
       // usando lo stesso card_number (es. OP01-001 è uguale in tutte le lingue One Piece).
       let cards = nameMatches;
-      if (!lang && nameMatches.length > 0) {
+      if (nameMatches.length > 0) {
         // Raggruppa i card_number per TCG (evita collisioni cross-TCG)
         const byTcg = {};
         for (const c of nameMatches) {
@@ -724,14 +721,14 @@ function MarketsView({ tcgFilter, setTcgFilter, langFilter, setLangFilter, count
     }
   }, []);
 
-  // Re-run se filtri cambiano con ricerca attiva
-  useEffect(() => {
-    if (searched && searchTerm) runSearch(searchTerm, tcgFilter, langFilter);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tcgFilter, langFilter]);
+  // Salva lo stato di ricerca prima di aprire il dettaglio carta, così il back restaura i risultati
+  const handleOpenAsset = useCallback((card) => {
+    _savedSearch = { q, results, priceMap, searched, searchTerm };
+    onOpenAsset(card);
+  }, [q, results, priceMap, searched, searchTerm, onOpenAsset]);
 
-  const onSubmit = (e) => { e.preventDefault(); runSearch(q, tcgFilter, langFilter); };
-  const clearSearch = () => { setSearched(false); setResults([]); setPriceMap({}); setError(null); };
+  const onSubmit = (e) => { e.preventDefault(); runSearch(q); };
+  const clearSearch = () => { _savedSearch = null; setSearched(false); setResults([]); setPriceMap({}); setError(null); };
 
   return (
     <section className="view">
@@ -758,39 +755,16 @@ function MarketsView({ tcgFilter, setTcgFilter, langFilter, setLangFilter, count
         <button type="submit" className="search-go">Search</button>
       </form>
 
-      <div className="filters">
-        <div className="chip-row">
-          <button className={`chip ${!tcgFilter?"on":""}`} onClick={()=>setTcgFilter(null)}>All</button>
-          {TCG_LIST.map(t => (
-            <button key={t.id} className={`chip tcg-chip ${tcgFilter===t.id?"on":""}`}
-              onClick={()=>setTcgFilter(tcgFilter===t.id?null:t.id)}
-              style={tcgFilter===t.id?{borderColor:t.color,color:t.color}:{}}>
-              {t.logo && <img src={t.logo} alt={t.label} className="tcg-chip-logo" onError={e=>{e.currentTarget.style.display='none';}} />}
-              <span className="tcg-chip-label">{t.short}</span>
-            </button>
-          ))}
-        </div>
-        <div className="chip-row">
-          <button className={`chip sm ${!langFilter?"on":""}`} onClick={()=>setLangFilter(null)}>All</button>
-          {CARD_LANGS.map(l => (
-            <button key={l.c} className={`chip sm ${langFilter===l.c?"on":""}`}
-              onClick={()=>setLangFilter(langFilter===l.c?null:l.c)}>
-              {l.flag} {l.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
       {searched ? (
         <SearchResults
           loading={loading} results={results} priceMap={priceMap}
           error={error} term={searchTerm}
           country={country} cur={cur} eurRate={eurRate}
-          onRetry={() => runSearch(searchTerm, tcgFilter, langFilter)}
-          onOpen={onOpenAsset}
+          onRetry={() => runSearch(searchTerm)}
+          onOpen={handleOpenAsset}
         />
       ) : (
-        <HotPicksSection country={country} cur={cur} eurRate={eurRate} onOpen={onOpenAsset} />
+        <HotPicksSection country={country} cur={cur} eurRate={eurRate} onOpen={handleOpenAsset} />
       )}
     </section>
   );
