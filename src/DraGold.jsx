@@ -1,9 +1,9 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   supabase, supabaseReady,
   sendMagicLink, getSession, onAuth, signOut as sbSignOut,
   addToCollection, listCollection, removeFromCollection,
-  createAlert, addToWatchlist,
+  createAlert, listAlerts, deleteAlert, addToWatchlist,
 } from "./supabase.js";
 
 /* ════════════════════════════════════════════════════════════════════════
@@ -310,7 +310,8 @@ export default function DraGold() {
           <PortfolioView isAuthed={isAuthed} onLogin={()=>setAuthOpen(true)} onExplore={()=>setTab("markets")} cur={cur} eurRate={eurRate} />
         )}
         {tab==="alerts" && (
-          <AlertsView isAuthed={isAuthed} onLogin={()=>setAuthOpen(true)} onExplore={()=>setTab("markets")} />
+          <AlertsView isAuthed={isAuthed} onLogin={()=>setAuthOpen(true)} onExplore={()=>setTab("markets")}
+            cur={cur} eurRate={eurRate} country={country} />
         )}
 
         {/* Upcoming — solo badge, zero logica */}
@@ -1049,23 +1050,275 @@ function PortfolioView({ isAuthed, onLogin, onExplore, cur, eurRate }) {
 }
 
 /* --- ALERTS --- */
-function AlertsView({ isAuthed, onLogin, onExplore }) {
+/* ════════════════════════════════════════════════════════════════════════
+   ALERTS — lista, crea, elimina, toggle attivo (TASK 6)
+   ════════════════════════════════════════════════════════════════════════ */
+
+/* ─── AlertSearchResultItem — riga risultato ricerca inline ─── */
+function AlertSearchResultItem({ card, onSelect }) {
+  const [imgFailed, setImgFailed] = useState(false);
+  const imgUrl = card.image_url || null;
+  const tcgInfo = TCG_LIST.find(t => t.id === card.tcg);
+  const langInfo = CARD_LANGS.find(l => l.c === card.lang);
+  return (
+    <button className="al-search-row" onClick={() => onSelect(card)}>
+      <div className="al-search-img">
+        {imgUrl && !imgFailed ? (
+          <img src={imgUrl} alt={card.name} loading="lazy" onError={() => setImgFailed(true)} />
+        ) : (
+          <div className="card-img-ph" style={{ width: '100%', height: '100%' }}>
+            {tcgInfo && <span className="card-img-ph-tcg" style={{ color: tcgInfo.color }}>{tcgInfo.short}</span>}
+          </div>
+        )}
+      </div>
+      <div className="al-search-body">
+        <div className="al-search-name">{card.name}</div>
+        <div className="al-search-meta">
+          {card.set_name && <span>{card.set_name}</span>}
+          {card.card_number && <span>#{card.card_number}</span>}
+          {langInfo && <span>{langInfo.flag}</span>}
+          {tcgInfo && <span style={{ color: tcgInfo.color, fontFamily: 'Space Mono, monospace', fontSize: 10 }}>{tcgInfo.short}</span>}
+        </div>
+      </div>
+      <span style={{ color: 'var(--dim)', flexShrink: 0, display: 'flex' }}><Icon name="chevron" size={16} /></span>
+    </button>
+  );
+}
+
+/* ─── AlertCardSearch — ricerca inline per scegliere la carta ─── */
+function AlertCardSearch({ onSelect, onClose }) {
+  const [q, setQ] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [results, setResults] = useState([]);
+  const [error, setError] = useState(null);
+  const inputRef = useRef(null);
+
+  useEffect(() => { inputRef.current?.focus(); }, []);
+
+  const doSearch = useCallback(async (query) => {
+    const trimmed = query.trim();
+    if (!trimmed) { setResults([]); setError(null); return; }
+    setLoading(true); setError(null);
+    try {
+      if (!supabaseReady) throw new Error('Backend not configured');
+      const words = trimmed.toLowerCase().replace(/[^a-z0-9 ]/gi, ' ')
+        .trim().split(/\s+/).filter(w => w.length >= 2);
+      let dbQ = supabase.from('cards')
+        .select('id,name,set_name,card_number,image_url,lang,tcg')
+        .limit(15);
+      if (words.length > 0) {
+        for (const w of words) {
+          const sw = w.replace(/[*%()]/g, '');
+          if (sw) dbQ = dbQ.or(`name.ilike.*${sw}*,card_number.ilike.*${sw}*`);
+        }
+      } else {
+        dbQ = dbQ.ilike('name', `*${trimmed.replace(/[*%()]/g, '')}*`);
+      }
+      const { data, error: err } = await dbQ;
+      if (err) throw err;
+      setResults(data || []);
+    } catch {
+      setError('Search failed. Retry.');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!q.trim()) { setResults([]); return; }
+    const t = setTimeout(() => doSearch(q), 350);
+    return () => clearTimeout(t);
+  }, [q, doSearch]);
+
+  return (
+    <div className="al-search-box">
+      <div className="search" style={{ margin: 0 }}>
+        <span className="search-ic"><Icon name="search" size={18} /></span>
+        <input ref={inputRef} className="search-in"
+          placeholder="Search a card to set alert…"
+          value={q} onChange={e => setQ(e.target.value)} />
+        <button className="search-clear" onClick={onClose} aria-label="Cancel"><Icon name="close" size={16} /></button>
+      </div>
+      {loading && <div className="al-search-hint">Searching…</div>}
+      {error && <div className="al-search-hint al-search-err">{error}</div>}
+      {!loading && !error && q.trim() && results.length === 0 && (
+        <div className="al-search-hint">No results for "{q.trim()}".</div>
+      )}
+      {results.length > 0 && (
+        <div className="al-search-results">
+          {results.map(card => (
+            <AlertSearchResultItem key={card.id} card={card} onSelect={onSelect} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ─── AlertRow — singola riga nella lista alert ─── */
+function AlertRow({ alert: al, toggling, isDeleting, deleteBusy, onToggle, onDeleteStart, onDeleteCancel, onDeleteConfirm, cur, eurRate }) {
+  const fmtPrice = (usd) => {
+    if (usd == null) return '—';
+    return cur === 'EUR' ? `€${(usd * eurRate).toFixed(2)}` : `$${Number(usd).toFixed(2)}`;
+  };
+  const isActive = al.is_active;
+  const triggeredAt = al.triggered_at
+    ? new Date(al.triggered_at).toLocaleDateString()
+    : null;
+
+  return (
+    <div className={`al-row${!isActive ? ' al-row-off' : ''}`}>
+      <div className="al-body">
+        <div className="al-name">{al.card_name || '—'}</div>
+        <div className="al-meta">
+          <span className={`al-dir${al.direction === 'above' ? ' al-above' : ' al-below'}`}>
+            {al.direction === 'above' ? '↑ Above' : '↓ Below'} {fmtPrice(al.threshold_price)}
+          </span>
+          <span className={`al-status${isActive ? ' al-active' : ' al-triggered'}`}>
+            {isActive ? 'Active' : (triggeredAt ? `Triggered ${triggeredAt}` : 'Inactive')}
+          </span>
+        </div>
+      </div>
+      <div className="al-actions">
+        {isDeleting ? (
+          <div className="pf-confirm">
+            <span className="pf-confirm-txt">Delete?</span>
+            <button className="btn btn-ghost btn-sm" style={{ padding: '6px 10px', fontSize: 12 }} onClick={onDeleteCancel}>Cancel</button>
+            <button className="pf-confirm-yes" onClick={onDeleteConfirm} disabled={deleteBusy}>
+              {deleteBusy ? '…' : 'Delete'}
+            </button>
+          </div>
+        ) : (
+          <>
+            <button
+              className={`al-toggle${isActive ? ' on' : ''}`}
+              onClick={onToggle}
+              disabled={toggling}
+              aria-label={isActive ? 'Deactivate alert' : 'Activate alert'}
+              title={isActive ? 'Deactivate' : 'Activate'}>
+              <span className="al-toggle-knob" />
+            </button>
+            <button className="pf-remove-btn" onClick={onDeleteStart} aria-label="Delete alert">
+              <Icon name="close" size={14} />
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ─── AlertsView ─── */
+function AlertsView({ isAuthed, onLogin, onExplore, cur, eurRate, country }) {
+  const [alerts, setAlerts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [showSearch, setShowSearch] = useState(false);
+  const [selectedCard, setSelectedCard] = useState(null);
+  const [toast, setToast] = useState('');
+  const [deletingId, setDeletingId] = useState(null);
+  const [deleteBusy, setDeleteBusy] = useState(false);
+  const [toggling, setToggling] = useState(null);
+
+  const flash = (m) => { setToast(m); setTimeout(() => setToast(''), 2600); };
+
+  const load = useCallback(async () => {
+    setLoading(true); setError(null);
+    const data = await listAlerts();
+    setAlerts(Array.isArray(data) ? data : []);
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    if (isAuthed) load();
+    else setLoading(false);
+  }, [isAuthed, load]);
+
+  const toggle = async (al) => {
+    if (toggling) return;
+    setToggling(al.id);
+    await supabase.from('alerts').update({ is_active: !al.is_active }).eq('id', al.id);
+    setAlerts(prev => prev.map(a => a.id === al.id ? { ...a, is_active: !a.is_active } : a));
+    setToggling(null);
+  };
+
+  const remove = async (id) => {
+    setDeleteBusy(true);
+    await deleteAlert(id);
+    setAlerts(prev => prev.filter(a => a.id !== id));
+    setDeletingId(null);
+    setDeleteBusy(false);
+    flash('Alert deleted');
+  };
+
+  if (!isAuthed) return (
+    <section className="view">
+      <div className="view-h"><h2 className="view-t">Alerts</h2></div>
+      <Empty icon="bell"
+        title="Sign in to create alerts"
+        sub="Get an email when a card exceeds or drops below your price threshold."
+        cta="Sign in" onCta={onLogin} />
+    </section>
+  );
+
   return (
     <section className="view">
-      <div className="view-h">
+      <div className="view-h al-view-h">
         <h2 className="view-t">Alerts</h2>
+        <button className="btn btn-primary btn-sm" onClick={() => setShowSearch(s => !s)}>
+          <Icon name="bell" size={15} /> New alert
+        </button>
       </div>
-      {!isAuthed ? (
-        <Empty icon="bell"
-          title="Sign in to create alerts"
-          sub="Get an email when a card exceeds or drops below your price threshold."
-          cta="Sign in" onCta={onLogin} />
-      ) : (
+
+      {showSearch && (
+        <AlertCardSearch
+          onSelect={card => { setSelectedCard(card); setShowSearch(false); }}
+          onClose={() => setShowSearch(false)}
+        />
+      )}
+
+      {loading ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="skel-card" style={{ height: 70, borderRadius: 14 }} />
+          ))}
+        </div>
+      ) : error ? (
+        <div className="search-error">
+          <span>{error}</span>
+          <button className="btn btn-ghost btn-sm" style={{ marginLeft: 'auto' }} onClick={load}>Retry</button>
+        </div>
+      ) : alerts.length === 0 ? (
         <Empty icon="bell"
           title="No alerts yet"
-          sub="Create your first alert from any card: set a threshold and direction."
-          cta="Find a card" onCta={onExplore} />
+          sub="Create your first alert — set a threshold and get notified when the price crosses it."
+          cta="New alert" onCta={() => setShowSearch(true)} />
+      ) : (
+        <div className="al-list">
+          {alerts.map(al => (
+            <AlertRow key={al.id} alert={al}
+              toggling={toggling === al.id}
+              isDeleting={deletingId === al.id}
+              deleteBusy={deleteBusy && deletingId === al.id}
+              onToggle={() => toggle(al)}
+              onDeleteStart={() => setDeletingId(al.id)}
+              onDeleteCancel={() => setDeletingId(null)}
+              onDeleteConfirm={() => remove(al.id)}
+              cur={cur} eurRate={eurRate}
+            />
+          ))}
+        </div>
       )}
+
+      {selectedCard && (
+        <AlertModal
+          card={selectedCard} cur={cur} country={country} fmvUSD={null} eurRate={eurRate}
+          onClose={() => setSelectedCard(null)}
+          onDone={m => { setSelectedCard(null); flash(m); load(); }}
+        />
+      )}
+
+      {toast && <div className="toast">{toast}</div>}
     </section>
   );
 }
@@ -1691,4 +1944,66 @@ input{font-family:inherit;font-size:16px;}
 .pf-set{font-size:10px;color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:130px;}
 .pf-prices{display:flex;gap:14px;}
 .pf-price-col{display:flex;flex-direction:column;gap:2px;}
-.pf-price-lbl{font-size:9px;font-weigh
+.pf-price-lbl{font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);font-family:'Space Mono',monospace;}
+.pf-price-val{font-size:12px;font-weight:700;font-family:'Space Mono',monospace;color:var(--text);}
+.pf-price-val.gain{color:var(--gain);}
+.pf-price-val.loss{color:var(--loss);}
+.pf-actions{display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0;padding-top:2px;}
+.pf-remove-btn{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--dim);transition:.15s;}
+.pf-remove-btn:hover{background:rgba(248,113,113,.12);color:var(--loss);}
+.pf-track-btn{font-size:11px;padding:5px 10px;border-radius:7px;}
+.pf-confirm{display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end;max-width:200px;}
+.pf-confirm-txt{font-size:12px;font-weight:700;color:var(--loss);width:100%;text-align:right;}
+.pf-confirm-yes{background:var(--loss);color:#fff;padding:8px 14px;border-radius:9px;font-size:13px;font-weight:700;}
+.pf-confirm-yes:disabled{opacity:.6;cursor:default;}
+
+/* alerts */
+.al-view-h{display:flex;align-items:center;justify-content:space-between;}
+.al-list{display:flex;flex-direction:column;}
+.al-row{display:flex;align-items:flex-start;gap:12px;padding:14px 0;border-bottom:1px solid var(--border);}
+.al-row:first-child{border-top:1px solid var(--border);}
+.al-row-off{opacity:.6;}
+.al-body{flex:1;min-width:0;}
+.al-name{font-size:13px;font-weight:700;line-height:1.3;margin-bottom:6px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.al-meta{display:flex;flex-wrap:wrap;gap:8px;align-items:center;}
+.al-dir{font-family:'Space Mono',monospace;font-size:12px;font-weight:700;}
+.al-above{color:var(--gain);}
+.al-below{color:var(--loss);}
+.al-status{font-size:11px;font-weight:700;font-family:'Space Mono',monospace;padding:2px 8px;border-radius:100px;}
+.al-active{color:var(--gain);background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.2);}
+.al-triggered{color:var(--gold);background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.2);}
+.al-actions{display:flex;align-items:center;gap:8px;flex-shrink:0;padding-top:2px;}
+.al-toggle{width:40px;height:24px;border-radius:12px;background:var(--surface-2);border:1px solid var(--border-2);position:relative;transition:.2s;flex-shrink:0;cursor:pointer;}
+.al-toggle.on{background:var(--gain);border-color:var(--gain);}
+.al-toggle:disabled{opacity:.5;cursor:default;}
+.al-toggle-knob{position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#fff;transition:.2s;display:block;box-shadow:0 1px 4px rgba(0,0,0,.4);}
+.al-toggle.on .al-toggle-knob{left:19px;}
+.al-search-box{background:var(--surface);border:1px solid var(--border-2);border-radius:16px;padding:14px;margin-bottom:18px;}
+.al-search-hint{font-size:13px;color:var(--dim);padding:10px 4px;}
+.al-search-err{color:var(--loss);}
+.al-search-results{display:flex;flex-direction:column;margin-top:10px;max-height:320px;overflow-y:auto;}
+.al-search-row{display:flex;align-items:center;gap:12px;padding:10px 8px;border-radius:11px;text-align:left;width:100%;transition:.15s;}
+.al-search-row:hover{background:var(--surface-2);}
+.al-search-img{width:38px;height:52px;border-radius:7px;overflow:hidden;background:var(--surface-2);flex-shrink:0;}
+.al-search-img img{width:100%;height:100%;object-fit:contain;}
+.al-search-body{flex:1;min-width:0;}
+.al-search-name{font-size:13px;font-weight:700;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-bottom:3px;}
+.al-search-meta{display:flex;gap:6px;flex-wrap:wrap;font-size:11px;color:var(--dim);}
+
+/* desktop */
+@media(min-width:760px){
+  :root{--tabh:0px;}
+  .topnav{display:flex;}
+  .tabbar{display:none;}
+  .main{padding:26px var(--p) 60px;}
+  .skel-grid{grid-template-columns:repeat(4,1fr);}
+  .card-grid{grid-template-columns:repeat(4,1fr);}
+  .card-item-name{font-size:13px;}
+  .up-grid{grid-template-columns:repeat(3,1fr);}
+  .modal-backdrop{align-items:center;padding:20px;}
+  .modal{border-radius:22px;}
+  .asset-head{flex-direction:row;align-items:flex-start;gap:26px;}
+  .asset-img{width:220px;align-self:flex-start;}
+  .asset-actions{max-width:420px;}
+}
+`;
