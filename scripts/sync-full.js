@@ -119,7 +119,9 @@ async function syncPokemonEN() {
     if (!data?.data?.length) break
 
     const rows = data.data.map(c => ({
-      id:           `pkm:${c.id}:en`,
+      id:           `pokemon:pokemontcg:${c.id}:en`,
+      source:       'pokemontcg',
+      source_id:    c.id,
       name:         c.name,
       set_id:       c.set?.id   || null,
       set_name:     c.set?.name || null,
@@ -183,7 +185,9 @@ async function syncPokemonJA() {
     const rows = setData.cards
       .filter(c => c.localId && c.name)
       .map(c => ({
-        id:           `pkm:tcgdex:${meta.id}:${c.localId}:ja`,
+        id:           `pokemon:tcgdex:${meta.id}-${c.localId}:ja`,
+        source:       'tcgdex',
+        source_id:    `${meta.id}-${c.localId}`,
         name:         c.name,
         set_id:       meta.id,
         set_name:     setData.name || meta.name,
@@ -250,7 +254,9 @@ async function syncOnePieceEN() {
     if (!byCard.size) continue
 
     const rows = [...byCard.values()].map(c => ({
-      id:           `op:optcg:${c.card_set_id}:en`,
+      id:           `onepiece:optcg:${c.card_set_id}:en`,
+      source:       'optcg',
+      source_id:    c.card_set_id,
       name:         c.card_name,
       set_id:       (c.set_id || '').replace('-', '').toLowerCase() || null,
       set_name:     c.set_name,
@@ -259,7 +265,7 @@ async function syncOnePieceEN() {
       image_url:    c.card_image || null,
       image_url_hi: c.card_image || null,
       lang:         'en',
-      tcg:          'op',
+      tcg:          'onepiece',
     }))
 
     for (let i = 0; i < rows.length; i += BATCH_SIZE) {
@@ -291,7 +297,7 @@ async function syncOnePieceJA() {
   const opSets = Array.from({ length: 16 }, (_, i) => ({
     setCode:  `OP${String(i + 1).padStart(2, '0')}`,      // "OP01"
     setName:  `OP-${String(i + 1).padStart(2, '0')}`,     // "OP-01"
-    seriesId: `5501${String(i + 1).padStart(2, '0')}`,    // "550101"
+    seriesId: `5501${String(i + 1).padStart(2, '00')}`,    // "550101"
   }))
 
   const toProcess = argSet
@@ -341,7 +347,9 @@ async function syncOnePieceJA() {
       const cardName = m[2]   // "ロロノア・ゾロ"
       if (!cards.has(cardId)) {
         cards.set(cardId, {
-          id:           `op:optcg:${cardId}:ja`,
+          id:           `onepiece:optcg:${cardId}:ja`,
+          source:       'optcg',
+          source_id:    cardId,
           name:         cardName,
           set_id:       setCode.toLowerCase(),    // "op01"
           set_name:     setName,                  // "OP-01"
@@ -350,7 +358,7 @@ async function syncOnePieceJA() {
           image_url:    `${BASE}/images/cardlist/card/${cardId}.png`,
           image_url_hi: `${BASE}/images/cardlist/card/${cardId}.png`,
           lang:         'ja',
-          tcg:          'op',
+          tcg:          'onepiece',
         })
       }
     }
