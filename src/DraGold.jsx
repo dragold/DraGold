@@ -565,6 +565,44 @@ function HotPicksSection({ country = "IT", cur = "EUR", eurRate = 0.92, onOpen }
 }
 
 /* ════════════════════════════════════════════════════════════════════════
+   ONBOARDING — 3 step inline, dismissibile (primo accesso)
+   ════════════════════════════════════════════════════════════════════════ */
+const ONBOARD_KEY = 'dg_ob_v1';
+const ONBOARD_STEPS = [
+  { icon:"search", label:"Search",    title:"Search a card",     desc:"Find any Pokémon, One Piece, Magic or Yu-Gi-Oh! card and see its real market price." },
+  { icon:"wallet", label:"Portfolio", title:"Add to Portfolio",  desc:"Log cards you own and track their value vs what you paid — your TCG P&L." },
+  { icon:"bell",   label:"Alert",     title:"Set a price alert", desc:"Get an email when any card crosses your threshold. Never miss a move." },
+];
+function Onboarding({ onDismiss }) {
+  const [step, setStep] = useState(0);
+  const s = ONBOARD_STEPS[step];
+  return (
+    <div className="onboard">
+      <div className="onboard-pills">
+        {ONBOARD_STEPS.map((st, i) => (
+          <button key={i} className={`onboard-pill${step===i?' on':''}`} onClick={()=>setStep(i)}>
+            <span className="onboard-n">{i+1}</span>
+            <span>{st.label}</span>
+          </button>
+        ))}
+      </div>
+      <div className="onboard-body">
+        <div className="onboard-ic"><Icon name={s.icon} size={22}/></div>
+        <div className="onboard-title">{s.title}</div>
+        <div className="onboard-desc">{s.desc}</div>
+      </div>
+      <div className="onboard-foot">
+        {step < ONBOARD_STEPS.length - 1
+          ? <button className="btn btn-ghost btn-sm" onClick={()=>setStep(p=>p+1)}>Next →</button>
+          : <button className="btn btn-primary btn-sm" onClick={onDismiss}>Get started</button>
+        }
+        <button className="onboard-skip" onClick={onDismiss}>Skip</button>
+      </div>
+    </div>
+  );
+}
+
+/* ════════════════════════════════════════════════════════════════════════
    MARKETS — ricerca + hot picks
    ════════════════════════════════════════════════════════════════════════ */
 function MarketsView({ tcgFilter, setTcgFilter, langFilter, setLangFilter, country, cur, eurRate, onOpenAsset }) {
@@ -575,6 +613,13 @@ function MarketsView({ tcgFilter, setTcgFilter, langFilter, setLangFilter, count
   const [error, setError] = useState(null);
   const [searched, setSearched] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [showOnboard, setShowOnboard] = useState(() => {
+    try { return !localStorage.getItem(ONBOARD_KEY); } catch { return false; }
+  });
+  const dismissOnboard = () => {
+    try { localStorage.setItem(ONBOARD_KEY, '1'); } catch {}
+    setShowOnboard(false);
+  };
 
   const runSearch = useCallback(async (query, tcg, lang) => {
     const trimmed = query.trim();
@@ -690,6 +735,7 @@ function MarketsView({ tcgFilter, setTcgFilter, langFilter, setLangFilter, count
 
   return (
     <section className="view">
+      {showOnboard && <Onboarding onDismiss={dismissOnboard} />}
       <div className="hero">
         <h1 className="hero-t">Find a card.<br/>See its real market value.</h1>
         <p className="hero-s">Fair market price on Pokémon, One Piece, Magic and Yu-Gi-Oh!. Track it like an asset.</p>
@@ -1713,7 +1759,7 @@ input{font-family:inherit;font-size:16px;}
 .app{min-height:100vh;min-height:100svh;display:flex;flex-direction:column;}
 
 /* header */
-.hdr{position:sticky;top:0;z-index:40;background:rgba(2,2,8,.82);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-bottom:1px solid var(--border);}
+.hdr{position:sticky;top:0;z-index:40;background:rgba(2,2,8,.82);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-bottom:1px solid var(--border);padding-top:env(safe-area-inset-top,0px);}
 .hdr-in{max-width:var(--maxw);margin:0 auto;height:58px;display:flex;align-items:center;gap:14px;padding:0 var(--p);}
 .brand{display:flex;align-items:center;gap:9px;}
 .brand-dot{width:10px;height:10px;border-radius:50%;background:linear-gradient(135deg,var(--gold),var(--gold-deep));box-shadow:0 0 14px rgba(251,191,36,.6);}
@@ -1738,7 +1784,7 @@ input{font-family:inherit;font-size:16px;}
 .menu-i:hover{background:var(--surface-3);}
 
 /* main */
-.main{flex:1;width:100%;max-width:var(--maxw);margin:0 auto;padding:18px var(--p) calc(var(--tabh) + 28px);}
+.main{flex:1;width:100%;max-width:var(--maxw);margin:0 auto;padding:18px var(--p) calc(var(--tabh) + env(safe-area-inset-bottom,0px) + 28px);}
 .view{margin-bottom:30px;}
 .view-h{margin:4px 0 16px;}
 .view-t{font-size:24px;font-weight:800;letter-spacing:-.02em;}
@@ -1752,7 +1798,7 @@ input{font-family:inherit;font-size:16px;}
 .search{display:flex;align-items:center;gap:8px;margin:20px 0 14px;background:var(--surface-2);border:1px solid var(--border-2);border-radius:14px;padding:6px 6px 6px 14px;transition:.15s;}
 .search:focus-within{border-color:var(--gold);box-shadow:0 0 0 3px rgba(251,191,36,.12);}
 .search-ic{color:var(--muted);display:flex;flex-shrink:0;}
-.search-in{flex:1;background:none;border:none;outline:none;color:var(--text);padding:10px 4px;min-width:0;}
+.search-in{flex:1;background:none;border:none;outline:none;color:var(--text);font-size:16px;padding:10px 4px;min-width:0;}
 .search-in::placeholder{color:var(--dim);}
 .search-go{background:var(--gold);color:#1a1200;font-weight:700;font-size:14px;padding:10px 16px;border-radius:10px;flex-shrink:0;}
 
@@ -1804,12 +1850,27 @@ input{font-family:inherit;font-size:16px;}
 /* upcoming */
 .upcoming{margin-top:14px;}
 .up-grid{display:grid;grid-template-columns:1fr;gap:12px;}
-.up-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:16px;opacity:.72;cursor:default;}
+.up-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:16px;opacity:.65;cursor:default;pointer-events:none;user-select:none;}
 .up-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
 .up-ic{width:38px;height:38px;border-radius:11px;background:var(--surface-2);display:flex;align-items:center;justify-content:center;color:var(--muted);}
 .badge-soon{font-size:10px;font-weight:700;font-family:'Space Mono',monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--gold);background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.25);padding:3px 8px;border-radius:100px;}
 .up-label{font-size:16px;font-weight:700;margin-bottom:4px;}
 .up-desc{font-size:13px;color:var(--muted);line-height:1.45;}
+
+/* onboarding */
+.onboard{background:var(--surface);border:1px solid var(--border-2);border-radius:18px;padding:18px;margin-bottom:22px;}
+.onboard-pills{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;}
+.onboard-pill{display:flex;align-items:center;gap:6px;padding:7px 12px;border-radius:100px;font-size:12px;font-weight:700;color:var(--dim);background:var(--surface-2);border:1px solid var(--border);transition:.15s;flex-shrink:0;}
+.onboard-pill.on{color:var(--text);border-color:var(--gold);background:rgba(251,191,36,.08);}
+.onboard-n{width:18px;height:18px;border-radius:50%;background:var(--surface-3);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;font-family:'Space Mono',monospace;flex-shrink:0;}
+.onboard-pill.on .onboard-n{background:var(--gold);color:#1a1200;}
+.onboard-body{display:flex;flex-direction:column;gap:8px;padding:4px 0 16px;}
+.onboard-ic{width:44px;height:44px;border-radius:14px;background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.2);display:flex;align-items:center;justify-content:center;color:var(--gold);}
+.onboard-title{font-size:16px;font-weight:800;letter-spacing:-.01em;}
+.onboard-desc{font-size:14px;color:var(--muted);line-height:1.5;max-width:440px;}
+.onboard-foot{display:flex;align-items:center;gap:10px;}
+.onboard-skip{font-size:13px;font-weight:600;color:var(--dim);background:none;border:none;cursor:pointer;padding:8px 4px;}
+.onboard-skip:hover{color:var(--muted);}
 
 /* footer */
 .foot{margin-top:34px;padding-top:22px;border-top:1px solid var(--border);text-align:center;}
@@ -1824,14 +1885,14 @@ input{font-family:inherit;font-size:16px;}
 .tab-i.on{color:var(--gold);}
 
 /* modal */
-.modal-backdrop{position:fixed;inset:0;z-index:60;background:rgba(2,2,8,.7);backdrop-filter:blur(6px);display:flex;align-items:flex-end;justify-content:center;padding:0;}
+.modal-backdrop{position:fixed;inset:0;z-index:60;background:rgba(2,2,8,.7);backdrop-filter:blur(6px);display:flex;align-items:flex-end;justify-content:center;padding:0;min-height:100svh;}
 .modal{position:relative;width:100%;max-width:430px;background:var(--surface);border:1px solid var(--border-2);border-radius:22px 22px 0 0;padding:28px 22px calc(26px + env(safe-area-inset-bottom));box-shadow:0 -20px 60px rgba(0,0,0,.6);}
 .modal-x{position:absolute;top:16px;right:16px;color:var(--muted);width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;}
 .modal-x:hover{background:var(--surface-2);color:var(--text);}
 .modal-logo{font-size:22px;margin-bottom:18px;}
 .auth-form h3,.auth-sent h3{font-size:20px;font-weight:800;letter-spacing:-.01em;margin-bottom:6px;}
 .auth-p{color:var(--muted);font-size:14px;margin-bottom:16px;line-height:1.45;}
-.input{width:100%;background:var(--surface-2);border:1px solid var(--border-2);border-radius:11px;padding:13px 14px;color:var(--text);outline:none;margin-bottom:12px;transition:.15s;}
+.input{width:100%;background:var(--surface-2);border:1px solid var(--border-2);border-radius:11px;padding:13px 14px;color:var(--text);font-size:16px;outline:none;margin-bottom:12px;transition:.15s;}
 .input:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(251,191,36,.12);}
 .auth-err{background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.3);color:var(--loss);font-size:13px;padding:9px 12px;border-radius:9px;margin-bottom:12px;}
 .auth-sent{text-align:center;}
@@ -1917,7 +1978,7 @@ input{font-family:inherit;font-size:16px;}
 .seg-b.on{color:var(--text);background:var(--surface-3);border-color:var(--border-2);}
 
 /* toast */
-.toast{position:fixed;left:50%;bottom:calc(var(--tabh) + 18px);transform:translateX(-50%);z-index:80;background:var(--surface-3);border:1px solid var(--border-2);color:var(--text);font-size:13px;font-weight:600;padding:11px 18px;border-radius:100px;box-shadow:0 12px 40px rgba(0,0,0,.5);max-width:90vw;text-align:center;}
+.toast{position:fixed;left:50%;bottom:calc(var(--tabh) + env(safe-area-inset-bottom,0px) + 18px);transform:translateX(-50%);z-index:80;background:var(--surface-3);border:1px solid var(--border-2);color:var(--text);font-size:13px;font-weight:600;padding:11px 18px;border-radius:100px;box-shadow:0 12px 40px rgba(0,0,0,.5);max-width:90vw;text-align:center;}
 
 /* portfolio */
 .pf-header{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:20px;margin-bottom:20px;}
