@@ -31,12 +31,12 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-      - name: Setup Node.js 20
+      - name: Setup Node.js 22
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
       - name: Installa dipendenze
-        run: npm install @supabase/supabase-js
+        run: npm install @supabase/supabase-js ws
       - name: Run sync (scheduled)
         if: github.event_name == 'schedule'
         run: node scripts/sync-full.js --tcg=pokemon,op --lang=en,ja
