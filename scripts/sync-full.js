@@ -1,11 +1,12 @@
 /**
- * DraGold — Full Card Sync v2
+ * DraGold â Full Card Sync v3
  *
  * Fonti:
- *   Pokemon EN  → pokemontcg.io   (HD images, TCGPlayer prices, 20k+ carte)
- *   Pokemon JA  → TCGdex /v2/ja   (gratuita, multilingua)
- *   One Piece EN → optcgapi.com   (4347+ carte EN, gratuita)
- *   One Piece JA → jp.onepiece-cardgame.com  (scraping HTML ufficiale JP)
+ *   Pokemon EN  â TCGdex /v2/en   (gratuita, multilingua, stessa fonte della JA)
+ *   Pokemon JA  â TCGdex /v2/ja   (gratuita, multilingua)
+ *   One Piece EN â optcgapi.com   (4347+ carte EN, gratuita)
+ *   One Piece JA â derivata dai dati EN + CDN immagini ufficiale JP
+ *                  (ignoreDuplicates=true: preserva nomi JA reali giÃ  in DB)
  *
  * Usage:
  *   node scripts/sync-full.js [--tcg pokemon,op] [--lang en,ja] [--set OP-05] [--dry-run]
@@ -13,15 +14,13 @@
  * Env richiesti:
  *   SUPABASE_URL (o VITE_SUPABASE_URL)
  *   SUPABASE_SERVICE_KEY
- *   POKEMONTCG_API_KEY  (opzionale — rate limits più alti su pokemontcg.io)
  */
 
 import { createClient } from '@supabase/supabase-js'
 
-// ─── Config DB ───────────────────────────────────────────────────────────────
+// âââ Config DB âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY
-const PKM_API_KEY  = process.env.POKEMONTCG_API_KEY || ''
 
 if (!SUPABASE_URL || !SUPABASE_KEY) {
   console.error('ERROR: SUPABASE_URL (o VITE_SUPABASE_URL) e SUPABASE_SERVICE_KEY richiesti')
@@ -30,13 +29,13 @@ if (!SUPABASE_URL || !SUPABASE_KEY) {
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY)
 
-// ─── Costanti ─────────────────────────────────────────────────────────────────
+// âââ Costanti âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 const BATCH_SIZE  = 100    // righe per upsert batch
 const DELAY_MS    = 200    // ms tra richieste HTTP esterne (rate-limiting gentile)
-const DELAY_JP    = 500    // ms tra pagine JP (più cauteloso col sito ufficiale)
+const DELAY_JP    = 500    // ms tra pagine JP (piÃ¹ cauteloso col sito ufficiale)
 const FETCH_TIMEOUT = 25000
 
-// ─── Args CLI ─────────────────────────────────────────────────────────────────
+// âââ Args CLI âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 const args      = process.argv.slice(2)
 const argTcg    = args.find(a => a.startsWith('--tcg='))?.split('=')[1]?.split(',')
 const argLang   = args.find(a => a.startsWith('--lang='))?.split('=')[1]?.split(',')
@@ -46,7 +45,7 @@ const DRY_RUN   = args.includes('--dry-run')
 const TCG_FILTER  = argTcg  || ['pokemon', 'op']
 const LANG_FILTER = argLang || ['en', 'ja']
 
-// ─── Utilities ────────────────────────────────────────────────────────────────
+// âââ Utilities ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 const sleep = ms => new Promise(r => setTimeout(r, ms))
 
 const log  = msg => process.stdout.write(msg + '\n')
@@ -86,79 +85,80 @@ async function upsertBatch(rows) {
   const { error } = await supabase
     .from('cards')
     .upsert(rows, { onConflict: 'id', ignoreDuplicates: false })
-  if (error) console.warn(`  ⚠ upsert error: ${error.message}`)
+  if (error) console.warn(`  â  upsert error: ${error.message}`)
 }
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// POKEMON EN  →  pokemontcg.io
-// ═══════════════════════════════════════════════════════════════════════════════
+//âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// POKEMON EN  â  TCGdex /v2/en  (stessa fonte della JA, nessun rate limit)
+// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 async function syncPokemonEN() {
-  log('\n[Pokemon EN] pokemontcg.io...')
-  const BASE    = 'https://api.pokemontcg.io/v2'
-  const pkmHdr  = PKM_API_KEY ? { 'X-Api-Key': PKM_API_KEY } : {}
+  log('\n[Pokemon EN] TCGdex API...')
+  const TCGDEX = 'https://api.tcgdex.net/v2'
 
-  // Probe per totalCount
-  const probe = await safeFetch(`${BASE}/cards?pageSize=1&page=1`, { headers: pkmHdr })
-  if (!probe?.totalCount) { log('  ✗ pokemontcg.io non disponibile'); return }
+  const sets = await safeFetch(`${TCGDEX}/en/sets`)
+  if (!Array.isArray(sets)) { log('  â TCGdex EN non disponibile'); return }
 
-  const totalCount = probe.totalCount
-  const totalPages = Math.ceil(totalCount / 250)
-  log(`  ${totalCount} carte — ${totalPages} pagine da scaricare`)
+  // Dedup
+  const seen       = new Set()
+  const uniqueSets = sets.filter(s => s.id && !seen.has(s.id) && seen.add(s.id))
 
-  // Se richiesto set specifico, usare query q=set.id:{setId}
-  const setQuery = argSet ? `&q=set.id:${argSet}` : ''
+  const toProcess = argSet
+    ? uniqueSets.filter(s => s.id.toLowerCase() === argSet.toLowerCase())
+    : uniqueSets
 
-  let page = 1, inserted = 0
+  log(`  ${toProcess.length} set EN da processare`)
 
-  while (page <= totalPages) {
+  let inserted = 0, emptyCount = 0
+
+  for (const meta of toProcess) {
     await sleep(DELAY_MS)
-    const data = await safeFetch(
-      `${BASE}/cards?pageSize=250&page=${page}&orderBy=id${setQuery}`,
-      { headers: pkmHdr }
-    )
-    if (!data?.data?.length) break
+    const setData = await safeFetch(`${TCGDEX}/en/sets/${meta.id}`)
 
-    const rows = data.data.map(c => ({
-      id:           `pokemon:pokemontcg:${c.id}:en`,
-      source:       'pokemontcg',
-      source_id:    c.id,
-      name:         c.name,
-      set_id:       c.set?.id   || null,
-      set_name:     c.set?.name || null,
-      card_number:  c.number,
-      rarity:       c.rarity    || null,
-      image_url:    c.images?.large || c.images?.small || null,
-      image_url_hi: c.images?.large || null,
-      lang:         'en',
-      tcg:          'pokemon',
-    }))
+    if (!setData?.cards?.length) {
+      emptyCount++
+      tick()
+      continue
+    }
+
+    const rows = setData.cards
+      .filter(c => c.localId && c.name)
+      .map(c => ({
+        id:           `pokemon:tcgdex:${meta.id}-${c.localId}:en`,
+        source:        'tcgdex',
+        source_id:    `${meta.id}-${c.localId}`,
+        name:         c.name,
+        set_id:       meta.id,
+        set_name:     setData.name || meta.name,
+        card_number:  String(c.localId),
+        rarity:       c.rarity || null,
+        image_url:    c.image
+          ? `${c.image}/high.webp`
+          : `https://assets.tcgdex.net/en/${meta.id}/${c.localId}/high.webp`,
+        image_url_hi: c.image ? `${c.image}/high.webp` : null,
+        lang:         'en',
+        tcg:          'pokemon',
+      }))
+
+    if (!rows.length) { emptyCount++; continue }
 
     for (let i = 0; i < rows.length; i += BATCH_SIZE) {
       await upsertBatch(rows.slice(i, i + BATCH_SIZE))
     }
     inserted += rows.length
-
-    if (page % 10 === 0 || page === totalPages) {
-      log(`  pagina ${page}/${totalPages} — ${inserted}/${totalCount}`)
-    }
-    page++
-
-    // Se set specifico e non ci sono più pagine per quel set, esci
-    if (argSet && data.data.length < 250) break
+    tick()
   }
 
-  log(`  ✓ Pokemon EN: ${inserted} carte inserite/aggiornate`)
+  log(`\n  â Pokemon EN: ${inserted} carte (${emptyCount} set vuoti/saltati)`)
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// POKEMON JA  →  TCGdex /v2/ja
-// ═══════════════════════════════════════════════════════════════════════════════
+// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// POKEMON JA  â  TCGdex /v2/ja
+// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 async function syncPokemonJA() {
   log('\n[Pokemon JA] TCGdex API...')
   const TCGDEX = 'https://api.tcgdex.net/v2'
 
   const sets = await safeFetch(`${TCGDEX}/ja/sets`)
-  if (!Array.isArray(sets)) { log('  ✗ TCGdex JA non disponibile'); return }
+  if (!Array.isArray(sets)) { log('  â TCGdex JA non disponibile'); return }
 
   // Deduplicazione: la lista JA contiene entry duplicate per stesso id
   const seen       = new Set()
@@ -186,7 +186,7 @@ async function syncPokemonJA() {
       .filter(c => c.localId && c.name)
       .map(c => ({
         id:           `pokemon:tcgdex:${meta.id}-${c.localId}:ja`,
-        source:       'tcgdex',
+        source:        'tcgdex',
         source_id:    `${meta.id}-${c.localId}`,
         name:         c.name,
         set_id:       meta.id,
@@ -211,18 +211,18 @@ async function syncPokemonJA() {
     tick()
   }
 
-  log(`\n  ✓ Pokemon JA: ${inserted} carte (${emptyCount} set vuoti/saltati)`)
+  log(`\n  â Pokemon JA: ${inserted} carte (${emptyCount} set vuoti/saltati)`)
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// ONE PIECE EN  →  optcgapi.com
-// ═══════════════════════════════════════════════════════════════════════════════
+// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ONE PIECE EN  â  optcgapi.com
+// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 async function syncOnePieceEN() {
   log('\n[One Piece EN] optcgapi.com...')
   const OPTCG = 'https://optcgapi.com/api'
 
   // Set da provare: OP-01..OP-16, ST-01..ST-24, promo
-  // L'API restituisce 404 per set inesistenti → skip automatico
+  // L'API restituisce 404 per set inesistenti â skip automatico
   const allSets = [
     ...Array.from({ length: 16 }, (_, i) => `OP-${String(i + 1).padStart(2, '0')}`),
     ...Array.from({ length: 24 }, (_, i) => `ST-${String(i + 1).padStart(2, '0')}`),
@@ -276,127 +276,105 @@ async function syncOnePieceEN() {
     log(`  ${setId}: ${rows.length} carte`)
   }
 
-  log(`  ✓ One Piece EN: ${inserted} carte da ${setsFound} set`)
+  log(`  â One Piece EN: ${inserted} carte da ${setsFound} set`)
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// ONE PIECE JA  →  jp.onepiece-cardgame.com  (scraping HTML)
-// ═══════════════════════════════════════════════════════════════════════════════
+// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ONE PIECE JA  â  derivata da optcgapi (EN) + CDN immagini ufficiale JP
+//
+// Strategia:
+//   - Il sito jp.onepiece-cardgame.com blocca i bot â non scrappare
+//   - I card ID sono identici tra EN e JA (es. OP01-001)
+//   - Le immagini JP sono accessibili direttamente dal CDN ufficiale
+//   - ignoreDuplicates: true â le 1914+ carte esistenti con nomi JA reali
+//     NON vengono sovrascritte; solo le carte mancanti vengono aggiunte
+//     (con nome EN come placeholder finchÃ© non si trova fonte JA migliore)
+// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 async function syncOnePieceJA() {
-  log('\n[One Piece JA] jp.onepiece-cardgame.com...')
-  const BASE = 'https://www.onepiece-cardgame.com'
+  log('\n[One Piece JA] Derivata da optcgapi + CDN JP (ignoreDuplicates=true)...')
+  const OPTCG    = 'https://optcgapi.com/api'
+  const IMG_BASE = 'https://www.onepiece-cardgame.com/images/cardlist/card'
 
-  /**
-   * Mappatura set → series ID del sito JP ufficiale.
-   * Pattern confermato: OP-01 = series 550101, OP-16 = series 550116.
-   * Formula: seriesId = `5501${setNum.toString().padStart(2,'0')}`
-   *
-   * Starter decks: non ancora mappati (series ID diverso da OP).
-   * TODO: aggiungere ST mapping quando confermato.
-   */
-  const opSets = Array.from({ length: 16 }, (_, i) => ({
-    setCode:  `OP${String(i + 1).padStart(2, '0')}`,      // "OP01"
-    setName:  `OP-${String(i + 1).padStart(2, '0')}`,     // "OP-01"
-    seriesId: `5501${String(i + 1).padStart(2, '00')}`,    // "550101"
-  }))
+  const allSets = [
+    ...Array.from({ length: 16 }, (_, i) => `OP-${String(i + 1).padStart(2, '0')}`),
+    ...Array.from({ length: 24 }, (_, i) => `ST-${String(i + 1).padStart(2, '0')}`),
+    'PR-01',
+  ]
 
   const toProcess = argSet
-    ? opSets.filter(s =>
-        s.setName.toLowerCase() === argSet.toLowerCase() ||
-        s.setCode.toLowerCase() === argSet.toLowerCase()
-      )
-    : opSets
+    ? allSets.filter(s => s.toLowerCase() === argSet.toLowerCase())
+    : allSets
 
-  let inserted = 0, failed = 0
+  let inserted = 0, setsFound = 0
 
-  for (const { setCode, setName, seriesId } of toProcess) {
-    await sleep(DELAY_JP)
+  for (const setId of toProcess) {
+    await sleep(DELAY_MS)
 
-    const url  = `${BASE}/cardlist/?series=${seriesId}`
-    const html = await safeFetch(url, {
-      headers: {
-        'Accept':          'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        'Accept-Language': 'ja,en-US;q=0.7,en;q=0.3',
-        'Referer':         `${BASE}/`,
-        'Cache-Control':   'no-cache',
-      },
-    })
+    const raw = await safeFetch(`${OPTCG}/sets/${setId}/?format=json`)
+    if (!Array.isArray(raw) || !raw.length) continue
 
-    if (typeof html !== 'string' || html.length < 2000 || !html.includes('cardlist')) {
-      log(`  ⚠ ${setName}: sito non raggiungibile o risposta vuota — saltato`)
-      failed++
-      continue
+    // Dedup: un record per card_set_id, escludi parallel
+    const byCard = new Map()
+    for (const c of raw) {
+      if (!c.card_set_id) continue
+      if (c.card_image_id && /_p\d+$/.test(c.card_image_id)) continue
+      if (!byCard.has(c.card_set_id)) byCard.set(c.card_set_id, c)
     }
 
-    /**
-     * Pattern HTML estratto ispezionando il DOM del sito:
-     *   <img class="lazy" data-src="../images/cardlist/card/OP01-001.png?260518" alt="ロロノア・ゾロ">
-     *
-     * Cattura:
-     *   group 1 → card ID base (es. "OP01-001")
-     *   group 2 → nome JA (es. "ロロノア・ゾロ")
-     *
-     * Escludo parallel: i paralleli hanno pattern OP01-001_p2.png (con _p+cifra)
-     */
-    const cardRe = /data-src="\.\.\/images\/cardlist\/card\/(OP\d{2}-\d{3})\.png[^"]*"\s+alt="([^"]+)"/g
+    if (!byCard.size) continue
 
-    const cards = new Map()
-    let m
-    while ((m = cardRe.exec(html)) !== null) {
-      const cardId   = m[1]   // "OP01-001"
-      const cardName = m[2]   // "ロロノア・ゾロ"
-      if (!cards.has(cardId)) {
-        cards.set(cardId, {
-          id:           `onepiece:optcg:${cardId}:ja`,
-          source:       'optcg',
-          source_id:    cardId,
-          name:         cardName,
-          set_id:       setCode.toLowerCase(),    // "op01"
-          set_name:     setName,                  // "OP-01"
-          card_number:  cardId,                   // "OP01-001"
-          rarity:       null,
-          image_url:    `${BASE}/images/cardlist/card/${cardId}.png`,
-          image_url_hi: `${BASE}/images/cardlist/card/${cardId}.png`,
-          lang:         'ja',
-          tcg:          'onepiece',
-        })
+    const setCode = setId.replace('-', '').toLowerCase()   // "OP-01" â "op01"
+
+    const rows = [...byCard.values()].map(c => {
+      const cardId = c.card_set_id   // es. "OP01-001"
+      return {
+        id:           `onepiece:optcg:${cardId}:ja`,
+        source:       'optcg',
+        source_id:    cardId,
+        name:         c.card_name,   // nome EN â non sovrascrive se carta giÃ  presente
+        set_id:       setCode,
+        set_name:     setId,
+        card_number:  cardId,
+        rarity:       c.rarity || null,
+        image_url:    `${IMG_BASE}/${cardId}.png`,
+        image_url_hi: `${IMG_BASE}/${cardId}.png`,
+        lang:         'ja',
+        tcg:          'onepiece',
+      }
+    })
+
+    // ignoreDuplicates: true â skip silenzioso se id giÃ  esiste (preserva nomi JA reali)
+    if (!DRY_RUN) {
+      for (let i = 0; i < rows.length; i += BATCH_SIZE) {
+        const { error } = await supabase
+          .from('cards')
+          .upsert(rows.slice(i, i + BATCH_SIZE), { onConflict: 'id', ignoreDuplicates: true })
+        if (error) console.warn(`  â  upsert error: ${error.message}`)
       }
     }
 
-    if (!cards.size) {
-      log(`  ⚠ ${setName}: nessuna carta estratta dall'HTML — pattern cambiato?`)
-      failed++
-      continue
-    }
-
-    const rows = [...cards.values()]
-    for (let i = 0; i < rows.length; i += BATCH_SIZE) {
-      await upsertBatch(rows.slice(i, i + BATCH_SIZE))
-    }
     inserted += rows.length
-    log(`  ${setName}: ${rows.length} carte`)
+    setsFound++
+    log(`  ${setId}: ${rows.length} carte`)
   }
 
-  if (failed > 0) {
-    log(`  ℹ ${failed} set falliti — probabilmente il sito JP blocca le richieste`)
-    log(`    Soluzione: aggiungere secret ONEPIECE_JP_COOKIE con cookie di sessione valido`)
-  }
-  log(`  ✓ One Piece JA: ${inserted} carte inserite/aggiornate`)
+  log(`  â One Piece JA: ${inserted} carte processate da ${setsFound} set`)
+  log(`    (carte con nomi JA giÃ  presenti nel DB sono state preservate)`)
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
+// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 // MAIN
-// ═══════════════════════════════════════════════════════════════════════════════
+// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 const t0 = Date.now()
 
-log(`╔═══════════════════════════════════════╗`)
-log(`║   DraGold Full Sync v2                ║`)
-log(`╚═══════════════════════════════════════╝`)
+log(`ââââââââââââââââââââââââââââââââââââââââ`)
+log(`â   DraGold Full Sync v3                â`)
+log(`ââââââââââââââââââââââââââââââââââââââââ`)
 log(`  Avvio: ${new Date().toISOString()}`)
 log(`  TCG:   ${TCG_FILTER.join(', ')}`)
 log(`  Lang:  ${LANG_FILTER.join(', ')}`)
 log(`  Set:   ${argSet || 'tutti'}`)
-log(`  Dry:   ${DRY_RUN ? 'SÌ — nessuna scrittura su DB' : 'no'}`)
+log(`  Dry:   ${DRY_RUN ? 'SÃ â nessuna scrittura su DB' : 'no'}`)
 log('')
 
 try {
@@ -415,4 +393,4 @@ try {
 }
 
 const elapsed = ((Date.now() - t0) / 1000).toFixed(1)
-log(`\n✓ Sync completato in ${elapsed}s`)
+log(`\nâ Sync completato in ${elapsed}s`)
