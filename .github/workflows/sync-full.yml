@@ -1,19 +1,16 @@
 name: Full Card Sync (Pokemon + One Piece)
 
 on:
-  # Ogni domenica alle 04:00 UTC — sync completo settimanale
   schedule:
     - cron: '0 4 * * 0'
-
-  # Trigger manuale da GitHub → Actions → "Run workflow"
   workflow_dispatch:
     inputs:
       tcg:
-        description: 'TCG da sincronizzare (pokemon, op — separati da virgola)'
+        description: 'TCG da sincronizzare (pokemon, op)'
         required: false
         default: 'pokemon,op'
       lang:
-        description: 'Lingue (en, ja — separati da virgola)'
+        description: 'Lingue (en, ja)'
         required: false
         default: 'en,ja'
       set:
@@ -21,7 +18,7 @@ on:
         required: false
         default: ''
       dry_run:
-        description: 'Dry run — solo fetch, nessuna scrittura su DB'
+        description: 'Dry run - solo fetch, nessuna scrittura su DB'
         required: false
         type: boolean
         default: false
@@ -31,31 +28,22 @@ jobs:
     name: Sync catalogo carte
     runs-on: ubuntu-latest
     timeout-minutes: 90
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
       - name: Setup Node.js 20
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-
-      # Installa solo la dipendenza necessaria per lo script
       - name: Installa dipendenze
         run: npm install @supabase/supabase-js
-
-      # ── Scheduled: sync completo automatico ─────────────────────────────────
-      - name: Run sync (scheduled — tutti i TCG, tutte le lingue)
+      - name: Run sync (scheduled)
         if: github.event_name == 'schedule'
         run: node scripts/sync-full.js --tcg=pokemon,op --lang=en,ja
         env:
-          SUPABASE_URL:        ${{ secrets.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_URL:   ${{ secrets.VITE_SUPABASE_URL }}
+          SUPABASE_URL:         ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
-          POKEMONTCG_API_KEY:  ${{ secrets.POKEMONTCG_API_KEY }}
-
-      # ── Manual: parametri configurabili ─────────────────────────────────────
+          POKEMONTCG_API_KEY:   ${{ secrets.POKEMONTCG_API_KEY }}
       - name: Run sync (manuale)
         if: github.event_name == 'workflow_dispatch'
         run: |
@@ -66,10 +54,8 @@ jobs:
           if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
             ARGS="$ARGS --dry-run"
           fi
-          echo "Esecuzione: node scripts/sync-full.js $ARGS"
           node scripts/sync-full.js $ARGS
         env:
-          SUPABASE_URL:        ${{ secrets.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_URL:   ${{ secrets.VITE_SUPABASE_URL }}
+          SUPABASE_URL:         ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
-          POKEMONTCG_API_KEY:  ${{ secrets.POKEMONTCG_API_KEY }}
+          POKEMONTCG_API_KEY:   ${{ secrets.POKEMONTCG_API_KEY }}
