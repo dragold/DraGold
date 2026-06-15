@@ -128,7 +128,7 @@ function AuthModal({ open, onClose }) {
     <div className="modal-backdrop" onClick={onClose}>
       <div className="modal" onClick={e=>e.stopPropagation()}>
         <button className="modal-x" onClick={onClose} aria-label="Chiudi"><Icon name="close" size={18}/></button>
-        <div className="modal-logo font-syne">DraGold</div>
+        <div className="modal-logo"><img src="/logo192.png" alt="DraGold" style={{width:64,height:64,borderRadius:14,display:"block",margin:"0 auto 10px"}}/><span className="font-syne">DraGold</span></div>
         {status==="sent" ? (
           <div className="auth-sent">
             <div className="auth-sent-ic"><Icon name="mail" size={28}/></div>
@@ -237,7 +237,7 @@ export default function DraGold() {
       <header className="hdr">
         <div className="hdr-in">
           <button className="brand" onClick={()=>{ setAsset(null); setTab("markets"); }}>
-            <span className="brand-dot" />
+            <img src="/logo192.png" alt="DraGold" style={{height:30,width:30,borderRadius:7,flexShrink:0}}/>
             <span className="logo-txt font-syne">DraGold</span>
           </button>
 
@@ -330,6 +330,7 @@ export default function DraGold() {
         </section>
 
         <footer className="foot">
+          <img src="/logo192.png" alt="DraGold" style={{width:40,height:40,borderRadius:10,marginBottom:6}}/>
           <span className="font-syne foot-logo">DraGold</span>
           <span className="foot-sub">Fair Market Value for serious TCG collectors.</span>
           <div className="foot-links">
