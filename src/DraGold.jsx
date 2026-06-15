@@ -1907,9 +1907,6 @@ input{font-family:inherit;font-size:16px;}
 
 /* skeleton grid */
 .skel-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;}
-@media(min-width:640px){.card-grid,.skel-grid{grid-template-columns:repeat(3,1fr);}}
-@media(min-width:1024px){.card-grid,.skel-grid{grid-template-columns:repeat(4,1fr);}}
-@media(min-width:1400px){.card-grid,.skel-grid{grid-template-columns:repeat(5,1fr);}}
 .skel-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:12px;}
 .skel-img{aspect-ratio:3/4;border-radius:10px;background:linear-gradient(100deg,var(--surface-2) 30%,var(--surface-3) 50%,var(--surface-2) 70%);background-size:200% 100%;animation:sh 1.4s linear infinite;margin-bottom:10px;}
 .skel-line{height:10px;border-radius:6px;background:var(--surface-2);margin-top:7px;}
@@ -1991,6 +1988,9 @@ input{font-family:inherit;font-size:16px;}
 
 /* card grid + card item */
 .card-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:8px;}
+@media(min-width:640px){.card-grid,.skel-grid{grid-template-columns:repeat(3,1fr);}}
+@media(min-width:1024px){.card-grid,.skel-grid{grid-template-columns:repeat(4,1fr);}}
+@media(min-width:1400px){.card-grid,.skel-grid{grid-template-columns:repeat(5,1fr);}}
 .card-item{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;transition:.15s;cursor:pointer;}
 .card-item:hover{border-color:var(--border-2);background:var(--surface-2);}
 .card-item:focus-visible{outline:2px solid var(--gold);outline-offset:2px;}
