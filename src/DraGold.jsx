@@ -724,11 +724,16 @@ function MarketsView({ country, cur, eurRate, onOpenAsset }) {
         for (const [tcgKey, numSet] of Object.entries(byTcg)) {
           const nums = [...numSet];
           if (!nums.length || nums.length > 60) continue;
+          // Usa solo card_number con prefisso set (es. "sv3-125", "OP05-119").
+          // I numeri bare (es. "006") causano collisioni cross-set nel DB:
+          // Base Set Charizard e Jungle Beedrill condividono entrambi "006".
+          const safeNums = nums.filter(n => /^[a-zA-Z].*-\d|^[a-zA-Z]{2,}\d{2,}/.test(n));
+          if (!safeNums.length) continue;
           let lq = supabase
             .from('cards')
             .select('id,name,set_name,card_number,image_url,lang,tcg,rarity')
             .eq('tcg', tcgKey)
-            .in('card_number', nums);
+            .in('card_number', safeNums);
           if (langFilterCodes.length === 1) lq = lq.eq('lang', langFilterCodes[0]);
           else lq = lq.in('lang', langFilterCodes);
           const { data: expanded } = await lq.limit(300);
