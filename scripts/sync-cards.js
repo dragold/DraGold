@@ -6,7 +6,7 @@
  *   Pokemon  -> TCGdex API (gratuita, multilingua, immagini incluse)
  *   MTG      -> Scryfall API (gratuita, set per set)
  *   YGO      -> YGOPRODeck API (gratuita)
- *   One Piece-> TCGdex API (serie "op")
+ *   One Piece-> TCGdex API (serie "onepiece")
  *
  * Usage:
  *   node scripts/sync-cards.js [--tcg pokemon|mtg|ygo|op] [--lang en,ja,it,...] [--set sv3pt5]
@@ -37,7 +37,7 @@ const argTcg  = args.find(a => a.startsWith('--tcg='))?.split('=')[1]
 const argLang = args.find(a => a.startsWith('--lang='))?.split('=')[1]?.split(',')
 const argSet  = args.find(a => a.startsWith('--set='))?.split('=')[1]
 
-const TCG_FILTER  = argTcg  ? argTcg.split(',') : ['pokemon','mtg','ygo','op']
+const TCG_FILTER  = argTcg  ? argTcg.split(',') : ['pokemon','mtg','ygo','onepiece']
 const LANG_FILTER = argLang || PKM_LANGS
 
 const sleep = ms => new Promise(r => setTimeout(r, ms))
@@ -114,34 +114,204 @@ async function fixMissingImages() {
 }
 
 async function syncOnePiece() {
-  console.log('\nSincronizzazione One Piece (TCGdex)...')
-  let totalNew = 0
-  const sets = await safeFetch(`${TCGDEX_BASE}/en/series/op`)
-  const opSets = sets?.sets || []
-  if (!opSets.length) { console.warn('  TCGdex One Piece sets non disponibile'); return }
-  const setsToProcess = argSet ? opSets.filter(s => s.id === argSet) : opSets
-  for (const setMeta of setsToProcess) {
-    const setId = setMeta.id
-    for (const lang of ['en', 'ja']) {
-      await sleep(DELAY_MS)
-      const setData = await safeFetch(`${TCGDEX_BASE}/${lang}/sets/${setId}`)
-      if (!setData?.cards?.length) continue
-      const existing = await countInDb(setId, lang)
-      if (!argSet && existing >= setData.cards.length) { process.stdout.write('.'); continue }
-      const rows = setData.cards.filter(c => c.localId && c.name).map(c => ({
-        id: `op:tcgdex:${setId}-${c.localId}:${lang}`,
-        name: c.name, set_id: setId, set_name: setData.name,
-        card_number: String(c.localId), rarity: c.rarity || null,
-        image_url: c.image ? `${c.image}/high.webp` : null,
-        image_url_hi: c.image ? `${c.image}/high.webp` : null,
-        lang, tcg: 'op',
-      }))
-      for (let i = 0; i < rows.length; i += BATCH_SIZE) await upsertBatch(rows.slice(i, i + BATCH_SIZE))
-      totalNew += rows.length
-      console.log(`  OK ${setId} (${lang}): ${rows.length} carte`)
+  console.log('=== Sync One Piece (Bandai EN + JP) ===')
+
+  const BANDAI_EN = 'https://en.onepiece-cardgame.com'
+  const BANDAI_JA = 'https://www.onepiece-cardgame.com'
+
+  const EN_SERIES = [
+    [569116,'OP-16','THE TIME OF BATTLE'],
+    [569115,'OP-15','PILLARS OF STRENGTH (EB04)'],
+    [569114,'OP-14','THE AZURE SEA SEVEN'],
+    [569113,'OP-13','CARRYING ON HIS WILL'],
+    [569112,'OP-12','LEGACY OF THE MASTER'],
+    [569111,'OP-11','A FIST OF DIVINE SPEED'],
+    [569110,'OP-10','ROYAL BLOOD'],
+    [569109,'OP-09','EMPERORS IN THE NEW WORLD'],
+    [569108,'OP-08','TWO LEGENDS'],
+    [569107,'OP-07','500 YEARS IN THE FUTURE'],
+    [569106,'OP-06','WINGS OF THE CAPTAIN'],
+    [569105,'OP-05','AWAKENING OF THE NEW ERA'],
+    [569104,'OP-04','KINGDOMS OF INTRIGUE'],
+    [569103,'OP-03','PILLARS OF STRENGTH'],
+    [569102,'OP-02','PARAMOUNT WAR'],
+    [569101,'OP-01','ROMANCE DAWN'],
+    [569030,'ST-30','Luffy & Ace'],
+    [569029,'ST-29','Egghead'],
+    [569028,'ST-28','Straw Hat Crew (2)'],
+    [569027,'ST-27','Navy'],
+    [569026,'ST-26','Seven Warlords (2)'],
+    [569025,'ST-25','FILM RED'],
+    [569024,'ST-24','Big Mom Pirates'],
+    [569023,'ST-23','Rocks Pirates'],
+    [569022,'ST-22','Supernovas'],
+    [569021,'ST-21','Navy (2)'],
+    [569020,'ST-20','Three Captains'],
+    [569019,'ST-19','WORST GENERATION (2)'],
+    [569018,'ST-18','Charlotte Katakuri'],
+    [569017,'ST-17','FORMER MEMBER OF THE SEVEN WARLORDS'],
+    [569016,'ST-16','ULTRA DECK: THE THREE CAPTAINS'],
+    [569015,'ST-15','KINGDOM OF INTRIGUE'],
+    [569014,'ST-14','3D2Y'],
+    [569013,'ST-13','THE THREE BROTHERS'],
+    [569012,'ST-12','ZORO & SANJI'],
+    [569011,'ST-11','UTA'],
+    [569010,'ST-10','NAVY ABSOLUTE FORCE'],
+    [569009,'ST-09','YAMATO'],
+    [569008,'ST-08','MONKEY.D.LUFFY'],
+    [569007,'ST-07','NAVY HEADQUARTERS'],
+    [569006,'ST-06','ABSOLUTE JUSTICE'],
+    [569005,'ST-05','THE WORST GENERATION'],
+    [569004,'ST-04','ANIMAL KINGDOM PIRATES'],
+    [569003,'ST-03','THE SEVEN WARLORDS OF THE SEA'],
+    [569002,'ST-02','WORST GENERATION'],
+    [569001,'ST-01','STRAW HAT CREW'],
+    [569203,'EB-03','ONE PIECE HEROINES EDITION'],
+    [569202,'EB-02','Anime 25th Collection'],
+    [569201,'EB-01','MEMORIAL COLLECTION'],
+    [569302,'PRB-02','ONE PIECE CARD THE BEST vol.2'],
+    [569301,'PRB-01','ONE PIECE CARD THE BEST'],
+    [569901,'P','Promotion'],
+    [569801,'OTHER','Other Product']
+  ]
+
+  const JA_SERIES = [
+    ...EN_SERIES,
+    [400401,'OP-17','(JP Only - OP17)'],
+    [569204,'EB-04','EGGHEAD CRISIS']
+  ]
+
+  async function parseBandaiPage(baseUrl, seriesId, setCode, setName, lang) {
+    const url = `${baseUrl}/cardlist/?series=${seriesId}`
+    let html = ''
+    try {
+      const res = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0 DraGold/1.0' } })
+      if (!res.ok) return []
+      html = await res.text()
+    } catch (e) {
+      console.error(`  FETCH ERROR ${setCode}: ${e.message}`)
+      return []
     }
+
+    const seen = new Set()
+    const cards = []
+
+    // Match each <dl class="modalCol"> block
+    const dlRe = /<dl[^>]*class="[^"]*modalCol[^"]*"[^>]*>([sS]*?)<\/dl>/gi
+    const spanRe = /<span[^>]*>([^<]*)<\/span>/gi
+    const nameRe = /class="cardName"[^>]*>\s*([^<]+)/
+
+    let dlMatch
+    while ((dlMatch = dlRe.exec(html)) !== null) {
+      const dtHtml = dlMatch[1]
+      const spans = []
+      let sm
+      const spanReCopy = new RegExp(spanRe.source, 'gi')
+      while ((sm = spanReCopy.exec(dtHtml)) !== null) spans.push(sm[1].trim())
+
+      const cardNum = spans[0]
+      const rarity   = spans[1] || null
+      const supertype= spans[2] || null
+      const nm = dtHtml.match(nameRe)
+      const name = nm ? nm[1].trim() : null
+
+      if (!cardNum || !name || !/^[A-Z0-9]/.test(cardNum)) continue
+      const id = `onepiece:optcg:${cardNum}:${lang}`
+      if (seen.has(id)) continue
+      seen.add(id)
+
+      const imgBase = lang === 'en' ? BANDAI_EN : BANDAI_JA
+      cards.push({
+        id,
+        tcg: 'onepiece',
+        source: 'optcg',
+        source_id: cardNum,
+        card_number: cardNum,
+        set_id: setCode,
+        set_name: setName,
+        lang,
+        name,
+        name_en: lang === 'en' ? name : null,
+        supertype,
+        rarity,
+        image_url: `${imgBase}/images/cardlist/card/${cardNum}.png`,
+        image_url_hi: `${imgBase}/images/cardlist/card/${cardNum}.png`
+      })
+    }
+
+    // Fallback: match <dt> blocks if no <dl> found
+    if (cards.length === 0) {
+      const dtRe = /<dt[\s\S]*?<\/dt>/gi
+      let dtMatch2
+      while ((dtMatch2 = dtRe.exec(html)) !== null) {
+        const dtHtml2 = dtMatch2[0]
+        const spans = []
+        let sm2
+        const spanReCopy2 = new RegExp(spanRe.source, 'gi')
+        while ((sm2 = spanReCopy2.exec(dtHtml2)) !== null) spans.push(sm2[1].trim())
+
+        const cardNum = spans[0]
+        const rarity   = spans[1] || null
+        const supertype= spans[2] || null
+        const nm2 = dtHtml2.match(nameRe)
+        const name = nm2 ? nm2[1].trim() : null
+
+        if (!cardNum || !name || !/^[A-Z0-9]/.test(cardNum)) continue
+        const id = `onepiece:optcg:${cardNum}:${lang}`
+        if (seen.has(id)) continue
+        seen.add(id)
+
+        const imgBase = lang === 'en' ? BANDAI_EN : BANDAI_JA
+        cards.push({
+          id,
+          tcg: 'onepiece',
+          source: 'optcg',
+          source_id: cardNum,
+          card_number: cardNum,
+          set_id: setCode,
+          set_name: setName,
+          lang,
+          name,
+          name_en: lang === 'en' ? name : null,
+          supertype,
+          rarity,
+          image_url: `${imgBase}/images/cardlist/card/${cardNum}.png`,
+          image_url_hi: `${imgBase}/images/cardlist/card/${cardNum}.png`
+        })
+      }
+    }
+
+    return cards
   }
-  console.log(`\n  One Piece sync: +${totalNew} righe`)
+
+  const isJA = process.argv.includes('--ja')
+  const series = isJA ? JA_SERIES : EN_SERIES
+  const lang = isJA ? 'ja' : 'en'
+  const baseUrl = isJA ? BANDAI_JA : BANDAI_EN
+
+  let totalSynced = 0
+
+  for (const [seriesId, setCode, setName] of series) {
+    try {
+      const cards = await parseBandaiPage(baseUrl, seriesId, setCode, setName, lang)
+      if (cards.length === 0) {
+        console.log(`  SKIP ${setCode} - no cards found`)
+        continue
+      }
+
+      for (let i = 0; i < cards.length; i += BATCH_SIZE) {
+        const batch = cards.slice(i, i + BATCH_SIZE)
+        const { error } = await supabase.from('cards').upsert(batch, { onConflict: 'id' })
+        if (error) console.error(`  ERROR ${setCode} batch ${i}: ${error.message}`)
+      }
+      console.log(`  OP ${lang.toUpperCase()} ${setCode}: ${cards.length} cards synced`)
+      totalSynced += cards.length
+    } catch (e) {
+      console.error(`  ERROR ${setCode}: ${e.message}`)
+    }
+    await sleep(DELAY_MS)
+  }
+  console.log(`One Piece sync done: ${totalSynced} cards processed`)
 }
 
 async function syncMTG() {
@@ -209,7 +379,7 @@ console.log('DraGold Card Sync - start')
 console.log(`   TCG: ${TCG_FILTER.join(', ')} | Set: ${argSet || 'tutti'} | Lingue: ${LANG_FILTER.join(', ')}`)
 try {
   if (TCG_FILTER.includes('pokemon')) await syncPokemon()
-  if (TCG_FILTER.includes('op'))      await syncOnePiece()
+  if (TCG_FILTER.includes('onepiece'))      await syncOnePiece()
   if (TCG_FILTER.includes('mtg'))     await syncMTG()
   if (TCG_FILTER.includes('ygo'))     await syncYGO()
 } catch (err) { console.error('Errore critico:', err.message); process.exit(1) }
