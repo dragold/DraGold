@@ -677,11 +677,13 @@ function MarketsView({ country, cur, eurRate, onOpenAsset }) {
         for (const w of tokensForQuery) {
           const sw = w.replace(/[*%()]/g, '');
           if (!sw) continue;
-          const orParts = [
-            `name.ilike.*${sw}*`,
-            `card_number.ilike.*${sw}*`,
-            `set_name.ilike.*${sw}*`,
-          ];
+          // Token con cifre o trattino → codice set/carta (es. sv03, OP05-119) → cerca ovunque
+          // Token solo lettere (es. pikachu, charizard) → cerca SOLO in name
+          const swIsCode = /\d/.test(sw) || sw.includes('-');
+          const orParts = [`name.ilike.*${sw}*`];
+          if (swIsCode) {
+            orParts.push(`card_number.ilike.*${sw}*`, `set_name.ilike.*${sw}*`);
+          }
           if (RARITY_TOKENS.has(sw)) orParts.push(`rarity.ilike.*${sw}*`);
           // Se il token è un alias/codice lang (solo quando è anche content, es. "en" da solo)
           const la = LANG_ALIASES[sw];
@@ -691,8 +693,9 @@ function MarketsView({ country, cur, eurRate, onOpenAsset }) {
         }
       } else {
         const sw = trimmed.replace(/[*%()]/g, '');
+        const swIsCode = /\d/.test(sw) || sw.includes('-');
         dbQuery = dbQuery.or(
-          `name.ilike.*${sw}*,card_number.ilike.*${sw}*,set_name.ilike.*${sw}*${sw.length >= 4 ? `,rarity.ilike.*${sw}*` : ''}`
+          `name.ilike.*${sw}*${swIsCode ? `,card_number.ilike.*${sw}*,set_name.ilike.*${sw}*` : ''}${sw.length >= 4 && RARITY_TOKENS.has(sw) ? `,rarity.ilike.*${sw}*` : ''}`
         );
       }
 
@@ -701,11 +704,14 @@ function MarketsView({ country, cur, eurRate, onOpenAsset }) {
 
       let nameMatches = data || [];
 
-      // Client-side normalization (Fix #1): gestisce "monkeydluffy" → "Monkey.D.Luffy"
-      // Solo per query senza spazi (caso raro), le query con spazi sono già gestite da ilike
+      // Client-side filter: rimuove falsi positivi da set_name/card_number
+      // Per query name-like (solo lettere, es. "pikachu"): richiede match su name
+      // Per query codice (es. "sv03", "OP05"): controlla name + card_number
       if (!hasSpaces && normQ.length >= 3) {
+        const qIsCode = /\d/.test(normQ) || normQ.includes('-');
         nameMatches = nameMatches.filter(c =>
-          norm((c.name || '') + (c.set_name || '') + (c.card_number || '')).includes(normQ)
+          norm(c.name || '').includes(normQ) ||
+          (qIsCode && norm(c.card_number || '').includes(normQ))
         );
       }
 
@@ -1901,6 +1907,9 @@ input{font-family:inherit;font-size:16px;}
 
 /* skeleton grid */
 .skel-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;}
+@media(min-width:640px){.card-grid,.skel-grid{grid-template-columns:repeat(3,1fr);}}
+@media(min-width:1024px){.card-grid,.skel-grid{grid-template-columns:repeat(4,1fr);}}
+@media(min-width:1400px){.card-grid,.skel-grid{grid-template-columns:repeat(5,1fr);}}
 .skel-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:12px;}
 .skel-img{aspect-ratio:3/4;border-radius:10px;background:linear-gradient(100deg,var(--surface-2) 30%,var(--surface-3) 50%,var(--surface-2) 70%);background-size:200% 100%;animation:sh 1.4s linear infinite;margin-bottom:10px;}
 .skel-line{height:10px;border-radius:6px;background:var(--surface-2);margin-top:7px;}
