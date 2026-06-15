@@ -1,0 +1,76 @@
+name: Sync Pokemon JP (TCGdex JA)
+
+on:
+  # Ogni domenica alle 05:00 UTC — dopo il sync EN delle 04:00
+  schedule:
+    - cron: '0 5 * * 0'
+
+  # Trigger manuale con opzioni
+  workflow_dispatch:
+    inputs:
+      set:
+        description: 'Set specifico (es: sv3, sv3pt5). Lascia vuoto per tutti.'
+        required: false
+        default: ''
+      recent:
+        description: 'Solo set dal 2023+ (true/false)'
+        required: false
+        default: 'false'
+      force:
+        description: 'Forza riscrittura anche dei set già completi (true/false)'
+        required: false
+        default: 'false'
+      dry_run:
+        description: 'Dry run — solo fetch, nessuna scrittura su DB'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  sync-pokemon-ja:
+    name: Sync Pokemon JP
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install @supabase/supabase-js
+
+      # ── Cron settimanale: sync completo JA ──────────────────────────────────
+      - name: Run sync (scheduled — tutti i set JA)
+        if: github.event_name == 'schedule'
+        run: node scripts/sync-pokemon-ja.js
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+
+      # ── Trigger manuale con parametri ───────────────────────────────────────
+      - name: Run sync (manuale)
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          ARGS=""
+          if [ -n "${{ github.event.inputs.set }}" ]; then
+            ARGS="$ARGS --set=${{ github.event.inputs.set }}"
+          fi
+          if [ "${{ github.event.inputs.recent }}" = "true" ]; then
+            ARGS="$ARGS --recent"
+          fi
+          if [ "${{ github.event.inputs.force }}" = "true" ]; then
+            ARGS="$ARGS --force"
+          fi
+          if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
+            ARGS="$ARGS --dry-run"
+          fi
+          echo "Esecuzione: node scripts/sync-pokemon-ja.js $ARGS"
+          node scripts/sync-pokemon-ja.js $ARGS
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
