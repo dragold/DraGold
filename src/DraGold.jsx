@@ -62,6 +62,8 @@ const LANG_ALIASES = {
   fra:'fr', fre:'fr',
   deu:'de', ger:'de',
 };
+// Token che possono matchare rarity: aggiungiamo rarity.ilike solo se il token
+// è una parola di rarità nota — evita full scan su "charizard", "op05", ecc.
 const RARITY_TOKENS = new Set(['rare','holo','secret','common','uncommon','promo','ultra',
   'hyper','rainbow','full','illustration','art','trainer','double','amazing','radiant',
   'shiny','vmax','vstar','vunion','gold','platinum','mythic','epic','legend','super',
@@ -656,28 +658,35 @@ function MarketsView({ country, cur, eurRate, onOpenAsset }) {
         .select('id,name,set_name,card_number,image_url,lang,tcg,rarity')
         .limit(80);
 
+      // Separa lang-token (es. "jp","ja","en") dai content-token (es. "charizard","op05").
+      // I lang-token NON entrano nell'AND della query DB: le carte JP hanno nome giapponese,
+      // quindi name.ilike.*jp* non matcha mai. Vengono risolti e usati nell'expand sotto.
+      const LANG_CODES_SET = new Set(['en','ja','it','es','pt','id','ko','fr','de']);
+      const langFilterCodes = []; // codici lingua risolti (es. "ja")
+      const contentTokens = [];
+      for (const w of words) {
+        const alias = LANG_ALIASES[w];
+        if (alias) { langFilterCodes.push(alias); }
+        else if (LANG_CODES_SET.has(w)) { langFilterCodes.push(w); }
+        else { contentTokens.push(w); }
+      }
+
       if (words.length > 0) {
-        // AND tra token: ogni parola deve comparire in almeno uno dei campi testuali.
-        // Campi cercati: nome, numero carta, set, rarità, lingua.
-        // Se il token è un alias lingua noto (es. "jp"→"ja") aggiunge anche lang.eq.
-        for (const w of words) {
+        // Query DB con solo content-token; se tutti lang (raro), usa words originali
+        const tokensForQuery = contentTokens.length > 0 ? contentTokens : words;
+        for (const w of tokensForQuery) {
           const sw = w.replace(/[*%()]/g, '');
           if (!sw) continue;
-          const langAlias = LANG_ALIASES[sw];
-          // lang: solo eq (non ilike) — i codici lingua sono corti ('ja','en','it'),
-          // ilike su 170k righe senza indice trigram causa timeout.
-          // Se il token è un alias noto (jp→ja) o un codice diretto, aggiungo eq.
-          const knownLangCode = ['en','ja','it','es','pt','id','ko','fr','de'].includes(sw);
           const orParts = [
             `name.ilike.*${sw}*`,
             `card_number.ilike.*${sw}*`,
             `set_name.ilike.*${sw}*`,
           ];
-          // rarity solo per token ≥4 char (evita scan inutili su token corti come "en","ja")
           if (RARITY_TOKENS.has(sw)) orParts.push(`rarity.ilike.*${sw}*`);
-          // lang: eq esatto se il token è un codice/alias lingua noto
-          if (langAlias) orParts.push(`lang.eq.${langAlias}`);
-          else if (knownLangCode) orParts.push(`lang.eq.${sw}`);
+          // Se il token è un alias/codice lang (solo quando è anche content, es. "en" da solo)
+          const la = LANG_ALIASES[sw];
+          if (la) orParts.push(`lang.eq.${la}`);
+          else if (LANG_CODES_SET.has(sw)) orParts.push(`lang.eq.${sw}`);
           dbQuery = dbQuery.or(orParts.join(','));
         }
       } else {
@@ -700,46 +709,77 @@ function MarketsView({ country, cur, eurRate, onOpenAsset }) {
         );
       }
 
-      // Multi-language expand: trova versioni linguistiche delle stesse carte.
-      // Attiva SOLO per query che sembrano set-code/card-number (es. "OP05", "sv03-006").
-      // Per query generiche come "charizard", l'expand causa falsi positivi perché
-      // card_number "006" in set diversi appartiene a pokemon completamente diversi.
-      const looksLikeCardNum = words.some(w =>
-        /^[a-z]{1,5}\d{2,}/i.test(w) || (w.includes('-') && w.length >= 5)
-      );
       let cards = nameMatches;
-      if (looksLikeCardNum && nameMatches.length > 0) {
-        // Raggruppa i card_number per TCG (evita collisioni cross-TCG)
+
+      if (langFilterCodes.length > 0 && nameMatches.length > 0) {
+        // Expand per lingua: cerca versioni nella lingua richiesta usando gli stessi card_number.
+        // Necessario perché le carte JP hanno nome giapponese nel DB (non matcha "charizard").
         const byTcg = {};
         for (const c of nameMatches) {
           if (!c.card_number) continue;
           if (!byTcg[c.tcg]) byTcg[c.tcg] = new Set();
           byTcg[c.tcg].add(c.card_number);
         }
-        const knownIds = new Set(nameMatches.map(c => c.id));
-        const allCards = [...nameMatches];
+        const allLangCards = [];
         for (const [tcgKey, numSet] of Object.entries(byTcg)) {
           const nums = [...numSet];
           if (!nums.length || nums.length > 60) continue;
-          const { data: expanded } = await supabase
+          let lq = supabase
             .from('cards')
-            .select('id,name,set_name,card_number,image_url,lang,tcg')
+            .select('id,name,set_name,card_number,image_url,lang,tcg,rarity')
             .eq('tcg', tcgKey)
-            .in('card_number', nums)
-            .limit(400);
-          for (const c of (expanded || [])) {
-            if (!knownIds.has(c.id)) { knownIds.add(c.id); allCards.push(c); }
-          }
+            .in('card_number', nums);
+          if (langFilterCodes.length === 1) lq = lq.eq('lang', langFilterCodes[0]);
+          else lq = lq.in('lang', langFilterCodes);
+          const { data: expanded } = await lq.limit(300);
+          for (const c of (expanded || [])) allLangCards.push(c);
         }
-        allCards.sort((a, b) => {
+        allLangCards.sort((a, b) => {
           const n = (a.card_number || '').localeCompare(b.card_number || '');
-          return n !== 0 ? n : (a.lang || '').localeCompare(b.lang || '');
+          return n !== 0 ? n : (a.name || '').localeCompare(b.name || '');
         });
-        cards = allCards;
+        cards = allLangCards;
+      } else {
+        // Multi-language expand: trova versioni linguistiche delle stesse carte.
+        // Attiva SOLO per query che sembrano set-code/card-number (es. "OP05", "sv03-006").
+        // Per query generiche come "charizard", l'expand causa falsi positivi perché
+        // card_number "006" in set diversi appartiene a pokemon completamente diversi.
+        const looksLikeCardNum = words.some(w =>
+          /^[a-z]{1,5}\d{2,}/i.test(w) || (w.includes('-') && w.length >= 5)
+        );
+        if (looksLikeCardNum && nameMatches.length > 0) {
+          // Raggruppa i card_number per TCG (evita collisioni cross-TCG)
+          const byTcg = {};
+          for (const c of nameMatches) {
+            if (!c.card_number) continue;
+            if (!byTcg[c.tcg]) byTcg[c.tcg] = new Set();
+            byTcg[c.tcg].add(c.card_number);
+          }
+          const knownIds = new Set(nameMatches.map(c => c.id));
+          const allCards = [...nameMatches];
+          for (const [tcgKey, numSet] of Object.entries(byTcg)) {
+            const nums = [...numSet];
+            if (!nums.length || nums.length > 60) continue;
+            const { data: expanded } = await supabase
+              .from('cards')
+              .select('id,name,set_name,card_number,image_url,lang,tcg')
+              .eq('tcg', tcgKey)
+              .in('card_number', nums)
+              .limit(400);
+            for (const c of (expanded || [])) {
+              if (!knownIds.has(c.id)) { knownIds.add(c.id); allCards.push(c); }
+            }
+          }
+          allCards.sort((a, b) => {
+            const n = (a.card_number || '').localeCompare(b.card_number || '');
+            return n !== 0 ? n : (a.lang || '').localeCompare(b.lang || '');
+          });
+          cards = allCards;
+        }
       }
 
       setResults(cards);
-      setLoading(false); // mostra le carte subito
+      setLoading(false); // mostra le carte subito, prezzi in background
 
       // Prezzi in background: max 100 IDs per evitare URL troppo lunghi (414/timeout)
       if (cards.length > 0) {
@@ -2072,32 +2112,33 @@ input{font-family:inherit;font-size:16px;}
 .al-toggle{width:40px;height:24px;border-radius:12px;background:var(--surface-2);border:1px solid var(--border-2);position:relative;transition:.2s;flex-shrink:0;cursor:pointer;}
 .al-toggle.on{background:var(--gain);border-color:var(--gain);}
 .al-toggle:disabled{opacity:.5;cursor:default;}
-.al-toggle-knob{position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#fff;transition:.2s;display:block;box-shadow:0 1px 4px rgba(0,0,0,.4);}
+.al-toggle-knob{position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#fff;transition:.2s;}
 .al-toggle.on .al-toggle-knob{left:19px;}
-.al-search-box{background:var(--surface);border:1px solid var(--border-2);border-radius:16px;padding:14px;margin-bottom:18px;}
-.al-search-hint{font-size:13px;color:var(--dim);padding:10px 4px;}
-.al-search-err{color:var(--loss);}
-.al-search-results{display:flex;flex-direction:column;margin-top:10px;max-height:320px;overflow-y:auto;}
-.al-search-row{display:flex;align-items:center;gap:12px;padding:10px 8px;border-radius:11px;text-align:left;width:100%;transition:.15s;}
-.al-search-row:hover{background:var(--surface-2);}
-.al-search-img{width:38px;height:52px;border-radius:7px;overflow:hidden;background:var(--surface-2);flex-shrink:0;}
-.al-search-img img{width:100%;height:100%;object-fit:contain;}
-.al-search-body{flex:1;min-width:0;}
-.al-search-name{font-size:13px;font-weight:700;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-bottom:3px;}
-.al-search-meta{display:flex;gap:6px;flex-wrap:wrap;font-size:11px;color:var(--dim);}
-
-/* desktop */
-@media(min-width:760px){
-  :root{--tabh:0px;}
-  .topnav{display:flex;}
-  .tabbar{display:none;}
-  .main{padding:26px var(--p) 60px;}
-  .skel-grid{grid-template-columns:repeat(4,1fr);}
-  .card-grid{grid-template-columns:repeat(4,1fr);}
-  .card-item-name{font-size:13px;}
-  .up-grid{grid-template-columns:repeat(3,1fr);}
-  .modal-backdrop{align-items:center;padding:20px;}
-  .modal{border-radius:22px;}
+.al-del{background:none;border:none;color:var(--text-3);cursor:pointer;padding:4px;border-radius:6px;transition:.15s;display:flex;align-items:center;}
+.al-del:hover{color:var(--loss);background:rgba(239,68,68,.1);}
+.al-empty{text-align:center;padding:48px 0;color:var(--text-2);}
+.al-form-wrap{background:var(--surface-1);border:1px solid var(--border);border-radius:14px;padding:20px;}
+.al-form-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+.al-form-title{font-size:14px;font-weight:700;}
+.al-form-cols{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;}
+.al-form-full{margin-bottom:12px;}
+.al-form-label{font-size:11px;font-weight:700;color:var(--text-2);margin-bottom:6px;display:block;text-transform:uppercase;letter-spacing:.5px;}
+.al-form-input{width:100%;background:var(--surface-2);border:1px solid var(--border-2);border-radius:8px;padding:9px 12px;color:var(--text);font-size:14px;outline:none;transition:.15s;}
+.al-form-input:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(212,175,55,.12);}
+.al-form-select{width:100%;background:var(--surface-2);border:1px solid var(--border-2);border-radius:8px;padding:9px 12px;color:var(--text);font-size:14px;outline:none;cursor:pointer;}
+.al-form-btn{width:100%;padding:12px;background:var(--gold);color:#000;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;transition:.15s;margin-top:4px;}
+.al-form-btn:hover{opacity:.9;}
+.al-card-search{position:relative;margin-bottom:12px;}
+.al-cs-input{width:100%;background:var(--surface-2);border:1px solid var(--border-2);border-radius:8px;padding:9px 12px;color:var(--text);font-size:14px;outline:none;transition:.15s;}
+.al-cs-input:focus{border-color:var(--gold);}
+.al-cs-drop{position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--surface-1);border:1px solid var(--border-2);border-radius:10px;z-index:200;max-height:220px;overflow-y:auto;}
+.al-cs-item{display:flex;align-items:center;gap:10px;padding:8px 12px;cursor:pointer;transition:.1s;}
+.al-cs-item:hover{background:var(--surface-2);}
+.al-cs-img{width:28px;height:38px;object-fit:contain;border-radius:3px;flex-shrink:0;}
+.al-cs-name{font-size:13px;font-weight:600;line-height:1.3;}
+.al-cs-meta{font-size:11px;color:var(--text-2);}
+/* responsive */
+@media(max-width:600px){
   .asset-head{flex-direction:row;align-items:flex-start;gap:26px;}
   .asset-img{width:220px;align-self:flex-start;}
   .asset-actions{max-width:420px;}
