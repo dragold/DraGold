@@ -700,11 +700,15 @@ function MarketsView({ country, cur, eurRate, onOpenAsset }) {
         );
       }
 
-      // Multi-language expand: trova tutte le versioni linguistiche delle stesse carte.
-      // Logica: EN è la base → cerchi "Charizard" → trovi EN; poi recuperi JA/IT/ES/PT/ID
-      // usando lo stesso card_number (es. OP01-001 è uguale in tutte le lingue One Piece).
+      // Multi-language expand: trova versioni linguistiche delle stesse carte.
+      // Attiva SOLO per query che sembrano set-code/card-number (es. "OP05", "sv03-006").
+      // Per query generiche come "charizard", l'expand causa falsi positivi perché
+      // card_number "006" in set diversi appartiene a pokemon completamente diversi.
+      const looksLikeCardNum = words.some(w =>
+        /^[a-z]{1,5}\d{2,}/i.test(w) || (w.includes('-') && w.length >= 5)
+      );
       let cards = nameMatches;
-      if (nameMatches.length > 0) {
+      if (looksLikeCardNum && nameMatches.length > 0) {
         // Raggruppa i card_number per TCG (evita collisioni cross-TCG)
         const byTcg = {};
         for (const c of nameMatches) {
@@ -727,7 +731,6 @@ function MarketsView({ country, cur, eurRate, onOpenAsset }) {
             if (!knownIds.has(c.id)) { knownIds.add(c.id); allCards.push(c); }
           }
         }
-        // Raggruppa varianti: stesso card_number affiancate, ordinate per lingua
         allCards.sort((a, b) => {
           const n = (a.card_number || '').localeCompare(b.card_number || '');
           return n !== 0 ? n : (a.lang || '').localeCompare(b.lang || '');
