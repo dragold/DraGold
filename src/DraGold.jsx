@@ -660,20 +660,26 @@ function MarketsView({ country, cur, eurRate, onOpenAsset }) {
           const sw = w.replace(/[*%()]/g, '');
           if (!sw) continue;
           const langAlias = LANG_ALIASES[sw];
+          // lang: solo eq (non ilike) — i codici lingua sono corti ('ja','en','it'),
+          // ilike su 170k righe senza indice trigram causa timeout.
+          // Se il token è un alias noto (jp→ja) o un codice diretto, aggiungo eq.
+          const knownLangCode = ['en','ja','it','es','pt','id','ko','fr','de'].includes(sw);
           const orParts = [
             `name.ilike.*${sw}*`,
             `card_number.ilike.*${sw}*`,
             `set_name.ilike.*${sw}*`,
-            `rarity.ilike.*${sw}*`,
-            `lang.ilike.*${sw}*`,
           ];
+          // rarity solo per token ≥4 char (evita scan inutili su token corti come "en","ja")
+          if (sw.length >= 4) orParts.push(`rarity.ilike.*${sw}*`);
+          // lang: eq esatto se il token è un codice/alias lingua noto
           if (langAlias) orParts.push(`lang.eq.${langAlias}`);
+          else if (knownLangCode) orParts.push(`lang.eq.${sw}`);
           dbQuery = dbQuery.or(orParts.join(','));
         }
       } else {
         const sw = trimmed.replace(/[*%()]/g, '');
         dbQuery = dbQuery.or(
-          `name.ilike.*${sw}*,card_number.ilike.*${sw}*,set_name.ilike.*${sw}*,rarity.ilike.*${sw}*,lang.ilike.*${sw}*`
+          `name.ilike.*${sw}*,card_number.ilike.*${sw}*,set_name.ilike.*${sw}*${sw.length >= 4 ? `,rarity.ilike.*${sw}*` : ''}`
         );
       }
 
@@ -1160,20 +1166,21 @@ function AlertCardSearch({ onSelect, onClose }) {
           const sw = w.replace(/[*%()]/g, '');
           if (!sw) continue;
           const langAlias = LANG_ALIASES[sw];
+          const knownLangCode = ['en','ja','it','es','pt','id','ko','fr','de'].includes(sw);
           const orParts = [
             `name.ilike.*${sw}*`,
             `card_number.ilike.*${sw}*`,
             `set_name.ilike.*${sw}*`,
-            `rarity.ilike.*${sw}*`,
-            `lang.ilike.*${sw}*`,
           ];
+          if (sw.length >= 4) orParts.push(`rarity.ilike.*${sw}*`);
           if (langAlias) orParts.push(`lang.eq.${langAlias}`);
+          else if (knownLangCode) orParts.push(`lang.eq.${sw}`);
           dbQ = dbQ.or(orParts.join(','));
         }
       } else {
         const sw = trimmed.replace(/[*%()]/g, '');
         dbQ = dbQ.or(
-          `name.ilike.*${sw}*,card_number.ilike.*${sw}*,set_name.ilike.*${sw}*,rarity.ilike.*${sw}*,lang.ilike.*${sw}*`
+          `name.ilike.*${sw}*,card_number.ilike.*${sw}*,set_name.ilike.*${sw}*${sw.length >= 4 ? `,rarity.ilike.*${sw}*` : ''}`
         );
       }
       const { data, error: err } = await dbQ;
