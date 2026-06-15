@@ -736,19 +736,22 @@ function MarketsView({ country, cur, eurRate, onOpenAsset }) {
       }
 
       setResults(cards);
+      setLoading(false); // mostra le carte subito
 
-      // Prezzi: ultimo snapshot da card_prices per ogni carta trovata
+      // Prezzi in background: max 100 IDs per evitare URL troppo lunghi (414/timeout)
       if (cards.length > 0) {
-        const ids = cards.map(c => c.id);
-        const { data: priceRows } = await supabase
-          .from('card_prices')
-          .select('card_id,price_market,source,captured_at')
-          .in('card_id', ids)
-          .order('captured_at', { ascending: false })
-          .limit(ids.length * 3);
-        const pm = {};
-        for (const p of (priceRows || [])) { if (!pm[p.card_id]) pm[p.card_id] = p; }
-        setPriceMap(pm);
+        try {
+          const priceIds = cards.slice(0, 100).map(c => c.id);
+          const { data: priceRows } = await supabase
+            .from('card_prices')
+            .select('card_id,price_market,source,captured_at')
+            .in('card_id', priceIds)
+            .order('captured_at', { ascending: false })
+            .limit(priceIds.length * 3);
+          const pm = {};
+          for (const p of (priceRows || [])) { if (!pm[p.card_id]) pm[p.card_id] = p; }
+          setPriceMap(pm);
+        } catch (_) { /* ignora errori fetch prezzi */ }
       } else {
         setPriceMap({});
       }
