@@ -1,21 +1,12 @@
 /**
  * DraGold - Sync Pokemon JP (TCGdex /v2/ja)
- *
- * Fonte:  https://api.tcgdex.net/v2/ja
- * Lang:   'ja' (come nel resto del DB)
- * Ordine: set per releaseDate DESC (ultimi 3 anni prima, poi retroattivo)
- * Skip:   set gia completi nel DB vengono saltati
- *
+ * Lang: 'ja' | Skip set gia completi | --recent usa pattern era (sv*=2023+)
  * Usage:
- *   node scripts/sync-pokemon-ja.js                 tutti i set JA
- *   node scripts/sync-pokemon-ja.js --set=sv3       forzare un set specifico
- *   node scripts/sync-pokemon-ja.js --dry-run       solo fetch, nessuna scrittura
- *   node scripts/sync-pokemon-ja.js --recent        solo ultimi 3 anni (2023+)
- *   node scripts/sync-pokemon-ja.js --force         riscrivere anche set gia completi
- *
- * Env richiesti:
- *   SUPABASE_URL (o VITE_SUPABASE_URL)
- *   SUPABASE_SERVICE_KEY
+ *   node scripts/sync-pokemon-ja.js              tutti i set JA
+ *   node scripts/sync-pokemon-ja.js --recent     solo SV era (2023+)
+ *   node scripts/sync-pokemon-ja.js --set=sv10   set specifico
+ *   node scripts/sync-pokemon-ja.js --force      riscrive anche set completi
+ *   node scripts/sync-pokemon-ja.js --dry-run    solo fetch, nessuna scrittura
  */
 
 import { createClient } from '@supabase/supabase-js'
@@ -72,9 +63,7 @@ async function countExisting(setId) {
   const { count } = await supabase
     .from('cards')
     .select('id', { count: 'exact', head: true })
-    .eq('tcg', 'pokemon')
-    .eq('lang', 'ja')
-    .eq('set_id', setId)
+    .eq('tcg', 'pokemon').eq('lang', 'ja').eq('set_id', setId)
   return count || 0
 }
 
@@ -84,20 +73,28 @@ function buildImageUrl(card, setId) {
 }
 
 /**
- * TCGdex JA /sets non include releaseDate.
- * Fetchiamo /en/sets (stessi ID) per ottenere le date.
+ * TCGdex non include releaseDate nella lista set (ne EN ne JA).
+ * Usiamo prefissi ID per assegnare date approssimative per era.
+ * sv* = Scarlet & Violet (2023+), swsh* = Sword & Shield (2020), etc.
  */
-async function getReleaseDateMap() {
-  const enSets = await safeFetch(`${TCGDEX_BASE}/en/sets`)
-  if (!Array.isArray(enSets)) {
-    log('  EN sets non disponibile - date non disponibili')
-    return {}
-  }
+function guessReleaseDate(setId) {
+  const id = setId.toLowerCase()
+  if (id.startsWith('sv'))   return '2023-01-01'
+  if (id.startsWith('swsh')) return '2020-01-01'
+  if (id.startsWith('sm'))   return '2017-01-01'
+  if (id.startsWith('xy'))   return '2014-01-01'
+  if (id.startsWith('bw'))   return '2011-01-01'
+  if (id.startsWith('dp'))   return '2007-01-01'
+  if (id.startsWith('ex'))   return '2004-01-01'
+  if (id.startsWith('neo'))  return '2000-01-01'
+  if (id.startsWith('base')) return '1999-01-01'
+  if (id.startsWith('pm'))   return '1996-01-01'
+  return '1990-01-01'
+}
+
+function buildDateMap(sets) {
   const map = {}
-  for (const s of enSets) {
-    if (s.id && s.releaseDate) map[s.id] = s.releaseDate
-  }
-  log(`  Date map: ${Object.keys(map).length} set EN con releaseDate`)
+  for (const s of sets) if (s.id) map[s.id] = guessReleaseDate(s.id)
   return map
 }
 
@@ -105,16 +102,13 @@ async function syncPokemonJA() {
   log('\n[Pokemon JA] Avvio sync da TCGdex /v2/ja...')
 
   const rawSets = await safeFetch(`${TCGDEX_BASE}/ja/sets`)
-  if (!Array.isArray(rawSets)) {
-    log('  TCGdex JA /sets non disponibile - abort')
-    process.exit(1)
-  }
+  if (!Array.isArray(rawSets)) { log('  TCGdex JA /sets non disponibile - abort'); process.exit(1) }
 
   const seen = new Set()
   const allSets = rawSets.filter(s => s.id && !seen.has(s.id) && seen.add(s.id))
   log(`  ${allSets.length} set JA unici dalla TCGdex API`)
 
-  const dateMap = await getReleaseDateMap()
+  const dateMap = buildDateMap(allSets)
 
   let toProcess = argSet
     ? allSets.filter(s => s.id.toLowerCase() === argSet.toLowerCase())
@@ -122,22 +116,16 @@ async function syncPokemonJA() {
 
   if (RECENT && !argSet) {
     toProcess = toProcess.filter(s => (dateMap[s.id] || '') >= RECENT_CUTOFF)
-    log(`  Filtro --recent: ${toProcess.length} set dal ${RECENT_CUTOFF} (date da EN API)`)
+    log(`  Filtro --recent: ${toProcess.length} set sv* (2023+)`)
   }
 
-  toProcess.sort((a, b) => {
-    const da = dateMap[a.id] || '1990-01-01'
-    const db = dateMap[b.id] || '1990-01-01'
-    return db.localeCompare(da)
-  })
+  toProcess.sort((a, b) => (dateMap[b.id] || '').localeCompare(dateMap[a.id] || ''))
 
   log(`  ${toProcess.length} set da processare (ordine: piu recenti prima)`)
   log(`  Dry-run: ${DRY_RUN ? 'SI' : 'no'} | Force: ${FORCE ? 'SI' : 'no'}`)
   log('')
 
-  let totalInserted = 0
-  let skipped = 0
-  let failed = 0
+  let totalInserted = 0, skipped = 0, failed = 0
   const failedSets = []
 
   for (const meta of toProcess) {
@@ -148,11 +136,7 @@ async function syncPokemonJA() {
 
     if (!FORCE && !argSet) {
       const existing = await countExisting(setId)
-      if (existing >= expected && expected > 0) {
-        tick()
-        skipped++
-        continue
-      }
+      if (existing >= expected && expected > 0) { tick(); skipped++; continue }
     }
 
     await sleep(DELAY_MS)
@@ -160,13 +144,10 @@ async function syncPokemonJA() {
 
     if (!setData?.cards?.length) {
       log(`  ${setId} (${dateStr}): nessuna carta - skip`)
-      failed++
-      failedSets.push(setId)
-      continue
+      failed++; failedSets.push(setId); continue
     }
 
     const setNameJP = setData.name || setName
-
     const rows = setData.cards
       .filter(c => c.localId && c.name)
       .map(c => ({
@@ -186,15 +167,11 @@ async function syncPokemonJA() {
       }))
 
     if (!rows.length) {
-      log(`  ${setId}: nessuna carta valida dopo il filtro`)
-      failed++
-      failedSets.push(setId)
-      continue
+      log(`  ${setId}: nessuna carta valida`)
+      failed++; failedSets.push(setId); continue
     }
 
-    for (let i = 0; i < rows.length; i += BATCH_SIZE) {
-      await upsertBatch(rows.slice(i, i + BATCH_SIZE))
-    }
+    for (let i = 0; i < rows.length; i += BATCH_SIZE) await upsertBatch(rows.slice(i, i + BATCH_SIZE))
 
     totalInserted += rows.length
     log(`  ${setId.padEnd(22)} ${setNameJP.padEnd(30)} (${dateStr})  ${rows.length} carte`)
@@ -207,25 +184,19 @@ async function syncPokemonJA() {
   log(`  Set saltati (gia completi) : ${skipped}`)
   log(`  Set falliti/vuoti          : ${failed}`)
   if (failedSets.length) log(`  Set con problemi: ${failedSets.join(', ')}`)
-  if (DRY_RUN) log('  DRY-RUN - nessuna scrittura effettuata su DB')
+  if (DRY_RUN) log('  DRY-RUN - nessuna scrittura su DB')
   log('===============================================')
 }
 
 const t0 = Date.now()
-
 log('===========================================')
 log('  DraGold - Sync Pokemon JP (TCGdex JA)')
 log('===========================================')
 log(`  Avvio: ${new Date().toISOString()}`)
-log(`  Set:   ${argSet || (RECENT ? `ultimi 3 anni (>= ${RECENT_CUTOFF})` : 'tutti')}`)
+log(`  Set:   ${argSet || (RECENT ? 'sv* (2023+)' : 'tutti')}`)
 log('')
 
-try {
-  await syncPokemonJA()
-} catch (err) {
-  console.error('\nErrore critico:', err.message)
-  console.error(err.stack)
-  process.exit(1)
-}
+try { await syncPokemonJA() }
+catch (err) { console.error('Errore critico:', err.message); console.error(err.stack); process.exit(1) }
 
-log(`\n  Completato in ${((Date.now() - t0) / 1000).toFixed(1)}s`)
+log(`  Completato in ${((Date.now() - t0) / 1000).toFixed(1)}s`)
