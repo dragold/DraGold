@@ -62,6 +62,10 @@ const LANG_ALIASES = {
   fra:'fr', fre:'fr',
   deu:'de', ger:'de',
 };
+const RARITY_TOKENS = new Set(['rare','holo','secret','common','uncommon','promo','ultra',
+  'hyper','rainbow','full','illustration','art','trainer','double','amazing','radiant',
+  'shiny','vmax','vstar','vunion','gold','platinum','mythic','epic','legend','super',
+  'special','classic','collection','alternate','foil','parallel','prism']);
 
 /* ─── Tabs core ─── */
 const TABS = [
@@ -670,7 +674,7 @@ function MarketsView({ country, cur, eurRate, onOpenAsset }) {
             `set_name.ilike.*${sw}*`,
           ];
           // rarity solo per token ≥4 char (evita scan inutili su token corti come "en","ja")
-          if (sw.length >= 4) orParts.push(`rarity.ilike.*${sw}*`);
+          if (RARITY_TOKENS.has(sw)) orParts.push(`rarity.ilike.*${sw}*`);
           // lang: eq esatto se il token è un codice/alias lingua noto
           if (langAlias) orParts.push(`lang.eq.${langAlias}`);
           else if (knownLangCode) orParts.push(`lang.eq.${sw}`);
@@ -1172,7 +1176,7 @@ function AlertCardSearch({ onSelect, onClose }) {
             `card_number.ilike.*${sw}*`,
             `set_name.ilike.*${sw}*`,
           ];
-          if (sw.length >= 4) orParts.push(`rarity.ilike.*${sw}*`);
+          if (RARITY_TOKENS.has(sw)) orParts.push(`rarity.ilike.*${sw}*`);
           if (langAlias) orParts.push(`lang.eq.${langAlias}`);
           else if (knownLangCode) orParts.push(`lang.eq.${sw}`);
           dbQ = dbQ.or(orParts.join(','));
