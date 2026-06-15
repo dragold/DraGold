@@ -5,7 +5,7 @@
  *   Pokemon EN  â TCGdex /v2/en   (gratuita, multilingua, stessa fonte della JA)
  *   Pokemon JA  â TCGdex /v2/ja   (gratuita, multilingua)
  *   One Piece EN â optcgapi.com   (4347+ carte EN, gratuita)
- *   One Piece JA â derivata dai dati EN + CDN immagini ufficiale JP
+ *   One Piece JA â derivata dai dati EN + CDN immagini ufficiale hJP
  *                  (ignoreDuplicates=true: preserva nomi JA reali giÃ  in DB)
  *
  * Usage:
@@ -224,8 +224,9 @@ async function syncOnePieceEN() {
   // Set da provare: OP-01..OP-16, ST-01..ST-24, promo
   // L'API restituisce 404 per set inesistenti â skip automatico
   const allSets = [
-    ...Array.from({ length: 16 }, (_, i) => `OP-${String(i + 1).padStart(2, '0')}`),
-    ...Array.from({ length: 24 }, (_, i) => `ST-${String(i + 1).padStart(2, '0')}`),
+    ...Array.from({ length: 25 }, (_, i) => `OP-${String(i + 1).padStart(2, '0')}`),
+    ...Array.from({ length: 30 }, (_, i) => `ST-${String(i + 1).padStart(2, '0')}`),
+          ...Array.from({ length: 5 }, (_, i) => `EB-${String(i + 1).padStart(2, '0')}`),
     'PR-01',
   ]
 
@@ -296,8 +297,9 @@ async function syncOnePieceJA() {
   const IMG_BASE = 'https://www.onepiece-cardgame.com/images/cardlist/card'
 
   const allSets = [
-    ...Array.from({ length: 16 }, (_, i) => `OP-${String(i + 1).padStart(2, '0')}`),
-    ...Array.from({ length: 24 }, (_, i) => `ST-${String(i + 1).padStart(2, '0')}`),
+    ...Array.from({ length: 25 }, (_, i) => `OP-${String(i + 1).padStart(2, '0')}`),
+    ...Array.from({ length: 30 }, (_, i) => `ST-${String(i + 1).padStart(2, '0')}`),
+      ...Array.from({ length: 5 }, (_, i) => `EB-${String(i + 1).padStart(2, '0')}`),
     'PR-01',
   ]
 
