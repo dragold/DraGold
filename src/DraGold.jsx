@@ -35,6 +35,26 @@ export function ebayURL(name, setName="", country="US", tcg="pokemon", cardNumbe
   const cat = EBAY_CATS[tcg] ? `&_sacat=${EBAY_CATS[tcg]}` : "";
   return `https://www.${site.domain}/sch/i.html?_nkw=${encodeURIComponent(q)}&_sop=12&LH_BIN=1${cat}&mkcid=1&mkrid=${site.mkrid}&siteid=${site.siteid}&campid=${EBAY_CAMP}&toolid=10001&mkevt=1${loc}`;
 }
+// Affiliate URL per ricerca raw (senza suffisso TCG) — usato nel fallback "no results"
+function ebaySearchURL(query, country="IT") {
+  const site = EBAY_SITES[country] || EBAY_SITES.IT;
+  const loc = EU_CC.includes(country) ? "&LH_PrefLoc=1" : "";
+  return `https://www.${site.domain}/sch/i.html?_nkw=${encodeURIComponent(query)}&_sop=12&LH_BIN=1&mkcid=1&mkrid=${site.mkrid}&siteid=${site.siteid}&campid=${EBAY_CAMP}&toolid=10001&mkevt=1${loc}`;
+}
+// Aggiunge params EPN a un URL listing eBay già formato (es. da Browse API)
+function ebayItemURL(url, country="IT") {
+  try {
+    const site = EBAY_SITES[country] || EBAY_SITES.IT;
+    const u = new URL(url);
+    u.searchParams.set('mkcid','1');
+    u.searchParams.set('mkrid', site.mkrid);
+    u.searchParams.set('siteid', site.siteid);
+    u.searchParams.set('campid', EBAY_CAMP);
+    u.searchParams.set('toolid','10001');
+    u.searchParams.set('mkevt','1');
+    return u.toString();
+  } catch { return url; }
+}
 
 /* ─── Cataloghi di riferimento (UI) ─── */
 const TCG_LIST = [
@@ -459,7 +479,7 @@ function SearchResults({ loading, results, priceMap, error, term, country, cur, 
       <div className="zero-title">No results for "{term}"</div>
       <div className="zero-sub">Try fewer words or the card number.</div>
       <a className="btn btn-ghost"
-        href={`https://www.ebay.it/sch/i.html?_nkw=${encodeURIComponent(term)}`}
+        href={ebaySearchURL(term, country)}
         target="_blank" rel="noreferrer">
         Search "{term}" on eBay
       </a>
@@ -1621,6 +1641,10 @@ function AssetView({ card, onBack, isAuthed, onLogin, country, cur, eurRate }) {
   const [watching, setWatching] = useState(false);
   const [watchBusy, setWatchBusy] = useState(false);
   const [toast, setToast] = useState("");
+  // eBay sold timeframes (Finding API) — {'7d': {avg, median, count, currency}, ...}
+  const [soldData, setSoldData] = useState({});
+  // User plan tier: 'free' | 'collector' | 'pro'
+  const [userTier, setUserTier] = useState('free');
 
   const tcgInfo = TCG_LIST.find(t => t.id === card.tcg);
   const langInfo = CARD_LANGS.find(l => l.c === card.lang);
@@ -1685,7 +1709,50 @@ function AssetView({ card, onBack, isAuthed, onLogin, country, cur, eurRate }) {
     }
   }, [card.id, cardNum, numNorm, numDistinctive, country]);
 
-  useEffect(() => { loadPrice(); loadEbay(); }, [loadPrice, loadEbay]);
+  /* eBay sold timeframes: fetch latest row per timeframe from card_prices (source=ebay_finding) */
+  const loadSoldData = useCallback(async () => {
+    if (!supabaseReady) return;
+    try {
+      const { data } = await supabase
+        .from("card_prices")
+        .select("price_market,price_median,timeframe,currency,captured_at,raw_response")
+        .eq("card_id", card.id)
+        .eq("source", "ebay_finding")
+        .not("timeframe", "is", null)
+        .order("captured_at", { ascending: false })
+        .limit(30);
+      // Keep only the newest row per timeframe; extract count from raw_response
+      const byTf = {};
+      for (const row of (data || [])) {
+        if (!byTf[row.timeframe]) {
+          byTf[row.timeframe] = { ...row, count: row.raw_response?.count ?? null };
+        }
+      }
+      setSoldData(byTf);
+    } catch { /* best-effort */ }
+  }, [card.id]);
+
+  /* Load user tier from profiles when authenticated */
+  useEffect(() => {
+    if (!isAuthed || !supabaseReady) return;
+    supabase.from("profiles").select("tier").single().then(({ data }) => {
+      if (data?.tier) setUserTier(data.tier.toLowerCase());
+    });
+  }, [isAuthed]);
+
+  useEffect(() => { loadPrice(); loadEbay(); loadSoldData(); }, [loadPrice, loadEbay, loadSoldData]);
+
+  /* Price formatting for sold rows (may be EUR from EBAY-IT or USD from EBAY-US) */
+  const fmtSold = (val, currency) => {
+    if (val == null) return "—";
+    if (currency === 'EUR') {
+      return cur === 'EUR' ? `€${val.toFixed(2)}` : `$${(val / eurRate).toFixed(2)}`;
+    }
+    return priceStr(val); // USD → priceStr handles EUR conversion
+  };
+
+  /* Tier gate: Collector and Pro see 7d + 90d data */
+  const isPaid = isAuthed && (userTier === 'collector' || userTier === 'pro');
 
   const track = async () => {
     if (!isAuthed) { onLogin?.(); return; }
@@ -1780,6 +1847,82 @@ function AssetView({ card, onBack, isAuthed, onLogin, country, cur, eurRate }) {
         </button>
       </div>
 
+      {/* eBay SOLD TIMEFRAMES — dati da Finding API (7d/30d/90d) */}
+      {(soldData['7d'] || soldData['30d'] || soldData['90d']) && (
+        <div className="sold-section">
+          <div className="sec-h">
+            <span className="sec-h-t">eBay sold · avg price</span>
+            <span className="sec-h-line" />
+          </div>
+          <div className="sold-table">
+            {/* Header */}
+            <div className="sold-hdr">
+              <span>Window</span><span>Avg</span><span>Median</span><span>Sales</span>
+            </div>
+            {/* 7d — Collector/Pro only */}
+            {isPaid ? (
+              soldData['7d'] ? (
+                <div className="sold-row">
+                  <span className="sold-label">7 days</span>
+                  <span className="sold-avg">{fmtSold(soldData['7d'].price_market, soldData['7d'].currency)}</span>
+                  <span className="sold-med">{fmtSold(soldData['7d'].price_median, soldData['7d'].currency)}</span>
+                  <span className="sold-n">{soldData['7d'].count ?? '—'}</span>
+                </div>
+              ) : (
+                <div className="sold-row sold-empty">
+                  <span className="sold-label">7 days</span>
+                  <span className="sold-avg muted">—</span>
+                  <span className="sold-med muted">—</span>
+                  <span className="sold-n muted">0</span>
+                </div>
+              )
+            ) : (
+              <div className="sold-row sold-locked" onClick={() => !isAuthed && onLogin?.()}>
+                <span className="sold-label">7 days</span>
+                <span className="sold-gate">🔒 Collector+</span>
+              </div>
+            )}
+            {/* 30d — free for everyone */}
+            {soldData['30d'] && (
+              <div className="sold-row sold-featured">
+                <span className="sold-label">30 days</span>
+                <span className="sold-avg">{fmtSold(soldData['30d'].price_market, soldData['30d'].currency)}</span>
+                <span className="sold-med">{fmtSold(soldData['30d'].price_median, soldData['30d'].currency)}</span>
+                <span className="sold-n">{soldData['30d'].count ?? '—'}</span>
+              </div>
+            )}
+            {/* 90d — Collector/Pro only */}
+            {isPaid ? (
+              soldData['90d'] ? (
+                <div className="sold-row">
+                  <span className="sold-label">90 days</span>
+                  <span className="sold-avg">{fmtSold(soldData['90d'].price_market, soldData['90d'].currency)}</span>
+                  <span className="sold-med">{fmtSold(soldData['90d'].price_median, soldData['90d'].currency)}</span>
+                  <span className="sold-n">{soldData['90d'].count ?? '—'}</span>
+                </div>
+              ) : (
+                <div className="sold-row sold-empty">
+                  <span className="sold-label">90 days</span>
+                  <span className="sold-avg muted">—</span>
+                  <span className="sold-med muted">—</span>
+                  <span className="sold-n muted">0</span>
+                </div>
+              )
+            ) : (
+              <div className="sold-row sold-locked" onClick={() => !isAuthed && onLogin?.()}>
+                <span className="sold-label">90 days</span>
+                <span className="sold-gate">🔒 Collector+</span>
+              </div>
+            )}
+          </div>
+          {!isPaid && (
+            <div className="sold-upgrade">
+              Upgrade to Collector for 7-day &amp; 90-day sold data
+            </div>
+          )}
+        </div>
+      )}
+
       {/* eBAY LIVE — nascosta se zero match */}
       {ebayItems.length > 0 && (
         <div className="ebay-live">
@@ -1789,7 +1932,7 @@ function AssetView({ card, onBack, isAuthed, onLogin, country, cur, eurRate }) {
           </div>
           <div className="ebay-list">
             {ebayItems.map((it, i) => (
-              <a key={i} className="ebay-row" href={it.url} target="_blank" rel="noreferrer">
+              <a key={i} className="ebay-row" href={ebayItemURL(it.url, country)} target="_blank" rel="noreferrer">
                 <div className="ebay-thumb">
                   {it.thumb ? <img src={it.thumb} alt="" loading="lazy" /> : <Icon name="card" size={18} />}
                 </div>
@@ -2041,6 +2184,23 @@ input{font-family:inherit;font-size:16px;}
 .asset-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:20px;}
 .asset-actions .btn{width:100%;}
 
+/* sold timeframes grid */
+.sold-section{margin-top:26px;}
+.sold-table{margin-top:10px;background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;}
+.sold-hdr{display:grid;grid-template-columns:1fr 1fr 1fr 48px;padding:8px 14px;background:var(--surface-2);font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);}
+.sold-row{display:grid;grid-template-columns:1fr 1fr 1fr 48px;padding:11px 14px;border-top:1px solid var(--border);align-items:center;}
+.sold-row.sold-featured{background:rgba(251,191,36,.04);}
+.sold-row.sold-locked{grid-template-columns:1fr auto;cursor:pointer;}
+.sold-row.sold-locked:hover{background:var(--surface-2);}
+.sold-row.sold-empty{opacity:.5;}
+.sold-label{font-size:13px;font-weight:600;}
+.sold-avg{font-family:'Space Mono',monospace;font-size:13px;font-weight:700;color:var(--gold);}
+.sold-med{font-family:'Space Mono',monospace;font-size:12px;color:var(--muted);}
+.sold-n{font-size:11px;color:var(--dim);text-align:right;}
+.sold-gate{font-size:12px;color:var(--dim);}
+.sold-upgrade{margin-top:9px;font-size:12px;color:var(--dim);text-align:center;}
+.muted{color:var(--dim);}
+
 /* ebay live */
 .ebay-live{margin-top:26px;}
 .ebay-list{display:flex;flex-direction:column;gap:8px;}
@@ -2079,77 +2239,11 @@ input{font-family:inherit;font-size:16px;}
 .pf-pnl.gain{color:var(--gain);}
 .pf-pnl.loss{color:var(--loss);}
 .pf-pnl-pct{font-size:13px;opacity:.85;}
-.pf-pnl-vs{font-size:11px;font-weight:500;color:var(--dim);font-family:'Plus Jakarta Sans',sans-serif;}
-.pf-count{font-size:12px;color:var(--dim);}
-.pf-header-skel{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:20px;margin-bottom:20px;}
-.pf-list{display:flex;flex-direction:column;}
-.pf-row{display:flex;align-items:flex-start;gap:12px;padding:14px 0;border-bottom:1px solid var(--border);}
-.pf-row:first-child{border-top:1px solid var(--border);}
-.pf-img{width:44px;height:62px;border-radius:8px;overflow:hidden;background:var(--surface-2);border:1px solid var(--border);flex-shrink:0;}
-.pf-img img{width:100%;height:100%;object-fit:contain;}
-.pf-body{flex:1;min-width:0;}
-.pf-name{font-size:13px;font-weight:700;line-height:1.3;margin-bottom:4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
-.pf-meta{display:flex;gap:7px;align-items:center;margin-bottom:8px;}
-.pf-cond{font-size:10px;font-weight:700;font-family:'Space Mono',monospace;color:var(--gold);background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.2);padding:2px 6px;border-radius:5px;}
-.pf-set{font-size:10px;color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:130px;}
-.pf-prices{display:flex;gap:14px;}
-.pf-price-col{display:flex;flex-direction:column;gap:2px;}
-.pf-price-lbl{font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);font-family:'Space Mono',monospace;}
-.pf-price-val{font-size:12px;font-weight:700;font-family:'Space Mono',monospace;color:var(--text);}
-.pf-price-val.gain{color:var(--gain);}
-.pf-price-val.loss{color:var(--loss);}
-.pf-actions{display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0;padding-top:2px;}
-.pf-remove-btn{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--dim);transition:.15s;}
-.pf-remove-btn:hover{background:rgba(248,113,113,.12);color:var(--loss);}
-.pf-track-btn{font-size:11px;padding:5px 10px;border-radius:7px;}
-.pf-confirm{display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end;max-width:200px;}
-.pf-confirm-txt{font-size:12px;font-weight:700;color:var(--loss);width:100%;text-align:right;}
-.pf-confirm-yes{background:var(--loss);color:#fff;padding:8px 14px;border-radius:9px;font-size:13px;font-weight:700;}
-.pf-confirm-yes:disabled{opacity:.6;cursor:default;}
-
-/* alerts */
-.al-view-h{display:flex;align-items:center;justify-content:space-between;}
-.al-list{display:flex;flex-direction:column;}
-.al-row{display:flex;align-items:flex-start;gap:12px;padding:14px 0;border-bottom:1px solid var(--border);}
-.al-row:first-child{border-top:1px solid var(--border);}
-.al-row-off{opacity:.6;}
-.al-body{flex:1;min-width:0;}
-.al-name{font-size:13px;font-weight:700;line-height:1.3;margin-bottom:6px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
-.al-meta{display:flex;flex-wrap:wrap;gap:8px;align-items:center;}
-.al-dir{font-family:'Space Mono',monospace;font-size:12px;font-weight:700;}
-.al-above{color:var(--gain);}
-.al-below{color:var(--loss);}
-.al-status{font-size:11px;font-weight:700;font-family:'Space Mono',monospace;padding:2px 8px;border-radius:100px;}
-.al-active{color:var(--gain);background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.2);}
-.al-triggered{color:var(--gold);background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.2);}
-.al-actions{display:flex;align-items:center;gap:8px;flex-shrink:0;padding-top:2px;}
-.al-toggle{width:40px;height:24px;border-radius:12px;background:var(--surface-2);border:1px solid var(--border-2);position:relative;transition:.2s;flex-shrink:0;cursor:pointer;}
-.al-toggle.on{background:var(--gain);border-color:var(--gain);}
-.al-toggle:disabled{opacity:.5;cursor:default;}
-.al-toggle-knob{position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#fff;transition:.2s;}
-.al-toggle.on .al-toggle-knob{left:19px;}
-.al-del{background:none;border:none;color:var(--text-3);cursor:pointer;padding:4px;border-radius:6px;transition:.15s;display:flex;align-items:center;}
-.al-del:hover{color:var(--loss);background:rgba(239,68,68,.1);}
-.al-empty{text-align:center;padding:48px 0;color:var(--text-2);}
-.al-form-wrap{background:var(--surface-1);border:1px solid var(--border);border-radius:14px;padding:20px;}
-.al-form-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
-.al-form-title{font-size:14px;font-weight:700;}
-.al-form-cols{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;}
-.al-form-full{margin-bottom:12px;}
-.al-form-label{font-size:11px;font-weight:700;color:var(--text-2);margin-bottom:6px;display:block;text-transform:uppercase;letter-spacing:.5px;}
-.al-form-input{width:100%;background:var(--surface-2);border:1px solid var(--border-2);border-radius:8px;padding:9px 12px;color:var(--text);font-size:14px;outline:none;transition:.15s;}
-.al-form-input:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(212,175,55,.12);}
-.al-form-select{width:100%;background:var(--surface-2);border:1px solid var(--border-2);border-radius:8px;padding:9px 12px;color:var(--text);font-size:14px;outline:none;cursor:pointer;}
-.al-form-btn{width:100%;padding:12px;background:var(--gold);color:#000;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;transition:.15s;margin-top:4px;}
-.al-form-btn:hover{opacity:.9;}
-.al-card-search{position:relative;margin-bottom:12px;}
 .al-cs-input{width:100%;background:var(--surface-2);border:1px solid var(--border-2);border-radius:8px;padding:9px 12px;color:var(--text);font-size:14px;outline:none;transition:.15s;}
 .al-cs-input:focus{border-color:var(--gold);}
 .al-cs-drop{position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--surface-1);border:1px solid var(--border-2);border-radius:10px;z-index:200;max-height:220px;overflow-y:auto;}
 .al-cs-item{display:flex;align-items:center;gap:10px;padding:8px 12px;cursor:pointer;transition:.1s;}
 .al-cs-item:hover{background:var(--surface-2);}
-.al-cs-img{width:28px;height:38px;object-fit:contain;border-radius:3px;flex-shrink:0;}
-.al-cs-name{font-size:13px;font-weight:600;line-height:1.3;}
 .al-cs-meta{font-size:11px;color:var(--text-2);}
 /* responsive */
 @media(max-width:600px){
