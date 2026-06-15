@@ -49,6 +49,20 @@ const CARD_LANGS = [
   { c:"it", flag:"🇮🇹", label:"IT", live:true },
 ];
 
+// Alias lingua: l'utente può scrivere "jp" o "jpn" e trovare carte lang="ja", ecc.
+// Usato nella ricerca per aggiungere un `lang.eq.X` all'OR quando il token è un alias noto.
+const LANG_ALIASES = {
+  jp:'ja', jpn:'ja', jap:'ja',
+  eng:'en',
+  ita:'it',
+  esp:'es', spa:'es',
+  por:'pt', bra:'pt',
+  ind:'id',
+  kor:'ko', kr:'ko',
+  fra:'fr', fre:'fr',
+  deu:'de', ger:'de',
+};
+
 /* ─── Tabs core ─── */
 const TABS = [
   { id:"markets",   label:"Markets",   icon:"search" },
@@ -635,18 +649,32 @@ function MarketsView({ country, cur, eurRate, onOpenAsset }) {
 
       let dbQuery = supabase
         .from('cards')
-        .select('id,name,set_name,card_number,image_url,lang,tcg')
+        .select('id,name,set_name,card_number,image_url,lang,tcg,rarity')
         .limit(80);
 
       if (words.length > 0) {
-        // AND tra token: ogni parola deve comparire in nome/numero/set
+        // AND tra token: ogni parola deve comparire in almeno uno dei campi testuali.
+        // Campi cercati: nome, numero carta, set, rarità, lingua.
+        // Se il token è un alias lingua noto (es. "jp"→"ja") aggiunge anche lang.eq.
         for (const w of words) {
           const sw = w.replace(/[*%()]/g, '');
-          if (sw) dbQuery = dbQuery.or(`name.ilike.*${sw}*,card_number.ilike.*${sw}*,set_name.ilike.*${sw}*`);
+          if (!sw) continue;
+          const langAlias = LANG_ALIASES[sw];
+          const orParts = [
+            `name.ilike.*${sw}*`,
+            `card_number.ilike.*${sw}*`,
+            `set_name.ilike.*${sw}*`,
+            `rarity.ilike.*${sw}*`,
+            `lang.ilike.*${sw}*`,
+          ];
+          if (langAlias) orParts.push(`lang.eq.${langAlias}`);
+          dbQuery = dbQuery.or(orParts.join(','));
         }
       } else {
         const sw = trimmed.replace(/[*%()]/g, '');
-        dbQuery = dbQuery.ilike('name', `*${sw}*`);
+        dbQuery = dbQuery.or(
+          `name.ilike.*${sw}*,card_number.ilike.*${sw}*,set_name.ilike.*${sw}*,rarity.ilike.*${sw}*,lang.ilike.*${sw}*`
+        );
       }
 
       const { data, error: dbErr } = await dbQuery;
@@ -1130,10 +1158,23 @@ function AlertCardSearch({ onSelect, onClose }) {
       if (words.length > 0) {
         for (const w of words) {
           const sw = w.replace(/[*%()]/g, '');
-          if (sw) dbQ = dbQ.or(`name.ilike.*${sw}*,card_number.ilike.*${sw}*`);
+          if (!sw) continue;
+          const langAlias = LANG_ALIASES[sw];
+          const orParts = [
+            `name.ilike.*${sw}*`,
+            `card_number.ilike.*${sw}*`,
+            `set_name.ilike.*${sw}*`,
+            `rarity.ilike.*${sw}*`,
+            `lang.ilike.*${sw}*`,
+          ];
+          if (langAlias) orParts.push(`lang.eq.${langAlias}`);
+          dbQ = dbQ.or(orParts.join(','));
         }
       } else {
-        dbQ = dbQ.ilike('name', `*${trimmed.replace(/[*%()]/g, '')}*`);
+        const sw = trimmed.replace(/[*%()]/g, '');
+        dbQ = dbQ.or(
+          `name.ilike.*${sw}*,card_number.ilike.*${sw}*,set_name.ilike.*${sw}*,rarity.ilike.*${sw}*,lang.ilike.*${sw}*`
+        );
       }
       const { data, error: err } = await dbQ;
       if (err) throw err;
