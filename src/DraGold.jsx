@@ -473,18 +473,6 @@ function CardItem({ card, priceInfo, country = "IT", cur = "EUR", eurRate = 0.92
 
 /* ─── SearchResults — stati: loading / error / vuoto / risultati ─── */
 function SearchResults({ loading, results, priceMap, error, term, country, cur, eurRate, onRetry, onOpen, setsMap }) {
-  const [displayCount, setDisplayCount] = useState(30);
-  const sentinelRef = useRef(null);
-  useEffect(() => { setDisplayCount(30); }, [results]);
-  useEffect(() => {
-    const el = sentinelRef.current;
-    if (!el) return;
-    const obs = new IntersectionObserver(entries => {
-      if (entries[0].isIntersecting) setDisplayCount(n => Math.min(n + 30, results.length));
-    }, { rootMargin: '200px' });
-    obs.observe(el);
-    return () => obs.disconnect();
-  }, [results]);
   if (loading) return (
     <div className="card-grid">
       {Array.from({ length: 6 }).map((_, i) => (
@@ -512,16 +500,12 @@ function SearchResults({ loading, results, priceMap, error, term, country, cur, 
       </a>
     </div>
   );
-  const visible = results.slice(0, displayCount);
   return (
     <div className="card-grid">
-      {visible.map(card => (
+      {results.map(card => (
         <CardItem key={card.id} card={card} priceInfo={priceMap[card.id] || null}
           country={country} cur={cur} eurRate={eurRate} onOpen={onOpen} setsMap={setsMap} />
       ))}
-      {displayCount < results.length && (
-        <div ref={sentinelRef} style={{ height: 1, gridColumn: '1 / -1' }} />
-      )}
     </div>
   );
 }
@@ -821,7 +805,7 @@ function MarketsView({ country, cur, eurRate, onOpenAsset, setsMap }) {
             .in('card_number', safeNums);
           if (langFilterCodes.length === 1) lq = lq.eq('lang', langFilterCodes[0]);
           else lq = lq.in('lang', langFilterCodes);
-          const { data: expanded } = await lq.limit(1000);
+          const { data: expanded } = await lq.limit(300);
           for (const c of (expanded || [])) allLangCards.push(c);
         }
         allLangCards.sort((a, b) => {
@@ -1041,6 +1025,7 @@ function PortfolioRow({ pos, priceInfo, cur, eurRate, fmt, isConfirm, onConfirm,
 function PortfolioView({ isAuthed, onLogin, onExplore, cur, eurRate }) {
   const [positions, setPositions]   = useState([]);
   const [priceMap, setPriceMap]     = useState({});
+  const [pfPoints, setPfPoints]     = useState([]);
   const [loading, setLoading]       = useState(true);
   const [error, setError]           = useState(null);
   const [confirmId, setConfirmId]   = useState(null);
@@ -1073,9 +1058,21 @@ function PortfolioView({ isAuthed, onLogin, onExplore, cur, eurRate }) {
           const pm = {};
           for (const p of (priceRows || [])) { if (!pm[p.card_id]) pm[p.card_id] = p; }
           setPriceMap(pm);
+
+          const since90 = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
+          const { data: histRows } = await supabase
+            .from("card_prices")
+            .select("card_id,price_market,captured_at")
+            .in("card_id", ids)
+            .gte("captured_at", since90)
+            .is("timeframe", null)
+            .order("captured_at", { ascending: true })
+            .limit(ids.length * 120);
+          setPfPoints(computePortfolioHistory(histRows || [], ids));
         }
       } else {
         setPriceMap({});
+        setPfPoints([]);
       }
     } catch (e) {
       setError(e.message || "Unknown error");
@@ -1215,6 +1212,9 @@ function PortfolioView({ isAuthed, onLogin, onExplore, cur, eurRate }) {
         <div className="pf-count">
           {positions.length - unpricedCount} of {positions.length} position{positions.length !== 1 ? "s" : ""} priced
         </div>
+        {pfPoints.length >= 2 && (
+          <PortfolioChart points={pfPoints} fmt={fmt} />
+        )}
       </div>
 
       {/* ── LIST ── */}
@@ -1574,6 +1574,124 @@ function Sparkline({ values, gain }) {
   );
 }
 
+/* ─── Price History Chart SVG (no deps) ─── */
+function PriceChart({ snaps, priceStr }) {
+  const byDay = {};
+  for (const s of snaps) {
+    const day = s.captured_at.slice(0, 10);
+    if (!byDay[day]) byDay[day] = { sum: 0, n: 0 };
+    byDay[day].sum += s.price_market;
+    byDay[day].n++;
+  }
+  const points = Object.entries(byDay)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([day, { sum, n }]) => ({
+      value: sum / n,
+      label: new Date(day + 'T12:00:00Z').toLocaleDateString('en', { month: 'short', day: 'numeric' }),
+    }));
+  if (points.length < 2) return null;
+  const vals = points.map(p => p.value);
+  const minV = Math.min(...vals), maxV = Math.max(...vals);
+  const range = (maxV - minV) || (minV * 0.02) || 1;
+  const gain = vals[vals.length - 1] >= vals[0];
+  const col = gain ? 'var(--gain)' : 'var(--loss)';
+  const W = 360, H = 120, PT = 12, PB = 28, PL = 52, PR = 12;
+  const iW = W - PL - PR, iH = H - PT - PB;
+  const toX = i => PL + (points.length === 1 ? iW / 2 : (i / (points.length - 1)) * iW);
+  const toY = v => PT + (1 - (v - minV) / range) * iH;
+  const linePath = points.map((p, i) => (i ? 'L' : 'M') + toX(i).toFixed(1) + ',' + toY(p.value).toFixed(1)).join(' ');
+  const areaPath = linePath + ' L' + toX(points.length - 1).toFixed(1) + ',' + (PT + iH).toFixed(1) + ' L' + toX(0).toFixed(1) + ',' + (PT + iH).toFixed(1) + ' Z';
+  const yTicks = [minV, (minV + maxV) / 2, maxV];
+  const xLabelIdxs = points.length <= 5 ? points.map((_, i) => i) : [0, Math.floor(points.length / 2), points.length - 1];
+  return (
+    <div className="price-chart-wrap">
+      <div className="sec-h"><span className="sec-h-t">Price history</span><span className="sec-h-line" /></div>
+      <svg viewBox={"0 0 " + W + " " + H} style={{ width: "100%", height: "auto", display: "block" }}>
+        <defs><linearGradient id="chartfill" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={col} stopOpacity="0.18" />
+          <stop offset="100%" stopColor={col} stopOpacity="0" />
+        </linearGradient></defs>
+        {yTicks.map((v, i) => (
+          <g key={i}>
+            <line x1={PL} y1={toY(v).toFixed(1)} x2={PL + iW} y2={toY(v).toFixed(1)} stroke="rgba(255,255,255,0.06)" strokeWidth="1" />
+            <text x={PL - 5} y={toY(v) + 4} textAnchor="end" fill="rgba(255,255,255,0.38)" fontSize="9" fontFamily="Space Mono,monospace">{priceStr(v)}</text>
+          </g>
+        ))}
+        <path d={areaPath} fill="url(#chartfill)" />
+        <path d={linePath} fill="none" stroke={col} strokeWidth="1.8" strokeLinejoin="round" strokeLinecap="round" />
+        <circle cx={toX(0)} cy={toY(vals[0])} r="2.5" fill={col} />
+        <circle cx={toX(points.length - 1)} cy={toY(vals[vals.length - 1])} r="3.5" fill={col} stroke="var(--bg)" strokeWidth="1.5" />
+        {xLabelIdxs.map(i => (
+          <text key={i} x={toX(i)} y={H - 6} textAnchor="middle" fill="rgba(255,255,255,0.38)" fontSize="9" fontFamily="Space Mono,monospace">{points[i].label}</text>
+        ))}
+      </svg>
+    </div>
+  );
+}
+
+
+/* ─── Portfolio Value Chart SVG ─── */
+function PortfolioChart({ points, fmt }) {
+  if (!points || points.length < 2) return null;
+  const vals = points.map(p => p.value);
+  const minV = Math.min(...vals), maxV = Math.max(...vals);
+  const range = (maxV - minV) || (minV * 0.02) || 1;
+  const gain = vals[vals.length - 1] >= vals[0];
+  const col = gain ? 'var(--gain)' : 'var(--loss)';
+  const W = 360, H = 100, PT = 8, PB = 24, PL = 56, PR = 8;
+  const iW = W - PL - PR, iH = H - PT - PB;
+  const toX = i => PL + (points.length === 1 ? iW / 2 : (i / (points.length - 1)) * iW);
+  const toY = v => PT + (1 - (v - minV) / range) * iH;
+  const linePath = points.map((p, i) => (i ? 'L' : 'M') + toX(i).toFixed(1) + ',' + toY(p.value).toFixed(1)).join(' ');
+  const areaPath = linePath + ' L' + toX(points.length-1).toFixed(1) + ',' + (PT+iH).toFixed(1) + ' L' + toX(0).toFixed(1) + ',' + (PT+iH).toFixed(1) + ' Z';
+  const xLabelIdxs = points.length <= 4 ? points.map((_, i) => i) : [0, Math.floor(points.length / 2), points.length - 1];
+  return (
+    <div className="pf-chart-wrap">
+      <svg viewBox={"0 0 " + W + " " + H} style={{ width: "100%", height: "auto", display: "block" }}>
+        <defs><linearGradient id="pfchartfill" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={col} stopOpacity="0.15" />
+          <stop offset="100%" stopColor={col} stopOpacity="0" />
+        </linearGradient></defs>
+        {[minV, maxV].map((v, i) => (
+          <g key={i}>
+            <line x1={PL} y1={toY(v).toFixed(1)} x2={PL + iW} y2={toY(v).toFixed(1)} stroke="rgba(255,255,255,0.05)" strokeWidth="1" />
+            <text x={PL - 5} y={toY(v) + 4} textAnchor="end" fill="rgba(255,255,255,0.35)" fontSize="9" fontFamily="Space Mono,monospace">{fmt(v)}</text>
+          </g>
+        ))}
+        <path d={areaPath} fill="url(#pfchartfill)" />
+        <path d={linePath} fill="none" stroke={col} strokeWidth="1.8" strokeLinejoin="round" />
+        <circle cx={toX(0)} cy={toY(vals[0])} r="2" fill={col} />
+        <circle cx={toX(points.length-1)} cy={toY(vals[vals.length-1])} r="3.5" fill={col} stroke="var(--bg)" strokeWidth="1.5" />
+        {xLabelIdxs.map(i => (
+          <text key={i} x={toX(i)} y={H - 6} textAnchor="middle" fill="rgba(255,255,255,0.35)" fontSize="9" fontFamily="Space Mono,monospace">{points[i].label}</text>
+        ))}
+      </svg>
+    </div>
+  );
+}
+
+/* ─── Compute daily portfolio value from price snapshots ─── */
+function computePortfolioHistory(rows, cardIds) {
+  if (!rows.length || !cardIds.length) return [];
+  const byCard = {};
+  for (const r of rows) {
+    if (!byCard[r.card_id]) byCard[r.card_id] = [];
+    byCard[r.card_id].push({ price: r.price_market, ts: new Date(r.captured_at).getTime() });
+  }
+  const days = [...new Set(rows.map(r => r.captured_at.slice(0, 10)))].sort();
+  if (days.length < 2) return [];
+  return days.map(day => {
+    const dayEnd = new Date(day + 'T23:59:59Z').getTime();
+    let total = 0, priced = 0;
+    for (const id of cardIds) {
+      const snaps = byCard[id] || [];
+      const snap = [...snaps].reverse().find(s => s.ts <= dayEnd);
+      if (snap) { total += snap.price; priced++; }
+    }
+    if (priced === 0) return null;
+    return { label: new Date(day + 'T12:00:00Z').toLocaleDateString('en', { month: 'short', day: 'numeric' }), value: total };
+  }).filter(Boolean);
+}
 /* ─── Modal generico (riusa stili .modal) ─── */
 function Sheet({ title, onClose, children }) {
   return (
@@ -1907,6 +2025,11 @@ function AssetView({ card, onBack, isAuthed, onLogin, country, cur, eurRate, set
           <Icon name="bell" size={18} /> Create alert
         </button>
       </div>
+
+      {/* PRICE HISTORY CHART */}
+      {snaps.length >= 3 && (
+        <PriceChart snaps={snaps} priceStr={priceStr} />
+      )}
 
       {/* eBay SOLD TIMEFRAMES — dati da Finding API (7d/30d/90d) */}
       {(soldData['7d'] || soldData['30d'] || soldData['90d']) && (
@@ -2314,4 +2437,7 @@ input{font-family:inherit;font-size:16px;}
   .asset-img{width:220px;align-self:flex-start;}
   .asset-actions{max-width:420px;}
 }
+.price-chart-wrap{margin:0 0 4px;}
+.pf-chart-wrap{margin:8px 0 4px;padding:0 2px;}
+
 `;
