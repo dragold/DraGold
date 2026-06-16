@@ -72,15 +72,24 @@ const CARD_LANGS = [
 // Alias lingua: l'utente può scrivere "jp" o "jpn" e trovare carte lang="ja", ecc.
 // Usato nella ricerca per aggiungere un `lang.eq.X` all'OR quando il token è un alias noto.
 const LANG_ALIASES = {
-  jp:'ja', jpn:'ja', jap:'ja',
-  eng:'en',
-  ita:'it',
-  esp:'es', spa:'es',
-  por:'pt', bra:'pt',
-  ind:'id',
-  kor:'ko', kr:'ko',
-  fra:'fr', fre:'fr',
-  deu:'de', ger:'de',
+  // Japanese
+  jp:'ja', jpn:'ja', jap:'ja', japanese:'ja',
+  // English
+  eng:'en', english:'en',
+  // Italian
+  ita:'it', italian:'it', italiano:'it',
+  // Spanish
+  esp:'es', spa:'es', spanish:'es', espanol:'es',
+  // Portuguese
+  por:'pt', bra:'pt', portuguese:'pt', portugues:'pt',
+  // Indonesian
+  ind:'id', indonesian:'id', indonesia:'id',
+  // Korean
+  kor:'ko', kr:'ko', korean:'ko',
+  // French
+  fra:'fr', fre:'fr', french:'fr', francais:'fr',
+  // German
+  deu:'de', ger:'de', german:'de', deutsch:'de',
 };
 // Token che possono matchare rarity: aggiungiamo rarity.ilike solo se il token
 // è una parola di rarità nota — evita full scan su "charizard", "op05", ecc.
