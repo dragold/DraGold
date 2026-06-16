@@ -473,6 +473,18 @@ function CardItem({ card, priceInfo, country = "IT", cur = "EUR", eurRate = 0.92
 
 /* ─── SearchResults — stati: loading / error / vuoto / risultati ─── */
 function SearchResults({ loading, results, priceMap, error, term, country, cur, eurRate, onRetry, onOpen, setsMap }) {
+  const [displayCount, setDisplayCount] = useState(30);
+  const sentinelRef = useRef(null);
+  useEffect(() => { setDisplayCount(30); }, [results]);
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting) setDisplayCount(n => Math.min(n + 30, results.length));
+    }, { rootMargin: '200px' });
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [results]);
   if (loading) return (
     <div className="card-grid">
       {Array.from({ length: 6 }).map((_, i) => (
@@ -500,12 +512,16 @@ function SearchResults({ loading, results, priceMap, error, term, country, cur, 
       </a>
     </div>
   );
+  const visible = results.slice(0, displayCount);
   return (
     <div className="card-grid">
-      {results.map(card => (
+      {visible.map(card => (
         <CardItem key={card.id} card={card} priceInfo={priceMap[card.id] || null}
           country={country} cur={cur} eurRate={eurRate} onOpen={onOpen} setsMap={setsMap} />
       ))}
+      {displayCount < results.length && (
+        <div ref={sentinelRef} style={{ height: 1, gridColumn: '1 / -1' }} />
+      )}
     </div>
   );
 }
@@ -805,7 +821,7 @@ function MarketsView({ country, cur, eurRate, onOpenAsset, setsMap }) {
             .in('card_number', safeNums);
           if (langFilterCodes.length === 1) lq = lq.eq('lang', langFilterCodes[0]);
           else lq = lq.in('lang', langFilterCodes);
-          const { data: expanded } = await lq.limit(300);
+          const { data: expanded } = await lq.limit(1000);
           for (const c of (expanded || [])) allLangCards.push(c);
         }
         allLangCards.sort((a, b) => {
