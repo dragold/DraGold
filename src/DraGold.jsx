@@ -210,6 +210,10 @@ export default function DraGold() {
   const [cur, setCur]   = useState("EUR");       // EUR | USD
   const [country, setCountry] = useState("IT");
   const [eurRate, setEurRate] = useState(0.92);  // 1 USD = X EUR
+  const [setsMap, setSetsMap] = useState(null);  // Map<tcg:code, setInfo>
+
+  /* ── carica sets (loghi) ── */
+  useEffect(() => { _loadSetsMap().then(setSetsMap).catch(() => {}); }, []);
 
   /* ── sessione globale ── */
   useEffect(() => {
@@ -331,14 +335,14 @@ export default function DraGold() {
           <AssetView
             card={asset} onBack={closeAsset}
             isAuthed={isAuthed} onLogin={()=>setAuthOpen(true)}
-            country={country} cur={cur} eurRate={eurRate}
+            country={country} cur={cur} eurRate={eurRate} setsMap={setsMap}
           />
         ) : (
         <>
         {tab==="markets" && (
           <MarketsView
             country={country} cur={cur} eurRate={eurRate}
-            onOpenAsset={openAsset}
+            onOpenAsset={openAsset} setsMap={setsMap}
           />
         )}
         {tab==="portfolio" && (
@@ -404,12 +408,13 @@ function norm(s) {
 }
 
 /* ─── CardItem — componente riusabile: Markets + Hot picks + Portfolio ─── */
-function CardItem({ card, priceInfo, country = "IT", cur = "EUR", eurRate = 0.92, onOpen }) {
+function CardItem({ card, priceInfo, country = "IT", cur = "EUR", eurRate = 0.92, onOpen, setsMap }) {
   const [imgFailed, setImgFailed] = useState(false);
   const imgUrl = card.image_url || card.imgUrl || card.img || null;
   const cardName = card.name || "—";
   const tcgInfo = TCG_LIST.find(t => t.id === card.tcg);
   const langInfo = CARD_LANGS.find(l => l.c === card.lang);
+  const setInfo = getSetInfo(card, setsMap);
   const priceUSD = priceInfo?.price_market ?? card.avgPrice ?? null;
   const priceStr = priceUSD != null
     ? cur === "EUR" ? `€${(priceUSD * eurRate).toFixed(2)}` : `$${Number(priceUSD).toFixed(2)}`
@@ -434,6 +439,7 @@ function CardItem({ card, priceInfo, country = "IT", cur = "EUR", eurRate = 0.92
       <div className="card-item-body">
         <div className="card-item-name" title={cardName}>{cardName}</div>
         <div className="card-item-meta">
+          {setInfo?.symbol_url && <img src={setInfo.symbol_url} alt="" className="card-item-sym" onError={e=>{e.currentTarget.style.display='none';}} />}
           {card.set_name && <span className="card-item-set">{card.set_name}</span>}
           {card.card_number && <span className="card-item-num">#{card.card_number}</span>}
           {langInfo && <span className="card-item-lang">{langInfo.flag}</span>}
@@ -457,7 +463,7 @@ function CardItem({ card, priceInfo, country = "IT", cur = "EUR", eurRate = 0.92
 }
 
 /* ─── SearchResults — stati: loading / error / vuoto / risultati ─── */
-function SearchResults({ loading, results, priceMap, error, term, country, cur, eurRate, onRetry, onOpen }) {
+function SearchResults({ loading, results, priceMap, error, term, country, cur, eurRate, onRetry, onOpen, setsMap }) {
   if (loading) return (
     <div className="card-grid">
       {Array.from({ length: 6 }).map((_, i) => (
@@ -489,7 +495,7 @@ function SearchResults({ loading, results, priceMap, error, term, country, cur, 
     <div className="card-grid">
       {results.map(card => (
         <CardItem key={card.id} card={card} priceInfo={priceMap[card.id] || null}
-          country={country} cur={cur} eurRate={eurRate} onOpen={onOpen} />
+          country={country} cur={cur} eurRate={eurRate} onOpen={onOpen} setsMap={setsMap} />
       ))}
     </div>
   );
@@ -645,7 +651,32 @@ function Onboarding({ onDismiss }) {
 // Cache module-level: sopravvive all'unmount di MarketsView (es. apertura card detail)
 let _savedSearch = null;
 
-function MarketsView({ country, cur, eurRate, onOpenAsset }) {
+// ─── Sets cache: Map<"tcg:set_code", {set_code,tcg,set_name,logo_url,symbol_url}> ───
+let _setsMap = null;
+let _setsLoadP = null;
+function _loadSetsMap() {
+  if (_setsMap) return Promise.resolve(_setsMap);
+  if (!supabaseReady) return Promise.resolve((_setsMap = new Map()));
+  if (!_setsLoadP) {
+    _setsLoadP = supabase.from('sets').select('set_code,tcg,set_name,logo_url,symbol_url')
+      .then(({ data }) => {
+        _setsMap = new Map();
+        for (const s of (data || [])) _setsMap.set(`${s.tcg}:${s.set_code}`, s);
+        return _setsMap;
+      }).catch(() => (_setsMap = new Map()));
+  }
+  return _setsLoadP;
+}
+// Estrae il set_code dal card_number e cerca in setsMap.
+// Pokemon: "sv3-125" → key "pokemon:sv3"  |  OP: "OP05-119" → key "onepiece:OP05"
+function getSetInfo(card, setsMap) {
+  if (!setsMap || !card?.card_number?.includes('-')) return null;
+  const prefix = card.card_number.split('-')[0];
+  const key = `${card.tcg}:${card.tcg === 'pokemon' ? prefix.toLowerCase() : prefix}`;
+  return setsMap.get(key) || null;
+}
+
+function MarketsView({ country, cur, eurRate, onOpenAsset, setsMap }) {
   const [q, setQ] = useState(() => _savedSearch?.q || "");
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState(() => _savedSearch?.results || []);
@@ -675,8 +706,7 @@ function MarketsView({ country, cur, eurRate, onOpenAsset }) {
 
       let dbQuery = supabase
         .from('cards')
-        .select('id,name,set_name,card_number,image_url,lang,tcg,rarity')
-        .limit(80);
+        .select('id,name,set_name,card_number,image_url,lang,tcg,rarity');
 
       // Separa lang-token (es. "jp","ja","en") dai content-token (es. "charizard","op05").
       // I lang-token NON entrano nell'AND della query DB: le carte JP hanno nome giapponese,
@@ -690,6 +720,10 @@ function MarketsView({ country, cur, eurRate, onOpenAsset }) {
         else if (LANG_CODES_SET.has(w)) { langFilterCodes.push(w); }
         else { contentTokens.push(w); }
       }
+
+      // Limit più alto per ricerche con filtro lingua: serve raccogliere tutti i card_number
+      // del set (es. OP05 ha 119 carte) prima dell'expand. Per ricerche normali 80 basta.
+      dbQuery = dbQuery.limit(langFilterCodes.length > 0 ? 400 : 80);
 
       if (words.length > 0) {
         // Query DB con solo content-token; se tutti lang (raro), usa words originali
@@ -749,7 +783,7 @@ function MarketsView({ country, cur, eurRate, onOpenAsset }) {
         const allLangCards = [];
         for (const [tcgKey, numSet] of Object.entries(byTcg)) {
           const nums = [...numSet];
-          if (!nums.length || nums.length > 60) continue;
+          if (!nums.length || nums.length > 400) continue;
           // Usa solo card_number con prefisso set (es. "sv3-125", "OP05-119").
           // I numeri bare (es. "006") causano collisioni cross-set nel DB:
           // Base Set Charizard e Jungle Beedrill condividono entrambi "006".
@@ -790,7 +824,7 @@ function MarketsView({ country, cur, eurRate, onOpenAsset }) {
           const allCards = [...nameMatches];
           for (const [tcgKey, numSet] of Object.entries(byTcg)) {
             const nums = [...numSet];
-            if (!nums.length || nums.length > 60) continue;
+            if (!nums.length || nums.length > 400) continue;
             const { data: expanded } = await supabase
               .from('cards')
               .select('id,name,set_name,card_number,image_url,lang,tcg')
@@ -877,7 +911,7 @@ function MarketsView({ country, cur, eurRate, onOpenAsset }) {
           error={error} term={searchTerm}
           country={country} cur={cur} eurRate={eurRate}
           onRetry={() => runSearch(searchTerm)}
-          onOpen={handleOpenAsset}
+          onOpen={handleOpenAsset} setsMap={setsMap}
         />
       ) : (
         <HotPicksSection country={country} cur={cur} eurRate={eurRate} onOpen={handleOpenAsset} />
@@ -1631,7 +1665,7 @@ function AlertModal({ card, cur, country, fmvUSD, eurRate, onClose, onDone }) {
 }
 
 /* ─── ASSET VIEW ─── */
-function AssetView({ card, onBack, isAuthed, onLogin, country, cur, eurRate }) {
+function AssetView({ card, onBack, isAuthed, onLogin, country, cur, eurRate, setsMap }) {
   const [snaps, setSnaps] = useState([]);       // [{price_market, source, captured_at}] asc
   const [loadingPrice, setLoadingPrice] = useState(true);
   const [priceErr, setPriceErr] = useState(false);
@@ -1648,6 +1682,7 @@ function AssetView({ card, onBack, isAuthed, onLogin, country, cur, eurRate }) {
 
   const tcgInfo = TCG_LIST.find(t => t.id === card.tcg);
   const langInfo = CARD_LANGS.find(l => l.c === card.lang);
+  const setInfo = getSetInfo(card, setsMap);
   const imgUrl = card.image_url || card.imgUrl || card.img || null;
   const cardNum = card.card_number || "";
 
@@ -1793,6 +1828,7 @@ function AssetView({ card, onBack, isAuthed, onLogin, country, cur, eurRate }) {
         <div className="asset-info">
           {tcgInfo && <span className="asset-tcg" style={{ color: tcgInfo.color }}>{tcgInfo.label}</span>}
           <h1 className="asset-name">{card.name}</h1>
+          {setInfo?.logo_url && <img src={setInfo.logo_url} alt={card.set_name || ''} className="set-logo-img" onError={e=>{e.currentTarget.style.display='none';}} />}
           <div className="asset-meta">
             {card.set_name && <span>{card.set_name}</span>}
             {cardNum && <span className="asset-num">#{cardNum}</span>}
@@ -2147,6 +2183,8 @@ input{font-family:inherit;font-size:16px;}
 .card-item-meta{display:flex;flex-wrap:wrap;gap:3px;align-items:center;margin-bottom:8px;}
 .card-item-set{font-size:10px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100px;}
 .card-item-num{font-size:10px;font-family:'Space Mono',monospace;color:var(--muted);}
+.card-item-sym{height:14px;width:14px;object-fit:contain;opacity:.75;vertical-align:middle;flex-shrink:0;}
+.set-logo-img{max-height:28px;max-width:130px;object-fit:contain;opacity:.85;display:block;margin:4px 0 2px;}
 .card-item-lang{font-size:12px;}
 .price-tag{font-family:'Space Mono',monospace;font-size:13px;font-weight:700;color:var(--gain);}
 .btn-ebay{font-size:10px;font-weight:700;color:var(--gold);text-decoration:none;background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.2);padding:4px 8px;border-radius:7px;display:inline-block;white-space:nowrap;}
