@@ -268,8 +268,8 @@ serve(async (_req) => {
           return { price: parseFloat(p) || null, raw: r.data }
         }
       })
-      // pokemontcg.io: uses the set-local part of the ID (e.g. "sv3pt5-174" from "pokemon:tcgdex:sv3pt5-174:en")
-      chain.push({
+      // pokemontcg.io: EN only — JA card IDs (e.g. SV2D-082) don't exist on pokemontcg.io
+      if (!isJP) chain.push({
         source: 'pokemontcgio',
         fetcher: async () => {
           const headers: Record<string,string> = {}
