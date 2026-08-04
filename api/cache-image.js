@@ -53,7 +53,7 @@ const ALLOWED_SOURCE_HOSTS = new Set([
 // Origins allowed to call this endpoint via browser CORS. Server-to-server
 // batch calls (Node scripts) aren't subject to CORS at all, this only
 // matters for hypothetical browser callers.
-const ALLOWED_ORIGIN = "https://dragold.org";
+const ALLOWED_ORIGINS = new Set(["https://dragold.org", "https://www.dragold.org"]);
 
 function getSupabaseAdmin() {
     const url =
@@ -126,7 +126,7 @@ async function toWebp(buffer, quality) {
 }
 
 export default async function handler(req, res) {
-    res.setHeader("Access-Control-Allow-Origin", ALLOWED_ORIGIN);
+    const reqOrigin = req.headers.origin; const corsOrigin = ALLOWED_ORIGINS.has(reqOrigin) ? reqOrigin : "https://dragold.org"; res.setHeader("Access-Control-Allow-Origin", corsOrigin);
     res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
     res.setHeader("Access-Control-Allow-Headers", "Content-Type, x-internal-key");
 
