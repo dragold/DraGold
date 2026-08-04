@@ -510,46 +510,21 @@ function SearchResults({ loading, results, priceMap, error, term, country, cur, 
   );
 }
 
-/* ─── HotPicksSection — logica legacy, card UI riusabile ─── */
+/* ─── HotPicksSection — usa la tabella hot_picks (precalcolata dal cron) invece di live eBay (P0.2) ─── */
 function HotPicksSection({ country = "IT", cur = "EUR", eurRate = 0.92, onOpen }) {
-  const POOL = [
-    {id:"hp14",name:"Charizard ex Prismatic Evolutions",query:"Charizard ex Prismatic Evolutions 006/131 pokemon card",tcg:"pokemon",img:"https://images.pokemontcg.io/sv8pt5/6.png"},
-    {id:"hp15",name:"Pikachu ex Prismatic Evolutions",query:"Pikachu ex Prismatic Evolutions 031/131 pokemon card",tcg:"pokemon",img:"https://images.pokemontcg.io/sv8pt5/31.png"},
-    {id:"hp16",name:"Umbreon ex Prismatic Evolutions",query:"Umbreon ex Prismatic Evolutions 060/131 pokemon card",tcg:"pokemon",img:"https://images.pokemontcg.io/sv8pt5/60.png"},
-    {id:"hp17",name:"Eevee ex Prismatic Evolutions SIR",query:"Eevee ex 167/131 Prismatic Evolutions special illustration rare pokemon card",tcg:"pokemon",img:"https://images.pokemontcg.io/sv8pt5/167.png"},
-    {id:"hp18",name:"Pikachu ex Surging Sparks SAR",query:"Pikachu ex 238/191 Surging Sparks special art rare pokemon card",tcg:"pokemon",img:"https://images.pokemontcg.io/sv8/238.png"},
-    {id:"hp19",name:"Raging Bolt ex Temporal Forces SIR",query:"Raging Bolt ex 208/162 Temporal Forces special illustration rare pokemon card",tcg:"pokemon",img:"https://images.pokemontcg.io/sv5/208.png"},
-    {id:"hp1",name:"Charizard ex SV151",query:"Charizard ex 199/165 sv151 pokemon card english",tcg:"pokemon",img:"https://images.pokemontcg.io/sv3pt5/199.png"},
-    {id:"hp2",name:"Pikachu ex 151",query:"Pikachu ex 086/078 pokemon sv151 card english",tcg:"pokemon",img:"https://images.pokemontcg.io/sv3pt5/86.png"},
-    {id:"hp3",name:"Mewtwo ex 151 Full Art",query:"Mewtwo ex 205/165 pokemon sv151 full art card",tcg:"pokemon",img:"https://images.pokemontcg.io/sv3pt5/205.png"},
-    {id:"hp12",name:"Gardevoir ex SV Base",query:"Gardevoir ex 086/091 scarlet violet base set pokemon english",tcg:"pokemon",img:"https://images.pokemontcg.io/sv1/86.png"},
-    {id:"hp4",name:"Umbreon VMAX Alt Art",query:"Umbreon VMAX alternate art 215/203 evolving skies pokemon",tcg:"pokemon",img:"https://images.pokemontcg.io/swsh7/215.png"},
-    {id:"hp5",name:"Rayquaza VMAX Alt Art",query:"Rayquaza VMAX alternate art 218/203 evolving skies pokemon",tcg:"pokemon",img:"https://images.pokemontcg.io/swsh7/218.png"},
-    {id:"hp6",name:"Giratina VSTAR Lost Origin",query:"Giratina VSTAR 131/196 lost origin pokemon card english",tcg:"pokemon",img:"https://images.pokemontcg.io/swsh11/131.png"},
-    {id:"hp7",name:"Lugia V Alt Art Silver Tempest",query:"Lugia V alternate art 186/195 silver tempest pokemon",tcg:"pokemon",img:"https://images.pokemontcg.io/swsh12/186.png"},
-    {id:"op1",name:"Monkey D. Luffy SEC OP-01",query:"Monkey D Luffy secret rare OP-01-120 one piece card game",tcg:"onepiece",img:null},
-    {id:"op2",name:"Yamato SEC OP-01",query:"Yamato secret rare OP-01 one piece card game english",tcg:"onepiece",img:null},
-    {id:"op3",name:"Portgas D. Ace SEC OP-02",query:"Portgas D Ace secret rare OP-02 one piece card game",tcg:"onepiece",img:null},
-    {id:"op4",name:"Roronoa Zoro Parallel OP-02",query:"Roronoa Zoro parallel rare OP-02 one piece card game",tcg:"onepiece",img:null},
-    {id:"op5",name:"Marco SEC OP-03",query:"Marco secret rare OP-03 one piece card game",tcg:"onepiece",img:null},
-    {id:"op6",name:"Trafalgar Law SEC OP-04",query:"Trafalgar Law secret rare OP-04 one piece card game",tcg:"onepiece",img:null},
+  // Fallback curato: carte reali del catalogo (id verificati in DB), usato solo se
+  // hot_picks non ha ancora righe per oggi (es. cron non ancora girato) o ne ha poche.
+  // Niente più chiamate live a eBay: prezzo letto da card_prices via card_prices_latest.
+  const FALLBACK_IDS = [
+    'pokemon:tcgdex:me02-013:en', // Mega Charizard X ex
+    'pokemon:tcgdex:xy6-76:en',   // M Rayquaza EX
+    'onepiece:optcg:ST18-005:en', // Luffy-Tarou SR
+    'onepiece:optcg:OP01-121:en', // Yamato SEC (Romance Dawn)
   ];
-
-  const getDailyPicks = () => {
-    const day = Math.floor(Date.now() / 86400000);
-    const poke = POOL.filter(c => c.tcg === "pokemon");
-    const op   = POOL.filter(c => c.tcg === "onepiece");
-    const ps = day % poke.length, os = day % op.length;
-    const out = [];
-    for (let i = 0; i < 9; i++) out.push(poke[(ps + i) % poke.length]);
-    for (let i = 0; i < 3; i++) out.push(op[(os + i) % op.length]);
-    return out;
-  };
 
   const [picks, setPicks] = useState([]);
   const [loadingPicks, setLoadingPicks] = useState(true);
-  const ctr = (country || 'it').toLowerCase();
-  const CACHE_KEY = 'dg_hotpicks_v3';
+  const CACHE_KEY = 'dg_hotpicks_v4';
   const CACHE_TTL = 30 * 60 * 1000;
 
   useEffect(() => {
@@ -563,29 +538,56 @@ function HotPicksSection({ country = "IT", cur = "EUR", eurRate = 0.92, onOpen }
     } catch {}
     (async () => {
       try {
-        const daily = getDailyPicks();
-        const settled = await Promise.allSettled(daily.map(async card => {
-          const { data, error } = await supabase.functions.invoke('fetch-ebay-sold', {
-            body: { query: card.query, country: ctr, limit: 5 }
-          });
-          if (error || !data?.items?.length) return null;
-          const items = data.items;
-          const avg = data.avgPrice ?? data.avg ?? (items.reduce((s, x) => s + (x.price || 0), 0) / items.length);
-          if (!avg || avg > 200) return null;
-          const imgUrl = card.img || (items[0]?.image ?? items[0]?.imageUrl ?? null);
-          return { ...card, avgPrice: avg, soldCount: items.length, image_url: imgUrl };
-        }));
+        const today = new Date().toISOString().slice(0, 10);
+        const { data: hp } = await supabase
+          .from('hot_picks')
+          .select('rank, card_id, delta_pct, current_price')
+          .eq('computed_date', today)
+          .order('rank', { ascending: true })
+          .limit(12);
+
+        const hpRows = hp || [];
+        const haveIds = new Set(hpRows.map(r => r.card_id));
+        const fillIds = FALLBACK_IDS.filter(id => !haveIds.has(id));
+        const neededIds = [...hpRows.map(r => r.card_id), ...fillIds];
+
+        let cardsById = {};
+        if (neededIds.length) {
+          const { data: cardsRows } = await supabase
+            .from('cards')
+            .select('id,name,set_name,card_number,tcg,lang,image_url,image_url_hi')
+            .in('id', neededIds);
+          for (const c of (cardsRows || [])) cardsById[c.id] = c;
+        }
+
+        const fromHotPicks = hpRows
+          .filter(r => cardsById[r.card_id])
+          .map(r => ({ ...cardsById[r.card_id], avgPrice: r.current_price }));
+
+        let fromFallback = [];
+        if (fillIds.length) {
+          const { data: priceRows } = await supabase
+            .from('card_prices')
+            .select('card_id,price_market,captured_at')
+            .in('card_id', fillIds)
+            .order('captured_at', { ascending: false });
+          const latestPrice = {};
+          for (const p of (priceRows || [])) { if (!(p.card_id in latestPrice)) latestPrice[p.card_id] = p.price_market; }
+          fromFallback = fillIds
+            .filter(id => cardsById[id])
+            .map(id => ({ ...cardsById[id], avgPrice: latestPrice[id] ?? null }));
+        }
+
+        const combined = [...fromHotPicks, ...fromFallback].slice(0, 12);
         if (!cancelled) {
-          const valid = settled.filter(r => r.status === 'fulfilled' && r.value).map(r => r.value);
-          setPicks(valid);
-          try { sessionStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), data: valid })); } catch {}
+          setPicks(combined);
+          try { sessionStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), data: combined })); } catch {}
         }
       } catch {}
       finally { if (!cancelled) setLoadingPicks(false); }
     })();
     return () => { cancelled = true; };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ctr]);
+  }, []);
 
   return (
     <>
@@ -609,12 +611,11 @@ function HotPicksSection({ country = "IT", cur = "EUR", eurRate = 0.92, onOpen }
           ))}
         </div>
       ) : (
-        <p className="hint-center">Live data unavailable. Start by searching a card above.</p>
+        <p className="hint-center">Hot picks updating. Start by searching a card above.</p>
       )}
     </>
   );
 }
-
 /* ════════════════════════════════════════════════════════════════════════
    ONBOARDING — 3 step inline, dismissibile (primo accesso)
    ════════════════════════════════════════════════════════════════════════ */
