@@ -685,14 +685,14 @@ function getSetInfo(card, setsMap) {
   return setsMap.get(key) || null;
 }
 
-function rankSearchResults(cards, q) { const rank = (c) => { const n = norm(c.name || ''); const ne = norm(c.name_en || ''); if (n === q) return 0; if (ne === q) return 1; if (n.startsWith(q) || ne.startsWith(q)) return 2; return 3; }; return [...cards].sort((a, b) => { const ra = rank(a), rb = rank(b); if (ra !== rb) return ra - rb; const cn = (a.card_number || '').localeCompare(b.card_number || ''); if (cn !== 0) return cn; return (a.id || '').localeCompare(b.id || ''); }); }function MarketsView({ country, cur, eurRate, onOpenAsset, setsMap }) {
+const JP_NAME_ALIASES = {"charizard":["リザードン"],"pikachu":["ピカチュウ"],"mewtwo":["ミュウツー"],"rayquaza":["レックウザ"],"bulbasaur":["フシギダネ"],"ivysaur":["フシギソウ"],"venusaur":["フシギバナ"],"charmander":["ヒトカゲ"],"charmeleon":["リザード"],"squirtle":["ゼニガメ"],"wartortle":["カメール"],"blastoise":["カメックス"],"raichu":["ライチュウ"],"clefairy":["ピッピ"],"vulpix":["ロコン"],"ninetales":["キュウコン"],"jigglypuff":["プリン"],"gastly":["ゴース"],"haunter":["ゴースト"],"gengar":["ゲンガー"],"onix":["イワーク"],"eevee":["イーブイ"],"vaporeon":["シャワーズ"],"jolteon":["サンダース"],"flareon":["ブースター"],"espeon":["エーフィ"],"umbreon":["ブラッキー"],"leafeon":["リーフィア"],"glaceon":["グレイシア"],"sylveon":["ニンフィア"],"snorlax":["カビゴン"],"dratini":["ミニリュウ"],"dragonair":["ハクリュー"],"dragonite":["カイリュー"],"mew":["ミュウ"],"lugia":["ルギア"],"celebi":["セレビィ"],"gyarados":["ギャラドス"],"lapras":["ラプラス"],"alakazam":["フーディン"],"gardevoir":["サーナイト"],"lucario":["ルカリオ"],"garchomp":["ガブリアス"],"greninja":["ゲッコウガ"],"tyranitar":["バンギラス"],"metagross":["メタグロス"],"salamence":["ボーマンダ"],"darkrai":["ダークライ"],"arceus":["アルセウス"],"palkia":["パルキア"],"dialga":["ディアルガ"],"giratina":["ギラティナ"],"reshiram":["レシラム"],"zekrom":["ゼクロム"],"kyurem":["キュレム"],"luffy":["ルフィ"],"zoro":["ゾロ"],"nami":["ナミ"],"sanji":["サンジ"],"chopper":["チョッパー"],"robin":["ロビン"],"franky":["フランキー"],"brook":["ブルック"],"ace":["エース"],"shanks":["シャンクス"]};function rankSearchResults(cards, q) { const rank = (c) => { const n = norm(c.name || ''); const ne = norm(c.name_en || ''); if (n === q) return 0; if (ne === q) return 1; if (n.startsWith(q) || ne.startsWith(q)) return 2; return 3; }; return [...cards].sort((a, b) => { const ra = rank(a), rb = rank(b); if (ra !== rb) return ra - rb; const cn = (a.card_number || '').localeCompare(b.card_number || ''); if (cn !== 0) return cn; return (a.id || '').localeCompare(b.id || ''); }); }function MarketsView({ country, cur, eurRate, onOpenAsset, setsMap }) {
   const [q, setQ] = useState(() => _savedSearch?.q || "");
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState(() => _savedSearch?.results || []);
   const [priceMap, setPriceMap] = useState(() => _savedSearch?.priceMap || {});
   const [error, setError] = useState(null);
   const [searched, setSearched] = useState(() => _savedSearch?.searched || false);
-  const [searchTerm, setSearchTerm] = useState(() => _savedSearch?.searchTerm || "");
+  const [searchTerm, setSearchTerm] = useState(() => _savedSearch?.searchTerm || ""); const [visibleCount, setVisibleCount] = useState(() => _savedSearch?.visibleCount || 40);
   const [showOnboard, setShowOnboard] = useState(() => {
     try { return !localStorage.getItem(ONBOARD_KEY); } catch { return false; }
   });
@@ -704,7 +704,7 @@ function rankSearchResults(cards, q) { const rank = (c) => { const n = norm(c.na
   const runSearch = useCallback(async (query) => {
     const trimmed = query.trim();
     if (!trimmed) return;
-    setLoading(true); setError(null); setSearched(true); setSearchTerm(trimmed);
+    setLoading(true); setError(null); setSearched(true); setSearchTerm(trimmed); setVisibleCount(40);
     try {
       if (!supabaseReady) throw new Error("Backend non configurato.");
       const normQ = norm(trimmed);
@@ -732,7 +732,7 @@ function rankSearchResults(cards, q) { const rank = (c) => { const n = norm(c.na
 
       // Limit più alto per ricerche con filtro lingua: serve raccogliere tutti i card_number
       // del set (es. OP05 ha 119 carte) prima dell'expand. Per ricerche normali 80 basta.
-      dbQuery = dbQuery.limit(langFilterCodes.length > 0 ? 400 : 80);
+      dbQuery = dbQuery.limit(400);
 
       if (words.length > 0) {
         // Query DB con solo content-token; se tutti lang (raro), usa words originali
@@ -742,8 +742,8 @@ function rankSearchResults(cards, q) { const rank = (c) => { const n = norm(c.na
           if (!sw) continue;
           // Token con cifre o trattino → codice set/carta (es. sv03, OP05-119) → cerca ovunque
           // Token solo lettere (es. pikachu, charizard) → cerca SOLO in name
-          const swIsCode = /\d/.test(sw) || sw.includes('-');
-          const orParts = [`name.ilike.*${sw}*`, `name_en.ilike.*${sw}*`];
+          const swIsCode = /\d/.test(sw) || sw.includes('-'); const jpA = JP_NAME_ALIASES[sw] || [];
+          const orParts = [`name.ilike.*${sw}*`, `name_en.ilike.*${sw}*`, ...jpA.map(a => `name.ilike.*${a}*`)];
           if (swIsCode) {
             orParts.push(`card_number.ilike.*${sw}*`, `set_name.ilike.*${sw}*`);
           }
@@ -756,9 +756,9 @@ function rankSearchResults(cards, q) { const rank = (c) => { const n = norm(c.na
         }
       } else {
         const sw = trimmed.replace(/[*%()]/g, '');
-        const swIsCode = /\d/.test(sw) || sw.includes('-');
+        const swIsCode = /\d/.test(sw) || sw.includes('-'); const jpA = JP_NAME_ALIASES[sw] || [];
         dbQuery = dbQuery.or(
-          `name.ilike.*${sw}*,name_en.ilike.*${sw}*${swIsCode ? `,card_number.ilike.*${sw}*,set_name.ilike.*${sw}*` : ''}${sw.length >= 4 && RARITY_TOKENS.has(sw) ? `,rarity.ilike.*${sw}*` : ''}`
+          `name.ilike.*${sw}*,name_en.ilike.*${sw}*${jpA.map(a => `,name.ilike.*${a}*`).join('')}${swIsCode ? `,card_number.ilike.*${sw}*,set_name.ilike.*${sw}*` : ''}${sw.length >= 4 && RARITY_TOKENS.has(sw) ? `,rarity.ilike.*${sw}*` : ''}`
         );
       }
 
@@ -771,15 +771,14 @@ function rankSearchResults(cards, q) { const rank = (c) => { const n = norm(c.na
       // Per query name-like (solo lettere, es. "pikachu"): richiede match su name
       // Per query codice (es. "sv03", "OP05"): controlla name + card_number
       if (!hasSpaces && normQ.length >= 3) {
-        const qIsCode = /\d/.test(normQ) || normQ.includes('-');
+        const qIsCode = /\d/.test(normQ) || normQ.includes('-'); const qJpA = JP_NAME_ALIASES[normQ] || [];
         nameMatches = nameMatches.filter(c =>
           norm(c.name || '').includes(normQ) || norm(c.name_en || '').includes(normQ) ||
-          (qIsCode && norm(c.card_number || '').includes(normQ))
+          (qIsCode && norm(c.card_number || '').includes(normQ)) || (qJpA.length > 0 && qJpA.some(a => (c.name || '').includes(a)))
         );
       }
 
       let cards = nameMatches;
-'id,name,name_en,set_name,card_number,image_url,lang,tcg,rarity'
       if (langFilterCodes.length > 0 && nameMatches.length > 0) {
         // Expand per lingua: cerca versioni nella lingua richiesta usando gli stessi card_number.
         // Necessario perché le carte JP hanno nome giapponese nel DB (non matcha "charizard").
@@ -882,12 +881,12 @@ function rankSearchResults(cards, q) { const rank = (c) => { const n = norm(c.na
 
   // Salva lo stato di ricerca prima di aprire il dettaglio carta, così il back restaura i risultati
   const handleOpenAsset = useCallback((card) => {
-    _savedSearch = { q, results, priceMap, searched, searchTerm };
+    _savedSearch = { q, results, priceMap, searched, searchTerm, visibleCount };
     onOpenAsset(card);
-  }, [q, results, priceMap, searched, searchTerm, onOpenAsset]);
+  }, [q, results, priceMap, searched, searchTerm, visibleCount, onOpenAsset]);
 
-  const onSubmit = (e) => { e.preventDefault(); runSearch(q); };
-  const clearSearch = () => { _savedSearch = null; setSearched(false); setResults([]); setPriceMap({}); setError(null); };
+  useEffect(() => { const onScroll = () => { if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 300) { setVisibleCount(v => Math.min(v + 40, results.length)); } }; window.addEventListener('scroll', onScroll); return () => window.removeEventListener('scroll', onScroll); }, [results.length]); const onSubmit = (e) => { e.preventDefault(); runSearch(q); };
+  const clearSearch = () => { _savedSearch = null; setSearched(false); setResults([]); setPriceMap({}); setError(null); setVisibleCount(40); };
 
   return (
     <section className="view">
@@ -916,7 +915,7 @@ function rankSearchResults(cards, q) { const rank = (c) => { const n = norm(c.na
 
       {searched ? (
         <SearchResults
-          loading={loading} results={results} priceMap={priceMap}
+          loading={loading} results={results.slice(0, visibleCount)} priceMap={priceMap}
           error={error} term={searchTerm}
           country={country} cur={cur} eurRate={eurRate}
           onRetry={() => runSearch(searchTerm)}
