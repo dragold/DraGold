@@ -942,6 +942,11 @@ function PortfolioRow({ pos, priceInfo, cur, eurRate, fmt, isConfirm, onConfirm,
     .split(/\s+/).slice(0, 2).map(w => w[0] || "").join("").toUpperCase() || "?";
   const tcgInfo = TCG_LIST.find(t => t.id === pos.tcg);
 
+  const capturedAt = priceInfo?.captured_at ? new Date(priceInfo.captured_at) : null;
+  const ageMs = capturedAt ? (Date.now() - capturedAt.getTime()) : null;
+  const freshClass = ageMs == null ? null : ageMs < 24*3600*1000 ? "ok" : ageMs < 14*24*3600*1000 ? "warn" : "stale";
+  const freshLabel = ageMs == null ? null : ageMs < 3600*1000 ? `${Math.max(1, Math.round(ageMs/60000))}m ago` : ageMs < 24*3600*1000 ? `${Math.round(ageMs/3600000)}h ago` : `${Math.round(ageMs/86400000)}d ago`;
+
   const currentUSD = priceInfo?.price_market ?? null;
   const paidRaw    = pos.purchase_price;
   const fmvCur     = pos.fmv_currency || cur;
@@ -976,6 +981,8 @@ function PortfolioRow({ pos, priceInfo, cur, eurRate, fmt, isConfirm, onConfirm,
         <div className="pf-meta">
           {pos.condition && <span className="pf-cond">{pos.condition}</span>}
           {pos.set_name  && <span className="pf-set">{pos.set_name}</span>}
+          {pos.lang && <span className="pf-lang">{String(pos.lang).toUpperCase()}</span>}
+          {freshLabel && <span className={`pf-fresh ${freshClass}`}>{freshLabel}</span>}
         </div>
         <div className="pf-prices">
           <div className="pf-price-col">
@@ -1045,9 +1052,20 @@ function PortfolioView({ isAuthed, onLogin, onExplore, cur, eurRate }) {
     setLoading(true); setError(null);
     try {
       const data = await listCollection();
-      setPositions(data);
+      const ids0 = [...new Set(data.map(p => p.card_api_id).filter(Boolean))];
+      let dataWithLang = data;
+      if (ids0.length) {
+        const { data: langRows } = await supabase
+          .from("cards")
+          .select("id,lang")
+          .in("id", ids0);
+        const lm = {};
+        for (const r of (langRows || [])) lm[r.id] = r.lang;
+        dataWithLang = data.map(p => ({ ...p, lang: lm[p.card_api_id] || null }));
+      }
+      setPositions(dataWithLang);
       if (data.length > 0) {
-        const ids = [...new Set(data.map(p => p.card_api_id).filter(Boolean))];
+        const ids = ids0;
         if (ids.length) {
           const { data: priceRows } = await supabase
             .from("card_prices")
@@ -1167,7 +1185,7 @@ function PortfolioView({ isAuthed, onLogin, onExplore, cur, eurRate }) {
   );
 
   /* ── compute totals (only priced positions contribute) ── */
-  let totalValueUSD = 0, totalPaidUSD = 0, unpricedCount = 0;
+  let totalValueUSD = 0, totalPaidUSD = 0, unpricedCount = 0, noPaidCount = 0;
   for (const pos of positions) {
     const priceRow  = priceMap[pos.card_api_id];
     const currentUSD = priceRow?.price_market ?? null;
@@ -1182,6 +1200,7 @@ function PortfolioView({ isAuthed, onLogin, onExplore, cur, eurRate }) {
     } else {
       unpricedCount++;
     }
+    if (paidUSD == null) noPaidCount++;
   }
   const pnlUSD  = totalValueUSD - totalPaidUSD;
   const pnlPct  = totalPaidUSD > 0 ? (pnlUSD / totalPaidUSD) * 100 : null;
@@ -1212,6 +1231,9 @@ function PortfolioView({ isAuthed, onLogin, onExplore, cur, eurRate }) {
         <div className="pf-count">
           {positions.length - unpricedCount} of {positions.length} position{positions.length !== 1 ? "s" : ""} priced
         </div>
+        {noPaidCount > 0 && (
+          <div className="pf-nopaid">{noPaidCount} of {positions.length} without a purchase price — P&L not shown for these</div>
+        )}
         {pfPoints.length >= 2 && (
           <PortfolioChart points={pfPoints} fmt={fmt} />
         )}
@@ -2439,5 +2461,31 @@ input{font-family:inherit;font-size:16px;}
 }
 .price-chart-wrap{margin:0 0 4px;}
 .pf-chart-wrap{margin:8px 0 4px;padding:0 2px;}
+/* portfolio row (position list) */
+.pf-list{display:flex;flex-direction:column;gap:8px;}
+.pf-row{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px 12px;}
+.pf-img{width:60px;height:84px;flex-shrink:0;border-radius:8px;overflow:hidden;background:var(--surface-2);}
+.pf-img img{width:100%;height:100%;object-fit:cover;display:block;}
+.pf-body{flex:1;min-width:0;}
+.pf-name{font-size:13px;font-weight:700;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.pf-meta{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:3px 0;}
+.pf-cond,.pf-set,.pf-lang{font-size:11px;color:var(--muted);}
+.pf-fresh{font-size:10px;font-family:'Space Mono',monospace;padding:1px 6px;border-radius:100px;border:1px solid var(--border);}
+.pf-fresh.ok{color:var(--gain);border-color:rgba(52,211,153,.3);}
+.pf-fresh.warn{color:var(--gold);border-color:rgba(251,191,36,.3);}
+.pf-fresh.stale{color:var(--loss);border-color:rgba(248,113,113,.3);}
+.pf-prices{display:flex;gap:16px;margin-top:2px;}
+.pf-price-col{display:flex;flex-direction:column;gap:1px;}
+.pf-price-lbl{font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);font-family:'Space Mono',monospace;}
+.pf-price-val{font-size:12px;font-weight:700;font-family:'Space Mono',monospace;}
+.pf-price-val.gain{color:var(--gain);}
+.pf-price-val.loss{color:var(--loss);}
+.pf-actions{display:flex;align-items:center;gap:6px;flex-shrink:0;}
+.pf-remove-btn{background:none;border:none;color:var(--dim);cursor:pointer;padding:6px;border-radius:8px;}
+.pf-remove-btn:hover{background:var(--surface-2);color:var(--text);}
+.pf-confirm{display:flex;align-items:center;gap:6px;}
+.pf-confirm-txt{font-size:11px;color:var(--muted);white-space:nowrap;}
+.pf-confirm-yes{background:var(--loss);color:#fff;border:none;}
+.pf-nopaid{font-size:11px;color:var(--dim);margin-top:2px;}
 
 `;
