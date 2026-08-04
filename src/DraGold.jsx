@@ -685,7 +685,7 @@ function getSetInfo(card, setsMap) {
   return setsMap.get(key) || null;
 }
 
-function MarketsView({ country, cur, eurRate, onOpenAsset, setsMap }) {
+function rankSearchResults(cards, q) { const rank = (c) => { const n = norm(c.name || ''); const ne = norm(c.name_en || ''); if (n === q) return 0; if (ne === q) return 1; if (n.startsWith(q) || ne.startsWith(q)) return 2; return 3; }; return [...cards].sort((a, b) => { const ra = rank(a), rb = rank(b); if (ra !== rb) return ra - rb; const cn = (a.card_number || '').localeCompare(b.card_number || ''); if (cn !== 0) return cn; return (a.id || '').localeCompare(b.id || ''); }); }function MarketsView({ country, cur, eurRate, onOpenAsset, setsMap }) {
   const [q, setQ] = useState(() => _savedSearch?.q || "");
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState(() => _savedSearch?.results || []);
@@ -715,7 +715,7 @@ function MarketsView({ country, cur, eurRate, onOpenAsset, setsMap }) {
 
       let dbQuery = supabase
         .from('cards')
-        .select('id,name,set_name,card_number,image_url,lang,tcg,rarity');
+        .select('id,name,name_en,set_name,card_number,image_url,lang,tcg,rarity');
 
       // Separa lang-token (es. "jp","ja","en") dai content-token (es. "charizard","op05").
       // I lang-token NON entrano nell'AND della query DB: le carte JP hanno nome giapponese,
@@ -743,7 +743,7 @@ function MarketsView({ country, cur, eurRate, onOpenAsset, setsMap }) {
           // Token con cifre o trattino → codice set/carta (es. sv03, OP05-119) → cerca ovunque
           // Token solo lettere (es. pikachu, charizard) → cerca SOLO in name
           const swIsCode = /\d/.test(sw) || sw.includes('-');
-          const orParts = [`name.ilike.*${sw}*`];
+          const orParts = [`name.ilike.*${sw}*`, `name_en.ilike.*${sw}*`];
           if (swIsCode) {
             orParts.push(`card_number.ilike.*${sw}*`, `set_name.ilike.*${sw}*`);
           }
@@ -758,7 +758,7 @@ function MarketsView({ country, cur, eurRate, onOpenAsset, setsMap }) {
         const sw = trimmed.replace(/[*%()]/g, '');
         const swIsCode = /\d/.test(sw) || sw.includes('-');
         dbQuery = dbQuery.or(
-          `name.ilike.*${sw}*${swIsCode ? `,card_number.ilike.*${sw}*,set_name.ilike.*${sw}*` : ''}${sw.length >= 4 && RARITY_TOKENS.has(sw) ? `,rarity.ilike.*${sw}*` : ''}`
+          `name.ilike.*${sw}*,name_en.ilike.*${sw}*${swIsCode ? `,card_number.ilike.*${sw}*,set_name.ilike.*${sw}*` : ''}${sw.length >= 4 && RARITY_TOKENS.has(sw) ? `,rarity.ilike.*${sw}*` : ''}`
         );
       }
 
@@ -773,13 +773,13 @@ function MarketsView({ country, cur, eurRate, onOpenAsset, setsMap }) {
       if (!hasSpaces && normQ.length >= 3) {
         const qIsCode = /\d/.test(normQ) || normQ.includes('-');
         nameMatches = nameMatches.filter(c =>
-          norm(c.name || '').includes(normQ) ||
+          norm(c.name || '').includes(normQ) || norm(c.name_en || '').includes(normQ) ||
           (qIsCode && norm(c.card_number || '').includes(normQ))
         );
       }
 
       let cards = nameMatches;
-
+'id,name,name_en,set_name,card_number,image_url,lang,tcg,rarity'
       if (langFilterCodes.length > 0 && nameMatches.length > 0) {
         // Expand per lingua: cerca versioni nella lingua richiesta usando gli stessi card_number.
         // Necessario perché le carte JP hanno nome giapponese nel DB (non matcha "charizard").
@@ -800,7 +800,7 @@ function MarketsView({ country, cur, eurRate, onOpenAsset, setsMap }) {
           if (!safeNums.length) continue;
           let lq = supabase
             .from('cards')
-            .select('id,name,set_name,card_number,image_url,lang,tcg,rarity')
+            .select('id,name,name_en,set_name,card_number,image_url,lang,tcg,rarity')
             .eq('tcg', tcgKey)
             .in('card_number', safeNums);
           if (langFilterCodes.length === 1) lq = lq.eq('lang', langFilterCodes[0]);
@@ -836,7 +836,7 @@ function MarketsView({ country, cur, eurRate, onOpenAsset, setsMap }) {
             if (!nums.length || nums.length > 400) continue;
             const { data: expanded } = await supabase
               .from('cards')
-              .select('id,name,set_name,card_number,image_url,lang,tcg')
+              .select('id,name,name_en,set_name,card_number,image_url,lang,tcg')
               .eq('tcg', tcgKey)
               .in('card_number', nums)
               .limit(400);
@@ -852,7 +852,7 @@ function MarketsView({ country, cur, eurRate, onOpenAsset, setsMap }) {
         }
       }
 
-      setResults(cards);
+      cards = rankSearchResults(cards, normQ); setResults(cards);
       setLoading(false); // mostra le carte subito, prezzi in background
 
       // Prezzi in background: max 100 IDs per evitare URL troppo lunghi (414/timeout)
@@ -1321,7 +1321,7 @@ function AlertCardSearch({ onSelect, onClose }) {
       const words = trimmed.toLowerCase().replace(/[^a-z0-9 ]/gi, ' ')
         .trim().split(/\s+/).filter(w => w.length >= 2);
       let dbQ = supabase.from('cards')
-        .select('id,name,set_name,card_number,image_url,lang,tcg')
+        .select('id,name,name_en,set_name,card_number,image_url,lang,tcg')
         .limit(15);
       if (words.length > 0) {
         for (const w of words) {
