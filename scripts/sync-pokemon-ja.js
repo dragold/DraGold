@@ -149,23 +149,7 @@ async function syncPokemonJA() {
     }
 
     const setNameJP = setData.name || setName
-    const rows = setData.cards
-      .filter(c => c.localId && c.name)
-      .map(c => ({
-        id:           `pokemon:tcgdex:${setId}-${c.localId}:ja`,
-        source:       'tcgdex',
-        source_id:    `${setId}-${c.localId}`,
-        name:         c.name,
-        set_id:       setId,
-        set_name:     setNameJP,
-        card_number:  String(c.localId),
-        rarity:       c.rarity   || null,
-        supertype:    c.category || null,
-        image_url:    buildImageUrl(c, setId),
-        image_url_hi: buildImageUrl(c, setId),
-        lang:         'ja',
-        tcg:          'pokemon',
-      }))const rows = setData.cards
+    coonst rows = setData.cards
           .filter(c => c.localId && c.name)
           .map(c => ({
                     id:            `pokemon:tcgdex:${setId}-${c.localId}:ja`,
