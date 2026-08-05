@@ -149,7 +149,7 @@ async function syncPokemonJA() {
     }
 
     const setNameJP = setData.name || setName
-    coonst rows = setData.cards
+        const rows = setData.cards
           .filter(c => c.localId && c.name)
           .map(c => ({
                     id:            `pokemon:tcgdex:${setId}-${c.localId}:ja`,
