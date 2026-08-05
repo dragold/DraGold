@@ -12,7 +12,7 @@ function formatPrice(value, currency) {
   }
 }
 
-function setSeoMeta({ title, description, image }) {
+function setSeoMeta({ title, description, image, url }) {
   if (title) document.title = title
   const setMeta = (selector, attr, isProperty, content) => {
     let el = document.querySelector(selector)
@@ -24,12 +24,34 @@ function setSeoMeta({ title, description, image }) {
     }
     el.setAttribute('content', content)
   }
+  const setLink = (rel, href) => {
+    let el = document.querySelector(`link[rel="${rel}"]`)
+    if (!el) {
+      el = document.createElement('link')
+      el.setAttribute('rel', rel)
+      document.head.appendChild(el)
+    }
+    el.setAttribute('href', href)
+  }
   if (description) {
     setMeta('meta[name="description"]', 'description', false, description)
     setMeta('meta[property="og:description"]', 'og:description', true, description)
+    setMeta('meta[name="twitter:description"]', 'twitter:description', false, description)
   }
-  if (title) setMeta('meta[property="og:title"]', 'og:title', true, title)
-  if (image) setMeta('meta[property="og:image"]', 'og:image', true, image)
+  if (title) {
+    setMeta('meta[property="og:title"]', 'og:title', true, title)
+    setMeta('meta[name="twitter:title"]', 'twitter:title', false, title)
+  }
+  if (image) {
+    setMeta('meta[property="og:image"]', 'og:image', true, image)
+    setMeta('meta[name="twitter:image"]', 'twitter:image', false, image)
+  }
+  if (url) {
+    setMeta('meta[property="og:url"]', 'og:url', true, url)
+    setLink('canonical', url)
+  }
+  setMeta('meta[property="og:type"]', 'og:type', true, 'product')
+  setMeta('meta[name="twitter:card"]', 'twitter:card', false, 'summary_large_image')
 }
 
 export default function CardPage({ slug }) {
@@ -59,6 +81,7 @@ useEffect(() => {
     title: `${displayName} (${displaySetName} #${primary.card_number}) — DraGold${priceTxt}`,
     description: `${displayName} — ${displaySetName} #${primary.card_number}, rarity: ${primary.rarity || 'N/A'}. Market price, price history and best offers on DraGold.`,
     image: primary.image_url_hi || primary.image_url,
+    url: `https://dragold.org/carta/${slug}`,
   })
 }, [state.data])
 
