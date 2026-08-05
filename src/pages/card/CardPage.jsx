@@ -54,6 +54,17 @@ function setSeoMeta({ title, description, image, url }) {
   setMeta('meta[name="twitter:card"]', 'twitter:card', false, 'summary_large_image')
 }
 
+function setJsonLd(data) {
+    let el = document.getElementById('ld-card')
+    if (!el) {
+          el = document.createElement('script')
+          el.type = 'application/ld+json'
+          el.id = 'ld-card'
+          document.head.appendChild(el)
+    }
+    el.textContent = JSON.stringify(data)
+}
+
 export default function CardPage({ slug }) {
   const [state, setState] = useState({ loading: true, data: null, error: null })
   const [ctaMsg, setCtaMsg] = useState('')
@@ -83,6 +94,41 @@ useEffect(() => {
     image: primary.image_url_hi || primary.image_url,
     url: `https://dragold.org/carta/${slug}`,
   })
+
+      const cardUrl = `https://dragold.org/carta/${slug}`
+      const imageUrl = primary.image_url_hi || primary.image_url
+      const graph = []
+      graph.push({
+              '@type': 'BreadcrumbList',
+              itemListElement: [
+                { '@type': 'ListItem', position: 1, name: 'DraGold', item: 'https://dragold.org/' },
+                { '@type': 'ListItem', position: 2, name: displaySetName, item: cardUrl },
+                { '@type': 'ListItem', position: 3, name: displayName, item: cardUrl },
+                      ]
+      })
+      if (imageUrl) {
+              graph.push({ '@type': 'ImageObject', contentUrl: imageUrl, url: imageUrl })
+      }
+      const productNode = {
+              '@type': 'Product',
+              name: displayName,
+              image: imageUrl ? [imageUrl] : undefined,
+              description: `${displayName} — ${displaySetName} #${primary.card_number}`,
+              sku: primary.card_number,
+              brand: { '@type': 'Brand', name: primary.tcg },
+              url: cardUrl,
+      }
+      if (currentPrice && currentPrice.price_market != null) {
+              productNode.offers = {
+                        '@type': 'Offer',
+                        priceCurrency: currentPrice.currency || 'USD',
+                        price: currentPrice.price_market,
+                        availability: 'https://schema.org/InStock',
+                        url: cardUrl,
+              }
+      }
+      graph.push(productNode)
+      setJsonLd({ '@context': 'https://schema.org', '@graph': graph })
 }, [state.data])
 
 if (state.loading) {
