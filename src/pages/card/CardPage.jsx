@@ -57,19 +57,19 @@ useEffect(() => {
   const priceTxt = currentPrice?.price_market ? ` — ${formatPrice(currentPrice.price_market, currentPrice.currency)}` : ''
   setSeoMeta({
     title: `${primary.name} (${primary.set_name || primary.set_id} #${primary.card_number}) — DraGold${priceTxt}`,
-    description: `${primary.name} — ${primary.set_name || primary.set_id} #${primary.card_number}, rarità ${primary.rarity || 'n/d'}. Prezzo di mercato, storico e migliori offerte su DraGold.`,
+    description: `${primary.name} — ${primary.set_name || primary.set_id} #${primary.card_number}, rarity: ${primary.rarity || 'N/A'}. Market price, price history and best offers on DraGold.`,
     image: primary.image_url_hi || primary.image_url,
   })
 }, [state.data])
 
 if (state.loading) {
-  return h('div', { style: styles.page }, h('div', { style: styles.center }, 'Caricamento carta...'))
+  return h('div', { style: styles.page }, h('div', { style: styles.center }, 'Loading card...'))
 }
   if (state.error || !state.data) {
     return h('div', { style: styles.page }, h('div', { style: styles.center },
-                                              h('h1', { style: styles.h1 }, 'Carta non trovata'),
-                                              h('p', { style: styles.muted }, 'Questa carta non è ancora disponibile su DraGold.'),
-                                              h('a', { href: '/', style: styles.link }, 'Torna alla home')
+                                              h('h1', { style: styles.h1 }, 'Card not found'),
+                                              h('p', { style: styles.muted }, 'This card is not yet available on DraGold.'),
+                                              h('a', { href: '/', style: styles.link }, 'Back to home')
                                               ))
   }
 
@@ -82,15 +82,15 @@ const primary = state.data.primary
   const sameSetCards = state.data.sameSetCards
 
 async function handleAddCollection() {
-  setCtaMsg('Aggiunta in corso...')
+  setCtaMsg('Adding...')
   const res = await addToCollection({ card_api_id: primary.id, tcg: primary.tcg, card_name: primary.name, set_name: primary.set_name, image_url: primary.image_url })
-  setCtaMsg(res && res.error ? ('Errore: ' + (res.error.message || res.error)) : 'Aggiunta alla collezione!')
+  setCtaMsg(res && res.error ? ('Error: ' + (res.error.message || res.error)) : 'Added to collection!')
 }
 
 async function handleAddWatchlist() {
-  setCtaMsg('Aggiunta in corso...')
+  setCtaMsg('Adding...')
   const res = await addToWatchlist({ tcg: primary.tcg, cardApiId: primary.id, cardName: primary.name, setName: primary.set_name, imageUrl: primary.image_url })
-  setCtaMsg(res && res.error ? ('Errore: ' + (res.error.message || res.error)) : 'Aggiunta alla watchlist!')
+  setCtaMsg(res && res.error ? ('Error: ' + (res.error.message || res.error)) : 'Added to watchlist!')
 }
 
 const heroImage = primary.image_url_hi || primary.image_url
@@ -101,32 +101,32 @@ const heroImage = primary.image_url_hi || primary.image_url
 
 const priceBlock = (currentPrice && currentPrice.price_market != null)
   ? h(Fragment, null,
-      h('div', { style: styles.priceLabel }, 'Prezzo di mercato'),
+      h('div', { style: styles.priceLabel }, 'Market price'),
       h('div', { style: styles.priceValue }, formatPrice(currentPrice.price_market, currentPrice.currency)),
-      currentPrice.captured_at ? h('div', { style: styles.muted }, 'Aggiornato il ' + new Date(currentPrice.captured_at).toLocaleDateString('it-IT')) : null
+      currentPrice.captured_at ? h('div', { style: styles.muted }, 'Updated on ' + new Date(currentPrice.captured_at).toLocaleDateString('en-US')) : null
       )
-  : h('div', { style: styles.muted }, 'Prezzo non ancora disponibile per questa carta.')
+  : h('div', { style: styles.muted }, 'Price not yet available for this card.')
 
 const metaEls = []
-  if (primary.illustrator) metaEls.push(h('p', { style: styles.meta, key: 'ill' }, 'Illustratore: ', h('strong', null, primary.illustrator)))
-  if (primary.evolves_from) metaEls.push(h('p', { style: styles.meta, key: 'evo' }, 'Evolve da: ', h('strong', null, primary.evolves_from)))
-  if (primary.series_name) metaEls.push(h('p', { style: styles.meta, key: 'series' }, 'Serie: ', h('strong', null, primary.series_name)))
+  if (primary.illustrator) metaEls.push(h('p', { style: styles.meta, key: 'ill' }, 'Illustrator: ', h('strong', null, primary.illustrator)))
+  if (primary.evolves_from) metaEls.push(h('p', { style: styles.meta, key: 'evo' }, 'Evolves from: ', h('strong', null, primary.evolves_from)))
+  if (primary.series_name) metaEls.push(h('p', { style: styles.meta, key: 'series' }, 'Series: ', h('strong', null, primary.series_name)))
 
 const historySection = (priceHistory && priceHistory.length > 1) ? h('section', { style: styles.section },
-                                                                     h('h2', { style: styles.h2 }, 'Storico prezzi'),
+                                                                     h('h2', { style: styles.h2 }, 'Price history'),
                                                                      h('div', { style: styles.historyList }, priceHistory.slice(0, 10).map((p, i) => h('div', { style: styles.historyRow, key: i },
-                                                                                                                                                       h('span', null, p.captured_at ? new Date(p.captured_at).toLocaleDateString('it-IT') : '—'),
+                                                                                                                                                       h('span', null, p.captured_at ? new Date(p.captured_at).toLocaleDateString('en-US') : '—'),
                                                                                                                                                        h('span', null, formatPrice(p.price_market, p.currency) || '—')
                                                                                                                                                        )))
                                                                      ) : null
 
 const langSection = (languages && languages.length > 1) ? h('section', { style: styles.section },
-                                                            h('h2', { style: styles.h2 }, 'Lingue disponibili'),
+                                                            h('h2', { style: styles.h2 }, 'Available languages'),
                                                             h('div', { style: styles.badges }, languages.map(l => h('span', { style: l === primary.lang ? styles.badgeActive : styles.badge, key: l }, l.toUpperCase())))
                                                             ) : null
 
 const variantSection = (variants && variants.length > 1) ? h('section', { style: styles.section },
-                                                             h('h2', { style: styles.h2 }, 'Varianti'),
+                                                             h('h2', { style: styles.h2 }, 'Variants'),
                                                              h('div', { style: styles.variantGrid }, variants.map(v => h('div', { style: styles.variantCard, key: v.id },
                                                                                                                          v.image_url ? h('img', { src: v.image_url, alt: v.name, style: styles.variantImg }) : null,
                                                                                                                          h('div', { style: styles.muted }, (v.print_variant || 'Standard') + ' · ' + (v.lang || '').toUpperCase())
@@ -145,14 +145,14 @@ const relatedGrid = (sameSetCards && sameSetCards.length > 0)
              h('div', { style: styles.muted }, '#' + c.card_number)
              )
   }))
-  : h('p', { style: styles.muted }, "Nessun'altra carta dello stesso set ancora indicizzata.")
+  : h('p', { style: styles.muted }, 'No other cards from this set indexed yet.')
 
 return h('div', { style: styles.page },
          h('div', { style: styles.wrap },
            h('a', { href: '/', style: styles.backLink }, '← DraGold'),
            h('div', { style: styles.hero },
              h('div', { style: styles.imgWrap },
-               heroImage ? h('img', { src: heroImage, alt: primary.name, style: styles.img }) : h('div', { style: styles.imgPlaceholder }, 'Immagine non disponibile')
+               heroImage ? h('img', { src: heroImage, alt: primary.name, style: styles.img }) : h('div', { style: styles.imgPlaceholder }, 'Image not available')
                ),
              h('div', { style: styles.info },
                h('h1', { style: styles.h1 }, primary.name),
@@ -161,8 +161,8 @@ return h('div', { style: styles.page },
                h('div', { style: styles.priceBox }, priceBlock),
                metaEls,
                h('div', { style: styles.ctaRow },
-                 h('button', { style: styles.btnPrimary, onClick: handleAddCollection }, '+ Collezione'),
-                 h('button', { style: styles.btnSecondary, onClick: handleAddWatchlist }, '+ Watchlist')
+                 h('button', { style: styles.btnPrimary, onClick: handleAddCollection }, '+ Add to Collection'),
+                 h('button', { style: styles.btnSecondary, onClick: handleAddWatchlist }, '+ Add to Watchlist')
                  ),
                ctaMsg ? h('p', { style: styles.muted }, ctaMsg) : null
                )
