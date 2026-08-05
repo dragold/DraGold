@@ -1,0 +1,38 @@
+name: Cache One Piece Images
+
+on:
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: 'Limite carte da processare (vuoto = tutte)'
+        required: false
+        default: ''
+      dry_run:
+        description: 'Dry run - solo conteggio, nessuna chiamata (true/false)'
+        required: false
+        default: 'false'
+
+jobs:
+  cache-images:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install dependencies
+        run: npm install @supabase/supabase-js
+      - name: Run batch
+        run: |
+          ARGS=""
+          if [ -n "${{ github.event.inputs.limit }}" ]; then ARGS="$ARGS --limit=${{ github.event.inputs.limit }}"; fi
+          if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then ARGS="$ARGS --dry-run"; fi
+          echo "Esecuzione: node scripts/cache-onepiece-images.js $ARGS"
+          node scripts/cache-onepiece-images.js $ARGS
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          IMAGE_CACHE_KEY: ${{ secrets.IMAGE_CACHE_KEY }}
