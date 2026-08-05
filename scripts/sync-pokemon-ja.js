@@ -10,6 +10,7 @@
  */
 
 import { createClient } from '@supabase/supabase-js'
+import { resolveCardImage } from './lib/image-resolver.js'
 
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY
@@ -164,7 +165,31 @@ async function syncPokemonJA() {
         image_url_hi: buildImageUrl(c, setId),
         lang:         'ja',
         tcg:          'pokemon',
-      }))
+      }))const rows = setData.cards
+          .filter(c => c.localId && c.name)
+          .map(c => ({
+                    id:            `pokemon:tcgdex:${setId}-${c.localId}:ja`,
+                    source:        'tcgdex',
+                    source_id:     `${setId}-${c.localId}`,
+                    name:          c.name,
+                    set_id:        setId,
+                    set_name:      setNameJP,
+                    card_number:   String(c.localId),
+                    rarity:        c.rarity  || null,
+                    supertype:     c.category || null,
+                    image_url:     null,
+                    image_url_hi:  null,
+                    lang:          'ja',
+                    tcg:           'pokemon',
+                    _rawCard:      c,
+          }))
+
+        for (const row of rows) {
+                const resolved = await resolveCardImage(row._rawCard, 'ja')
+                row.image_url = resolved.url
+                row.image_url_hi = resolved.url
+                delete row._rawCard
+        }
 
     if (!rows.length) {
       log(`  ${setId}: nessuna carta valida`)
