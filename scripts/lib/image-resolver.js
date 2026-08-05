@@ -78,4 +78,4 @@ async function resolveCardImage(card, langCode) {
   return { url: null, source: null }
 }
 
-module.exports = { resolveCardImage }
+export { resolveCardImage }
