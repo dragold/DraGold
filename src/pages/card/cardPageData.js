@@ -40,7 +40,7 @@ primary.rarity
 : Promise.resolve({ data: null }),
 supabase
 .from('cards')
-.select('id, name, card_number, image_url, canonical_cards(slug)')
+.select('id, name, card_number, image_url, canonical_card_id')
 .eq('tcg', primary.tcg)
 .eq('set_id', primary.set_id)
 .eq('lang', primary.lang)
@@ -51,14 +51,25 @@ supabase
 const priceHistory = prices || []
 const currentPrice = priceHistory[0] || null
 
+
+let sameSetCards = sameSet || []
+  if (sameSetCards.length) {
+    const ccIds = [...new Set(sameSetCards.map(c => c.canonical_card_id).filter(Boolean))]
+    if (ccIds.length) {
+      const { data: ccRows } = await supabase.from('canonical_cards').select('id, slug').in('id', ccIds)
+      const slugMap = new Map((ccRows || []).map(r => [r.id, r.slug]))
+      sameSetCards = sameSetCards.map(c => ({ ...c, slug: c.canonical_card_id ? slugMap.get(c.canonical_card_id) : null }))
+    }
+  }
+
 return {
-canonical,
-primary,
-variants: allVariants,
-languages,
-rarity: rarityRow || null,
-currentPrice,
-priceHistory,
-sameSetCards: sameSet || [],
+  canonical,
+  primary,
+  variants: allVariants,
+  languages,
+  rarity: rarityRow || null,
+  currentPrice,
+  priceHistory,
+  sameSetCards,
 }
-}
+  }
