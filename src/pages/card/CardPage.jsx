@@ -53,11 +53,11 @@ useEffect(() => {
 useEffect(() => {
   const d = state.data
   if (!d) return
-  const { primary, currentPrice } = d
+  const { primary, currentPrice, displayName, displaySetName } = d
   const priceTxt = currentPrice?.price_market ? ` — ${formatPrice(currentPrice.price_market, currentPrice.currency)}` : ''
   setSeoMeta({
-    title: `${primary.name} (${primary.set_name || primary.set_id} #${primary.card_number}) — DraGold${priceTxt}`,
-    description: `${primary.name} — ${primary.set_name || primary.set_id} #${primary.card_number}, rarity: ${primary.rarity || 'N/A'}. Market price, price history and best offers on DraGold.`,
+    title: `${displayName} (${displaySetName} #${primary.card_number}) — DraGold${priceTxt}`,
+    description: `${displayName} — ${displaySetName} #${primary.card_number}, rarity: ${primary.rarity || 'N/A'}. Market price, price history and best offers on DraGold.`,
     image: primary.image_url_hi || primary.image_url,
   })
 }, [state.data])
@@ -74,6 +74,8 @@ if (state.loading) {
   }
 
 const primary = state.data.primary
+  const displayName = state.data.displayName
+  const displaySetName = state.data.displaySetName
   const variants = state.data.variants
   const languages = state.data.languages
   const rarity = state.data.rarity
@@ -155,8 +157,8 @@ return h('div', { style: styles.page },
                heroImage ? h('img', { src: heroImage, alt: primary.name, style: styles.img }) : h('div', { style: styles.imgPlaceholder }, 'Image not available')
                ),
              h('div', { style: styles.info },
-               h('h1', { style: styles.h1 }, primary.name),
-               h('p', { style: styles.subtitle }, (primary.set_name || primary.set_id) + ' · #' + primary.card_number + ' · ' + (primary.lang || '').toUpperCase()),
+               h('h1', { style: styles.h1 }, displayName),
+               h('p', { style: styles.subtitle }, displaySetName + ' · #' + primary.card_number + ' · ' + (primary.lang || '').toUpperCase()),
                h('div', { style: styles.badges }, badgeEls),
                h('div', { style: styles.priceBox }, priceBlock),
                metaEls,
@@ -171,7 +173,7 @@ return h('div', { style: styles.page },
            langSection,
            variantSection,
            h('section', { style: styles.section },
-             h('h2', { style: styles.h2 }, 'Set: ' + (primary.set_name || primary.set_id)),
+             h('h2', { style: styles.h2 }, 'Set: ' + displaySetName),
              relatedGrid
              )
            )
