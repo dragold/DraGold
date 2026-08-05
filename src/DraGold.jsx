@@ -416,10 +416,19 @@ function norm(s) {
   return (s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
 }
 
+/* ─── pickCardImage: priorita immagine — 1) card_image_cache (status ready), 2) image_url_hi/image_url originale, 3) null -> placeholder ─── */
+function pickCardImage(obj) {
+    if (!obj) return null;
+    const cache = Array.isArray(obj.card_image_cache) ? obj.card_image_cache : [];
+    const ready = cache.find(function (c) { return c && c.status === 'ready' && c.cached_url; });
+    if (ready) return ready.cached_url;
+    return obj.image_url_hi || obj.image_url || null;
+}
+
 /* ─── CardItem — componente riusabile: Markets + Hot picks + Portfolio ─── */
 function CardItem({ card, priceInfo, country = "IT", cur = "EUR", eurRate = 0.92, onOpen, setsMap }) {
   const [imgFailed, setImgFailed] = useState(false);
-  const imgUrl = card.image_url || card.imgUrl || card.img || null;
+  const imgUrl = pickCardImage(card) || card.imgUrl || card.img || null;
   const cardName = card.name || "—";
   const tcgInfo = TCG_LIST.find(t => t.id === card.tcg);
   const langInfo = CARD_LANGS.find(l => l.c === card.lang);
@@ -555,7 +564,7 @@ function HotPicksSection({ country = "IT", cur = "EUR", eurRate = 0.92, onOpen }
         if (neededIds.length) {
           const { data: cardsRows } = await supabase
             .from('cards')
-            .select('id,name,set_name,card_number,tcg,lang,image_url,image_url_hi')
+            .select('id,name,set_name,card_number,tcg,lang,image_url,image_url_hi,card_image_cache(cached_url,status)')
             .in('id', neededIds);
           for (const c of (cardsRows || [])) cardsById[c.id] = c;
         }
@@ -716,7 +725,7 @@ const JP_NAME_ALIASES = {"charizard":["リザードン"],"pikachu":["ピカチ�
 
       let dbQuery = supabase
         .from('cards')
-        .select('id,name,name_en,set_name,card_number,image_url,lang,tcg,rarity');
+        .select('id,name,name_en,set_name,card_number,image_url,lang,tcg,rarity,card_image_cache(cached_url,status)');
 
       // Separa lang-token (es. "jp","ja","en") dai content-token (es. "charizard","op05").
       // I lang-token NON entrano nell'AND della query DB: le carte JP hanno nome giapponese,
@@ -800,7 +809,7 @@ const JP_NAME_ALIASES = {"charizard":["リザードン"],"pikachu":["ピカチ�
           if (!safeNums.length) continue;
           let lq = supabase
             .from('cards')
-            .select('id,name,name_en,set_name,card_number,image_url,lang,tcg,rarity')
+            .select('id,name,name_en,set_name,card_number,image_url,lang,tcg,rarity,card_image_cache(cached_url,status)')
             .eq('tcg', tcgKey)
             .in('card_number', safeNums);
           if (langFilterCodes.length === 1) lq = lq.eq('lang', langFilterCodes[0]);
@@ -836,7 +845,7 @@ const JP_NAME_ALIASES = {"charizard":["リザードン"],"pikachu":["ピカチ�
             if (!nums.length || nums.length > 400) continue;
             const { data: expanded } = await supabase
               .from('cards')
-              .select('id,name,name_en,set_name,card_number,image_url,lang,tcg')
+              .select('id,name,name_en,set_name,card_number,image_url,lang,tcg,card_image_cache(cached_url,status)')
               .eq('tcg', tcgKey)
               .in('card_number', nums)
               .limit(400);
@@ -936,7 +945,7 @@ const JP_NAME_ALIASES = {"charizard":["リザードン"],"pikachu":["ピカチ�
 /* ─── PortfolioRow — separato per rispettare la regola degli hooks ─── */
 function PortfolioRow({ pos, priceInfo, cur, eurRate, fmt, isConfirm, onConfirm, onCancelConfirm, onRemove, onTrack, trackBusy, trackDone, removeBusy }) {
   const [imgFailed, setImgFailed] = useState(false);
-  const imgUrl = pos.image_url || null;
+  const imgUrl = pickCardImage(pos) || null;
   const initials = (pos.card_name || "")
     .replace(/[^a-zA-Z ]/g, "").trim()
     .split(/\s+/).slice(0, 2).map(w => w[0] || "").join("").toUpperCase() || "?";
@@ -1061,7 +1070,14 @@ function PortfolioView({ isAuthed, onLogin, onExplore, cur, eurRate }) {
           .in("id", ids0);
         const lm = {};
         for (const r of (langRows || [])) lm[r.id] = r.lang;
-        dataWithLang = data.map(p => ({ ...p, lang: lm[p.card_api_id] || null }));
+          const { data: cacheRows } = await supabase
+                    .from("card_image_cache")
+                    .select("card_id,cached_url,status")
+                    .in("card_id", ids0)
+                    .eq("status", "ready");
+                  const cm = {};
+                  for (const r of (cacheRows || [])) { if (!cm[r.card_id]) cm[r.card_id] = []; cm[r.card_id].push(r); }
+                  dataWithLang = data.map(p => ({ ...p, lang: lm[p.card_api_id] || null, card_image_cache: cm[p.card_api_id] || [] }));
       }
       setPositions(dataWithLang);
       if (data.length > 0) {
@@ -1274,7 +1290,7 @@ function PortfolioView({ isAuthed, onLogin, onExplore, cur, eurRate }) {
 /* ─── AlertSearchResultItem — riga risultato ricerca inline ─── */
 function AlertSearchResultItem({ card, onSelect }) {
   const [imgFailed, setImgFailed] = useState(false);
-  const imgUrl = card.image_url || null;
+  const imgUrl = pickCardImage(card) || null;
   const tcgInfo = TCG_LIST.find(t => t.id === card.tcg);
   const langInfo = CARD_LANGS.find(l => l.c === card.lang);
   return (
@@ -1321,7 +1337,7 @@ function AlertCardSearch({ onSelect, onClose }) {
       const words = trimmed.toLowerCase().replace(/[^a-z0-9 ]/gi, ' ')
         .trim().split(/\s+/).filter(w => w.length >= 2);
       let dbQ = supabase.from('cards')
-        .select('id,name,name_en,set_name,card_number,image_url,lang,tcg')
+        .select('id,name,name_en,set_name,card_number,image_url,lang,tcg,card_image_cache(cached_url,status)')
         .limit(15);
       if (words.length > 0) {
         for (const w of words) {
@@ -1848,7 +1864,7 @@ function AssetView({ card, onBack, isAuthed, onLogin, country, cur, eurRate, set
   const tcgInfo = TCG_LIST.find(t => t.id === card.tcg);
   const langInfo = CARD_LANGS.find(l => l.c === card.lang);
   const setInfo = getSetInfo(card, setsMap);
-  const imgUrl = card.image_url || card.imgUrl || card.img || null;
+  const imgUrl = pickCardImage(card) || card.imgUrl || card.img || null;
   const cardNum = card.card_number || "";
 
   const latest = snaps.length ? snaps[snaps.length - 1] : null;
