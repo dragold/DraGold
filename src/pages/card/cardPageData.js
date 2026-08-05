@@ -32,7 +32,7 @@ if (!supabase || !slug) return null
     const langLabels = { ja: 'Japanese', en: 'English', fr: 'French', de: 'German', es: 'Spanish', it: 'Italian', pt: 'Portuguese', ko: 'Korean', zh: 'Chinese' }
     const tcgLabels = { pokemon: 'Pokémon', mtg: 'Magic: The Gathering', ygo: 'Yu-Gi-Oh!', onepiece: 'One Piece' }
     const displayName = (enVariant && enVariant.name) || `${langLabels[primary.lang] || (primary.lang || '').toUpperCase()} ${tcgLabels[primary.tcg] || primary.tcg} Card ${primary.card_number || ''}`.trim()
-    const displaySetName = (enVariant && enVariant.set_name) || primary.set_name || primary.set_id
+    const displaySetName = (enVariant && enVariant.set_name) || (primary.lang === 'en' ? primary.set_name : null) || primary.set_id || primary.set_name
 
   const [{ data: prices }, { data: rarityRow }, { data: sameSet }] = await Promise.all([
 supabase
