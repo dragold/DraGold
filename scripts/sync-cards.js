@@ -84,7 +84,7 @@ async function syncPokemon() {
         card_number: String(c.localId), rarity: c.rarity || null,
         image_url: c.image ? `${c.image}/high.webp` : null,
         image_url_hi: c.image ? `${c.image}/high.webp` : null,
-        lang, tcg: 'pokemon',
+        lang, tcg: 'pokemon', series_id: setData.serie?.id || null, series_name: setData.serie?.name || null,
       }))
       for (let i = 0; i < rows.length; i += BATCH_SIZE) await upsertBatch(rows.slice(i, i + BATCH_SIZE))
       totalNew += rows.length
