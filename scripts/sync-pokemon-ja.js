@@ -69,7 +69,7 @@ async function countExisting(setId) {
 
 function buildImageUrl(card, setId) {
   if (card.image) return `${card.image}/high.webp`
-  return `https://assets.tcgdex.net/ja/${setId}/${card.localId}/high.webp`
+        return null // TCGdex non fornisce alcun asset per questa carta: nessun URL indovinato
 }
 
 /**
