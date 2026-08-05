@@ -45,17 +45,21 @@ async function resolveFromScrydex(card, langCode) {
 }
 
 async function resolveFromPokemonPriceTracker(card, langCode) {
-    if (!PPT_API_KEY) return null
-    const language = langCode === 'ja' ? 'japanese' : 'english'
-    const search = encodeURIComponent(card.name)
-    const url = `https://www.pokemonpricetracker.com/api/v2/cards?search=${search}&language=${language}&limit=5`
-    const json = await safeJsonFetch(url, {
-          headers: { Authorization: `Bearer ${PPT_API_KEY}` },
-    })
-    const list = json && json.data ? json.data : []
-        const hit = list.find(c => String(c.cardNumber) === String(card.localId)) || list[0]
-    if (!hit) return null
-    return (hit.images && (hit.images.large || hit.images.medium)) || hit.imageUrl || null
+      if (!PPT_API_KEY) return null
+      const language = langCode === 'ja' ? 'japanese' : 'english'
+      const search = encodeURIComponent(card.name)
+      const url = `https://www.pokemonpricetracker.com/api/v2/cards?search=${search}&language=${language}&limit=20&lightweight=true`
+      const json = await safeJsonFetch(url, {
+              headers: { Authorization: `Bearer ${PPT_API_KEY}` },
+      })
+      const list = json && json.data ? json.data : []
+      const wanted = String(card.localId || '').replace(/^0+/, '')
+      const hit = list.find(c => {
+              const num = String(c.cardNumber || '').split('/')[0].replace(/^0+/, '')
+              return num === wanted && wanted !== ''
+      })
+      if (!hit) return null
+      return hit.imageCdnUrl || null
 }
 
 /**
