@@ -135,7 +135,7 @@ const variantSection = (variants && variants.length > 1) ? h('section', { style:
 
 const relatedGrid = (sameSetCards && sameSetCards.length > 0)
   ? h('div', { style: styles.relatedGrid }, sameSetCards.map(c => {
-    const slug2 = c.canonical_cards && c.canonical_cards.slug
+    const slug2 = c.slug
     const tag = slug2 ? 'a' : 'div'
     const props = { style: styles.relatedCard, key: c.id }
     if (slug2) props.href = '/carta/' + slug2
