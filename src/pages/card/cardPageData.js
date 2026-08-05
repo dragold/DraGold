@@ -40,7 +40,7 @@ primary.rarity
 : Promise.resolve({ data: null }),
 supabase
 .from('cards')
-.select('id, name, card_number, image_url, canonical_card_id')
+.select('id, name, card_number, image_url, canonical_cards(slug)')
 .eq('tcg', primary.tcg)
 .eq('set_id', primary.set_id)
 .eq('lang', primary.lang)
