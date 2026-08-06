@@ -1,6 +1,6 @@
 CLAUDE.md — DraGold
 
-Aggiornato: 2026-08-05
+Aggiornato: 2026-08-06
 
 ⚠️ Direzione strategica vincolante (leggere PRIMA di qualsiasi task)
 
@@ -15,8 +15,8 @@ Prima di iniziare qualsiasi nuovo task, chiedersi: "questo aumenta il valore del
 Priorità TCG: Pokémon (massima) → One Piece (seconda) → MTG/Yu-Gi-Oh (solo architettura, zero lavoro attivo di audit/contenuti). Priorità lingue: EN, JA.
 
 Stato Reale del Progetto
-DraGold.jsx: ~3923 righe (non 1200 — non splittare ancora)
-Deploy: Vercel ricostruisce dal sorgente via build-esbuild.mjs (esiste). Non più dist/ prebuilt manuale.
+DraGold.jsx: ~2507 righe (verificato 2026-08-06, non ~3923 come riportato in precedenza)
+Deploy: Vercel builda con Vite (Framework Preset "Vite", Build Command = default = `npm run build` → `vite build`). build-esbuild.mjs esiste nel repo ma è LEGACY/NON USATO in produzione — non è il build step reale, non affidarsi alla sua presenza per capire cosa gira su Vercel.
 Git: non installato sul PC di Ermal → deploy via GitHub web (commit su main → Vercel auto-deploya).
 Lingue card live: en, ja, it, es, pt, id (priorità di lavoro: solo en, ja)
 
@@ -26,21 +26,21 @@ npm run dev # Vite dev server → localhost:5173
 
 Deploy production (regola attuale):
 
-Modifica file → commit su main via GitHub web (upload/edit)
-Vercel rileva il push e ricostruisce dal sorgente con build-esbuild.mjs
+Modifica file → commit su main via GitHub web (upload/edit, o github.dev per commit multi-file)
+Vercel rileva il push e builda con Vite (`vite build`, preset rilevato automaticamente, nessun override di build command)
 Production live su dragold.org in ~10-30s
 
-NOTA: build-esbuild.mjs ESISTE ed è il build step usato da Vercel. La vecchia regola "solo dist/ prebuilt manuale" è superata.
+NOTA (corretta 2026-08-06): il build step reale usato da Vercel è Vite (`vite build`), confermato da Vercel → Settings → Build and Deployment (Framework Preset: Vite, Build Command: default/non in override). build-esbuild.mjs è uno script alternativo rimasto nel repo (avviabile a mano con `npm run build:esbuild`) ma NON è quello che gira sui deploy reali. Le versioni precedenti di questo file affermavano il contrario: era un errore.
 
 Struttura
 src/
-DraGold.jsx ← UNICO file UI + logica (~3923 righe)
+DraGold.jsx ← file UI + logica principale, in fase di modularizzazione (vedi sotto) — ~2507 righe
 main.jsx ← Entry point
 supabase.js ← Client Supabase + auth + query DB
-styles.css ← Design system completo
+styles.css ← Design system completo (destinazione finale del CSS-in-JS oggi ancora dentro DraGold.jsx)
 
-build-esbuild.mjs ← Build step usato da Vercel (ricostruisce da sorgente)
-dist/ ← Output build (generata da Vercel)
+build-esbuild.mjs ← script di build alternativo, LEGACY, non usato da Vercel (vedi Deploy sopra)
+dist/ ← Output build (generata da Vercel via Vite)
 public/ ← Asset statici (favicon, manifest, ecc.)
 api/ ← Serverless functions Vercel (eBay search)
 
@@ -93,6 +93,7 @@ App live: https://dragold.org (principale) | https://dragold.vercel.app
 GitHub repo: https://github.com/dragold/DraGold (user: dragold)
 Upload file GitHub: https://github.com/dragold/DraGold/upload/main/{cartella}
 Modifica file GitHub: https://github.com/dragold/DraGold/edit/main/{file}
+Editor multi-file (github.dev): premere "." sulla repo, oppure https://github.dev/dragold/DraGold — usare quando un task tocca più file in un commit solo
 Vercel dashboard: https://vercel.com/dra-gold-s-projects (NON /dragold → 404)
 Supabase dashboard: https://supabase.com/dashboard/project/pimwkmwrduqkaydyvxqz
 Supabase SQL: https://supabase.com/dashboard/project/pimwkmwrduqkaydyvxqz/editor
@@ -101,8 +102,9 @@ Resend: https://resend.com/emails
 eBay Dev: https://developer.ebay.com/my/keys
 
 Deploy (regola fissa)
-Modifiche file → GitHub web (upload o edit)
-Commit su main → Vercel auto-deploya
+Modifiche file → GitHub web (upload/edit per singolo file, github.dev per commit multi-file)
+Commit su main → Vercel auto-deploya con Vite
+Per cambi rischiosi (es. modularizzazione, lazy loading): preferire un branch + Vercel preview deployment, verificare il preview, poi mergiare su main. Zero terminali locali, quindi il preview è l'unico modo per Ermal di verificare prima della produzione.
 Zero file .bat, zero terminali locali
 
 PWA Assets (aggiunto 2026-06-02)
@@ -114,11 +116,36 @@ apple-touch-icon.png 180×180
 manifest.webmanifest (aggiornato con nuovi icon paths)
 dist/index.html aggiornato con link favicon PNG + manifest
 
+Decisioni architetturali — modularizzazione DraGold.jsx (approvate 2026-08-06)
+
+Analisi tecnica condotta il 2026-08-06 ha corretto due assunzioni sbagliate di questo file: la dimensione reale di DraGold.jsx (~2507 righe, non ~3923) e il build tool reale in produzione (Vite, non build-esbuild.mjs). Sulla base dell'analisi, Ermal ha approvato la modularizzazione del file, sostituendo la vecchia regola "non splittare". Roadmap approvata, da seguire in ordine, senza saltare fasi:
+
+Fase 1 — Pulizia a rischio minimo (nessun cambio di logica o UX)
+Passo A — Estrarre il blocco CSS-in-JS (const CSS = `...`) da DraGold.jsx verso styles.css o un file dedicato del design system.
+Passo B — Centralizzare le variabili module-level condivise (_savedSearch, _setsMap, _setsLoadP, ed eventuali altre trovate durante il lavoro) in un piccolo layer state.js/lib — senza introdurre Redux/Zustand.
+
+Fase 2 — Modularizzazione progressiva per dominio (refactor incrementale, non big-bang)
+components/: CardItem, Icon, modali (Sheet/PortfolioModal/AlertModal/AuthModal), Search, altra UI condivisa.
+views/: MarketsView, PortfolioView, AlertsView, AssetView.
+DraGold.jsx diventa gradualmente un orchestratore (stato globale, header/nav, composizione delle view), non il contenitore di tutta la logica.
+
+Fase 3 — Nuove feature sempre fuori dal file principale
+Le nuove pagine della roadmap (Set, Character, Illustrator, Rarity, Series, Academy) nascono direttamente come file separati in views/ — non vanno mai aggiunte dentro DraGold.jsx, nemmeno temporaneamente.
+
+Fase 4 — Lazy loading (solo dopo la Fase 2/3, non prima)
+Una volta che le view sono file separati, introdurre React.lazy + Suspense per le pagine SEO pesanti, Academy, Collection e dashboard utente. Vite fa code-splitting automatico sugli import() dinamici, zero config aggiuntiva su vite.config.js. Non implementare lazy loading prima di aver separato i file: su un file monolitico non porta nessun beneficio reale.
+
+Vincoli da mantenere in ogni fase
+NON TypeScript per ora
+NON Redux/Zustand — useState scala bene
+Mantenere React semplice, niente librerie nuove oltre a quelle già presenti
+Mantenere il workflow GitHub web/github.dev + Vercel (preview deployment per cambi rischiosi, vedi sopra)
+Nessuna settimana di puro refactor senza shippare anche nuove feature — la modularizzazione procede in parallelo al lavoro su roadmap, non al suo posto
+
 Regole fondamentali
-NON splittare DraGold.jsx (ancora sotto 4000 righe)
 NON aggiungere build tools oltre a Vite
 NON usare Redux/Zustand — useState scala bene ora
 NON TypeScript finché non c'è product-market fit
-NON refactor estetico — solo bug fix
+NON refactor estetico — solo bug fix (eccetto la modularizzazione approvata sopra, che non è estetica: è struttura)
 NON impostare nuovo lavoro attorno a pricing/portfolio/alert come se fossero il core — sono Archived/Future Modules (vedi sopra)
 NON costruire nuove feature su pokemontcgio finché non è stabilizzata
