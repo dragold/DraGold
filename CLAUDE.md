@@ -54,7 +54,7 @@ src/
         └── CardPage.jsx
 
 Dettaglio:
-DraGold.jsx ← file UI + logica principale, in fase di modularizzazione (vedi sotto) — ~2507 righe
+DraGold.jsx ← file UI + logica principale, in fase di modularizzazione (vedi sotto) — ~1859 righe (dopo Fase B1)
 main.jsx ← Entry point
 pages/card/CardPage.jsx + cardPageData.js ← PRECEDENTE GIÀ ESISTENTE di pagina separata fuori da DraGold.jsx (la card detail page SEO). Le nuove pagine di Fase 3 (Set, Character, Illustrator, Rarity, Series) devono seguire questa stessa convenzione: src/pages/<entità>/<Entità>Page.jsx (+ un file dati sibling se serve), non la cartella views/ generica.
 DraGold.legacy.jsx ← file legacy, non toccare senza motivo esplicito
