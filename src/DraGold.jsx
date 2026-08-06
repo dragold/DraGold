@@ -5,6 +5,7 @@ import {
   addToCollection, listCollection, removeFromCollection,
   createAlert, listAlerts, deleteAlert, addToWatchlist,
 } from "./supabase.js";
+import { getSavedSearch, setSavedSearch, clearSavedSearch, loadSetsMap } from "./lib/state.js";
 
 /* ════════════════════════════════════════════════════════════════════════
    DraGold — SHELL (TASK 2)
@@ -222,7 +223,7 @@ export default function DraGold() {
   const [setsMap, setSetsMap] = useState(null);  // Map<tcg:code, setInfo>
 
   /* ── carica sets (loghi) ── */
-  useEffect(() => { _loadSetsMap().then(setSetsMap).catch(() => {}); }, []);
+  useEffect(() => { loadSetsMap().then(setSetsMap).catch(() => {}); }, []);
 
   /* ── sessione globale ── */
   useEffect(() => {
@@ -665,25 +666,7 @@ function Onboarding({ onDismiss }) {
    MARKETS — ricerca + hot picks
    ════════════════════════════════════════════════════════════════════════ */
 
-// Cache module-level: sopravvive all'unmount di MarketsView (es. apertura card detail)
-let _savedSearch = null;
-
-// ─── Sets cache: Map<"tcg:set_code", {set_code,tcg,set_name,logo_url,symbol_url}> ───
-let _setsMap = null;
-let _setsLoadP = null;
-function _loadSetsMap() {
-  if (_setsMap) return Promise.resolve(_setsMap);
-  if (!supabaseReady) return Promise.resolve((_setsMap = new Map()));
-  if (!_setsLoadP) {
-    _setsLoadP = supabase.from('set_logos').select('set_code,tcg,set_name,logo_url,symbol_url')
-      .then(({ data }) => {
-        _setsMap = new Map();
-        for (const s of (data || [])) _setsMap.set(`${s.tcg}:${s.set_code}`, s);
-        return _setsMap;
-      }).catch(() => (_setsMap = new Map()));
-  }
-  return _setsLoadP;
-}
+// savedSearch e sets cache centralizzate in ./lib/state.js (Fase 1 Passo B)
 // Estrae il set_code dal card_number e cerca in setsMap.
 // Pokemon: "sv3-125" → key "pokemon:sv3"  |  OP: "OP05-119" → key "onepiece:OP05"
 function getSetInfo(card, setsMap) {
@@ -694,13 +677,13 @@ function getSetInfo(card, setsMap) {
 }
 
 const JP_NAME_ALIASES = {"charizard":["リザードン"],"pikachu":["ピカチュウ"],"mewtwo":["ミュウツー"],"rayquaza":["レックウザ"],"bulbasaur":["フシギダネ"],"ivysaur":["フシギソウ"],"venusaur":["フシギバナ"],"charmander":["ヒトカゲ"],"charmeleon":["リザード"],"squirtle":["ゼニガメ"],"wartortle":["カメール"],"blastoise":["カメックス"],"raichu":["ライチュウ"],"clefairy":["ピッピ"],"vulpix":["ロコン"],"ninetales":["キュウコン"],"jigglypuff":["プリン"],"gastly":["ゴース"],"haunter":["ゴースト"],"gengar":["ゲンガー"],"onix":["イワーク"],"eevee":["イーブイ"],"vaporeon":["シャワーズ"],"jolteon":["サンダース"],"flareon":["ブースター"],"espeon":["エーフィ"],"umbreon":["ブラッキー"],"leafeon":["リーフィア"],"glaceon":["グレイシア"],"sylveon":["ニンフィア"],"snorlax":["カビゴン"],"dratini":["ミニリュウ"],"dragonair":["ハクリュー"],"dragonite":["カイリュー"],"mew":["ミュウ"],"lugia":["ルギア"],"celebi":["セレビィ"],"gyarados":["ギャラドス"],"lapras":["ラプラス"],"alakazam":["フーディン"],"gardevoir":["サーナイト"],"lucario":["ルカリオ"],"garchomp":["ガブリアス"],"greninja":["ゲッコウガ"],"tyranitar":["バンギラス"],"metagross":["メタグロス"],"salamence":["ボーマンダ"],"darkrai":["ダークライ"],"arceus":["アルセウス"],"palkia":["パルキア"],"dialga":["ディアルガ"],"giratina":["ギラティナ"],"reshiram":["レシラム"],"zekrom":["ゼクロム"],"kyurem":["キュレム"],"luffy":["ルフィ"],"zoro":["ゾロ"],"nami":["ナミ"],"sanji":["サンジ"],"chopper":["チョッパー"],"robin":["ロビン"],"franky":["フランキー"],"brook":["ブルック"],"ace":["エース"],"shanks":["シャンクス"]};function tokenize(s) { return (s || '').toLowerCase().split(/[^a-z0-9]+/).filter(Boolean); }    function rankSearchResults(cards, rawQuery) { const q = norm(rawQuery); const qWords = tokenize(rawQuery); const aliasList = [...(JP_NAME_ALIASES[q] || []), ...qWords.flatMap(w => JP_NAME_ALIASES[w] || [])]; const tier = (c) => { const n = norm(c.name || ''); const ne = norm(c.name_en || ''); const nWords = tokenize(c.name || ''); const neWords = tokenize(c.name_en || ''); const allWords = [...nWords, ...neWords]; if (n === q) return 0; if (ne === q) return 1; if (n.startsWith(q) || ne.startsWith(q)) return 2; if (qWords.length <= 1) { const w = qWords[0] || q; if (w && allWords.some(word => word === w)) return 3; if (w && allWords.some(word => word.startsWith(w))) return 3; } else if (qWords.every(qw => allWords.some(word => word === qw || word.startsWith(qw)))) { return 4; } if (aliasList.length && aliasList.some(a => (c.name || '').includes(a))) return 5; return 6; }; return [...cards].sort((a, b) => { const ta = tier(a), tb = tier(b); if (ta !== tb) return ta - tb; const cn = (a.card_number || '').localeCompare(b.card_number || ''); if (cn !== 0) return cn; return (a.id || '').localeCompare(b.id || ''); }); }function MarketsView({ country, cur, eurRate, onOpenAsset, setsMap }) {
-  const [q, setQ] = useState(() => _savedSearch?.q || "");
+  const [q, setQ] = useState(() => getSavedSearch()?.q || "");
   const [loading, setLoading] = useState(false);
-  const [results, setResults] = useState(() => _savedSearch?.results || []);
-  const [priceMap, setPriceMap] = useState(() => _savedSearch?.priceMap || {});
+  const [results, setResults] = useState(() => getSavedSearch()?.results || []);
+  const [priceMap, setPriceMap] = useState(() => getSavedSearch()?.priceMap || {});
   const [error, setError] = useState(null);
-  const [searched, setSearched] = useState(() => _savedSearch?.searched || false);
-  const [searchTerm, setSearchTerm] = useState(() => _savedSearch?.searchTerm || ""); const [visibleCount, setVisibleCount] = useState(() => _savedSearch?.visibleCount || 40);
+  const [searched, setSearched] = useState(() => getSavedSearch()?.searched || false);
+  const [searchTerm, setSearchTerm] = useState(() => getSavedSearch()?.searchTerm || ""); const [visibleCount, setVisibleCount] = useState(() => getSavedSearch()?.visibleCount || 40);
   const [showOnboard, setShowOnboard] = useState(() => {
     try { return !localStorage.getItem(ONBOARD_KEY); } catch { return false; }
   });
@@ -889,12 +872,12 @@ const JP_NAME_ALIASES = {"charizard":["リザードン"],"pikachu":["ピカチ�
 
   // Salva lo stato di ricerca prima di aprire il dettaglio carta, così il back restaura i risultati
   const handleOpenAsset = useCallback((card) => {
-    _savedSearch = { q, results, priceMap, searched, searchTerm, visibleCount };
+    setSavedSearch({ q, results, priceMap, searched, searchTerm, visibleCount });
     onOpenAsset(card);
   }, [q, results, priceMap, searched, searchTerm, visibleCount, onOpenAsset]);
 
   useEffect(() => { const onScroll = () => { if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 300) { setVisibleCount(v => Math.min(v + 40, results.length)); } }; window.addEventListener('scroll', onScroll); return () => window.removeEventListener('scroll', onScroll); }, [results.length]); const onSubmit = (e) => { e.preventDefault(); runSearch(q); };
-  const clearSearch = () => { _savedSearch = null; setSearched(false); setResults([]); setPriceMap({}); setError(null); setVisibleCount(40); };
+  const clearSearch = () => { clearSavedSearch(); setSearched(false); setResults([]); setPriceMap({}); setError(null); setVisibleCount(40); };
 
   return (
     <section className="view">
