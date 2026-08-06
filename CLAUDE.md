@@ -36,8 +36,10 @@ Struttura
 src/
 DraGold.jsx ← file UI + logica principale, in fase di modularizzazione (vedi sotto) — ~2507 righe
 main.jsx ← Entry point
+pages/card/CardPage.jsx + cardPageData.js ← PRECEDENTE GIÀ ESISTENTE di pagina separata fuori da DraGold.jsx (la card detail page SEO). Le nuove pagine di Fase 3 (Set, Character, Illustrator, Rarity, Series) devono seguire questa stessa convenzione: src/pages/<entità>/<Entità>Page.jsx (+ un file dati sibling se serve), non la cartella views/ generica.
+DraGold.legacy.jsx ← file legacy, non toccare senza motivo esplicito
 supabase.js ← Client Supabase + auth + query DB
-styles.css ← Design system completo (destinazione finale del CSS-in-JS oggi ancora dentro DraGold.jsx)
+styles.css ← NON esiste ancora (verificato 2026-08-06: nessun file styles.css in src/). Il design system è ancora tutto dentro il CSS-in-JS di DraGold.jsx. La Fase 1 Passo A crea questo file da zero, non lo estende.
 
 build-esbuild.mjs ← script di build alternativo, LEGACY, non usato da Vercel (vedi Deploy sopra)
 dist/ ← Output build (generata da Vercel via Vite)
@@ -130,7 +132,7 @@ views/: MarketsView, PortfolioView, AlertsView, AssetView.
 DraGold.jsx diventa gradualmente un orchestratore (stato globale, header/nav, composizione delle view), non il contenitore di tutta la logica.
 
 Fase 3 — Nuove feature sempre fuori dal file principale
-Le nuove pagine della roadmap (Set, Character, Illustrator, Rarity, Series, Academy) nascono direttamente come file separati in views/ — non vanno mai aggiunte dentro DraGold.jsx, nemmeno temporaneamente.
+Le nuove pagine della roadmap (Set, Character, Illustrator, Rarity, Series, Academy) nascono direttamente come file separati in src/pages/<entità>/ — seguendo la convenzione già stabilita da src/pages/card/CardPage.jsx (vedi Struttura sopra), non una cartella views/ generica. Non vanno mai aggiunte dentro DraGold.jsx, nemmeno temporaneamente.
 
 Fase 4 — Lazy loading (solo dopo la Fase 2/3, non prima)
 Una volta che le view sono file separati, introdurre React.lazy + Suspense per le pagine SEO pesanti, Academy, Collection e dashboard utente. Vite fa code-splitting automatico sugli import() dinamici, zero config aggiuntiva su vite.config.js. Non implementare lazy loading prima di aver separato i file: su un file monolitico non porta nessun beneficio reale.
