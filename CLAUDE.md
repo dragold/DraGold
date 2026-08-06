@@ -34,12 +34,22 @@ NOTA (corretta 2026-08-06): il build step reale usato da Vercel è Vite (`vite b
 
 Struttura
 src/
+├── DraGold.jsx        (app shell/orchestrazione)
+├── styles.css         (CSS globale)
+├── lib/
+│   └── state.js       (cache e stato condiviso minimale)
+└── pages/
+    └── card/
+        └── CardPage.jsx
+
+Dettaglio:
 DraGold.jsx ← file UI + logica principale, in fase di modularizzazione (vedi sotto) — ~2507 righe
 main.jsx ← Entry point
 pages/card/CardPage.jsx + cardPageData.js ← PRECEDENTE GIÀ ESISTENTE di pagina separata fuori da DraGold.jsx (la card detail page SEO). Le nuove pagine di Fase 3 (Set, Character, Illustrator, Rarity, Series) devono seguire questa stessa convenzione: src/pages/<entità>/<Entità>Page.jsx (+ un file dati sibling se serve), non la cartella views/ generica.
 DraGold.legacy.jsx ← file legacy, non toccare senza motivo esplicito
 supabase.js ← Client Supabase + auth + query DB
-styles.css ← NON esiste ancora (verificato 2026-08-06: nessun file styles.css in src/). Il design system è ancora tutto dentro il CSS-in-JS di DraGold.jsx. La Fase 1 Passo A crea questo file da zero, non lo estende.
+styles.css ← CSS globale, estratto da DraGold.jsx il 2026-08-06 (Fase 1 Passo A, branch chore/extract-css). Design system centralizzato qui, non più CSS-in-JS.
+lib/state.js ← cache e stato condiviso minimale (savedSearch, sets cache) — estratto da DraGold.jsx il 2026-08-06 (Fase 1 Passo B, branch refactor/centralize-module-state). Vedi "Shared State Rule" più sotto per la regola permanente su dove deve vivere lo stato condiviso.
 
 build-esbuild.mjs ← script di build alternativo, LEGACY, non usato da Vercel (vedi Deploy sopra)
 dist/ ← Output build (generata da Vercel via Vite)
@@ -122,9 +132,9 @@ Decisioni architetturali — modularizzazione DraGold.jsx (approvate 2026-08-06)
 
 Analisi tecnica condotta il 2026-08-06 ha corretto due assunzioni sbagliate di questo file: la dimensione reale di DraGold.jsx (~2507 righe, non ~3923) e il build tool reale in produzione (Vite, non build-esbuild.mjs). Sulla base dell'analisi, Ermal ha approvato la modularizzazione del file, sostituendo la vecchia regola "non splittare". Roadmap approvata, da seguire in ordine, senza saltare fasi:
 
-Fase 1 — Pulizia a rischio minimo (nessun cambio di logica o UX)
-Passo A — Estrarre il blocco CSS-in-JS (const CSS = `...`) da DraGold.jsx verso styles.css o un file dedicato del design system.
-Passo B — Centralizzare le variabili module-level condivise (_savedSearch, _setsMap, _setsLoadP, ed eventuali altre trovate durante il lavoro) in un piccolo layer state.js/lib — senza introdurre Redux/Zustand.
+Fase 1 — Stabilizzazione architetturale — COMPLETATA il 2026-08-06
+✅ Passo A — CSS extraction: CSS-in-JS spostato da DraGold.jsx a styles.css (branch chore/extract-css, mergiato in main).
+✅ Passo B — Module-level state cleanup: _savedSearch, _setsMap, _setsLoadP e _loadSetsMap centralizzati in src/lib/state.js (branch refactor/centralize-module-state, mergiato in main). Vedi "Shared State Rule" sotto per la regola permanente.
 
 Fase 2 — Modularizzazione progressiva per dominio (refactor incrementale, non big-bang)
 components/: CardItem, Icon, modali (Sheet/PortfolioModal/AlertModal/AuthModal), Search, altra UI condivisa.
@@ -143,6 +153,18 @@ NON Redux/Zustand — useState scala bene
 Mantenere React semplice, niente librerie nuove oltre a quelle già presenti
 Mantenere il workflow GitHub web/github.dev + Vercel (preview deployment per cambi rischiosi, vedi sopra)
 Nessuna settimana di puro refactor senza shippare anche nuove feature — la modularizzazione procede in parallelo al lavoro su roadmap, non al suo posto
+
+## Shared State Rule
+
+Lo stato condiviso tra componenti React non deve essere dichiarato direttamente in DraGold.jsx.
+Nuove cache, singleton o variabili persistenti tra mount devono vivere in:
+src/lib/state.js
+
+Regole:
+- mantenere il pattern minimale attuale
+- nessun Redux/Zustand senza decisione esplicita
+- non spostare costanti statiche/configurazioni solo per motivi estetici
+- ogni nuovo stato condiviso deve avere una responsabilità chiara
 
 Regole fondamentali
 NON aggiungere build tools oltre a Vite
