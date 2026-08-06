@@ -42,6 +42,7 @@ src/
 │   └── searchData.js  (LANG_ALIASES, RARITY_TOKENS, JP_NAME_ALIASES)
 ├── components/
 │   ├── search/
+│   │   ├── SearchView.jsx  (ex MarketsView, orchestratore ricerca — vedi Fase B2)
 │   │   ├── SearchResultItem.jsx  (ex CardItem)
 │   │   ├── SearchResults.jsx
 │   │   └── HotPicksSection.jsx
@@ -60,10 +61,11 @@ pages/card/CardPage.jsx + cardPageData.js ← PRECEDENTE GIÀ ESISTENTE di pagin
 DraGold.legacy.jsx ← file legacy, non toccare senza motivo esplicito
 supabase.js ← Client Supabase + auth + query DB
 styles.css ← CSS globale, estratto da DraGold.jsx il 2026-08-06 (Fase 1 Passo A, branch chore/extract-css). Design system centralizzato qui, non più CSS-in-JS.
-lib/state.js ← cache e stato condiviso minimale (savedSearch, sets cache) — estratto da DraGold.jsx il 2026-08-06 (Fase 1 Passo B, branch refactor/centralize-module-state). Vedi "Shared State Rule" più sotto per la regola permanente su dove deve vivere l
+lib/state.js ← cache e stato condiviso minimale (savedSearch, sets cache) — estratto da DraGold.jsx il 2026-08-06 (Fase 1 Passo B, branch refactor/centralize-module-state). Vedi "Shared State Rule" più sotto per la regola permanente su dove deve vivere lo stato condiviso.
 
 lib/search.js ← norm, tokenize, rankSearchResults — estratto da DraGold.jsx il 2026-08-06 (Fase B1, branch refactor/extract-search-component, PR #3 merged con merge commit su main).
 lib/searchData.js ← LANG_ALIASES, RARITY_TOKENS, JP_NAME_ALIASES — estratto da DraGold.jsx il 2026-08-06 (Fase B1, stesso branch/PR di lib/search.js).
+components/search/SearchView.jsx ← ex MarketsView, orchestratore della ricerca (query, run search, stato risultati) — estratto da DraGold.jsx il 2026-08-06 (Fase B2, branch refactor/search-decoupling, PR #4 merged con merge commit su main). Non importa lib/state.js: riceve initialSearchState via prop e notifica i cambi con onSearchStateChange/onSearchStateClear. Vedi regola architetturale sotto.
 components/search/SearchResultItem.jsx ← rinominato da CardItem — card risultato ricerca (Fase B1).
 components/search/SearchResults.jsx ← lista/paginazione risultati ricerca, usa SearchResultItem (Fase B1).
 components/search/HotPicksSection.jsx ← sezione "Hot Picks" in home, usa SearchResultItem (Fase B1).
@@ -71,7 +73,9 @@ components/shared/Icon.jsx ← libreria icone SVG condivisa (Fase B1, spostata d
 components/shared/Onboarding.jsx ← modale onboarding primo accesso (Fase B1, spostata da dentro DraGold.jsx).
 components/shared/cardImage.js ← pickCardImage, getSetInfo (Fase B1, spostate da dentro DraGold.jsx).
 
-Fase B1 — Estrazione strutturale Search: conclusa il 2026-08-06. Estrazione puramente strutturale, zero cambi di comportamento (verificato su preview e su produzione: Markets, Search con query reale, apertura Asset/Card, ritorno ai risultati, Portfolio, Alerts — tutto invariato, zero errori console). TCG_LIST, CARD_LANGS ed ebaySearchURL sono ora esportati da DraGold.jsx per supportare l'import circolare con i nuovi componenti search (stessa firma, stesso flusso dati). Prossimo step: Fase B2 (decoupling — il componente Search smette di leggere direttamente da lib/state.js), su branch dedicato refactor/search-decoupling, previo piano tecnico approvato.o stato condiviso.
+Fase B1 — Estrazione strutturale Search: conclusa il 2026-08-06. Estrazione puramente strutturale, zero cambi di comportamento (verificato su preview e su produzione: Markets, Search con query reale, apertura Asset/Card, ritorno ai risultati, Portfolio, Alerts — tutto invariato, zero errori console). TCG_LIST, CARD_LANGS ed ebaySearchURL sono ora esportati da DraGold.jsx per supportare l'import circolare con i nuovi componenti search (stessa firma, stesso flusso dati). Prossimo step: Fase B2 (decoupling — il componente Search smette di leggere direttamente da lib/state.js), su branch dedicato refactor/search-decoupling, previo piano tecnico approvato.
+
+Fase B2 — Search decoupling: conclusa il 2026-08-06. MarketsView rinominato SearchView e spostato in components/search/SearchView.jsx; non importa più getSavedSearch/setSavedSearch/clearSavedSearch da lib/state.js. DraGold.jsx è ora l'unico punto che chiama quelle tre funzioni: legge lo stato salvato una volta e lo passa a SearchView come prop initialSearchState, e implementa onSearchStateChange/onSearchStateClear passando direttamente setSavedSearch/clearSavedSearch. Nessun cambio a runSearch, ranking, query Supabase, Hot Picks, SearchResults, SearchResultItem, cardImage, Icon, Onboarding. Verificato su preview e produzione: ricerca reale, apertura Asset, ritorno ai risultati (stato preservato), Portfolio, Alerts — tutto invariato, zero errori console. PR #4, merge commit e55d6b5.
 
 build-esbuild.mjs ← script di build alternativo, LEGACY, non usato da Vercel (vedi Deploy sopra)
 dist/ ← Output build (generata da Vercel via Vite)
@@ -187,6 +191,8 @@ Regole:
 - nessun Redux/Zustand senza decisione esplicita
 - non spostare costanti statiche/configurazioni solo per motivi estetici
 - ogni nuovo stato condiviso deve avere una responsabilità chiara
+
+I componenti di dominio (es. components/search/SearchView.jsx) non devono importare direttamente lib/state.js. La persistenza dello stato condiviso è responsabilità del livello orchestratore (DraGold.jsx o del futuro router/root), mentre i componenti ricevono lo stato tramite props e notificano le modifiche tramite callback (vedi Fase B2 — Search decoupling).
 
 Regole fondamentali
 NON aggiungere build tools oltre a Vite
