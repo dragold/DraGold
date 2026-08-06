@@ -6,6 +6,13 @@ import {
   createAlert, listAlerts, deleteAlert, addToWatchlist,
 } from "./supabase.js";
 import { getSavedSearch, setSavedSearch, clearSavedSearch, loadSetsMap } from "./lib/state.js";
+import { Icon } from "./components/shared/Icon.jsx";
+import { Onboarding, ONBOARD_KEY } from "./components/shared/Onboarding.jsx";
+import { pickCardImage, getSetInfo } from "./components/shared/cardImage.js";
+import { SearchResults } from "./components/search/SearchResults.jsx";
+import { HotPicksSection } from "./components/search/HotPicksSection.jsx";
+import { norm, rankSearchResults } from "./lib/search.js";
+import { LANG_ALIASES, RARITY_TOKENS, JP_NAME_ALIASES } from "./lib/searchData.js";
 
 /* ════════════════════════════════════════════════════════════════════════
    DraGold — SHELL (TASK 2)
@@ -37,7 +44,7 @@ export function ebayURL(name, setName="", country="US", tcg="pokemon", cardNumbe
   return `https://www.${site.domain}/sch/i.html?_nkw=${encodeURIComponent(q)}&_sop=12&LH_BIN=1${cat}&mkcid=1&mkrid=${site.mkrid}&siteid=${site.siteid}&campid=${EBAY_CAMP}&toolid=10001&mkevt=1${loc}`;
 }
 // Affiliate URL per ricerca raw (senza suffisso TCG) — usato nel fallback "no results"
-function ebaySearchURL(query, country="IT") {
+export function ebaySearchURL(query, country="IT") {
   const site = EBAY_SITES[country] || EBAY_SITES.IT;
   const loc = EU_CC.includes(country) ? "&LH_PrefLoc=1" : "";
   return `https://www.${site.domain}/sch/i.html?_nkw=${encodeURIComponent(query)}&_sop=12&LH_BIN=1&mkcid=1&mkrid=${site.mkrid}&siteid=${site.siteid}&campid=${EBAY_CAMP}&toolid=10001&mkevt=1${loc}`;
@@ -70,35 +77,6 @@ const CARD_LANGS = [
   { c:"it", flag:"🇮🇹", label:"IT", live:true }, { c:"de", flag:"🇩🇪", label:"DE", live:true }, { c:"fr", flag:"🇫🇷", label:"FR", live:true }, { c:"es", flag:"🇪🇸", label:"ES", live:true }, { c:"pt", flag:"🇵🇹", label:"PT", live:true }, { c:"id", flag:"🇮🇩", label:"ID", live:true }, { c:"ko", flag:"🇰🇷", label:"KO", live:true }, { c:"de", flag:"🇩🇪", label:"DE", live:true }, { c:"fr", flag:"🇫🇷", label:"FR", live:true }, { c:"es", flag:"🇪🇸", label:"ES", live:true }, { c:"pt", flag:"🇵🇹", label:"PT", live:true }, { c:"id", flag:"🇮🇩", label:"ID", live:true }, { c:"ko", flag:"🇰🇷", label:"KO", live:true },
 ];
 
-// Alias lingua: l'utente può scrivere "jp" o "jpn" e trovare carte lang="ja", ecc.
-// Usato nella ricerca per aggiungere un `lang.eq.X` all'OR quando il token è un alias noto.
-const LANG_ALIASES = {
-  // Japanese
-  jp:'ja', jpn:'ja', jap:'ja', japanese:'ja',
-  // English
-  eng:'en', english:'en',
-  // Italian
-  ita:'it', italian:'it', italiano:'it',
-  // Spanish
-  esp:'es', spa:'es', spanish:'es', espanol:'es',
-  // Portuguese
-  por:'pt', bra:'pt', portuguese:'pt', portugues:'pt',
-  // Indonesian
-  ind:'id', indonesian:'id', indonesia:'id',
-  // Korean
-  kor:'ko', kr:'ko', korean:'ko',
-  // French
-  fra:'fr', fre:'fr', french:'fr', francais:'fr',
-  // German
-  deu:'de', ger:'de', german:'de', deutsch:'de',
-};
-// Token che possono matchare rarity: aggiungiamo rarity.ilike solo se il token
-// è una parola di rarità nota — evita full scan su "charizard", "op05", ecc.
-const RARITY_TOKENS = new Set(['rare','holo','secret','common','uncommon','promo','ultra',
-  'hyper','rainbow','full','illustration','art','trainer','double','amazing','radiant',
-  'shiny','vmax','vstar','vunion','gold','platinum','mythic','epic','legend','super',
-  'special','classic','collection','alternate','foil','parallel','prism']);
-
 /* ─── Tabs core ─── */
 const TABS = [
   { id:"markets",   label:"Markets",   icon:"search" },
@@ -110,27 +88,6 @@ const UPCOMING = [
   { id:"blog",      label:"Blog",      icon:"doc",     desc:"Guides, market analysis, news." },
   { id:"community", label:"Community", icon:"users",   desc:"Share and compare your cards." },
 ];
-
-/* ─── Icone SVG inline (no librerie) ─── */
-function Icon({ name, size=20, stroke=2 }) {
-  const p = { width:size, height:size, viewBox:"0 0 24 24", fill:"none",
-    stroke:"currentColor", strokeWidth:stroke, strokeLinecap:"round", strokeLinejoin:"round" };
-  switch (name) {
-    case "search": return <svg {...p}><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>;
-    case "wallet": return <svg {...p}><path d="M3 7h16a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h12"/><path d="M16 13h.01"/></svg>;
-    case "bell": return <svg {...p}><path d="M6 8a6 6 0 0 1 12 0c0 7 3 8 3 8H3s3-1 3-8"/><path d="M10.3 21a2 2 0 0 0 3.4 0"/></svg>;
-    case "grid": return <svg {...p}><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>;
-    case "doc": return <svg {...p}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M8 13h8M8 17h6"/></svg>;
-    case "users": return <svg {...p}><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/></svg>;
-    case "card": return <svg {...p}><rect x="4" y="2.5" width="16" height="19" rx="2"/><path d="M8 7h8M8 11h5"/></svg>;
-    case "chevron": return <svg {...p}><path d="M9 18l6-6-6-6"/></svg>;
-    case "close": return <svg {...p}><path d="M18 6 6 18M6 6l12 12"/></svg>;
-    case "logout": return <svg {...p}><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></svg>;
-    case "mail": return <svg {...p}><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 6-10 7L2 6"/></svg>;
-    case "spark": return <svg {...p}><path d="M3 17l5-6 4 4 6-8 3 4"/></svg>;
-    default: return null;
-  }
-}
 
 /* ─── Placeholder immagine carta (Fix #4) — mai immagine rotta ─── */
 function CardThumb({ name="", size=44 }) {
@@ -409,274 +366,7 @@ export default function DraGold() {
     </div>
   );
 }
-
-/* ─── norm: normalizza per confronto punteggiatura (Fix #1) ─── */
-function norm(s) {
-  return (s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-}
-
-/* ─── pickCardImage: priorita immagine — 1) card_image_cache (status ready), 2) image_url_hi/image_url originale, 3) null -> placeholder ─── */
-function pickCardImage(obj) {
-    if (!obj) return null;
-    const cache = Array.isArray(obj.card_image_cache) ? obj.card_image_cache : [];
-    const ready = cache.find(function (c) { return c && c.status === 'ready' && c.cached_url; });
-    if (ready) return ready.cached_url;
-    return obj.image_url_hi || obj.image_url || null;
-}
-
-/* ─── CardItem — componente riusabile: Markets + Hot picks + Portfolio ─── */
-function CardItem({ card, priceInfo, country = "IT", cur = "EUR", eurRate = 0.92, onOpen, setsMap }) {
-  const [imgFailed, setImgFailed] = useState(false);
-  const imgUrl = pickCardImage(card) || card.imgUrl || card.img || null;
-  const cardName = card.name || "—";
-  const tcgInfo = TCG_LIST.find(t => t.id === card.tcg);
-  const langInfo = CARD_LANGS.find(l => l.c === card.lang);
-  const setInfo = getSetInfo(card, setsMap);
-  const priceUSD = priceInfo?.price_market ?? card.avgPrice ?? null;
-  const priceStr = priceUSD != null
-    ? cur === "EUR" ? `€${(priceUSD * eurRate).toFixed(2)}` : `$${Number(priceUSD).toFixed(2)}`
-    : null;
-  const initials = cardName.replace(/[^a-zA-Z ]/g, '').trim()
-    .split(/\s+/).slice(0, 2).map(w => w[0] || '').join('').toUpperCase() || '?';
-
-  return (
-    <div className="card-item" onClick={() => onOpen?.(card)}
-      role="button" tabIndex={0}
-      onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onOpen?.(card); } }}>
-      <div className="card-item-img">
-        {imgUrl && !imgFailed ? (
-          <img src={imgUrl} alt={cardName} loading="lazy" onError={() => setImgFailed(true)} />
-        ) : (
-          <div className="card-img-ph">
-            {tcgInfo && <span className="card-img-ph-tcg" style={{ color: tcgInfo.color }}>{tcgInfo.short}</span>}
-            <span className="card-img-ph-init">{initials}</span>
-          </div>
-        )}
-      </div>
-      <div className="card-item-body">
-        <div className="card-item-name" title={cardName}>{cardName}</div>
-        <div className="card-item-meta">
-          {setInfo?.symbol_url && <img src={setInfo.symbol_url} alt="" className="card-item-sym" onError={e=>{e.currentTarget.style.display='none';}} />}
-          {card.set_name && <span className="card-item-set">{card.set_name}</span>}
-          {card.card_number && <span className="card-item-num">#{card.card_number}</span>}
-          {langInfo && <span className="card-item-lang">{langInfo.flag}</span>}
-        </div>
-        <div className="card-item-footer">
-          {priceStr
-            ? <span className="price-tag">{priceStr}</span>
-            : (
-              <a className="btn-ebay"
-                href={ebayURL(cardName, card.set_name || '', country, card.tcg || 'pokemon', card.card_number || '')}
-                target="_blank" rel="noreferrer"
-                onClick={e => e.stopPropagation()}>
-                View on eBay ↗
-              </a>
-            )
-          }
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* ─── SearchResults — stati: loading / error / vuoto / risultati ─── */
-function SearchResults({ loading, results, priceMap, error, term, country, cur, eurRate, onRetry, onOpen, setsMap }) {
-  if (loading) return (
-    <div className="card-grid">
-      {Array.from({ length: 6 }).map((_, i) => (
-        <div key={i} className="skel-card">
-          <div className="skel-img" /><div className="skel-line w70" /><div className="skel-line w40" />
-        </div>
-      ))}
-    </div>
-  );
-  if (error) return (
-    <div className="search-error">
-      <span style={{ flexShrink: 0 }}><Icon name="close" size={16} /></span>
-      <span>Search failed, please try.</span>
-      <button className="btn btn-ghost btn-sm" style={{ marginLeft: 'auto' }} onClick={onRetry}>Retry</button>
-    </div>
-  );
-  if (!results.length) return (
-    <div className="zero-state">
-      <div className="zero-title">No results for "{term}"</div>
-      <div className="zero-sub">Try fewer words or the card number.</div>
-      <a className="btn btn-ghost"
-        href={ebaySearchURL(term, country)}
-        target="_blank" rel="noreferrer">
-        Search "{term}" on eBay
-      </a>
-    </div>
-  );
-  return (
-    <div className="card-grid">
-      {results.map(card => (
-        <CardItem key={card.id} card={card} priceInfo={priceMap[card.id] || null}
-          country={country} cur={cur} eurRate={eurRate} onOpen={onOpen} setsMap={setsMap} />
-      ))}
-    </div>
-  );
-}
-
-/* ─── HotPicksSection — usa la tabella hot_picks (precalcolata dal cron) invece di live eBay (P0.2) ─── */
-function HotPicksSection({ country = "IT", cur = "EUR", eurRate = 0.92, onOpen }) {
-  // Fallback curato: carte reali del catalogo (id verificati in DB), usato solo se
-  // hot_picks non ha ancora righe per oggi (es. cron non ancora girato) o ne ha poche.
-  // Niente più chiamate live a eBay: prezzo letto da card_prices via card_prices_latest.
-  const FALLBACK_IDS = [
-    'pokemon:tcgdex:me02-013:en', // Mega Charizard X ex
-    'pokemon:tcgdex:xy6-76:en',   // M Rayquaza EX
-    'onepiece:optcg:ST18-005:en', // Luffy-Tarou SR
-    'onepiece:optcg:OP01-121:en', // Yamato SEC (Romance Dawn)
-  ];
-
-  const [picks, setPicks] = useState([]);
-  const [loadingPicks, setLoadingPicks] = useState(true);
-  const CACHE_KEY = 'dg_hotpicks_v4';
-  const CACHE_TTL = 30 * 60 * 1000;
-
-  useEffect(() => {
-    if (!supabaseReady) { setLoadingPicks(false); return; }
-    let cancelled = false;
-    try {
-      const c = JSON.parse(sessionStorage.getItem(CACHE_KEY) || '{}');
-      if (c.ts && Date.now() - c.ts < CACHE_TTL && c.data?.length) {
-        setPicks(c.data); setLoadingPicks(false); return;
-      }
-    } catch {}
-    (async () => {
-      try {
-        const today = new Date().toISOString().slice(0, 10);
-        const { data: hp } = await supabase
-          .from('hot_picks')
-          .select('rank, card_id, delta_pct, current_price')
-          .eq('computed_date', today)
-          .order('rank', { ascending: true })
-          .limit(12);
-
-        const hpRows = hp || [];
-        const haveIds = new Set(hpRows.map(r => r.card_id));
-        const fillIds = FALLBACK_IDS.filter(id => !haveIds.has(id));
-        const neededIds = [...hpRows.map(r => r.card_id), ...fillIds];
-
-        let cardsById = {};
-        if (neededIds.length) {
-          const { data: cardsRows } = await supabase
-            .from('cards')
-            .select('id,name,set_name,card_number,tcg,lang,image_url,image_url_hi,card_image_cache(cached_url,status)')
-            .in('id', neededIds);
-          for (const c of (cardsRows || [])) cardsById[c.id] = c;
-        }
-
-        const fromHotPicks = hpRows
-          .filter(r => cardsById[r.card_id])
-          .map(r => ({ ...cardsById[r.card_id], avgPrice: r.current_price }));
-
-        let fromFallback = [];
-        if (fillIds.length) {
-          const { data: priceRows } = await supabase
-            .from('card_prices')
-            .select('card_id,price_market,captured_at')
-            .in('card_id', fillIds)
-            .order('captured_at', { ascending: false });
-          const latestPrice = {};
-          for (const p of (priceRows || [])) { if (!(p.card_id in latestPrice)) latestPrice[p.card_id] = p.price_market; }
-          fromFallback = fillIds
-            .filter(id => cardsById[id])
-            .map(id => ({ ...cardsById[id], avgPrice: latestPrice[id] ?? null }));
-        }
-
-        const combined = [...fromHotPicks, ...fromFallback].slice(0, 12);
-        if (!cancelled) {
-          setPicks(combined);
-          try { sessionStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), data: combined })); } catch {}
-        }
-      } catch {}
-      finally { if (!cancelled) setLoadingPicks(false); }
-    })();
-    return () => { cancelled = true; };
-  }, []);
-
-  return (
-    <>
-      <div className="sec-h">
-        <span className="sec-h-t"><Icon name="spark" size={14} /> Hot picks</span>
-        <span className="sec-h-line" />
-      </div>
-      {loadingPicks ? (
-        <div className="card-grid">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="skel-card">
-              <div className="skel-img" /><div className="skel-line w70" /><div className="skel-line w40" />
-            </div>
-          ))}
-        </div>
-      ) : picks.length > 0 ? (
-        <div className="card-grid">
-          {picks.map(card => (
-            <CardItem key={card.id} card={card} priceInfo={null}
-              country={country} cur={cur} eurRate={eurRate} onOpen={onOpen} />
-          ))}
-        </div>
-      ) : (
-        <p className="hint-center">Hot picks updating. Start by searching a card above.</p>
-      )}
-    </>
-  );
-}
-/* ════════════════════════════════════════════════════════════════════════
-   ONBOARDING — 3 step inline, dismissibile (primo accesso)
-   ════════════════════════════════════════════════════════════════════════ */
-const ONBOARD_KEY = 'dg_ob_v1';
-const ONBOARD_STEPS = [
-  { icon:"search", label:"Search",    title:"Search a card",     desc:"Find any Pokémon, One Piece, Magic or Yu-Gi-Oh! card and see its real market price." },
-  { icon:"wallet", label:"Portfolio", title:"Add to Portfolio",  desc:"Log cards you own and track their value vs what you paid — your TCG P&L." },
-  { icon:"bell",   label:"Alert",     title:"Set a price alert", desc:"Get an email when any card crosses your threshold. Never miss a move." },
-];
-function Onboarding({ onDismiss }) {
-  const [step, setStep] = useState(0);
-  const s = ONBOARD_STEPS[step];
-  return (
-    <div className="onboard">
-      <div className="onboard-pills">
-        {ONBOARD_STEPS.map((st, i) => (
-          <button key={i} className={`onboard-pill${step===i?' on':''}`} onClick={()=>setStep(i)}>
-            <span className="onboard-n">{i+1}</span>
-            <span>{st.label}</span>
-          </button>
-        ))}
-      </div>
-      <div className="onboard-body">
-        <div className="onboard-ic"><Icon name={s.icon} size={22}/></div>
-        <div className="onboard-title">{s.title}</div>
-        <div className="onboard-desc">{s.desc}</div>
-      </div>
-      <div className="onboard-foot">
-        {step < ONBOARD_STEPS.length - 1
-          ? <button className="btn btn-ghost btn-sm" onClick={()=>setStep(p=>p+1)}>Next →</button>
-          : <button className="btn btn-primary btn-sm" onClick={onDismiss}>Get started</button>
-        }
-        <button className="onboard-skip" onClick={onDismiss}>Skip</button>
-      </div>
-    </div>
-  );
-}
-
-/* ════════════════════════════════════════════════════════════════════════
-   MARKETS — ricerca + hot picks
-   ════════════════════════════════════════════════════════════════════════ */
-
-// savedSearch e sets cache centralizzate in ./lib/state.js (Fase 1 Passo B)
-// Estrae il set_code dal card_number e cerca in setsMap.
-// Pokemon: "sv3-125" → key "pokemon:sv3"  |  OP: "OP05-119" → key "onepiece:OP05"
-function getSetInfo(card, setsMap) {
-  if (!setsMap || !card?.card_number?.includes('-')) return null;
-  const prefix = card.card_number.split('-')[0];
-  const key = `${card.tcg}:${card.tcg === 'pokemon' ? prefix.toLowerCase() : prefix}`;
-  return setsMap.get(key) || null;
-}
-
-const JP_NAME_ALIASES = {"charizard":["リザードン"],"pikachu":["ピカチュウ"],"mewtwo":["ミュウツー"],"rayquaza":["レックウザ"],"bulbasaur":["フシギダネ"],"ivysaur":["フシギソウ"],"venusaur":["フシギバナ"],"charmander":["ヒトカゲ"],"charmeleon":["リザード"],"squirtle":["ゼニガメ"],"wartortle":["カメール"],"blastoise":["カメックス"],"raichu":["ライチュウ"],"clefairy":["ピッピ"],"vulpix":["ロコン"],"ninetales":["キュウコン"],"jigglypuff":["プリン"],"gastly":["ゴース"],"haunter":["ゴースト"],"gengar":["ゲンガー"],"onix":["イワーク"],"eevee":["イーブイ"],"vaporeon":["シャワーズ"],"jolteon":["サンダース"],"flareon":["ブースター"],"espeon":["エーフィ"],"umbreon":["ブラッキー"],"leafeon":["リーフィア"],"glaceon":["グレイシア"],"sylveon":["ニンフィア"],"snorlax":["カビゴン"],"dratini":["ミニリュウ"],"dragonair":["ハクリュー"],"dragonite":["カイリュー"],"mew":["ミュウ"],"lugia":["ルギア"],"celebi":["セレビィ"],"gyarados":["ギャラドス"],"lapras":["ラプラス"],"alakazam":["フーディン"],"gardevoir":["サーナイト"],"lucario":["ルカリオ"],"garchomp":["ガブリアス"],"greninja":["ゲッコウガ"],"tyranitar":["バンギラス"],"metagross":["メタグロス"],"salamence":["ボーマンダ"],"darkrai":["ダークライ"],"arceus":["アルセウス"],"palkia":["パルキア"],"dialga":["ディアルガ"],"giratina":["ギラティナ"],"reshiram":["レシラム"],"zekrom":["ゼクロム"],"kyurem":["キュレム"],"luffy":["ルフィ"],"zoro":["ゾロ"],"nami":["ナミ"],"sanji":["サンジ"],"chopper":["チョッパー"],"robin":["ロビン"],"franky":["フランキー"],"brook":["ブルック"],"ace":["エース"],"shanks":["シャンクス"]};function tokenize(s) { return (s || '').toLowerCase().split(/[^a-z0-9]+/).filter(Boolean); }    function rankSearchResults(cards, rawQuery) { const q = norm(rawQuery); const qWords = tokenize(rawQuery); const aliasList = [...(JP_NAME_ALIASES[q] || []), ...qWords.flatMap(w => JP_NAME_ALIASES[w] || [])]; const tier = (c) => { const n = norm(c.name || ''); const ne = norm(c.name_en || ''); const nWords = tokenize(c.name || ''); const neWords = tokenize(c.name_en || ''); const allWords = [...nWords, ...neWords]; if (n === q) return 0; if (ne === q) return 1; if (n.startsWith(q) || ne.startsWith(q)) return 2; if (qWords.length <= 1) { const w = qWords[0] || q; if (w && allWords.some(word => word === w)) return 3; if (w && allWords.some(word => word.startsWith(w))) return 3; } else if (qWords.every(qw => allWords.some(word => word === qw || word.startsWith(qw)))) { return 4; } if (aliasList.length && aliasList.some(a => (c.name || '').includes(a))) return 5; return 6; }; return [...cards].sort((a, b) => { const ta = tier(a), tb = tier(b); if (ta !== tb) return ta - tb; const cn = (a.card_number || '').localeCompare(b.card_number || ''); if (cn !== 0) return cn; return (a.id || '').localeCompare(b.id || ''); }); }function MarketsView({ country, cur, eurRate, onOpenAsset, setsMap }) {
+function MarketsView({ country, cur, eurRate, onOpenAsset, setsMap }) {
   const [q, setQ] = useState(() => getSavedSearch()?.q || "");
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState(() => getSavedSearch()?.results || []);
