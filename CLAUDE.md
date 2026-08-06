@@ -15,7 +15,7 @@ Prima di iniziare qualsiasi nuovo task, chiedersi: "questo aumenta il valore del
 Priorità TCG: Pokémon (massima) → One Piece (seconda) → MTG/Yu-Gi-Oh (solo architettura, zero lavoro attivo di audit/contenuti). Priorità lingue: EN, JA.
 
 Stato Reale del Progetto
-DraGold.jsx: ~2507 righe (verificato 2026-08-06, non ~3923 come riportato in precedenza)
+DraGold.jsx: ~1859 righe (verificato 2026-08-06 dopo Fase B1 — estrazione componente Search in components/search/, components/shared/, lib/search.js, lib/searchData.js; non ~2507 come riportato in precedenza)
 Deploy: Vercel builda con Vite (Framework Preset "Vite", Build Command = default = `npm run build` → `vite build`). build-esbuild.mjs esiste nel repo ma è LEGACY/NON USATO in produzione — non è il build step reale, non affidarsi alla sua presenza per capire cosa gira su Vercel.
 Git: non installato sul PC di Ermal → deploy via GitHub web (commit su main → Vercel auto-deploya).
 Lingue card live: en, ja, it, es, pt, id (priorità di lavoro: solo en, ja)
@@ -37,7 +37,18 @@ src/
 ├── DraGold.jsx        (app shell/orchestrazione)
 ├── styles.css         (CSS globale)
 ├── lib/
-│   └── state.js       (cache e stato condiviso minimale)
+│   ├── state.js       (cache e stato condiviso minimale)
+│   ├── search.js      (norm, tokenize, rankSearchResults)
+│   └── searchData.js  (LANG_ALIASES, RARITY_TOKENS, JP_NAME_ALIASES)
+├── components/
+│   ├── search/
+│   │   ├── SearchResultItem.jsx  (ex CardItem)
+│   │   ├── SearchResults.jsx
+│   │   └── HotPicksSection.jsx
+│   └── shared/
+│       ├── Icon.jsx
+│       ├── Onboarding.jsx
+│       └── cardImage.js  (pickCardImage, getSetInfo)
 └── pages/
     └── card/
         └── CardPage.jsx
@@ -49,7 +60,18 @@ pages/card/CardPage.jsx + cardPageData.js ← PRECEDENTE GIÀ ESISTENTE di pagin
 DraGold.legacy.jsx ← file legacy, non toccare senza motivo esplicito
 supabase.js ← Client Supabase + auth + query DB
 styles.css ← CSS globale, estratto da DraGold.jsx il 2026-08-06 (Fase 1 Passo A, branch chore/extract-css). Design system centralizzato qui, non più CSS-in-JS.
-lib/state.js ← cache e stato condiviso minimale (savedSearch, sets cache) — estratto da DraGold.jsx il 2026-08-06 (Fase 1 Passo B, branch refactor/centralize-module-state). Vedi "Shared State Rule" più sotto per la regola permanente su dove deve vivere lo stato condiviso.
+lib/state.js ← cache e stato condiviso minimale (savedSearch, sets cache) — estratto da DraGold.jsx il 2026-08-06 (Fase 1 Passo B, branch refactor/centralize-module-state). Vedi "Shared State Rule" più sotto per la regola permanente su dove deve vivere l
+
+lib/search.js ← norm, tokenize, rankSearchResults — estratto da DraGold.jsx il 2026-08-06 (Fase B1, branch refactor/extract-search-component, PR #3 merged con merge commit su main).
+lib/searchData.js ← LANG_ALIASES, RARITY_TOKENS, JP_NAME_ALIASES — estratto da DraGold.jsx il 2026-08-06 (Fase B1, stesso branch/PR di lib/search.js).
+components/search/SearchResultItem.jsx ← rinominato da CardItem — card risultato ricerca (Fase B1).
+components/search/SearchResults.jsx ← lista/paginazione risultati ricerca, usa SearchResultItem (Fase B1).
+components/search/HotPicksSection.jsx ← sezione "Hot Picks" in home, usa SearchResultItem (Fase B1).
+components/shared/Icon.jsx ← libreria icone SVG condivisa (Fase B1, spostata da dentro DraGold.jsx).
+components/shared/Onboarding.jsx ← modale onboarding primo accesso (Fase B1, spostata da dentro DraGold.jsx).
+components/shared/cardImage.js ← pickCardImage, getSetInfo (Fase B1, spostate da dentro DraGold.jsx).
+
+Fase B1 — Estrazione strutturale Search: conclusa il 2026-08-06. Estrazione puramente strutturale, zero cambi di comportamento (verificato su preview e su produzione: Markets, Search con query reale, apertura Asset/Card, ritorno ai risultati, Portfolio, Alerts — tutto invariato, zero errori console). TCG_LIST, CARD_LANGS ed ebaySearchURL sono ora esportati da DraGold.jsx per supportare l'import circolare con i nuovi componenti search (stessa firma, stesso flusso dati). Prossimo step: Fase B2 (decoupling — il componente Search smette di leggere direttamente da lib/state.js), su branch dedicato refactor/search-decoupling, previo piano tecnico approvato.o stato condiviso.
 
 build-esbuild.mjs ← script di build alternativo, LEGACY, non usato da Vercel (vedi Deploy sopra)
 dist/ ← Output build (generata da Vercel via Vite)
