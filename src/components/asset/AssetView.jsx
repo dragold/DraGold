@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase, supabaseReady, addToWatchlist } from "../../supabase.js";
 import { TCG_LIST, CARD_LANGS, ebayURL, ebayItemURL } from "../../DraGold.jsx";
 import { pickCardImage, getSetInfo } from "../shared/cardImage.js";
+import { Icon } from "../shared/Icon.jsx";
 import { PortfolioModal } from "../shared/PortfolioModal.jsx";
 import { AlertModal } from "../shared/AlertModal.jsx";
 import { toApiId } from "../../lib/cardId.js";
