@@ -15,7 +15,7 @@ Prima di iniziare qualsiasi nuovo task, chiedersi: "questo aumenta il valore del
 Priorità TCG: Pokémon (massima) → One Piece (seconda) → MTG/Yu-Gi-Oh (solo architettura, zero lavoro attivo di audit/contenuti). Priorità lingue: EN, JA.
 
 Stato Reale del Progetto
-DraGold.jsx: ~1859 righe (verificato 2026-08-06 dopo Fase B1 — estrazione componente Search in components/search/, components/shared/, lib/search.js, lib/searchData.js; non ~2507 come riportato in precedenza)
+DraGold.jsx: ~1080 righe (verificato 2026-08-09 dopo Fase C — estrazione dominio Asset in components/asset/, components/shared/, lib/cardId.js; non ~1859 come riportato in precedenza dopo Fase B1)
 Deploy: Vercel builda con Vite (Framework Preset "Vite", Build Command = default = `npm run build` → `vite build`). build-esbuild.mjs esiste nel repo ma è LEGACY/NON USATO in produzione — non è il build step reale, non affidarsi alla sua presenza per capire cosa gira su Vercel.
 Git: non installato sul PC di Ermal → deploy via GitHub web (commit su main → Vercel auto-deploya).
 Lingue card live: en, ja, it, es, pt, id (priorità di lavoro: solo en, ja)
@@ -39,23 +39,31 @@ src/
 ├── lib/
 │   ├── state.js       (cache e stato condiviso minimale)
 │   ├── search.js      (norm, tokenize, rankSearchResults)
-│   └── searchData.js  (LANG_ALIASES, RARITY_TOKENS, JP_NAME_ALIASES)
+│   ├── searchData.js  (LANG_ALIASES, RARITY_TOKENS, JP_NAME_ALIASES)
+│   └── cardId.js      (toApiId — vedi Fase C)
 ├── components/
 │   ├── search/
 │   │   ├── SearchView.jsx  (ex MarketsView, orchestratore ricerca — vedi Fase B2)
 │   │   ├── SearchResultItem.jsx  (ex CardItem)
 │   │   ├── SearchResults.jsx
 │   │   └── HotPicksSection.jsx
+│   ├── asset/
+│   │   ├── AssetView.jsx   (dettaglio carta — vedi Fase C)
+│   │   ├── PriceChart.jsx
+│   │   └── Sparkline.jsx
 │   └── shared/
 │       ├── Icon.jsx
 │       ├── Onboarding.jsx
-│       └── cardImage.js  (pickCardImage, getSetInfo)
+│       ├── cardImage.js   (pickCardImage, getSetInfo)
+│       ├── Sheet.jsx      (modal wrapper generico — vedi Fase C)
+│       ├── PortfolioModal.jsx  (usato solo da AssetView — vedi Fase C)
+│       └── AlertModal.jsx      (cross-domain: AssetView + AlertsView — vedi Fase C)
 └── pages/
     └── card/
         └── CardPage.jsx
 
 Dettaglio:
-DraGold.jsx ← file UI + logica principale, in fase di modularizzazione (vedi sotto) — ~1859 righe (dopo Fase B1)
+DraGold.jsx ← file UI + logica principale, in fase di modularizzazione (vedi sotto) — ~1080 righe (dopo Fase C)
 main.jsx ← Entry point
 pages/card/CardPage.jsx + cardPageData.js ← PRECEDENTE GIÀ ESISTENTE di pagina separata fuori da DraGold.jsx (la card detail page SEO). Le nuove pagine di Fase 3 (Set, Character, Illustrator, Rarity, Series) devono seguire questa stessa convenzione: src/pages/<entità>/<Entità>Page.jsx (+ un file dati sibling se serve), non la cartella views/ generica.
 DraGold.legacy.jsx ← file legacy, non toccare senza motivo esplicito
@@ -75,7 +83,9 @@ components/shared/cardImage.js ← pickCardImage, getSetInfo (Fase B1, spostate 
 
 Fase B1 — Estrazione strutturale Search: conclusa il 2026-08-06. Estrazione puramente strutturale, zero cambi di comportamento (verificato su preview e su produzione: Markets, Search con query reale, apertura Asset/Card, ritorno ai risultati, Portfolio, Alerts — tutto invariato, zero errori console). TCG_LIST, CARD_LANGS ed ebaySearchURL sono ora esportati da DraGold.jsx per supportare l'import circolare con i nuovi componenti search (stessa firma, stesso flusso dati). Prossimo step: Fase B2 (decoupling — il componente Search smette di leggere direttamente da lib/state.js), su branch dedicato refactor/search-decoupling, previo piano tecnico approvato.
 
-Fase B2 — Search decoupling: conclusa il 2026-08-06. MarketsView rinominato SearchView e spostato in components/search/SearchView.jsx; non importa più getSavedSearch/setSavedSearch/clearSavedSearch da lib/state.js. DraGold.jsx è ora l'unico punto che chiama quelle tre funzioni: legge lo stato salvato una volta e lo passa a SearchView come prop initialSearchState, e implementa onSearchStateChange/onSearchStateClear passando direttamente setSavedSearch/clearSavedSearch. Nessun cambio a runSearch, ranking, query Supabase, Hot Picks, SearchResults, SearchResultItem, cardImage, Icon, Onboarding. Verificato su preview e produzione: ricerca reale, apertura Asset, ritorno ai risultati (stato preservato), Portfolio, Alerts — tutto invariato, zero errori console. PR #4, merge commit e55d6b5.
+Fase B2 — Search decoupling: conclusa il 2026-08-06. MarketsView rinominato SearchView e spostato in components/search/SearchView.jsx; non importa più getSavedSearch/setSavedSearch/clearSavedSearch da lib/state.js. DraGold.jsx è ora l'unico punto che chiama quelle tre funzioni: legge lo stato salvato una volta e lo passa a SearchView come prop initialSearchState, e implementa onSearchStateChange/onSearchStateClear passando direttamente setSavedSearch/clearSavedSearch. Nessun cambio a runSearch, ranking, query Supabase, Hot Picks, SearchResults, SearchResultItem, cardImage, Icon, Onboarding. Verificato su preview e produzione: ricerca reale, apertura Asset, ritorno ai risultati (stato preservato), Portfolio, Alerts — tutto invariato,  PR #4, merge commit e55d6b5.
+
+Fase C — Estrazione dominio Asset: conclusa il 2026-08-09. Spostati in file dedicati: Sheet (modal wrapper generico), PortfolioModal (usato solo da AssetView), AlertModal (cross-domain: usato sia da AssetView sia da AlertsView, che resta in DraGold.jsx), PriceChart, Sparkline, AssetView, e l'helper toApiId (centralizzato in lib/cardId.js invece di essere duplicato). CONDITIONS ed ebayItemURL sono stati esportati da DraGold.jsx e vengono letti da AssetView.jsx via import circolare, stesso pattern già usato per TCG_LIST/CARD_LANGS/ebayURL. Nessun cambio a PortfolioChart e computePortfolioHistory (dominio Portfolio, restano in DraGold.jsx, fuori scope). Durante la verifica è emerso un bug reale (AssetView.jsx usava <Icon> senza importarlo, errore di audit) corretto con un commit dedicato a un solo file prima del merge. Verificato su preview e produzione (sessione autenticata reale): ricerca, apertura Asset, grafico prezzo, eBay listings, Add to portfolio, Create alert, Portfolio, Alerts, back-to-search — tutto invariato, zero errori console. PR #5, merge commit 943073e.
 
 build-esbuild.mjs ← script di build alternativo, LEGACY, non usato da Vercel (vedi Deploy sopra)
 dist/ ← Output build (generata da Vercel via Vite)
