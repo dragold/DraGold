@@ -13,6 +13,19 @@ on:
         description: 'Lingue (en,ja,it,fr,de,es,pt,id)'
         required: false
         default: 'en,ja,it,fr,de,es,pt,id'
+      dry_run:
+        description: 'Dry-run: sola lettura Supabase, nessuna chiamata TCGdex, nessuna scrittura'
+        required: false
+        type: boolean
+        default: false
+      page_size:
+        description: 'Righe per pagina Supabase (max 1000, cap PostgREST db.max_rows)'
+        required: false
+        default: '500'
+      time_budget_min:
+        description: 'Minuti massimi di esecuzione prima di fermarsi in modo pulito'
+        required: false
+        default: '25'
 
 jobs:
   enrich:
@@ -41,7 +54,7 @@ jobs:
 
       - name: Run enrichment (manuale)
         if: github.event_name == 'workflow_dispatch'
-        run: node scripts/enrich-cards.js --limit=${{ github.event.inputs.limit }} --lang=${{ github.event.inputs.lang }}
+        run: node scripts/enrich-cards.js --limit=${{ github.event.inputs.limit }} --lang=${{ github.event.inputs.lang }} --page-size=${{ github.event.inputs.page_size }} --time-budget-min=${{ github.event.inputs.time_budget_min }} ${{ github.event.inputs.dry_run == 'true' && '--dry-run' || '' }}
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
