@@ -1,0 +1,50 @@
+name: Sync One Piece JA (manual dry-run validation)
+
+# TEMPORANEO: workflow dedicato a validare
+#   node scripts/sync-onepiece-ja.js --dry-run --limit=20
+# tramite GitHub Actions, senza esporre SUPABASE_SERVICE_KEY localmente.
+# Da rimuovere dopo la validazione (vedi CLAUDE.md §11: non è documentazione
+# permanente, è solo uno strumento operativo temporaneo).
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run (nessuna scrittura su DB)'
+        required: false
+        type: boolean
+        default: true
+      limit:
+        description: 'Numero massimo di carte da processare'
+        required: false
+        type: string
+        default: '20'
+
+jobs:
+  sync-onepiece-ja-dry-run:
+    name: Sync One Piece JA (dry-run)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Installa dipendenze
+        run: npm ci
+
+      - name: Run sync-onepiece-ja.js
+        run: |
+          ARGS="--limit=${{ inputs.limit }}"
+          if [ "${{ inputs.dry_run }}" = "true" ]; then
+            ARGS="$ARGS --dry-run"
+          fi
+          node scripts/sync-onepiece-ja.js $ARGS
+        env:
+          SUPABASE_URL:         ${{ secrets.SUPABASE_URL }}
+          VITE_SUPABASE_URL:    ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
