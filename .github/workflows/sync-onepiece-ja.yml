@@ -15,10 +15,15 @@ on:
         type: boolean
         default: true
       limit:
-        description: 'Numero massimo di carte da processare'
+        description: 'Numero massimo di carte da processare in questa esecuzione'
         required: false
         type: string
         default: '20'
+      retry_failed:
+        description: 'Ritenta anche le carte marcate "non trovata"/"id mismatch" nei run precedenti'
+        required: false
+        type: boolean
+        default: false
 
 jobs:
   sync-onepiece-ja-dry-run:
@@ -42,6 +47,9 @@ jobs:
           ARGS="--limit=${{ inputs.limit }}"
           if [ "${{ inputs.dry_run }}" = "true" ]; then
             ARGS="$ARGS --dry-run"
+          fi
+          if [ "${{ inputs.retry_failed }}" = "true" ]; then
+            ARGS="$ARGS --retry-failed"
           fi
           node scripts/sync-onepiece-ja.js $ARGS
         env:
