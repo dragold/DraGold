@@ -30,6 +30,12 @@
  *     attribute, power, counter, color, block_icon, traits, effect_text,
  *     category, rarity_code, acquisition_sources, print_count,
  *     text_variants_detected, confidence }
+ *   - metadata.ja_official_status: { reason, checked_at } — SOLO quando il
+ *     sito ufficiale risponde in modo definitivo "non trovata" o "id
+ *     mismatch" per quella carta (mai per errori di fetch transitori).
+ *     Serve a non ri-tentare all'infinito, ad ogni run futuro, una carta
+ *     che il sito stesso non ha (vedi sezione "Batching e resume" sotto).
+ *     Non tocca mai name/rarity in questo caso.
  *
  * Cosa NON fa:
  *   - non inserisce nuove righe: aggiorna solo carte gia' presenti in
@@ -40,6 +46,37 @@
  *   - non fa scraping "di massa" per numero di pagina: interroga una carta
  *     alla volta con --delay tra le richieste (default 3.5s).
  *
+ * Batching e resume (per l'arricchimento dell'intero catalogo JA):
+ *   - Non esiste uno stato esterno/checkpoint separato: il progresso e'
+ *     codificato nel DB stesso. Una carta gia' arricchita ha un nome JP
+ *     reale (looksLikeEnPlaceholder() la esclude), quindi rilanciare lo
+ *     stesso comando piu' volte salta automaticamente cio' che e' gia'
+ *     fatto e riprende esattamente da dove si era interrotto — anche se
+ *     l'esecuzione precedente e' stata interrotta a meta' (kill, timeout
+ *     CI, crash): ogni riga viene scritta con un UPDATE singolo e
+ *     immediato, quindi non c'e' nessun batch "a meta'" da recuperare.
+ *   - findCandidates() pagina l'INTERA tabella filtrata (PAGE_SIZE righe
+ *     per volta, ordinate per card_number) finche' non ha raccolto
+ *     `--limit` candidati o ha esaurito la tabella. Questo e' necessario
+ *     perche' con migliaia di righe un singolo `--limit` piccolo non deve
+ *     "nascondere" candidati che si trovano oltre le prime N righe
+ *     nell'ordine fisico di Postgres.
+ *   - `--limit` resta il modo per tenere ogni singola esecuzione entro un
+ *     tempo prevedibile (rate limit fisso: ~delay ms/carta). Per
+ *     processare l'intero catalogo si rilancia lo stesso comando piu'
+ *     volte (manualmente o via dispatch ripetuti di GitHub Actions) con
+ *     lo stesso `--limit`, finche' il riepilogo non mostra 0 carte da
+ *     arricchire.
+ *   - Le carte per cui il sito risponde in modo definitivo "non trovata"
+ *     o "id mismatch" vengono marcate con metadata.ja_official_status e
+ *     escluse dai run successivi di default (altrimenti verrebbero
+ *     ritentate ad ogni run, sprecando fetch rate-limited su carte che
+ *     non troveranno mai un risultato). Usa --retry-failed per includerle
+ *     di nuovo in un run (es. dopo aver corretto manualmente un caso).
+ *     Gli errori di fetch transitori (timeout, rete) NON vengono marcati:
+ *     restano candidati e vengono ritentati automaticamente al run
+ *     successivo, oltre al retry immediato gia' presente (MAX_RETRIES).
+ *
  * Usage:
  *   node scripts/sync-onepiece-ja.js --test-fetch=OP01-001   Smoke test:
  *       una sola richiesta reale, stampa il risultato parsato, NESSUNA
@@ -49,9 +86,12 @@
  *       cosa verrebbe scritto, senza scrivere.
  *   node scripts/sync-onepiece-ja.js --set=OP-01               Solo un set.
  *   node scripts/sync-onepiece-ja.js --card=OP01-001,OP01-002  Carte specifiche.
- *   node scripts/sync-onepiece-ja.js --limit=200                Batch limitato.
+ *   node scripts/sync-onepiece-ja.js --limit=200                Batch limitato,
+ *       rilanciabile piu' volte per coprire l'intero catalogo (resume automatico).
  *   node scripts/sync-onepiece-ja.js --force                    Ri-arricchisce
  *       anche righe che sembrano gia' avere un nome JP reale.
+ *   node scripts/sync-onepiece-ja.js --retry-failed --limit=50  Ritenta anche
+ *       le carte marcate "non trovata"/"id mismatch" nei run precedenti.
  *
  * Env richiesti (tranne in modalita' --test-fetch):
  *   SUPABASE_URL (o VITE_SUPABASE_URL)
@@ -65,6 +105,12 @@ const DEFAULT_DELAY_MS = 3500
 const FETCH_TIMEOUT_MS = 20000
 const MAX_RETRIES = 2
 const USER_AGENT = 'DraGold-Sync/1.0 (+https://dragold.org; enrichment bot, low-rate, one card per request)'
+// Dimensione di ogni pagina quando si scandisce la tabella per trovare i
+// candidati (vedi findCandidates). Non e' il numero di carte processate:
+// e' solo la granularita' di lettura dal DB, per non nascondere carte da
+// arricchire che si trovano oltre le prime righe nell'ordine fisico.
+const SCAN_PAGE_SIZE = 500
+const PERMANENT_FAIL_REASONS = new Set(['not-found', 'id-mismatch'])
 
 // Vero se il nome NON contiene alcun carattere giapponese (hiragana,
 // katakana, kanji) — cioe' e' quasi certamente ancora il placeholder EN
@@ -79,6 +125,7 @@ function looksLikeEnPlaceholder(name) {
 const args = process.argv.slice(2)
 const DRY_RUN = args.includes('--dry-run')
 const FORCE = args.includes('--force')
+const RETRY_FAILED = args.includes('--retry-failed')
 const argSet = args.find((a) => a.startsWith('--set='))?.split('=')[1] || null
 const argCards = args.find((a) => a.startsWith('--card='))?.split('=')[1]
 const argLimit = parseInt(args.find((a) => a.startsWith('--limit='))?.split('=')[1] || '0', 10)
@@ -158,6 +205,77 @@ function buildMetadataPatch(existingMetadata, canonical, sourceUrl) {
   }
 }
 
+/**
+ * Pagina l'intera tabella `cards` (filtrata per tcg/lang/set/card) finche'
+ * non ha raccolto abbastanza candidati da arricchire o non ha esaurito la
+ * tabella. A differenza di una singola query con LIMIT fisso, questo non
+ * puo' "perdere" candidati che si trovano oltre le prime righe nell'ordine
+ * di lettura di Postgres — condizione concreta gia' su questa tabella
+ * (migliaia di righe totali, molte piu' di un tipico --limit di run).
+ *
+ * Un candidato e' una riga che ha ancora bisogno di arricchimento: nome
+ * placeholder EN (o --force), e non gia' marcata come fallimento
+ * permanente da un run precedente (a meno di --retry-failed).
+ */
+async function findCandidates(supabase, { limit }) {
+  const candidates = []
+  let scanned = 0
+  let skippedAlreadyGood = 0
+  let skippedPreviouslyFailed = 0
+  let from = 0
+
+  for (;;) {
+    let query = supabase
+      .from('cards')
+      .select('id, source, source_id, card_number, set_id, name, rarity, metadata')
+      .eq('tcg', 'onepiece')
+      .eq('lang', 'ja')
+      .order('card_number', { ascending: true })
+      .range(from, from + SCAN_PAGE_SIZE - 1)
+
+    if (argSet) {
+      const setCode = argSet.replace('-', '').toLowerCase()
+      query = query.eq('set_id', setCode)
+    }
+    if (argCards) {
+      const wanted = argCards.split(',').map((c) => c.trim()).filter(Boolean)
+      query = query.in('card_number', wanted)
+    }
+
+    const { data: page, error } = await query
+    if (error) {
+      throw new Error(`query Supabase (righe ${from}-${from + SCAN_PAGE_SIZE - 1}): ${error.message}`)
+    }
+    if (!page?.length) break
+
+    scanned += page.length
+
+    for (const row of page) {
+      const needsEnrichment = FORCE || looksLikeEnPlaceholder(row.name)
+      if (!needsEnrichment) {
+        skippedAlreadyGood++
+        continue
+      }
+
+      const failStatus = row.metadata?.ja_official_status
+      const permanentlyFailed = failStatus && PERMANENT_FAIL_REASONS.has(failStatus.reason)
+      if (permanentlyFailed && !RETRY_FAILED) {
+        skippedPreviouslyFailed++
+        continue
+      }
+
+      candidates.push(row)
+      if (limit && candidates.length >= limit) break
+    }
+
+    if (limit && candidates.length >= limit) break
+    if (page.length < SCAN_PAGE_SIZE) break // ultima pagina raggiunta
+    from += SCAN_PAGE_SIZE
+  }
+
+  return { candidates, scanned, skippedAlreadyGood, skippedPreviouslyFailed }
+}
+
 async function testFetchMode(cardId) {
   log(`[test-fetch] Richiesta reale contro il sito ufficiale per: ${cardId}`)
   log(`[test-fetch] URL: ${CARDLIST_BASE}?freewords=${encodeURIComponent(cardId)}`)
@@ -191,45 +309,32 @@ async function main() {
   log('DraGold — One Piece JA enrichment (fonte ufficiale)')
   log('===========================================')
   log(`Avvio: ${new Date().toISOString()}`)
-  log(`Dry-run: ${DRY_RUN ? 'si' : 'no'}  |  Force: ${FORCE ? 'si' : 'no'}  |  Delay: ${argDelay}ms`)
+  log(`Dry-run: ${DRY_RUN ? 'si' : 'no'}  |  Force: ${FORCE ? 'si' : 'no'}  |  Retry-failed: ${RETRY_FAILED ? 'si' : 'no'}  |  Delay: ${argDelay}ms`)
   if (argSet) log(`Filtro set: ${argSet}`)
   if (argCards) log(`Filtro carte: ${argCards}`)
   if (argLimit) log(`Limit: ${argLimit}`)
   log('')
 
-  let query = supabase
-    .from('cards')
-    .select('id, source, source_id, card_number, set_id, name, rarity, metadata')
-    .eq('tcg', 'onepiece')
-    .eq('lang', 'ja')
-
-  if (argSet) {
-    const setCode = argSet.replace('-', '').toLowerCase()
-    query = query.eq('set_id', setCode)
-  }
-  if (argCards) {
-    const wanted = argCards.split(',').map((c) => c.trim()).filter(Boolean)
-    query = query.in('card_number', wanted)
-  }
-  // Sovra-fetch quando c'e' un limit, perche' filtriamo i placeholder lato
-  // client dopo aver scaricato le righe (vedi looksLikeEnPlaceholder).
-  query = query.limit(argLimit && !FORCE ? Math.max(argLimit * 3, 200) : (argLimit || 5000))
-
-  const { data: rows, error } = await query
-  if (error) {
-    console.error('Errore query Supabase:', error.message)
+  let candidates, scanned, skippedAlreadyGood, skippedPreviouslyFailed
+  try {
+    ;({ candidates, scanned, skippedAlreadyGood, skippedPreviouslyFailed } = await findCandidates(supabase, {
+      limit: argLimit,
+    }))
+  } catch (err) {
+    console.error('Errore query Supabase:', err.message)
     process.exit(1)
   }
-  if (!rows?.length) {
+
+  if (!scanned) {
     log('Nessuna riga trovata con questi filtri.')
     return
   }
 
-  let candidates = FORCE ? rows : rows.filter((r) => looksLikeEnPlaceholder(r.name))
-  const skippedAlreadyGood = rows.length - candidates.length
-  if (argLimit) candidates = candidates.slice(0, argLimit)
-
-  log(`Righe trovate: ${rows.length}  |  Da arricchire: ${candidates.length}  |  Gia' con nome JP (skip): ${skippedAlreadyGood}`)
+  log(
+    `Righe scansionate: ${scanned}  |  Da arricchire: ${candidates.length}  |  ` +
+      `Gia' con nome JP (skip): ${skippedAlreadyGood}  |  ` +
+      `Fallite in precedenza (skip): ${skippedPreviouslyFailed}`
+  )
   log('')
 
   let enriched = 0
@@ -255,6 +360,21 @@ async function main() {
       else if (result.reason === 'id-mismatch') idMismatch++
       else fetchFailed++
       log(result.reason)
+
+      // Marca solo gli esiti definitivi del sito (non i fetch falliti per
+      // rete/timeout, che restano candidati e vanno ritentati). Cosi' un
+      // run futuro non spreca una richiesta rate-limited su una carta che
+      // il sito stesso non ha. Non tocca mai name/rarity.
+      if (!DRY_RUN && PERMANENT_FAIL_REASONS.has(result.reason)) {
+        const statusPatch = {
+          metadata: {
+            ...(row.metadata || {}),
+            ja_official_status: { reason: result.reason, checked_at: new Date().toISOString() },
+          },
+        }
+        const { error: statusErr } = await supabase.from('cards').update(statusPatch).eq('id', row.id)
+        if (statusErr) log(`    status-marker update error: ${statusErr.message}`)
+      }
       continue
     }
 
@@ -290,9 +410,10 @@ async function main() {
   log('===============================================')
   log(`Arricchite:            ${enriched}${DRY_RUN ? ' (dry-run, nessuna scrittura reale)' : ''}`)
   log(`Gia' buone (skip):     ${skippedAlreadyGood}`)
-  log(`Non trovate sul sito:  ${notFound}`)
-  log(`ID mismatch:           ${idMismatch}`)
-  log(`Fetch falliti:         ${fetchFailed}`)
+  log(`Fallite in prec. (skip, usa --retry-failed): ${skippedPreviouslyFailed}`)
+  log(`Non trovate sul sito:  ${notFound}${!DRY_RUN ? ' (marcate, skip nei run futuri)' : ''}`)
+  log(`ID mismatch:           ${idMismatch}${!DRY_RUN ? ' (marcate, skip nei run futuri)' : ''}`)
+  log(`Fetch falliti:         ${fetchFailed}  (transitori, ritentati automaticamente al prossimo run)`)
   log(`Ambigue (testo vario): ${ambiguous}  (salvate comunque, marcate confidence="medium")`)
   if (errors.length) {
     log(`Errori update: ${errors.length}`)
