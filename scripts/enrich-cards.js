@@ -37,19 +37,38 @@ return r.json()
 } catch { return null }
 }
 
-async function run() {
-console.log(`Enrich cards - start (limit=${LIMIT}, lang=${LANG_FILTER.join(',')})`)
-const { data: rows, error } = await supabase
+// Priorita' prodotto (CLAUDE.md §1): EN e JA vanno drenati prima delle altre lingue.
+// Senza questo, un batch che include tutte le lingue di default consuma il limite
+// sulle prime righe restituite da Postgrest (ordine per id/inserimento), che possono
+// appartenere a lingue non prioritarie e affamare EN/JA per settimane.
+const PRIORITY_LANGS = ['en', 'ja']
+
+async function fetchBatch(langs, limit) {
+if (!langs.length || limit <= 0) return []
+const { data, error } = await supabase
 .from('cards')
 .select('id, set_id, card_number, lang, metadata')
 .eq('tcg', 'pokemon')
 .is('illustrator', null)
 .not('set_id', 'is', null)
 .not('card_number', 'is', null)
-.in('lang', LANG_FILTER)
-.limit(LIMIT)
-
+.in('lang', langs)
+.limit(limit)
 if (error) { console.error('select error:', error.message); process.exit(1) }
+return data || []
+}
+
+async function run() {
+console.log(`Enrich cards - start (limit=${LIMIT}, lang=${LANG_FILTER.join(',')})`)
+
+const priorityInFilter = LANG_FILTER.filter(l => PRIORITY_LANGS.includes(l))
+const restInFilter = LANG_FILTER.filter(l => !PRIORITY_LANGS.includes(l))
+
+let rows = await fetchBatch(priorityInFilter, LIMIT)
+if (rows.length < LIMIT) {
+rows = rows.concat(await fetchBatch(restInFilter, LIMIT - rows.length))
+}
+
 if (!rows?.length) { console.log('Nessuna carta da arricchire per questo batch/lang.'); return }
 console.log(`${rows.length} carte da arricchire`)
 
