@@ -1,0 +1,33 @@
+name: Sync Pokemon PTCG (illustrator backfill)
+
+on:
+  workflow_dispatch:
+    inputs:
+      set:
+        description: 'Set id da sincronizzare (es. xy1). Vuoto = tutti i set EN'
+        required: false
+        default: ''
+
+jobs:
+  sync:
+    name: Sync Pokemon cards da PokemonTCG.io
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+
+      - name: Install dependencies
+        run: npm install @supabase/supabase-js
+
+      - name: Run sync
+        run: node scripts/sync-pokemon-ptcg.js ${{ github.event.inputs.set != '' && format('--set={0}', github.event.inputs.set) || '' }}
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}

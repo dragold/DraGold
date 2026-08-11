@@ -90,6 +90,7 @@ function mapCard(c) {
     card_number:  c.number != null ? String(c.number) : null,
     rarity:       c.rarity    || null,
     supertype:    c.supertype || null,
+    illustrator:  c.artist    || null,
     image_url:    c.images?.large || c.images?.small || null,
     image_url_hi: c.images?.large || null,
     updated_at:   new Date().toISOString(),
