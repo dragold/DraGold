@@ -49,21 +49,40 @@ const PTCG_HEADERS = {
   'Accept': 'application/json',
 }
 
+const RETRYABLE_STATUS = new Set([500, 502, 503, 504])
+const MAX_RETRIES      = 3
+const RETRY_BASE_MS    = 1000   // backoff: 1000ms → 2000ms → 4000ms
+
 async function safeFetch(url, timeoutMs = 30000) {
-  try {
-    const res = await fetch(url, {
-      headers: PTCG_HEADERS,
-      signal: AbortSignal.timeout(timeoutMs),
-    })
-    if (!res.ok) {
-      console.warn(`  ⚠️  HTTP ${res.status} → ${url}`)
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      const res = await fetch(url, {
+        headers: PTCG_HEADERS,
+        signal: AbortSignal.timeout(timeoutMs),
+      })
+      if (!res.ok) {
+        if (RETRYABLE_STATUS.has(res.status) && attempt < MAX_RETRIES) {
+          const delay = RETRY_BASE_MS * 2 ** attempt
+          console.warn(`  ⚠️  HTTP ${res.status} → ${url} — retry ${attempt + 1}/${MAX_RETRIES} in ${delay}ms`)
+          await sleep(delay)
+          continue
+        }
+        console.warn(`  ⚠️  HTTP ${res.status} → ${url}`)
+        return null
+      }
+      return await res.json()
+    } catch (err) {
+      if (attempt < MAX_RETRIES) {
+        const delay = RETRY_BASE_MS * 2 ** attempt
+        console.warn(`  ⚠️  Fetch error (${err.message}) → ${url} — retry ${attempt + 1}/${MAX_RETRIES} in ${delay}ms`)
+        await sleep(delay)
+        continue
+      }
+      console.warn(`  ⚠️  Fetch error (${err.message}) → ${url}`)
       return null
     }
-    return await res.json()
-  } catch (err) {
-    console.warn(`  ⚠️  Fetch error (${err.message}) → ${url}`)
-    return null
   }
+  return null
 }
 
 async function upsertBatch(rows) {
