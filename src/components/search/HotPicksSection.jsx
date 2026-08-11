@@ -7,11 +7,18 @@ export function HotPicksSection({ country = "IT", cur = "EUR", eurRate = 0.92, o
   // Fallback curato: carte reali del catalogo (id verificati in DB), usato solo se
   // hot_picks non ha ancora righe per oggi (es. cron non ancora girato) o ne ha poche.
   // Niente più chiamate live a eBay: prezzo letto da card_prices via card_prices_latest.
+  //
+  // Nota (2026-08-11): i due fallback One Piece precedenti (ST18-005 "Luffy-Tarou",
+  // OP01-121 "Yamato") sono stati rimossi perché la loro immagine cachata mostra un
+  // watermark "SAMPLE" — problema noto lato pipeline immagini One Piece (hotlink/
+  // referrer protection su onepiece-cardgame.com/optcgapi.com, già segnalato in
+  // PRODUCT_SPEC §1 "Fix immagini"). Nessun ID sostitutivo è stato verificabile in
+  // sicurezza in questa sessione (fetch immagine bloccato dalla rete sandbox): finché
+  // la pipeline immagini One Piece non è corretta alla fonte, il fallback resta solo
+  // Pokémon per evitare di mostrare di nuovo un placeholder fasullo in home.
   const FALLBACK_IDS = [
     'pokemon:tcgdex:me02-013:en', // Mega Charizard X ex
     'pokemon:tcgdex:xy6-76:en', // M Rayquaza EX
-    'onepiece:optcg:ST18-005:en', // Luffy-Tarou SR
-    'onepiece:optcg:OP01-121:en', // Yamato SEC (Romance Dawn)
   ];
 
   const [picks, setPicks] = useState([]);

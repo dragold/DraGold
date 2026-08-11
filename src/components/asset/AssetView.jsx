@@ -9,6 +9,26 @@ import { toApiId } from "../../lib/cardId.js";
 import { PriceChart } from "./PriceChart.jsx";
 import { Sparkline } from "./Sparkline.jsx";
 
+// Mappa i valori tecnici della colonna card_prices.source verso label leggibili.
+// Valori distinti verificati in DB (2026-08-11): ygoprodeck, scryfall, pokemontcgio,
+// cardmarket, optcg, ebay_sold, justtcg. Fallback: humanize automatico per valori
+// futuri non ancora mappati, così non torna mai una stringa tecnica grezza in UI.
+const SOURCE_LABELS = {
+  ygoprodeck: "YGOPRODeck",
+  scryfall: "Scryfall",
+  pokemontcgio: "Pokémon TCG API",
+  cardmarket: "Cardmarket",
+  optcg: "One Piece TCG",
+  ebay_sold: "eBay (sold)",
+  ebay_finding: "eBay (sold)",
+  justtcg: "JustTCG",
+};
+function sourceLabel(source) {
+  if (!source) return "market";
+  if (SOURCE_LABELS[source]) return SOURCE_LABELS[source];
+  return source.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+}
+
 export function AssetView({ card, onBack, isAuthed, onLogin, country, cur, eurRate, setsMap }) {
   const [snaps, setSnaps] = useState([]);       // [{price_market, source, captured_at}] asc
   const [loadingPrice, setLoadingPrice] = useState(true);
@@ -193,7 +213,7 @@ export function AssetView({ card, onBack, isAuthed, onLogin, country, cur, eurRa
                 <span className="fmv-val">{priceStr(fmvUSD)}</span>
                 <span className="fmv-tag">FMV</span>
               </div>
-              <div className="fmv-sub">{latest.source || "market"} · updated {new Date(latest.captured_at).toLocaleDateString()}</div>
+              <div className="fmv-sub">{sourceLabel(latest.source)} · updated {new Date(latest.captured_at).toLocaleDateString()}</div>
               {snaps.length >= 2 && (
                 <div className="spark-wrap">
                   <Sparkline

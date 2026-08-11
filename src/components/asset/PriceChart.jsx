@@ -6,13 +6,33 @@ export function PriceChart({ snaps, priceStr }) {
     byDay[day].sum += s.price_market;
     byDay[day].n++;
   }
-  const points = Object.entries(byDay)
+  let points = Object.entries(byDay)
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([day, { sum, n }]) => ({
       value: sum / n,
       label: new Date(day + 'T12:00:00Z').toLocaleDateString('en', { month: 'short', day: 'numeric' }),
     }));
   if (points.length < 2) return null;
+
+  // Mitigazione outlier: alcune fonti (es. "justtcg") producono sporadicamente
+  // uno snapshot con un ordine di grandezza sbagliato rispetto al resto della
+  // serie (es. €854 in mezzo a snapshot coerenti intorno a €5). Non è un bug di
+  // questo componente — la logica min/max sotto è corretta sui dati che riceve —
+  // è un problema di qualità dato lato pipeline, da correggere alla fonte in un
+  // task dedicato. Qui filtriamo solo i punti palesemente anomali (>8x o <1/8 la
+  // mediana della serie) così la scala dell'asse Y non viene distorta da un
+  // singolo snapshot corrotto. Soglia larga apposta per non tagliare mai una
+  // reale variazione di prezzo (holo/reprint/hype), solo errori evidenti.
+  if (points.length >= 3) {
+    const sortedVals = points.map(p => p.value).slice().sort((a, b) => a - b);
+    const mid = Math.floor(sortedVals.length / 2);
+    const median = sortedVals.length % 2 ? sortedVals[mid] : (sortedVals[mid - 1] + sortedVals[mid]) / 2;
+    if (median > 0) {
+      const filtered = points.filter(p => p.value <= median * 8 && p.value >= median / 8);
+      if (filtered.length >= 2) points = filtered;
+    }
+  }
+
   const vals = points.map(p => p.value);
   const minV = Math.min(...vals), maxV = Math.max(...vals);
   const range = (maxV - minV) || (minV * 0.02) || 1;
