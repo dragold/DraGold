@@ -54,7 +54,7 @@ export function HotPicksSection({ country = "IT", cur = "EUR", eurRate = 0.92, o
         if (neededIds.length) {
           const { data: cardsRows } = await supabase
             .from('cards')
-            .select('id,name,set_name,card_number,tcg,lang,image_url,image_url_hi,card_image_cache(cached_url,status)')
+            .select('id,name,set_name,set_id,card_number,tcg,lang,canonical_card_id,image_url,image_url_hi,card_image_cache(cached_url,status)')
             .in('id', neededIds);
           for (const c of (cardsRows || [])) cardsById[c.id] = c;
         }
