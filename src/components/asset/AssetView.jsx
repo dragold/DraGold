@@ -8,6 +8,28 @@ import { AlertModal } from "../shared/AlertModal.jsx";
 import { toApiId } from "../../lib/cardId.js";
 import { PriceChart } from "./PriceChart.jsx";
 import { Sparkline } from "./Sparkline.jsx";
+import { SearchResultItem } from "../search/SearchResultItem.jsx";
+
+// Ordina card_number in modo "naturale" (5 prima di 12, non lessicografico):
+// necessario perché nel DB i numeri non sono sempre zero-padded in modo uniforme
+// tra set/lingue diverse. Usato solo per la rail "altre carte di questo set".
+function naturalCompare(a, b) {
+  const re = /(\d+)|(\D+)/g;
+  const pa = String(a || "").match(re) || [];
+  const pb = String(b || "").match(re) || [];
+  for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+    const x = pa[i] || "", y = pb[i] || "";
+    const nx = parseInt(x, 10), ny = parseInt(y, 10);
+    if (!isNaN(nx) && !isNaN(ny)) { if (nx !== ny) return nx - ny; }
+    else if (x !== y) return x < y ? -1 : 1;
+  }
+  return 0;
+}
+
+// Campi comuni per le query "carte correlate" qui sotto — stessa selezione usata
+// nei risultati di ricerca, così SearchResultItem/getSetInfo/pickCardImage
+// funzionano identici nelle rail di Card Detail.
+const RELATED_CARD_FIELDS = "id,name,name_en,set_name,set_id,card_number,image_url,image_url_hi,lang,tcg,canonical_card_id,card_image_cache(cached_url,status)";
 
 // Mappa i valori tecnici della colonna card_prices.source verso label leggibili.
 // Valori distinti verificati in DB (2026-08-11): ygoprodeck, scryfall, pokemontcgio,
@@ -29,7 +51,7 @@ function sourceLabel(source) {
   return source.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
 }
 
-export function AssetView({ card, onBack, isAuthed, onLogin, country, cur, eurRate, setsMap }) {
+export function AssetView({ card, onBack, isAuthed, onLogin, country, cur, eurRate, setsMap, onOpenCard, onOpenSet }) {
   const [snaps, setSnaps] = useState([]);       // [{price_market, source, captured_at}] asc
   const [loadingPrice, setLoadingPrice] = useState(true);
   const [priceErr, setPriceErr] = useState(false);
@@ -43,6 +65,11 @@ export function AssetView({ card, onBack, isAuthed, onLogin, country, cur, eurRa
   const [soldData, setSoldData] = useState({});
   // User plan tier: 'free' | 'collector' | 'pro'
   const [userTier, setUserTier] = useState('free');
+  // Carte correlate: altre lingue/stampe della stessa carta (canonical_card_id) e
+  // altre carte dello stesso set nella stessa lingua. Trasforma Card Detail da
+  // pagina terminale a nodo esplorabile (vedi DraGold-Next-Evolution-Research.md).
+  const [variants, setVariants] = useState([]);
+  const [sameSetCards, setSameSetCards] = useState([]);
 
   const tcgInfo = TCG_LIST.find(t => t.id === card.tcg);
   const langInfo = CARD_LANGS.find(l => l.c === card.lang);
@@ -131,6 +158,35 @@ export function AssetView({ card, onBack, isAuthed, onLogin, country, cur, eurRa
     } catch { /* best-effort */ }
   }, [card.id]);
 
+  /* Carte correlate: SOLO via canonical_card_id (mai similarità di nome — vedi
+     lib/search.js) per le altre versioni, e tcg+set_id+lang per "altre carte del
+     set". Entrambe le chiavi sono dati già esistenti in DB, nessuna nuova colonna. */
+  const loadRelated = useCallback(async () => {
+    if (!supabaseReady) { setVariants([]); setSameSetCards([]); return; }
+    try {
+      const [variantsRes, sameSetRes] = await Promise.all([
+        card.canonical_card_id
+          ? supabase.from("cards").select(RELATED_CARD_FIELDS)
+              .eq("canonical_card_id", card.canonical_card_id)
+              .neq("id", card.id)
+              .limit(20)
+          : Promise.resolve({ data: [] }),
+        card.set_id
+          ? supabase.from("cards").select(RELATED_CARD_FIELDS)
+              .eq("tcg", card.tcg).eq("set_id", card.set_id).eq("lang", card.lang)
+              .neq("id", card.id)
+              .limit(12)
+          : Promise.resolve({ data: [] }),
+      ]);
+      setVariants(variantsRes.data || []);
+      const sameSet = (sameSetRes.data || []).slice()
+        .sort((a, b) => naturalCompare(a.card_number, b.card_number));
+      setSameSetCards(sameSet);
+    } catch {
+      setVariants([]); setSameSetCards([]);
+    }
+  }, [card.id, card.canonical_card_id, card.set_id, card.tcg, card.lang]);
+
   /* Load user tier from profiles when authenticated */
   useEffect(() => {
     if (!isAuthed || !supabaseReady) return;
@@ -139,7 +195,7 @@ export function AssetView({ card, onBack, isAuthed, onLogin, country, cur, eurRa
     });
   }, [isAuthed]);
 
-  useEffect(() => { loadPrice(); loadEbay(); loadSoldData(); }, [loadPrice, loadEbay, loadSoldData]);
+  useEffect(() => { loadPrice(); loadEbay(); loadSoldData(); loadRelated(); }, [loadPrice, loadEbay, loadSoldData, loadRelated]);
 
   /* Price formatting for sold rows (may be EUR from EBAY-IT or USD from EBAY-US) */
   const fmtSold = (val, currency) => {
@@ -192,12 +248,36 @@ export function AssetView({ card, onBack, isAuthed, onLogin, country, cur, eurRa
         <div className="asset-info">
           {tcgInfo && <span className="asset-tcg" style={{ color: tcgInfo.color }}>{tcgInfo.label}</span>}
           <h1 className="asset-name">{card.name}</h1>
-          {setInfo?.logo_url && <img src={setInfo.logo_url} alt={card.set_name || ''} className="set-logo-img" onError={e=>{e.currentTarget.style.display='none';}} />}
-          <div className="asset-meta">
-            {card.set_name && <span>{card.set_name}</span>}
-            {cardNum && <span className="asset-num">#{cardNum}</span>}
-            {langInfo && <span>{langInfo.flag} {langInfo.label}</span>}
-          </div>
+          {(() => {
+            const canOpenSet = !!(onOpenSet && card.set_id);
+            const openThisSet = () => onOpenSet({ tcg: card.tcg, set_id: card.set_id, lang: card.lang, set_name: setInfo?.set_name || card.set_name });
+            return (
+              <>
+                {setInfo?.logo_url && (
+                  canOpenSet ? (
+                    <button type="button" className="set-logo-link" onClick={openThisSet} aria-label={`Browse ${setInfo?.set_name || card.set_name || 'this set'}`}>
+                      <img src={setInfo.logo_url} alt={card.set_name || ''} className="set-logo-img" onError={e=>{e.currentTarget.style.display='none';}} />
+                    </button>
+                  ) : (
+                    <img src={setInfo.logo_url} alt={card.set_name || ''} className="set-logo-img" onError={e=>{e.currentTarget.style.display='none';}} />
+                  )
+                )}
+                <div className="asset-meta">
+                  {card.set_name && (
+                    canOpenSet
+                      ? (
+                        <button type="button" className="asset-meta-link" onClick={openThisSet}>
+                          {card.set_name}<Icon name="chevron" size={11} stroke={2.5} />
+                        </button>
+                      )
+                      : <span>{card.set_name}</span>
+                  )}
+                  {cardNum && <span className="asset-num">#{cardNum}</span>}
+                  {langInfo && <span>{langInfo.flag} {langInfo.label}</span>}
+                </div>
+              </>
+            );
+          })()}
 
           {/* PREZZO */}
           {loadingPrice ? (
@@ -211,7 +291,6 @@ export function AssetView({ card, onBack, isAuthed, onLogin, country, cur, eurRa
             <div className="fmv-block">
               <div className="fmv-row">
                 <span className="fmv-val">{priceStr(fmvUSD)}</span>
-                <span className="fmv-tag">FMV</span>
               </div>
               <div className="fmv-sub">{sourceLabel(latest.source)} · updated {new Date(latest.captured_at).toLocaleDateString()}</div>
               {snaps.length >= 2 && (
@@ -246,6 +325,21 @@ export function AssetView({ card, onBack, isAuthed, onLogin, country, cur, eurRa
           <Icon name="bell" size={18} /> Create alert
         </button>
       </div>
+
+      {/* ALTRE VERSIONI — stessa carta, raggruppate SOLO via canonical_card_id */}
+      {variants.length > 0 && (
+        <div className="rel-rail-section">
+          <div className="sec-h"><span className="sec-h-t">Other versions of this card</span><span className="sec-h-line" /></div>
+          <div className="rel-rail">
+            {variants.map(v => (
+              <div className="rel-rail-item" key={v.id}>
+                <SearchResultItem card={v} priceInfo={null} country={country} cur={cur} eurRate={eurRate}
+                  onOpen={onOpenCard} setsMap={setsMap} discoveryMode />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* PRICE HISTORY CHART */}
       {snaps.length >= 3 && (
@@ -352,6 +446,30 @@ export function AssetView({ card, onBack, isAuthed, onLogin, country, cur, eurRa
             ))}
           </div>
           <a className="ebay-all" href={ebayHref} target="_blank" rel="noreferrer">See all on eBay ↗</a>
+        </div>
+      )}
+
+      {/* ALTRE CARTE DEL SET — stesso tcg+set_id+lang, escludendo la carta corrente */}
+      {sameSetCards.length > 0 && (
+        <div className="rel-rail-section">
+          <div className="sec-h">
+            <span className="sec-h-t">More from {card.set_name || setInfo?.set_name || "this set"}</span>
+            <span className="sec-h-line" />
+            {onOpenSet && card.set_id && (
+              <button type="button" className="rail-more-link"
+                onClick={() => onOpenSet({ tcg: card.tcg, set_id: card.set_id, lang: card.lang, set_name: setInfo?.set_name || card.set_name })}>
+                See full set <Icon name="chevron" size={11} stroke={2.5} />
+              </button>
+            )}
+          </div>
+          <div className="rel-rail">
+            {sameSetCards.map(c => (
+              <div className="rel-rail-item" key={c.id}>
+                <SearchResultItem card={c} priceInfo={null} country={country} cur={cur} eurRate={eurRate}
+                  onOpen={onOpenCard} setsMap={setsMap} />
+              </div>
+            ))}
+          </div>
         </div>
       )}
 

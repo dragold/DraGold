@@ -19,6 +19,7 @@ import { AssetView } from "./components/asset/AssetView.jsx";
 import { PortfolioView } from "./pages/portfolio/PortfolioView.jsx";
 import { AlertsView } from "./pages/alerts/AlertsView.jsx";
 import { SetsView } from "./pages/sets/SetsView.jsx";
+import { SetDetailPage } from "./pages/set/SetDetailPage.jsx";
 
 /* ════════════════════════════════════════════════════════════════════════
    DraGold — SHELL (TASK 2)
@@ -186,6 +187,7 @@ export default function DraGold() {
 
   const [tab, setTab]   = useState("markets");
   const [asset, setAsset] = useState(null);      // carta aperta (Asset page) o null
+  const [viewSet, setViewSet] = useState(null);  // {tcg,set_id,lang,set_name} aperto da Card Detail, o null
   const [cur, setCur]   = useState("EUR");       // EUR | USD
   const [country, setCountry] = useState("IT");
   const [eurRate, setEurRate] = useState(0.92);  // 1 USD = X EUR
@@ -246,6 +248,13 @@ export default function DraGold() {
   }, []);
   const closeAsset = useCallback(() => setAsset(null), []);
 
+  const openSet = useCallback((ref) => {
+    setViewSet(ref);
+    setAsset(null);
+    window.scrollTo({ top: 0, behavior: "auto" });
+  }, []);
+  const closeSet = useCallback(() => setViewSet(null), []);
+
   /* ── formattatore valuta (i prezzi DB sono in USD) ── */
   const fmt = useCallback((usd) => {
     if (usd == null || isNaN(usd)) return "—";
@@ -257,7 +266,7 @@ export default function DraGold() {
             {/* ░░ HEADER ░░ */}
       <header className="hdr">
         <div className="hdr-in">
-          <button className="brand" onClick={()=>{ setAsset(null); setTab("markets"); }}>
+          <button className="brand" onClick={()=>{ setAsset(null); setViewSet(null); setTab("markets"); }}>
             <img src="/logo192.png" alt="DraGold" style={{height:30,width:30,borderRadius:7,flexShrink:0}}/>
             <span className="logo-txt font-syne">DraGold</span>
           </button>
@@ -267,7 +276,7 @@ export default function DraGold() {
             {PRIMARY_TABS.map(t => (
               <button key={t.id}
                 className={`topnav-i ${tab===t.id?"on":""}`}
-                onClick={()=>{ setAsset(null); setTab(t.id); }}>
+                onClick={()=>{ setAsset(null); setViewSet(null); setTab(t.id); }}>
                 {t.label}
               </button>
             ))}
@@ -294,7 +303,7 @@ export default function DraGold() {
                       <div className="menu-email">{userEmail}</div>
                       {ACCOUNT_LINKS.map(l => (
                         <button key={l.id} className="menu-i"
-                          onClick={()=>{ setAsset(null); setTab(l.id); setMenuOpen(false); }}>
+                          onClick={()=>{ setAsset(null); setViewSet(null); setTab(l.id); setMenuOpen(false); }}>
                           <Icon name={l.icon} size={16}/> {l.label}
                         </button>
                       ))}
@@ -319,6 +328,13 @@ export default function DraGold() {
             card={asset} onBack={closeAsset}
             isAuthed={isAuthed} onLogin={()=>setAuthOpen(true)}
             country={country} cur={cur} eurRate={eurRate} setsMap={setsMap}
+            onOpenCard={openAsset} onOpenSet={openSet}
+          />
+        ) : viewSet ? (
+          <SetDetailPage
+            setRef={viewSet} setsMap={setsMap}
+            country={country} cur={cur} eurRate={eurRate}
+            onOpen={openAsset} onBack={closeSet}
           />
         ) : (
         <>
@@ -329,7 +345,7 @@ export default function DraGold() {
             initialSearchState={getSavedSearch()}
             onSearchStateChange={setSavedSearch}
             onSearchStateClear={clearSavedSearch}
-            onOpenExplore={()=>{ setAsset(null); setTab("explore"); }}
+            onOpenExplore={()=>{ setAsset(null); setViewSet(null); setTab("explore"); }}
           />
         )}
         {tab==="explore" && (
@@ -368,9 +384,9 @@ export default function DraGold() {
           <span className="font-syne foot-logo">DraGold</span>
           <span className="foot-sub">The catalog for serious TCG collectors.</span>
           <div className="foot-links">
-            <button onClick={()=>{ setAsset(null); setTab("portfolio"); }}>Portfolio</button>
+            <button onClick={()=>{ setAsset(null); setViewSet(null); setTab("portfolio"); }}>Portfolio</button>
             <span>·</span>
-            <button onClick={()=>{ setAsset(null); setTab("alerts"); }}>Alerts</button>
+            <button onClick={()=>{ setAsset(null); setViewSet(null); setTab("alerts"); }}>Alerts</button>
             <span>·</span>
             <a href="mailto:hello@dragold.org">Contact</a>
             <span>·</span>
@@ -384,7 +400,7 @@ export default function DraGold() {
       {/* ░░ BOTTOM TAB (mobile) ░░ */}
       <nav className="tabbar">
         {PRIMARY_TABS.map(t => (
-          <button key={t.id} className={`tab-i ${tab===t.id?"on":""}`} onClick={()=>{ setAsset(null); setTab(t.id); }}>
+          <button key={t.id} className={`tab-i ${tab===t.id?"on":""}`} onClick={()=>{ setAsset(null); setViewSet(null); setTab(t.id); }}>
             <Icon name={t.icon} size={22} stroke={tab===t.id?2.4:2} />
             <span>{t.label}</span>
           </button>

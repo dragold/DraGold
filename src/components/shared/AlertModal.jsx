@@ -34,7 +34,7 @@ export function AlertModal({ card, cur, country, fmvUSD, eurRate, onClose, onDon
   return (
     <Sheet title="Create alert" onClose={onClose}>
       <form onSubmit={submit} className="sheet-form">
-        <p className="auth-p">Get an email when the price crosses your threshold.{hintFmv && <> Current FMV: <b>{hintFmv}</b>.</>}</p>
+        <p className="auth-p">Get an email when the price crosses your threshold.{hintFmv && <> Current price: <b>{hintFmv}</b>.</>}</p>
         <label className="field-lbl">Trigger when price goes</label>
         <div className="seg">
           <button type="button" className={`seg-b ${dir === "above" ? "on" : ""}`} onClick={() => setDir("above")}>Above ↑</button>

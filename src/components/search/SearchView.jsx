@@ -37,7 +37,7 @@ export function SearchView({ country, cur, eurRate, onOpenAsset, setsMap, initia
 
       let dbQuery = supabase
         .from('cards')
-        .select('id,name,name_en,set_name,card_number,image_url,lang,tcg,rarity,canonical_card_id,card_image_cache(cached_url,status)');
+        .select('id,name,name_en,set_name,set_id,card_number,image_url,lang,tcg,rarity,canonical_card_id,card_image_cache(cached_url,status)');
 
       // Separa lang-token (es. "jp","ja","en") dai content-token (es. "charizard","op05").
       // I lang-token NON entrano nell'AND della query DB: le carte JP hanno nome giapponese,
@@ -121,7 +121,7 @@ export function SearchView({ country, cur, eurRate, onOpenAsset, setsMap, initia
           if (!safeNums.length) continue;
           let lq = supabase
             .from('cards')
-            .select('id,name,name_en,set_name,card_number,image_url,lang,tcg,rarity,card_image_cache(cached_url,status)')
+            .select('id,name,name_en,set_name,set_id,card_number,image_url,lang,tcg,rarity,canonical_card_id,card_image_cache(cached_url,status)')
             .eq('tcg', tcgKey)
             .in('card_number', safeNums);
           if (langFilterCodes.length === 1) lq = lq.eq('lang', langFilterCodes[0]);
@@ -157,7 +157,7 @@ export function SearchView({ country, cur, eurRate, onOpenAsset, setsMap, initia
             if (!nums.length || nums.length > 400) continue;
             const { data: expanded } = await supabase
               .from('cards')
-              .select('id,name,name_en,set_name,card_number,image_url,lang,tcg,canonical_card_id,card_image_cache(cached_url,status)')
+              .select('id,name,name_en,set_name,set_id,card_number,image_url,lang,tcg,canonical_card_id,card_image_cache(cached_url,status)')
               .eq('tcg', tcgKey)
               .in('card_number', nums)
               .limit(400);
