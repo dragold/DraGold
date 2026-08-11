@@ -4,6 +4,34 @@ export function norm(s) {
   return (s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
 }
 export function tokenize(s) { return (s || '').toLowerCase().split(/[^a-z0-9]+/).filter(Boolean); }
+// Raggruppa varianti linguistiche/regionali della stessa carta usando ESCLUSIVAMENTE
+// canonical_card_id — mai nome normalizzato, string similarity, numero carta da solo,
+// set+nome o fuzzy matching. Due record con canonical_card_id diversi restano SEMPRE
+// carte distinte, anche se i nomi sono identici o molto simili (es. ristampe con lo
+// stesso nome in set diversi). Record con canonical_card_id nullo non vengono MAI
+// raggruppati con nessun altro record (ognuno resta la propria entry, chiave fallback
+// unica per id) — nessuna euristica di somiglianza viene usata come sostituto.
+// Nomi carta (es. "___'s Pikachu") non vengono mai letti, normalizzati o alterati qui.
+export function groupByCanonical(cards) {
+  const order = [];
+  const groups = new Map();
+  for (const c of cards) {
+    const key = c.canonical_card_id != null ? `c:${c.canonical_card_id}` : `solo:${c.id}`;
+    let g = groups.get(key);
+    if (!g) { g = []; groups.set(key, g); order.push(key); }
+    g.push(c);
+  }
+  return order.map(key => {
+    const group = groups.get(key);
+    if (group.length === 1) return group[0];
+    // Rappresentante: preferisce EN, altrimenti il primo della query (ordine già
+    // deciso a monte dalla query/expand, non da similarity).
+    const primary = group.find(c => c.lang === 'en') || group[0];
+    const langs = [...new Set(group.map(c => c.lang).filter(Boolean))];
+    return { ...primary, variantCount: group.length - 1, variantLangs: langs };
+  });
+}
+
 export function rankSearchResults(cards, rawQuery) {
   const q = norm(rawQuery);
   const qWords = tokenize(rawQuery);

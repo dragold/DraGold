@@ -16,6 +16,9 @@ import { norm, rankSearchResults } from "./lib/search.js";
 import { LANG_ALIASES, RARITY_TOKENS, JP_NAME_ALIASES } from "./lib/searchData.js";
 import { AlertModal } from "./components/shared/AlertModal.jsx";
 import { AssetView } from "./components/asset/AssetView.jsx";
+import { PortfolioView } from "./pages/portfolio/PortfolioView.jsx";
+import { AlertsView } from "./pages/alerts/AlertsView.jsx";
+import { SetsView } from "./pages/sets/SetsView.jsx";
 
 /* ════════════════════════════════════════════════════════════════════════
    DraGold — SHELL (TASK 2)
@@ -80,14 +83,20 @@ export const CARD_LANGS = [
   { c:"it", flag:"🇮🇹", label:"IT", live:true }, { c:"de", flag:"🇩🇪", label:"DE", live:true }, { c:"fr", flag:"🇫🇷", label:"FR", live:true }, { c:"es", flag:"🇪🇸", label:"ES", live:true }, { c:"pt", flag:"🇵🇹", label:"PT", live:true }, { c:"id", flag:"🇮🇩", label:"ID", live:true }, { c:"ko", flag:"🇰🇷", label:"KO", live:true }, { c:"de", flag:"🇩🇪", label:"DE", live:true }, { c:"fr", flag:"🇫🇷", label:"FR", live:true }, { c:"es", flag:"🇪🇸", label:"ES", live:true }, { c:"pt", flag:"🇵🇹", label:"PT", live:true }, { c:"id", flag:"🇮🇩", label:"ID", live:true }, { c:"ko", flag:"🇰🇷", label:"KO", live:true },
 ];
 
-/* ─── Tabs core ─── */
-const TABS = [
-  { id:"markets",   label:"Markets",   icon:"search" },
+/* ─── Tabs primarie (nav desktop + tabbar mobile) ───
+   Portfolio e Alerts non sono più destinazioni primarie (pivot DraGold verso
+   catalogo/discovery/collection, PRODUCT_SPEC.md 2026-08-06): restano raggiungibili
+   dal menu account (vedi PRIMARY_TABS + ACCOUNT_LINKS più sotto), non eliminate. */
+const PRIMARY_TABS = [
+  { id:"markets", label:"Markets", icon:"search" },
+  { id:"explore", label:"Explore", icon:"grid" },
+];
+const ACCOUNT_LINKS = [
   { id:"portfolio", label:"Portfolio", icon:"wallet" },
   { id:"alerts",    label:"Alerts",    icon:"bell" },
 ];
 const UPCOMING = [
-  { id:"binder",    label:"Binder",    icon:"grid",    desc:"Sfoglia la collezione in binder virtuali." },
+  { id:"binder",    label:"Binder",    icon:"grid",    desc:"Browse your collection in virtual binders." },
   { id:"blog",      label:"Blog",      icon:"doc",     desc:"Guides, market analysis, news." },
   { id:"community", label:"Community", icon:"users",   desc:"Share and compare your cards." },
 ];
@@ -102,8 +111,8 @@ function CardThumb({ name="", size=44 }) {
   );
 }
 
-/* ─── Empty state riusabile ─── */
-function Empty({ icon, title, sub, cta, onCta }) {
+/* ─── Empty state riusabile — esportato: riusato da PortfolioView/AlertsView estratti ─── */
+export function Empty({ icon, title, sub, cta, onCta }) {
   return (
     <div className="empty">
       <div className="empty-ic"><Icon name={icon} size={26} /></div>
@@ -255,7 +264,7 @@ export default function DraGold() {
 
           {/* nav desktop */}
           <nav className="topnav">
-            {TABS.map(t => (
+            {PRIMARY_TABS.map(t => (
               <button key={t.id}
                 className={`topnav-i ${tab===t.id?"on":""}`}
                 onClick={()=>{ setAsset(null); setTab(t.id); }}>
@@ -283,6 +292,12 @@ export default function DraGold() {
                     <div className="menu-scrim" onClick={()=>setMenuOpen(false)} />
                     <div className="menu">
                       <div className="menu-email">{userEmail}</div>
+                      {ACCOUNT_LINKS.map(l => (
+                        <button key={l.id} className="menu-i"
+                          onClick={()=>{ setAsset(null); setTab(l.id); setMenuOpen(false); }}>
+                          <Icon name={l.icon} size={16}/> {l.label}
+                        </button>
+                      ))}
                       <button className="menu-i" onClick={signOut}>
                         <Icon name="logout" size={16}/> Sign out
                       </button>
@@ -314,7 +329,11 @@ export default function DraGold() {
             initialSearchState={getSavedSearch()}
             onSearchStateChange={setSavedSearch}
             onSearchStateClear={clearSavedSearch}
+            onOpenExplore={()=>{ setAsset(null); setTab("explore"); }}
           />
+        )}
+        {tab==="explore" && (
+          <SetsView setsMap={setsMap} />
         )}
         {tab==="portfolio" && (
           <PortfolioView isAuthed={isAuthed} onLogin={()=>setAuthOpen(true)} onExplore={()=>setTab("markets")} cur={cur} eurRate={eurRate} />
@@ -347,8 +366,12 @@ export default function DraGold() {
         <footer className="foot">
           <img src="/logo192.png" alt="DraGold" style={{width:40,height:40,borderRadius:10,marginBottom:6}}/>
           <span className="font-syne foot-logo">DraGold</span>
-          <span className="foot-sub">Fair Market Value for serious TCG collectors.</span>
+          <span className="foot-sub">The catalog for serious TCG collectors.</span>
           <div className="foot-links">
+            <button onClick={()=>{ setAsset(null); setTab("portfolio"); }}>Portfolio</button>
+            <span>·</span>
+            <button onClick={()=>{ setAsset(null); setTab("alerts"); }}>Alerts</button>
+            <span>·</span>
             <a href="mailto:hello@dragold.org">Contact</a>
             <span>·</span>
             <a href="https://buymeacoffee.com/dragold" target="_blank" rel="noreferrer">Buy us a coffee</a>
@@ -360,7 +383,7 @@ export default function DraGold() {
 
       {/* ░░ BOTTOM TAB (mobile) ░░ */}
       <nav className="tabbar">
-        {TABS.map(t => (
+        {PRIMARY_TABS.map(t => (
           <button key={t.id} className={`tab-i ${tab===t.id?"on":""}`} onClick={()=>{ setAsset(null); setTab(t.id); }}>
             <Icon name={t.icon} size={22} stroke={tab===t.id?2.4:2} />
             <span>{t.label}</span>
@@ -374,637 +397,11 @@ export default function DraGold() {
 }
 
 
-/* ════════════════════════════════════════════════════════════════════════
-   PORTFOLIO (TASK 5)
-   ════════════════════════════════════════════════════════════════════════ */
-
-/* ─── PortfolioRow — separato per rispettare la regola degli hooks ─── */
-function PortfolioRow({ pos, priceInfo, cur, eurRate, fmt, isConfirm, onConfirm, onCancelConfirm, onRemove, onTrack, trackBusy, trackDone, removeBusy }) {
-  const [imgFailed, setImgFailed] = useState(false);
-  const imgUrl = pickCardImage(pos) || null;
-  const initials = (pos.card_name || "")
-    .replace(/[^a-zA-Z ]/g, "").trim()
-    .split(/\s+/).slice(0, 2).map(w => w[0] || "").join("").toUpperCase() || "?";
-  const tcgInfo = TCG_LIST.find(t => t.id === pos.tcg);
-
-  const capturedAt = priceInfo?.captured_at ? new Date(priceInfo.captured_at) : null;
-  const ageMs = capturedAt ? (Date.now() - capturedAt.getTime()) : null;
-  const freshClass = ageMs == null ? null : ageMs < 24*3600*1000 ? "ok" : ageMs < 14*24*3600*1000 ? "warn" : "stale";
-  const freshLabel = ageMs == null ? null : ageMs < 3600*1000 ? `${Math.max(1, Math.round(ageMs/60000))}m ago` : ageMs < 24*3600*1000 ? `${Math.round(ageMs/3600000)}h ago` : `${Math.round(ageMs/86400000)}d ago`;
-
-  const currentUSD = priceInfo?.price_market ?? null;
-  const paidRaw    = pos.purchase_price;
-  const fmvCur     = pos.fmv_currency || cur;
-  // purchase_price is stored in the currency the user had active (fmv_currency)
-  const paidUSD    = paidRaw != null
-    ? (fmvCur === "EUR" ? paidRaw / eurRate : Number(paidRaw))
-    : null;
-  const rowPnlUSD  = (currentUSD != null && paidUSD != null) ? currentUSD - paidUSD : null;
-  const rowPnlPos  = rowPnlUSD != null ? rowPnlUSD >= 0 : null;
-
-  const paidDisplay = paidRaw != null
-    ? (fmvCur === "EUR" ? `€${Number(paidRaw).toFixed(2)}` : `$${Number(paidRaw).toFixed(2)}`)
-    : "—";
-
-  return (
-    <div className="pf-row">
-      {/* Thumbnail */}
-      <div className="pf-img">
-        {imgUrl && !imgFailed ? (
-          <img src={imgUrl} alt={pos.card_name} loading="lazy" onError={() => setImgFailed(true)} />
-        ) : (
-          <div className="card-img-ph" style={{ width:"100%", height:"100%" }}>
-            {tcgInfo && <span className="card-img-ph-tcg" style={{ color:tcgInfo.color, fontSize:8 }}>{tcgInfo.short}</span>}
-            <span className="card-img-ph-init" style={{ fontSize:13 }}>{initials}</span>
-          </div>
-        )}
-      </div>
-
-      {/* Body */}
-      <div className="pf-body">
-        <div className="pf-name">{pos.card_name || "—"}</div>
-        <div className="pf-meta">
-          {pos.condition && <span className="pf-cond">{pos.condition}</span>}
-          {pos.set_name  && <span className="pf-set">{pos.set_name}</span>}
-          {pos.lang && <span className="pf-lang">{String(pos.lang).toUpperCase()}</span>}
-          {freshLabel && <span className={`pf-fresh ${freshClass}`}>{freshLabel}</span>}
-        </div>
-        <div className="pf-prices">
-          <div className="pf-price-col">
-            <span className="pf-price-lbl">Paid</span>
-            <span className="pf-price-val">{paidDisplay}</span>
-          </div>
-          <div className="pf-price-col">
-            <span className="pf-price-lbl">Now</span>
-            <span className="pf-price-val">{currentUSD != null ? fmt(currentUSD) : "—"}</span>
-          </div>
-          <div className="pf-price-col">
-            <span className="pf-price-lbl">P&amp;L</span>
-            <span className={`pf-price-val${rowPnlPos === true ? " gain" : rowPnlPos === false ? " loss" : ""}`}>
-              {rowPnlUSD != null ? `${rowPnlPos ? "+" : ""}${fmt(rowPnlUSD)}` : "—"}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* Actions */}
-      <div className="pf-actions">
-        {currentUSD == null && (
-          <button className="btn btn-ghost btn-sm pf-track-btn"
-            disabled={trackBusy || trackDone} onClick={onTrack}>
-            {trackDone ? "✓" : trackBusy ? "…" : "Track"}
-          </button>
-        )}
-        {!isConfirm ? (
-          <button className="pf-remove-btn" onClick={onConfirm} aria-label="Remove position">
-            <Icon name="close" size={14} />
-          </button>
-        ) : (
-          <div className="pf-confirm">
-            <span className="pf-confirm-txt">Remove?</span>
-            <button className="btn btn-ghost btn-sm" onClick={onCancelConfirm}>Cancel</button>
-            <button className="btn btn-sm pf-confirm-yes" disabled={removeBusy} onClick={onRemove}>
-              {removeBusy ? "…" : "Yes"}
-            </button>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-/* --- PORTFOLIO VIEW --- */
-function PortfolioView({ isAuthed, onLogin, onExplore, cur, eurRate }) {
-  const [positions, setPositions]   = useState([]);
-  const [priceMap, setPriceMap]     = useState({});
-  const [pfPoints, setPfPoints]     = useState([]);
-  const [loading, setLoading]       = useState(true);
-  const [error, setError]           = useState(null);
-  const [confirmId, setConfirmId]   = useState(null);
-  const [removeBusy, setRemoveBusy] = useState(false);
-  const [watchBusy, setWatchBusy]   = useState({});   // { rowId: true }
-  const [watched, setWatched]       = useState({});    // { rowId: true }
-  const [toast, setToast]           = useState("");
-
-  const flash = useCallback((m) => { setToast(m); setTimeout(() => setToast(""), 2800); }, []);
-
-  const fmt = useCallback((usd) => {
-    if (usd == null || isNaN(usd)) return "—";
-    return cur === "EUR" ? `€${(usd * eurRate).toFixed(2)}` : `$${Number(usd).toFixed(2)}`;
-  }, [cur, eurRate]);
-
-  const load = useCallback(async () => {
-    setLoading(true); setError(null);
-    try {
-      const data = await listCollection();
-      const ids0 = [...new Set(data.map(p => p.card_api_id).filter(Boolean))];
-      let dataWithLang = data;
-      if (ids0.length) {
-        const { data: langRows } = await supabase
-          .from("cards")
-          .select("id,lang")
-          .in("id", ids0);
-        const lm = {};
-        for (const r of (langRows || [])) lm[r.id] = r.lang;
-          const { data: cacheRows } = await supabase
-                    .from("card_image_cache")
-                    .select("card_id,cached_url,status")
-                    .in("card_id", ids0)
-                    .eq("status", "ready");
-                  const cm = {};
-                  for (const r of (cacheRows || [])) { if (!cm[r.card_id]) cm[r.card_id] = []; cm[r.card_id].push(r); }
-                  dataWithLang = data.map(p => ({ ...p, lang: lm[p.card_api_id] || null, card_image_cache: cm[p.card_api_id] || [] }));
-      }
-      setPositions(dataWithLang);
-      if (data.length > 0) {
-        const ids = ids0;
-        if (ids.length) {
-          const { data: priceRows } = await supabase
-            .from("card_prices")
-            .select("card_id,price_market,captured_at")
-            .in("card_id", ids)
-            .order("captured_at", { ascending: false })
-            .limit(ids.length * 4);
-          const pm = {};
-          for (const p of (priceRows || [])) { if (!pm[p.card_id]) pm[p.card_id] = p; }
-          setPriceMap(pm);
-
-          const since90 = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
-          const { data: histRows } = await supabase
-            .from("card_prices")
-            .select("card_id,price_market,captured_at")
-            .in("card_id", ids)
-            .gte("captured_at", since90)
-            .is("timeframe", null)
-            .order("captured_at", { ascending: true })
-            .limit(ids.length * 120);
-          setPfPoints(computePortfolioHistory(histRows || [], ids));
-        }
-      } else {
-        setPriceMap({});
-        setPfPoints([]);
-      }
-    } catch (e) {
-      setError(e.message || "Unknown error");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!isAuthed) { setLoading(false); return; }
-    load();
-  }, [isAuthed, load]);
-
-  const doRemove = useCallback(async (id) => {
-    setRemoveBusy(true);
-    await removeFromCollection(id);
-    setPositions(ps => ps.filter(p => p.id !== id));
-    setConfirmId(null);
-    setRemoveBusy(false);
-    flash("Removed from portfolio");
-  }, [flash]);
-
-  const doTrack = useCallback(async (pos) => {
-    setWatchBusy(b => ({ ...b, [pos.id]: true }));
-    const res = await addToWatchlist({
-      tcg: pos.tcg,
-      cardApiId: pos.card_api_id,
-      cardName: pos.card_name,
-      setName: pos.set_name || "",
-      imageUrl: pos.image_url || null,
-    });
-    setWatchBusy(b => ({ ...b, [pos.id]: false }));
-    if (res?.error) { flash("Could not track."); return; }
-    setWatched(w => ({ ...w, [pos.id]: true }));
-    flash("Tracking — we'll price it on the next refresh");
-  }, [flash]);
-
-  /* ── not authenticated ── */
-  if (!isAuthed) return (
-    <section className="view">
-      <div className="view-h"><h2 className="view-t">Portfolio</h2></div>
-      <Empty icon="wallet"
-        title="Sign in to save your portfolio"
-        sub="Add the cards you own and track their value and P&L over time."
-        cta="Sign in" onCta={onLogin} />
-    </section>
-  );
-
-  /* ── loading ── */
-  if (loading) return (
-    <section className="view">
-      <div className="view-h"><h2 className="view-t">Portfolio</h2></div>
-      <div className="pf-header-skel">
-        <div className="skel-line" style={{ height:30, width:"52%", marginBottom:10 }} />
-        <div className="skel-line" style={{ height:16, width:"32%" }} />
-      </div>
-      {[0,1,2].map(i => (
-        <div key={i} className="pf-row">
-          <div style={{ width:44, height:62, borderRadius:8, flexShrink:0,
-            background:"linear-gradient(100deg,var(--surface-2) 30%,var(--surface-3) 50%,var(--surface-2) 70%)",
-            backgroundSize:"200% 100%", animation:"sh 1.4s linear infinite" }} />
-          <div style={{ flex:1, display:"flex", flexDirection:"column", gap:7 }}>
-            <div className="skel-line" style={{ width:"60%" }} />
-            <div className="skel-line" style={{ width:"35%" }} />
-          </div>
-        </div>
-      ))}
-    </section>
-  );
-
-  /* ── error ── */
-  if (error) return (
-    <section className="view">
-      <div className="view-h"><h2 className="view-t">Portfolio</h2></div>
-      <div className="search-error">
-        <Icon name="close" size={16} />
-        <span>Could not load portfolio.</span>
-        <button className="btn btn-ghost btn-sm" style={{ marginLeft:"auto" }} onClick={load}>Retry</button>
-      </div>
-    </section>
-  );
-
-  /* ── empty ── */
-  if (!positions.length) return (
-    <section className="view">
-      <div className="view-h"><h2 className="view-t">Portfolio</h2></div>
-      <Empty icon="wallet"
-        title="Your portfolio is empty"
-        sub="Search a card and add it to track its value and gain."
-        cta="Find a card" onCta={onExplore} />
-    </section>
-  );
-
-  /* ── compute totals (only priced positions contribute) ── */
-  let totalValueUSD = 0, totalPaidUSD = 0, unpricedCount = 0, noPaidCount = 0;
-  for (const pos of positions) {
-    const priceRow  = priceMap[pos.card_api_id];
-    const currentUSD = priceRow?.price_market ?? null;
-    const paidRaw    = pos.purchase_price;
-    const fmvCur     = pos.fmv_currency || cur;
-    const paidUSD    = paidRaw != null
-      ? (fmvCur === "EUR" ? paidRaw / eurRate : Number(paidRaw))
-      : null;
-    if (currentUSD != null) {
-      totalValueUSD += currentUSD;
-      if (paidUSD != null) totalPaidUSD += paidUSD;
-    } else {
-      unpricedCount++;
-    }
-    if (paidUSD == null) noPaidCount++;
-  }
-  const pnlUSD  = totalValueUSD - totalPaidUSD;
-  const pnlPct  = totalPaidUSD > 0 ? (pnlUSD / totalPaidUSD) * 100 : null;
-  const pnlPos  = pnlUSD >= 0;
-
-  return (
-    <section className="view">
-      <div className="view-h"><h2 className="view-t">Portfolio</h2></div>
-
-      {/* ── HEADER ── */}
-      <div className="pf-header">
-        <div className="pf-header-top">
-          <span className="pf-label">Total Value</span>
-          {unpricedCount > 0 && (
-            <span className="pf-unpriced">{unpricedCount} unpriced</span>
-          )}
-        </div>
-        <div className="pf-total">{fmt(totalValueUSD)}</div>
-        {totalPaidUSD > 0 && (
-          <div className={`pf-pnl ${pnlPos ? "gain" : "loss"}`}>
-            <span>{pnlPos ? "+" : ""}{fmt(pnlUSD)}</span>
-            {pnlPct != null && (
-              <span className="pf-pnl-pct">{pnlPos ? "+" : ""}{pnlPct.toFixed(2)}%</span>
-            )}
-            <span className="pf-pnl-vs">vs paid</span>
-          </div>
-        )}
-        <div className="pf-count">
-          {positions.length - unpricedCount} of {positions.length} position{positions.length !== 1 ? "s" : ""} priced
-        </div>
-        {noPaidCount > 0 && (
-          <div className="pf-nopaid">{noPaidCount} of {positions.length} without a purchase price — P&L not shown for these</div>
-        )}
-        {pfPoints.length >= 2 && (
-          <PortfolioChart points={pfPoints} fmt={fmt} />
-        )}
-      </div>
-
-      {/* ── LIST ── */}
-      <div className="pf-list">
-        {positions.map(pos => (
-          <PortfolioRow
-            key={pos.id}
-            pos={pos}
-            priceInfo={priceMap[pos.card_api_id] || null}
-            cur={cur}
-            eurRate={eurRate}
-            fmt={fmt}
-            isConfirm={confirmId === pos.id}
-            onConfirm={() => setConfirmId(pos.id)}
-            onCancelConfirm={() => setConfirmId(null)}
-            onRemove={() => doRemove(pos.id)}
-            onTrack={() => doTrack(pos)}
-            trackBusy={!!watchBusy[pos.id]}
-            trackDone={!!watched[pos.id]}
-            removeBusy={removeBusy && confirmId === pos.id}
-          />
-        ))}
-      </div>
-
-      {toast && <div className="toast">{toast}</div>}
-    </section>
-  );
-}
-
-/* --- ALERTS --- */
-/* ════════════════════════════════════════════════════════════════════════
-   ALERTS — lista, crea, elimina, toggle attivo (TASK 6)
-   ════════════════════════════════════════════════════════════════════════ */
-
-/* ─── AlertSearchResultItem — riga risultato ricerca inline ─── */
-function AlertSearchResultItem({ card, onSelect }) {
-  const [imgFailed, setImgFailed] = useState(false);
-  const imgUrl = pickCardImage(card) || null;
-  const tcgInfo = TCG_LIST.find(t => t.id === card.tcg);
-  const langInfo = CARD_LANGS.find(l => l.c === card.lang);
-  return (
-    <button className="al-search-row" onClick={() => onSelect(card)}>
-      <div className="al-search-img">
-        {imgUrl && !imgFailed ? (
-          <img src={imgUrl} alt={card.name} loading="lazy" onError={() => setImgFailed(true)} />
-        ) : (
-          <div className="card-img-ph" style={{ width: '100%', height: '100%' }}>
-            {tcgInfo && <span className="card-img-ph-tcg" style={{ color: tcgInfo.color }}>{tcgInfo.short}</span>}
-          </div>
-        )}
-      </div>
-      <div className="al-search-body">
-        <div className="al-search-name">{card.name}</div>
-        <div className="al-search-meta">
-          {card.set_name && <span>{card.set_name}</span>}
-          {card.card_number && <span>#{card.card_number}</span>}
-          {langInfo && <span>{langInfo.flag}</span>}
-          {tcgInfo && <span style={{ color: tcgInfo.color, fontFamily: 'Space Mono, monospace', fontSize: 10 }}>{tcgInfo.short}</span>}
-        </div>
-      </div>
-      <span style={{ color: 'var(--dim)', flexShrink: 0, display: 'flex' }}><Icon name="chevron" size={16} /></span>
-    </button>
-  );
-}
-
-/* ─── AlertCardSearch — ricerca inline per scegliere la carta ─── */
-function AlertCardSearch({ onSelect, onClose }) {
-  const [q, setQ] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [results, setResults] = useState([]);
-  const [error, setError] = useState(null);
-  const inputRef = useRef(null);
-
-  useEffect(() => { inputRef.current?.focus(); }, []);
-
-  const doSearch = useCallback(async (query) => {
-    const trimmed = query.trim();
-    if (!trimmed) { setResults([]); setError(null); return; }
-    setLoading(true); setError(null);
-    try {
-      if (!supabaseReady) throw new Error('Backend not configured');
-      const words = trimmed.toLowerCase().replace(/[^a-z0-9 ]/gi, ' ')
-        .trim().split(/\s+/).filter(w => w.length >= 2);
-      let dbQ = supabase.from('cards')
-        .select('id,name,name_en,set_name,card_number,image_url,lang,tcg,card_image_cache(cached_url,status)')
-        .limit(15);
-      if (words.length > 0) {
-        for (const w of words) {
-          const sw = w.replace(/[*%()]/g, '');
-          if (!sw) continue;
-          const langAlias = LANG_ALIASES[sw];
-          const knownLangCode = ['en','ja','it','es','pt','id','ko','fr','de'].includes(sw);
-          const orParts = [
-            `name.ilike.*${sw}*`,
-            `card_number.ilike.*${sw}*`,
-            `set_name.ilike.*${sw}*`,
-          ];
-          if (RARITY_TOKENS.has(sw)) orParts.push(`rarity.ilike.*${sw}*`);
-          if (langAlias) orParts.push(`lang.eq.${langAlias}`);
-          else if (knownLangCode) orParts.push(`lang.eq.${sw}`);
-          dbQ = dbQ.or(orParts.join(','));
-        }
-      } else {
-        const sw = trimmed.replace(/[*%()]/g, '');
-        dbQ = dbQ.or(
-          `name.ilike.*${sw}*,card_number.ilike.*${sw}*,set_name.ilike.*${sw}*${sw.length >= 4 ? `,rarity.ilike.*${sw}*` : ''}`
-        );
-      }
-      const { data, error: err } = await dbQ;
-      if (err) throw err;
-      setResults(data || []);
-    } catch {
-      setError('Search failed. Retry.');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!q.trim()) { setResults([]); return; }
-    const t = setTimeout(() => doSearch(q), 350);
-    return () => clearTimeout(t);
-  }, [q, doSearch]);
-
-  return (
-    <div className="al-search-box">
-      <div className="search" style={{ margin: 0 }}>
-        <span className="search-ic"><Icon name="search" size={18} /></span>
-        <input ref={inputRef} className="search-in"
-          placeholder="Search a card to set alert…"
-          value={q} onChange={e => setQ(e.target.value)} />
-        <button className="search-clear" onClick={onClose} aria-label="Cancel"><Icon name="close" size={16} /></button>
-      </div>
-      {loading && <div className="al-search-hint">Searching…</div>}
-      {error && <div className="al-search-hint al-search-err">{error}</div>}
-      {!loading && !error && q.trim() && results.length === 0 && (
-        <div className="al-search-hint">No results for "{q.trim()}".</div>
-      )}
-      {results.length > 0 && (
-        <div className="al-search-results">
-          {results.map(card => (
-            <AlertSearchResultItem key={card.id} card={card} onSelect={onSelect} />
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-/* ─── AlertRow — singola riga nella lista alert ─── */
-function AlertRow({ alert: al, toggling, isDeleting, deleteBusy, onToggle, onDeleteStart, onDeleteCancel, onDeleteConfirm, cur, eurRate }) {
-  const fmtPrice = (usd) => {
-    if (usd == null) return '—';
-    return cur === 'EUR' ? `€${(usd * eurRate).toFixed(2)}` : `$${Number(usd).toFixed(2)}`;
-  };
-  const isActive = al.is_active;
-  const triggeredAt = al.triggered_at
-    ? new Date(al.triggered_at).toLocaleDateString()
-    : null;
-
-  return (
-    <div className={`al-row${!isActive ? ' al-row-off' : ''}`}>
-      <div className="al-body">
-        <div className="al-name">{al.card_name || '—'}</div>
-        <div className="al-meta">
-          <span className={`al-dir${al.direction === 'above' ? ' al-above' : ' al-below'}`}>
-            {al.direction === 'above' ? '↑ Above' : '↓ Below'} {fmtPrice(al.threshold_price)}
-          </span>
-          <span className={`al-status${isActive ? ' al-active' : ' al-triggered'}`}>
-            {isActive ? 'Active' : (triggeredAt ? `Triggered ${triggeredAt}` : 'Inactive')}
-          </span>
-        </div>
-      </div>
-      <div className="al-actions">
-        {isDeleting ? (
-          <div className="pf-confirm">
-            <span className="pf-confirm-txt">Delete?</span>
-            <button className="btn btn-ghost btn-sm" style={{ padding: '6px 10px', fontSize: 12 }} onClick={onDeleteCancel}>Cancel</button>
-            <button className="pf-confirm-yes" onClick={onDeleteConfirm} disabled={deleteBusy}>
-              {deleteBusy ? '…' : 'Delete'}
-            </button>
-          </div>
-        ) : (
-          <>
-            <button
-              className={`al-toggle${isActive ? ' on' : ''}`}
-              onClick={onToggle}
-              disabled={toggling}
-              aria-label={isActive ? 'Deactivate alert' : 'Activate alert'}
-              title={isActive ? 'Deactivate' : 'Activate'}>
-              <span className="al-toggle-knob" />
-            </button>
-            <button className="pf-remove-btn" onClick={onDeleteStart} aria-label="Delete alert">
-              <Icon name="close" size={14} />
-            </button>
-          </>
-        )}
-      </div>
-    </div>
-  );
-}
-
-/* ─── AlertsView ─── */
-function AlertsView({ isAuthed, onLogin, onExplore, cur, eurRate, country }) {
-  const [alerts, setAlerts] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [showSearch, setShowSearch] = useState(false);
-  const [selectedCard, setSelectedCard] = useState(null);
-  const [toast, setToast] = useState('');
-  const [deletingId, setDeletingId] = useState(null);
-  const [deleteBusy, setDeleteBusy] = useState(false);
-  const [toggling, setToggling] = useState(null);
-
-  const flash = (m) => { setToast(m); setTimeout(() => setToast(''), 2600); };
-
-  const load = useCallback(async () => {
-    setLoading(true); setError(null);
-    const data = await listAlerts();
-    setAlerts(Array.isArray(data) ? data : []);
-    setLoading(false);
-  }, []);
-
-  useEffect(() => {
-    if (isAuthed) load();
-    else setLoading(false);
-  }, [isAuthed, load]);
-
-  const toggle = async (al) => {
-    if (toggling) return;
-    setToggling(al.id);
-    await supabase.from('alerts').update({ is_active: !al.is_active }).eq('id', al.id);
-    setAlerts(prev => prev.map(a => a.id === al.id ? { ...a, is_active: !a.is_active } : a));
-    setToggling(null);
-  };
-
-  const remove = async (id) => {
-    setDeleteBusy(true);
-    await deleteAlert(id);
-    setAlerts(prev => prev.filter(a => a.id !== id));
-    setDeletingId(null);
-    setDeleteBusy(false);
-    flash('Alert deleted');
-  };
-
-  if (!isAuthed) return (
-    <section className="view">
-      <div className="view-h"><h2 className="view-t">Alerts</h2></div>
-      <Empty icon="bell"
-        title="Sign in to create alerts"
-        sub="Get an email when a card exceeds or drops below your price threshold."
-        cta="Sign in" onCta={onLogin} />
-    </section>
-  );
-
-  return (
-    <section className="view">
-      <div className="view-h al-view-h">
-        <h2 className="view-t">Alerts</h2>
-        <button className="btn btn-primary btn-sm" onClick={() => setShowSearch(s => !s)}>
-          <Icon name="bell" size={15} /> New alert
-        </button>
-      </div>
-
-      {showSearch && (
-        <AlertCardSearch
-          onSelect={card => { setSelectedCard(card); setShowSearch(false); }}
-          onClose={() => setShowSearch(false)}
-        />
-      )}
-
-      {loading ? (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="skel-card" style={{ height: 70, borderRadius: 14 }} />
-          ))}
-        </div>
-      ) : error ? (
-        <div className="search-error">
-          <span>{error}</span>
-          <button className="btn btn-ghost btn-sm" style={{ marginLeft: 'auto' }} onClick={load}>Retry</button>
-        </div>
-      ) : alerts.length === 0 ? (
-        <Empty icon="bell"
-          title="No alerts yet"
-          sub="Create your first alert — set a threshold and get notified when the price crosses it."
-          cta="New alert" onCta={() => setShowSearch(true)} />
-      ) : (
-        <div className="al-list">
-          {alerts.map(al => (
-            <AlertRow key={al.id} alert={al}
-              toggling={toggling === al.id}
-              isDeleting={deletingId === al.id}
-              deleteBusy={deleteBusy && deletingId === al.id}
-              onToggle={() => toggle(al)}
-              onDeleteStart={() => setDeletingId(al.id)}
-              onDeleteCancel={() => setDeletingId(null)}
-              onDeleteConfirm={() => remove(al.id)}
-              cur={cur} eurRate={eurRate}
-            />
-          ))}
-        </div>
-      )}
-
-      {selectedCard && (
-        <AlertModal
-          card={selectedCard} cur={cur} country={country} fmvUSD={null} eurRate={eurRate}
-          onClose={() => setSelectedCard(null)}
-          onDone={m => { setSelectedCard(null); flash(m); load(); }}
-        />
-      )}
-
-      {toast && <div className="toast">{toast}</div>}
-    </section>
-  );
-}
+/* Portfolio, Alerts e i loro sotto-componenti (PortfolioRow, PortfolioChart,
+   computePortfolioHistory, AlertRow, AlertCardSearch, AlertSearchResultItem)
+   sono stati estratti in src/pages/portfolio/PortfolioView.jsx e
+   src/pages/alerts/AlertsView.jsx (CLAUDE.md §5, modularizzazione).
+   Logica invariata, solo spostamento di file. */
 
 /* ════════════════════════════════════════════════════════════════════════
    ASSET — dettaglio carta (TASK 4)
@@ -1013,67 +410,3 @@ export const CONDITIONS = ["NM", "LP", "MP", "HP", "DMG"];
 
 // market code accettato da /api/ebay-search; fallback US
 const EBAY_MARKETS = ["US","GB","DE","IT","FR","ES","CA"];
-
-
-/* ─── Portfolio Value Chart SVG ─── */
-function PortfolioChart({ points, fmt }) {
-  if (!points || points.length < 2) return null;
-  const vals = points.map(p => p.value);
-  const minV = Math.min(...vals), maxV = Math.max(...vals);
-  const range = (maxV - minV) || (minV * 0.02) || 1;
-  const gain = vals[vals.length - 1] >= vals[0];
-  const col = gain ? 'var(--gain)' : 'var(--loss)';
-  const W = 360, H = 100, PT = 8, PB = 24, PL = 56, PR = 8;
-  const iW = W - PL - PR, iH = H - PT - PB;
-  const toX = i => PL + (points.length === 1 ? iW / 2 : (i / (points.length - 1)) * iW);
-  const toY = v => PT + (1 - (v - minV) / range) * iH;
-  const linePath = points.map((p, i) => (i ? 'L' : 'M') + toX(i).toFixed(1) + ',' + toY(p.value).toFixed(1)).join(' ');
-  const areaPath = linePath + ' L' + toX(points.length-1).toFixed(1) + ',' + (PT+iH).toFixed(1) + ' L' + toX(0).toFixed(1) + ',' + (PT+iH).toFixed(1) + ' Z';
-  const xLabelIdxs = points.length <= 4 ? points.map((_, i) => i) : [0, Math.floor(points.length / 2), points.length - 1];
-  return (
-    <div className="pf-chart-wrap">
-      <svg viewBox={"0 0 " + W + " " + H} style={{ width: "100%", height: "auto", display: "block" }}>
-        <defs><linearGradient id="pfchartfill" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={col} stopOpacity="0.15" />
-          <stop offset="100%" stopColor={col} stopOpacity="0" />
-        </linearGradient></defs>
-        {[minV, maxV].map((v, i) => (
-          <g key={i}>
-            <line x1={PL} y1={toY(v).toFixed(1)} x2={PL + iW} y2={toY(v).toFixed(1)} stroke="rgba(255,255,255,0.05)" strokeWidth="1" />
-            <text x={PL - 5} y={toY(v) + 4} textAnchor="end" fill="rgba(255,255,255,0.35)" fontSize="9" fontFamily="Space Mono,monospace">{fmt(v)}</text>
-          </g>
-        ))}
-        <path d={areaPath} fill="url(#pfchartfill)" />
-        <path d={linePath} fill="none" stroke={col} strokeWidth="1.8" strokeLinejoin="round" />
-        <circle cx={toX(0)} cy={toY(vals[0])} r="2" fill={col} />
-        <circle cx={toX(points.length-1)} cy={toY(vals[vals.length-1])} r="3.5" fill={col} stroke="var(--bg)" strokeWidth="1.5" />
-        {xLabelIdxs.map(i => (
-          <text key={i} x={toX(i)} y={H - 6} textAnchor="middle" fill="rgba(255,255,255,0.35)" fontSize="9" fontFamily="Space Mono,monospace">{points[i].label}</text>
-        ))}
-      </svg>
-    </div>
-  );
-}
-
-/* ─── Compute daily portfolio value from price snapshots ─── */
-function computePortfolioHistory(rows, cardIds) {
-  if (!rows.length || !cardIds.length) return [];
-  const byCard = {};
-  for (const r of rows) {
-    if (!byCard[r.card_id]) byCard[r.card_id] = [];
-    byCard[r.card_id].push({ price: r.price_market, ts: new Date(r.captured_at).getTime() });
-  }
-  const days = [...new Set(rows.map(r => r.captured_at.slice(0, 10)))].sort();
-  if (days.length < 2) return [];
-  return days.map(day => {
-    const dayEnd = new Date(day + 'T23:59:59Z').getTime();
-    let total = 0, priced = 0;
-    for (const id of cardIds) {
-      const snaps = byCard[id] || [];
-      const snap = [...snaps].reverse().find(s => s.ts <= dayEnd);
-      if (snap) { total += snap.price; priced++; }
-    }
-    if (priced === 0) return null;
-    return { label: new Date(day + 'T12:00:00Z').toLocaleDateString('en', { month: 'short', day: 'numeric' }), value: total };
-  }).filter(Boolean);
-}

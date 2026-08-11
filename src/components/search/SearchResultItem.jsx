@@ -37,6 +37,11 @@ export function SearchResultItem({ card, priceInfo, country = "IT", cur = "EUR",
           {card.set_name && <span className="card-item-set">{card.set_name}</span>}
           {card.card_number && <span className="card-item-num">#{card.card_number}</span>}
           {langInfo && <span className="card-item-lang">{langInfo.flag}</span>}
+          {card.variantCount > 0 && (
+            <span className="card-item-num" title={`Also available in: ${card.variantLangs.join(', ').toUpperCase()}`}>
+              +{card.variantCount} lang
+            </span>
+          )}
         </div>
         <div className="card-item-footer">
           {priceStr

@@ -4,10 +4,10 @@ import { Icon } from "../shared/Icon.jsx";
 import { Onboarding, ONBOARD_KEY } from "../shared/Onboarding.jsx";
 import { SearchResults } from "./SearchResults.jsx";
 import { HotPicksSection } from "./HotPicksSection.jsx";
-import { norm, rankSearchResults } from "../../lib/search.js";
+import { norm, rankSearchResults, groupByCanonical } from "../../lib/search.js";
 import { LANG_ALIASES, RARITY_TOKENS, JP_NAME_ALIASES } from "../../lib/searchData.js";
 
-export function SearchView({ country, cur, eurRate, onOpenAsset, setsMap, initialSearchState, onSearchStateChange, onSearchStateClear }) {
+export function SearchView({ country, cur, eurRate, onOpenAsset, setsMap, initialSearchState, onSearchStateChange, onSearchStateClear, onOpenExplore }) {
   const [q, setQ] = useState(() => initialSearchState?.q || "");
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState(() => initialSearchState?.results || []);
@@ -37,7 +37,7 @@ export function SearchView({ country, cur, eurRate, onOpenAsset, setsMap, initia
 
       let dbQuery = supabase
         .from('cards')
-        .select('id,name,name_en,set_name,card_number,image_url,lang,tcg,rarity,card_image_cache(cached_url,status)');
+        .select('id,name,name_en,set_name,card_number,image_url,lang,tcg,rarity,canonical_card_id,card_image_cache(cached_url,status)');
 
       // Separa lang-token (es. "jp","ja","en") dai content-token (es. "charizard","op05").
       // I lang-token NON entrano nell'AND della query DB: le carte JP hanno nome giapponese,
@@ -157,7 +157,7 @@ export function SearchView({ country, cur, eurRate, onOpenAsset, setsMap, initia
             if (!nums.length || nums.length > 400) continue;
             const { data: expanded } = await supabase
               .from('cards')
-              .select('id,name,name_en,set_name,card_number,image_url,lang,tcg,card_image_cache(cached_url,status)')
+              .select('id,name,name_en,set_name,card_number,image_url,lang,tcg,canonical_card_id,card_image_cache(cached_url,status)')
               .eq('tcg', tcgKey)
               .in('card_number', nums)
               .limit(400);
@@ -173,6 +173,11 @@ export function SearchView({ country, cur, eurRate, onOpenAsset, setsMap, initia
         }
       }
 
+      // Raggruppa varianti lingua/regione della stessa carta (canonical_card_id, mai
+      // similarity di nome — vedi lib/search.js). Non si raggruppa quando l'utente ha
+      // chiesto esplicitamente una lingua (langFilterCodes.length>0): in quel caso
+      // vuole vedere proprio quell'elenco, non una singola entry collassata.
+      if (langFilterCodes.length === 0) cards = groupByCanonical(cards);
       cards = rankSearchResults(cards, trimmed); setResults(cards);
       setLoading(false); // mostra le carte subito, prezzi in background
 
@@ -214,8 +219,13 @@ export function SearchView({ country, cur, eurRate, onOpenAsset, setsMap, initia
     <section className="view">
       {showOnboard && <Onboarding onDismiss={dismissOnboard} />}
       <div className="hero">
-        <h1 className="hero-t">Find a card.<br/>See its real market value.</h1>
-        <p className="hero-s">Fair market price on Pokémon, One Piece, Magic and Yu-Gi-Oh!. Track it like an asset.</p>
+        <h1 className="hero-t">Find a card.<br/>Explore the catalog.</h1>
+        <p className="hero-s">Pokémon, One Piece, Magic and Yu-Gi-Oh! — search any card, browse sets, and build your collection.</p>
+        {onOpenExplore && (
+          <button type="button" className="chip" style={{ marginTop: 12 }} onClick={onOpenExplore}>
+            Browse sets →
+          </button>
+        )}
       </div>
 
       {/* Fix #2: form submit = invio da tastiera */}
@@ -242,6 +252,8 @@ export function SearchView({ country, cur, eurRate, onOpenAsset, setsMap, initia
           country={country} cur={cur} eurRate={eurRate}
           onRetry={() => runSearch(searchTerm)}
           onOpen={handleOpenAsset} setsMap={setsMap}
+          hasMore={visibleCount < results.length}
+          totalCount={results.length}
         />
       ) : (
         <HotPicksSection country={country} cur={cur} eurRate={eurRate} onOpen={handleOpenAsset} />

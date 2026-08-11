@@ -132,7 +132,18 @@ useEffect(() => {
 }, [state.data])
 
 if (state.loading) {
-  return h('div', { style: styles.page }, h('div', { style: styles.center }, 'Loading card...'))
+  // Riusa il sistema skeleton globale (.skel-*, definito in styles.css e già
+  // usato da SearchResults/HotPicks/Portfolio/Alerts) invece di un testo statico.
+  return h('div', { style: styles.page }, h('div', { style: styles.wrap },
+    h('div', { className: 'skel-card', style: { display: 'flex', gap: 32, flexWrap: 'wrap', background: 'transparent', border: 'none', padding: 0 } },
+      h('div', { className: 'skel-img', style: { width: 280, maxWidth: '100%', aspectRatio: '3/4', flex: '0 0 280px', marginBottom: 0 } }),
+      h('div', { style: { flex: '1 1 320px', minWidth: 280, display: 'flex', flexDirection: 'column', gap: 10, paddingTop: 4 } },
+        h('div', { className: 'skel-line', style: { height: 28, width: '70%' } }),
+        h('div', { className: 'skel-line w40' }),
+        h('div', { className: 'skel-line', style: { height: 78, width: '100%', marginTop: 10 } })
+      )
+    )
+  ))
 }
   if (state.error || !state.data) {
     return h('div', { style: styles.page }, h('div', { style: styles.center },

@@ -2,7 +2,7 @@ import { Icon } from "../shared/Icon.jsx";
 import { ebaySearchURL } from "../../DraGold.jsx";
 import { SearchResultItem } from "./SearchResultItem.jsx";
 
-export function SearchResults({ loading, results, priceMap, error, term, country, cur, eurRate, onRetry, onOpen, setsMap }) {
+export function SearchResults({ loading, results, priceMap, error, term, country, cur, eurRate, onRetry, onOpen, setsMap, hasMore = false, totalCount = null }) {
   if (loading) return (
     <div className="card-grid">
       {Array.from({ length: 6 }).map((_, i) => (
@@ -31,11 +31,18 @@ export function SearchResults({ loading, results, priceMap, error, term, country
     </div>
   );
   return (
-    <div className="card-grid">
-      {results.map(card => (
-        <SearchResultItem key={card.id} card={card} priceInfo={priceMap[card.id] || null}
-          country={country} cur={cur} eurRate={eurRate} onOpen={onOpen} setsMap={setsMap} />
-      ))}
-    </div>
+    <>
+      <div className="card-grid">
+        {results.map(card => (
+          <SearchResultItem key={card.id} card={card} priceInfo={priceMap[card.id] || null}
+            country={country} cur={cur} eurRate={eurRate} onOpen={onOpen} setsMap={setsMap} />
+        ))}
+      </div>
+      {!hasMore && (
+        <p className="hint-center">
+          {totalCount != null ? `${totalCount} result${totalCount !== 1 ? "s" : ""} — end of list` : "End of list"}
+        </p>
+      )}
+    </>
   );
 }
