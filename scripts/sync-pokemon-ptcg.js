@@ -39,6 +39,7 @@ const DELAY_MS   = 200   // ms tra chiamate API (con key: 1000 req/min → 60ms 
 
 const args   = process.argv.slice(2)
 const argSet = args.find(a => a.startsWith('--set='))?.split('=')[1] || null
+const argSetList = argSet ? argSet.split(',').map(s => s.trim()).filter(Boolean) : null
 
 // ─── UTILS ───────────────────────────────────────────────────────────────────
 
@@ -129,6 +130,7 @@ async function syncSet(setId, setName) {
   let page      = 1
   let total     = 0
   let imported  = 0
+  let apiFailed = false
 
   do {
     await sleep(DELAY_MS)
@@ -136,7 +138,8 @@ async function syncSet(setId, setName) {
     const json = await safeFetch(url)
 
     if (!json?.data) {
-      console.warn(`  ⚠️  ${setId} pag.${page}: risposta vuota`)
+      apiFailed = true
+      console.warn(`  ⚠️  ${setId} pag.${page}: nessuna risposta valida dopo i retry`)
       break
     }
 
@@ -153,8 +156,23 @@ async function syncSet(setId, setName) {
     page++
   } while (imported < total)
 
+  // Un fallimento API (dopo retry esauriti) NON deve mai essere confuso con un
+  // risultato vuoto legittimo: se safeFetch ha restituito null, nessun dato è
+  // stato scritto in questa pagina (upsertBatch non viene mai chiamato), quindi
+  // i dati eventualmente già presenti nel DB restano intatti. Il set va solo
+  // riprovato, non conteggiato come successo.
+  if (apiFailed) {
+    console.warn(`  ❌  ${setId} (${setName}): sync fallita dopo i retry — dati esistenti preservati, set da riprovare`)
+    return { status: 'RETRYABLE_FAILURE', imported }
+  }
+
+  if (imported === 0) {
+    console.log(`  ℹ️  ${setId} (${setName}): 0 carte restituite dall'API (risultato vuoto)`)
+    return { status: 'EMPTY_RESULT', imported }
+  }
+
   console.log(`  ✅  ${setId} (${setName}): ${imported} carte`)
-  return imported
+  return { status: 'SUCCESS', imported }
 }
 
 // ─── MAIN ────────────────────────────────────────────────────────────────────
@@ -171,28 +189,34 @@ async function main() {
   }
   console.log(`   ${allSets.length} set trovati`)
 
-  const setsToProcess = argSet
-    ? allSets.filter(s => s.id === argSet)
+  const setsToProcess = argSetList
+    ? allSets.filter(s => argSetList.includes(s.id))
     : allSets
 
-  if (argSet && setsToProcess.length === 0) {
+  if (argSetList && setsToProcess.length === 0) {
     console.error(`❌  Set "${argSet}" non trovato`)
     console.log('   Esempi:', allSets.slice(0, 10).map(s => s.id).join(', '), '...')
     process.exit(1)
   }
 
-  let totalImported = 0
-  let totalFailed   = 0
+  let totalImported  = 0
+  const succeededSets = []
+  const failedSets    = []
+  const emptySets     = []
   const start = Date.now()
 
   for (let i = 0; i < setsToProcess.length; i++) {
     const { id: setId, name: setName } = setsToProcess[i]
     try {
-      const count = await syncSet(setId, setName)
-      totalImported += count
+      const result = await syncSet(setId, setName)
+      totalImported += result.imported
+
+      if (result.status === 'SUCCESS') succeededSets.push(setId)
+      else if (result.status === 'RETRYABLE_FAILURE') failedSets.push(setId)
+      else if (result.status === 'EMPTY_RESULT') emptySets.push(setId)
     } catch (err) {
       console.warn(`  ❌  Set ${setId} fallito: ${err.message}`)
-      totalFailed++
+      failedSets.push(setId)
     }
 
     if (!argSet && (i + 1) % 10 === 0) {
@@ -205,7 +229,13 @@ async function main() {
   console.log('\n' + '─'.repeat(50))
   console.log(`✅  Sync completato in ${elapsed}s`)
   console.log(`   Carte importate: ${totalImported}`)
-  console.log(`   Set falliti:     ${totalFailed}`)
+  console.log(`   Set riusciti:    ${succeededSets.length}`)
+  console.log(`   Set falliti:     ${failedSets.length}`)
+  console.log(`   Set vuoti:       ${emptySets.length}`)
+  if (failedSets.length) {
+    console.log('\n⚠️  Set da riprovare:')
+    failedSets.forEach(id => console.log(`   ${id}`))
+  }
   if (argSet) {
     console.log('\n💡  Per importare tutti i set: node scripts/sync-pokemon-ptcg.js')
   }
