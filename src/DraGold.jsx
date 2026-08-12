@@ -89,7 +89,7 @@ export const CARD_LANGS = [
    catalogo/discovery/collection, PRODUCT_SPEC.md 2026-08-06): restano raggiungibili
    dal menu account (vedi PRIMARY_TABS + ACCOUNT_LINKS più sotto), non eliminate. */
 const PRIMARY_TABS = [
-  { id:"markets", label:"Markets", icon:"search" },
+  { id:"markets", label:"Search", icon:"search" },
   { id:"explore", label:"Explore", icon:"grid" },
 ];
 const ACCOUNT_LINKS = [

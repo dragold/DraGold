@@ -8,9 +8,35 @@
   --border:rgba(255,255,255,.08); --border-2:rgba(255,255,255,.14);
   --glass:rgba(255,255,255,.04);
   --p:16px; --maxw:980px; --tabh:64px;
+  /* Phase 2A — motion system: easing/duration unica per tutte le nuove
+     interazioni (hover/press card, zoom immagine carta). ease-out con
+     atterraggio morbido, coerente col principio "motion = feedback, mai
+     decorazione" (vedi DraGold-UXUI-Phase2-Polish-Roadmap.md §E). */
+  --ease-out: cubic-bezier(.16,1,.3,1);
+  --dur-fast: 150ms;
 }
 *{box-sizing:border-box;margin:0;padding:0;}
 html,body{background:var(--bg);color:var(--text);font-family:'Plus Jakarta Sans',system-ui,sans-serif;-webkit-font-smoothing:antialiased;overflow-x:hidden;}
+
+/* Phase 2A — prefers-reduced-motion globale. Non disabilita gli stati
+   (hover/focus/active restano invariati, cambiano istantaneamente invece
+   che animati) — solo la durata di transition/animation viene azzerata,
+   pattern standard che non rompe logica dipendente da eventi come
+   transitionend/animationend. Lo shimmer di caricamento (.skel-img,
+   .price-skel) resta percettibile ma più discreto: comunica uno stato
+   reale (caricamento in corso), non è motion decorativo. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .skel-img, .price-skel {
+    animation-duration: 2.2s !important;
+    animation-iteration-count: infinite !important;
+  }
+}
 a{color:inherit;text-decoration:none;}
 button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit;}
 input{font-family:inherit;font-size:16px;}
@@ -166,8 +192,11 @@ input{font-family:inherit;font-size:16px;}
 @media(min-width:640px){.card-grid,.skel-grid{grid-template-columns:repeat(3,1fr);}}
 @media(min-width:1024px){.card-grid,.skel-grid{grid-template-columns:repeat(4,1fr);}}
 @media(min-width:1400px){.card-grid,.skel-grid{grid-template-columns:repeat(5,1fr);}}
-.card-item{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;transition:.15s;cursor:pointer;}
-.card-item:hover{border-color:var(--border-2);background:var(--surface-2);}
+.card-item{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;cursor:pointer;transform:scale(1);transition:border-color var(--dur-fast) var(--ease-out),background-color var(--dur-fast) var(--ease-out),transform var(--dur-fast) var(--ease-out),box-shadow var(--dur-fast) var(--ease-out);}
+@media (hover:hover){
+  .card-item:hover{border-color:var(--border-2);background:var(--surface-2);transform:scale(1.02);box-shadow:0 10px 24px rgba(0,0,0,.34);}
+}
+.card-item:active{transform:scale(.98);}
 .card-item:focus-visible{outline:2px solid var(--gold);outline-offset:2px;}
 .card-item-img{aspect-ratio:3/4;width:100%;overflow:hidden;background:var(--surface-2);}
 .card-item-img img{width:100%;height:100%;object-fit:contain;}
@@ -200,7 +229,17 @@ input{font-family:inherit;font-size:16px;}
 .back-btn:hover{color:var(--text);}
 .asset-head{display:flex;flex-direction:column;gap:18px;}
 .asset-img{width:160px;align-self:center;aspect-ratio:3/4;border-radius:14px;overflow:hidden;background:var(--surface-2);border:1px solid var(--border);}
-.asset-img img{width:100%;height:100%;object-fit:contain;}
+/* Phase 2A — micro-zoom immagine principale: molto contenuto (max 1.05),
+   contenuto dal overflow:hidden del genitore quindi zero layout shift.
+   Hover per desktop (gated da hover:hover per evitare hover "appiccicoso"
+   su touch); :active copre la pressione su touch dove il browser lo
+   supporta senza JS — se non supportato, l'immagine resta semplicemente
+   statica, nessuna rottura. */
+.asset-img img{width:100%;height:100%;object-fit:contain;transform:scale(1);transition:transform var(--dur-fast) var(--ease-out);}
+@media (hover:hover){
+  .asset-img:hover img{transform:scale(1.05);}
+}
+.asset-img:active img{transform:scale(1.03);}
 .asset-info{flex:1;min-width:0;}
 .asset-tcg{font-family:'Space Mono',monospace;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;}
 .asset-name{font-family:'Fraunces',serif;font-weight:800;font-size:clamp(22px,5vw,30px);line-height:1.1;letter-spacing:-.02em;margin:6px 0 10px;}
@@ -351,8 +390,12 @@ input{font-family:inherit;font-size:16px;}
 .set-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:8px;}
 @media(min-width:640px){.set-grid{grid-template-columns:repeat(3,1fr);}}
 @media(min-width:1024px){.set-grid{grid-template-columns:repeat(4,1fr);}}
-.set-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px 12px;display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center;transition:.15s;}
-.set-card:hover{border-color:var(--border-2);background:var(--surface-2);}
+.set-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px 12px;display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center;transform:scale(1);transition:border-color var(--dur-fast) var(--ease-out),background-color var(--dur-fast) var(--ease-out),transform var(--dur-fast) var(--ease-out),box-shadow var(--dur-fast) var(--ease-out);}
+@media (hover:hover){
+  .set-card:hover{border-color:var(--border-2);background:var(--surface-2);transform:scale(1.02);box-shadow:0 10px 24px rgba(0,0,0,.34);}
+}
+.set-card:active{transform:scale(.98);}
+.set-card:focus-visible{outline:2px solid var(--gold);outline-offset:2px;}
 .set-card-logo{height:38px;width:100%;display:flex;align-items:center;justify-content:center;background:#fff;border-radius:8px;padding:6px 10px;box-sizing:content-box;}
 .set-card-logo img{max-height:38px;max-width:100%;object-fit:contain;}
 .set-card-ph{font-family:'Space Mono',monospace;font-size:13px;font-weight:700;letter-spacing:.06em;}
