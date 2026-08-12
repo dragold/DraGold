@@ -349,7 +349,7 @@ export default function DraGold() {
           />
         )}
         {tab==="explore" && (
-          <SetsView setsMap={setsMap} />
+          <SetsView setsMap={setsMap} onOpenSet={openSet} />
         )}
         {tab==="portfolio" && (
           <PortfolioView isAuthed={isAuthed} onLogin={()=>setAuthOpen(true)} onExplore={()=>setTab("markets")} cur={cur} eurRate={eurRate} />

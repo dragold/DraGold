@@ -466,7 +466,7 @@ export function AssetView({ card, onBack, isAuthed, onLogin, country, cur, eurRa
             {sameSetCards.map(c => (
               <div className="rel-rail-item" key={c.id}>
                 <SearchResultItem card={c} priceInfo={null} country={country} cur={cur} eurRate={eurRate}
-                  onOpen={onOpenCard} setsMap={setsMap} />
+                  onOpen={onOpenCard} setsMap={setsMap} discoveryMode />
               </div>
             ))}
           </div>
