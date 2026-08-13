@@ -98,6 +98,22 @@ input{font-family:inherit;font-size:16px;}
 .hero-t{font-family:'Fraunces',serif;font-weight:800;font-size:clamp(32px,8vw,60px);line-height:1.02;letter-spacing:-.025em;}
 .hero-accent{font-style:italic;font-weight:600;color:var(--gold);}
 .hero-s{margin-top:14px;color:var(--muted);font-size:15.5px;max-width:520px;line-height:1.55;}
+/* Hero card stack — real card art from Hot Picks (same data already loaded
+   for the section below; no extra query), not a decorative placeholder.
+   Desktop only: on narrow screens the hero compresses to copy + search,
+   matching the North Star's mobile guidance. */
+.hero-grid{display:block;}
+@media(min-width:880px){
+  .hero-grid{display:grid;grid-template-columns:1fr 300px;gap:44px;align-items:center;}
+}
+.hero-stack{display:none;position:relative;height:280px;}
+@media(min-width:880px){.hero-stack{display:block;}}
+.hero-stack-card{position:absolute;width:148px;aspect-ratio:63/88;border-radius:11px;overflow:hidden;box-shadow:0 30px 54px -26px rgba(0,0,0,.75);background:var(--surface-2);}
+.hero-stack-card img{width:100%;height:100%;object-fit:cover;display:block;}
+.hero-stack-back{opacity:.5;filter:saturate(.65);transition:opacity var(--dur-reveal) var(--ease-out);}
+.hero-stack-back[data-i="1"]{left:6px;top:34px;transform:rotate(-10deg);}
+.hero-stack-back[data-i="2"]{right:0;top:2px;transform:rotate(8deg);}
+.hero-stack-front{left:50%;top:52px;width:168px;transform:translateX(-50%);z-index:2;}
 
 /* search */
 .search{display:flex;align-items:center;gap:8px;margin:20px 0 14px;background:var(--surface-2);border:1px solid var(--border-2);border-radius:14px;padding:6px 6px 6px 14px;transition:.15s;}
@@ -210,7 +226,7 @@ input{font-family:inherit;font-size:16px;}
 @media(min-width:640px){.card-grid,.skel-grid{grid-template-columns:repeat(3,1fr);}}
 @media(min-width:1024px){.card-grid,.skel-grid{grid-template-columns:repeat(4,1fr);}}
 @media(min-width:1400px){.card-grid,.skel-grid{grid-template-columns:repeat(5,1fr);}}
-.card-item{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;cursor:pointer;transform:translateY(0);transition:border-color var(--dur-fast) var(--ease-out),background-color var(--dur-fast) var(--ease-out),transform var(--dur-lift) var(--ease-out),box-shadow var(--dur-lift) var(--ease-out);}
+.card-item{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;cursor:pointer;transform:translateY(0);box-shadow:0 8px 18px -14px rgba(0,0,0,.5);transition:border-color var(--dur-fast) var(--ease-out),background-color var(--dur-fast) var(--ease-out),transform var(--dur-lift) var(--ease-out),box-shadow var(--dur-lift) var(--ease-out);}
 @media (hover:hover){
   /* North Star card treatment: rest → hover-lift-6 (translateY -6px, gold-tinted
      border, deeper shadow) rather than a flat scale — the card reads as an
@@ -250,7 +266,7 @@ input{font-family:inherit;font-size:16px;}
 .back-btn:hover{color:var(--text);}
 .asset-head{position:relative;display:flex;flex-direction:column;gap:22px;}
 .asset-head::before{content:'';position:absolute;top:-30px;left:-24px;right:-24px;height:280px;background:radial-gradient(60% 100% at 30% 15%,rgba(251,191,36,.09),transparent 62%);pointer-events:none;z-index:-1;}
-.asset-img{width:min(240px,72vw);align-self:center;aspect-ratio:3/4;border-radius:14px;overflow:hidden;background:var(--surface-2);border:1px solid var(--border);}
+.asset-img{width:min(280px,78vw);align-self:center;aspect-ratio:3/4;border-radius:14px;overflow:hidden;background:var(--surface-2);border:1px solid var(--border);}
 /* Phase 2A — micro-zoom immagine principale: molto contenuto (max 1.05),
    contenuto dal overflow:hidden del genitore quindi zero layout shift.
    Hover per desktop (gated da hover:hover per evitare hover "appiccicoso"
@@ -296,13 +312,15 @@ input{font-family:inherit;font-size:16px;}
 .asset-breadcrumb b{color:var(--gold);font-weight:700;}
 .asset-breadcrumb span{opacity:.5;}
 .asset-tcg{font-family:'Space Mono',monospace;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;}
-.asset-name{font-family:'Fraunces',serif;font-weight:800;font-size:clamp(28px,5.2vw,44px);line-height:1.04;letter-spacing:-.02em;margin:8px 0 12px;}
-.asset-meta{display:flex;flex-wrap:wrap;gap:10px;align-items:center;color:var(--muted);font-size:13px;}
+.asset-name{font-family:'Fraunces',serif;font-weight:800;font-size:clamp(30px,6vw,52px);line-height:1.0;letter-spacing:-.02em;margin:8px 0 14px;}
+.asset-meta{display:flex;flex-wrap:wrap;align-items:center;color:var(--muted);font-size:13px;font-family:'Space Mono',monospace;letter-spacing:.02em;border:1px solid var(--border);border-radius:11px;background:var(--surface);margin-top:4px;overflow:hidden;}
+.asset-meta>*{padding:10px 14px;border-right:1px solid var(--border);display:flex;align-items:center;gap:5px;}
+.asset-meta>*:last-child{border-right:none;}
 .asset-num{font-family:'Space Mono',monospace;}
 .price-skel{height:78px;border-radius:14px;background:linear-gradient(100deg,var(--surface-2) 30%,var(--surface-3) 50%,var(--surface-2) 70%);background-size:200% 100%;animation:sh 1.4s linear infinite;margin-top:16px;}
-.fmv-block{margin-top:16px;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:16px;}
+.fmv-block{margin-top:20px;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:22px 20px;}
 .fmv-row{display:flex;align-items:baseline;gap:10px;}
-.fmv-val{font-family:'Space Mono',monospace;font-size:30px;font-weight:700;color:var(--text);}
+.fmv-val{font-family:'Space Mono',monospace;font-size:40px;font-weight:700;color:var(--text);letter-spacing:-.01em;}
 .fmv-tag{font-size:10px;font-weight:700;font-family:'Space Mono',monospace;letter-spacing:.1em;color:var(--gold);background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.25);padding:3px 7px;border-radius:6px;}
 .fmv-sub{margin-top:5px;font-size:12px;color:var(--dim);font-family:'Space Mono',monospace;}
 .spark-wrap{margin-top:14px;}
@@ -380,8 +398,11 @@ input{font-family:inherit;font-size:16px;}
    a squeezed copy of the desktop row. */
 @media(min-width:640px){
   .asset-head{flex-direction:row;align-items:flex-start;gap:44px;}
-  .asset-img{width:300px;align-self:flex-start;}
+  .asset-img{width:340px;align-self:flex-start;}
   .asset-actions{max-width:420px;}
+}
+@media(min-width:900px){
+  .asset-img{width:380px;}
 }
 @media(max-width:639px){
   .asset-actions{position:sticky;bottom:calc(var(--tabh) + env(safe-area-inset-bottom,0px));z-index:30;background:rgba(2,2,8,.92);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);margin:24px calc(var(--p) * -1) 0;padding:12px var(--p) calc(env(safe-area-inset-bottom,0px) + 12px);border-top:1px solid var(--border);}
@@ -472,7 +493,7 @@ input{font-family:inherit;font-size:16px;}
 /* Affordance visibile anche senza hover (icona chevron sempre presente, non solo
    sottolineatura al passaggio del mouse) — resta elegante/secondario: stesso colore
    muted del testo circostante, solo l'icona segnala "questo porta altrove". */
-.asset-meta-link{background:none;border:none;padding:0;margin:0;font:inherit;font-size:13px;color:var(--muted);cursor:pointer;display:inline-flex;align-items:center;gap:2px;transition:.15s;}
+.asset-meta-link{background:none;border:none;font:inherit;font-size:13px;color:var(--muted);cursor:pointer;display:inline-flex;align-items:center;gap:2px;transition:.15s;}
 .asset-meta-link svg{opacity:.6;transition:.15s;}
 .asset-meta-link:hover{color:var(--text);}
 .asset-meta-link:hover svg{opacity:1;transform:translateX(1px);}
@@ -491,16 +512,25 @@ input{font-family:inherit;font-size:16px;}
    shared .sec-h-t used by Hot Picks / sold / eBay live. */
 .rel-rail-section .sec-h-t{font-family:'Fraunces',serif;font-weight:700;font-size:20px;letter-spacing:-.01em;text-transform:none;color:var(--text);}
 .rel-rail-section .edge-label{margin-bottom:2px;}
-.rel-rail{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:6px;margin:0 -2px;}
-.rel-rail-item{flex:0 0 168px;scroll-snap-align:start;}
+.rel-rail{display:flex;gap:14px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:8px;padding-top:2px;margin:0 -2px;}
+.rel-rail-item{flex:0 0 176px;scroll-snap-align:start;}
 .rel-rail .card-item-name{font-size:13px;}
 .rel-rail .card-item-meta{margin-bottom:0;}
+/* Relation rails get the SECOND accent on hover (periwinkle, not gold) — the
+   design system's rule is gold=ownership/focus, periwinkle=relation/edges of
+   the graph. Grid tiles elsewhere keep the gold hover. */
+@media (hover:hover){
+  .rel-rail .card-item:hover{border-color:rgba(126,139,196,.5);box-shadow:0 20px 36px -20px rgba(0,0,0,.6),0 0 0 1px rgba(126,139,196,.12);}
+}
 
 /* ─── Set Detail page header ─── */
-.set-detail-head{position:relative;display:flex;flex-direction:column;gap:14px;margin:10px 0 26px;padding-top:6px;}
-.set-detail-head::before{content:'';position:absolute;top:-24px;left:-24px;right:-24px;height:200px;background:radial-gradient(65% 100% at 75% 0%,rgba(126,139,196,.13),transparent 65%);pointer-events:none;z-index:-1;}
-.set-detail-eyebrow{font-family:'Space Mono',monospace;font-size:10.5px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--relation);}
-.set-detail-row{display:flex;align-items:center;gap:16px;}
-.set-detail-head .set-logo-img{height:48px;max-width:200px;object-fit:contain;}
-.set-detail-head .view-t{font-family:'Fraunces',serif;font-weight:800;font-size:clamp(28px,5vw,42px);letter-spacing:-.015em;line-height:1.02;}
+.set-detail-head{position:relative;display:flex;flex-direction:column;gap:16px;margin:10px 0 8px;padding:28px 24px 34px;border:1px solid var(--border);border-radius:18px;overflow:hidden;background:var(--surface);}
+.set-detail-head::before{content:'';position:absolute;inset:0;background:radial-gradient(75% 120% at 78% 0%,rgba(126,139,196,.16),transparent 62%),radial-gradient(60% 90% at 6% 100%,rgba(251,191,36,.08),transparent 60%);pointer-events:none;}
+.set-detail-eyebrow{position:relative;font-family:'Space Mono',monospace;font-size:10.5px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--relation);}
+.set-detail-row{position:relative;display:flex;align-items:center;gap:18px;}
+.set-detail-head .set-logo-img{height:52px;max-width:220px;object-fit:contain;}
+.set-detail-head .view-t{font-family:'Fraunces',serif;font-weight:800;font-size:clamp(34px,6.5vw,58px);letter-spacing:-.02em;line-height:.98;}
+.set-preview-strip{position:relative;display:flex;gap:10px;overflow-x:auto;margin-top:20px;padding-top:16px;border-top:1px solid rgba(255,255,255,.08);}
+.set-preview-card{flex:0 0 56px;aspect-ratio:63/88;border-radius:7px;overflow:hidden;border:1px solid var(--border-2);box-shadow:0 10px 20px -12px rgba(0,0,0,.6);}
+.set-preview-card img{width:100%;height:100%;object-fit:cover;display:block;}
 

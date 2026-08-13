@@ -3,7 +3,7 @@ import { supabase, supabaseReady } from "../../supabase.js";
 import { Icon } from "../shared/Icon.jsx";
 import { SearchResultItem } from "./SearchResultItem.jsx";
 
-export function HotPicksSection({ country = "IT", cur = "EUR", eurRate = 0.92, onOpen }) {
+export function HotPicksSection({ country = "IT", cur = "EUR", eurRate = 0.92, onOpen, onPicksLoaded }) {
   // Fallback curato: carte reali del catalogo (id verificati in DB), usato solo se
   // hot_picks non ha ancora righe per oggi (es. cron non ancora girato) o ne ha poche.
   // Niente più chiamate live a eBay: prezzo letto da card_prices via card_prices_latest.
@@ -32,7 +32,7 @@ export function HotPicksSection({ country = "IT", cur = "EUR", eurRate = 0.92, o
     try {
       const c = JSON.parse(sessionStorage.getItem(CACHE_KEY) || '{}');
       if (c.ts && Date.now() - c.ts < CACHE_TTL && c.data?.length) {
-        setPicks(c.data); setLoadingPicks(false); return;
+        setPicks(c.data); setLoadingPicks(false); onPicksLoaded?.(c.data); return;
       }
     } catch {}
     (async () => {
@@ -80,6 +80,7 @@ export function HotPicksSection({ country = "IT", cur = "EUR", eurRate = 0.92, o
         const combined = [...fromHotPicks, ...fromFallback].slice(0, 12);
         if (!cancelled) {
           setPicks(combined);
+          onPicksLoaded?.(combined);
           try { sessionStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), data: combined })); } catch {}
         }
       } catch {}

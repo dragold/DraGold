@@ -1,6 +1,6 @@
-import { useState } from "react";
 import { TCG_LIST, CARD_LANGS, ebayURL } from "../../DraGold.jsx";
 import { getSetInfo, pickCardImage } from "../shared/cardImage.js";
+import { CardObject } from "../shared/CardObject.jsx";
 
 // discoveryMode: usato nelle rail "carte correlate" (AssetView) e nella griglia di
 // SetDetailPage — contesti di scoperta, non di ricerca prezzo. In questi contesti
@@ -10,7 +10,6 @@ import { getSetInfo, pickCardImage } from "../shared/cardImage.js";
 // Il componente di ricerca principale (SearchView → SearchResults) NON passa questo
 // prop, quindi il suo comportamento resta identico a prima.
 export function SearchResultItem({ card, priceInfo, country = "IT", cur = "EUR", eurRate = 0.92, onOpen, setsMap, discoveryMode = false }) {
-  const [imgFailed, setImgFailed] = useState(false);
   const imgUrl = pickCardImage(card) || card.imgUrl || card.img || null;
   const cardName = card.name || "—";
   const tcgInfo = TCG_LIST.find(t => t.id === card.tcg);
@@ -28,14 +27,18 @@ export function SearchResultItem({ card, priceInfo, country = "IT", cur = "EUR",
       role="button" tabIndex={0}
       onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onOpen?.(card); } }}>
       <div className="card-item-img">
-        {imgUrl && !imgFailed ? (
-          <img src={imgUrl} alt={cardName} loading="lazy" onError={() => setImgFailed(true)} />
-        ) : (
-          <div className="card-img-ph">
-            {tcgInfo && <span className="card-img-ph-tcg" style={{ color: tcgInfo.color }}>{tcgInfo.short}</span>}
-            <span className="card-img-ph-init">{initials}</span>
-          </div>
-        )}
+        <CardObject
+          card={card}
+          src={imgUrl}
+          alt={cardName}
+          variant="grid"
+          fallback={
+            <div className="card-img-ph">
+              {tcgInfo && <span className="card-img-ph-tcg" style={{ color: tcgInfo.color }}>{tcgInfo.short}</span>}
+              <span className="card-img-ph-init">{initials}</span>
+            </div>
+          }
+        />
       </div>
       <div className="card-item-body">
         <div className="card-item-name" title={cardName}>{cardName}</div>
