@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700;9..144,800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,700;0,9..144,800;1,9..144,600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap');
 
 :root{
   --bg:#020208; --surface:#0b0b18; --surface-2:#111127; --surface-3:#181830;
@@ -20,6 +20,7 @@
      as --gold, different hue — never used for anything else). */
   --dur-settle: 500ms;
   --dur-reveal: 700ms;
+  --dur-lift: 350ms;
   --relation: #7E8BC4;
 }
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -89,10 +90,14 @@ input{font-family:inherit;font-size:16px;}
 .view-h{margin:4px 0 16px;}
 .view-t{font-size:24px;font-weight:800;letter-spacing:-.02em;}
 
-/* hero */
-.hero{padding:18px 0 6px;}
-.hero-t{font-family:'Fraunces',serif;font-weight:800;font-size:clamp(28px,7vw,46px);line-height:1.05;letter-spacing:-.02em;}
-.hero-s{margin-top:12px;color:var(--muted);font-size:15px;max-width:520px;line-height:1.5;}
+/* hero — North Star "Codex entrance": eyebrow + oversized display headline
+   with an italic accent word, subtle two-accent radial glow behind it. */
+.hero{position:relative;padding:26px 0 10px;}
+.hero::before{content:'';position:absolute;top:-40px;left:-24px;right:-24px;height:340px;background:radial-gradient(65% 100% at 78% 10%,rgba(251,191,36,.10),transparent 62%),radial-gradient(55% 90% at 8% 100%,rgba(126,139,196,.08),transparent 60%);pointer-events:none;z-index:-1;}
+.hero-eyebrow{display:block;font-family:'Space Mono',monospace;font-size:11px;font-weight:700;letter-spacing:.24em;text-transform:uppercase;color:var(--dim);margin-bottom:16px;}
+.hero-t{font-family:'Fraunces',serif;font-weight:800;font-size:clamp(32px,8vw,60px);line-height:1.02;letter-spacing:-.025em;}
+.hero-accent{font-style:italic;font-weight:600;color:var(--gold);}
+.hero-s{margin-top:14px;color:var(--muted);font-size:15.5px;max-width:520px;line-height:1.55;}
 
 /* search */
 .search{display:flex;align-items:center;gap:8px;margin:20px 0 14px;background:var(--surface-2);border:1px solid var(--border-2);border-radius:14px;padding:6px 6px 6px 14px;transition:.15s;}
@@ -205,11 +210,14 @@ input{font-family:inherit;font-size:16px;}
 @media(min-width:640px){.card-grid,.skel-grid{grid-template-columns:repeat(3,1fr);}}
 @media(min-width:1024px){.card-grid,.skel-grid{grid-template-columns:repeat(4,1fr);}}
 @media(min-width:1400px){.card-grid,.skel-grid{grid-template-columns:repeat(5,1fr);}}
-.card-item{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;cursor:pointer;transform:scale(1);transition:border-color var(--dur-fast) var(--ease-out),background-color var(--dur-fast) var(--ease-out),transform var(--dur-fast) var(--ease-out),box-shadow var(--dur-fast) var(--ease-out);}
+.card-item{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;cursor:pointer;transform:translateY(0);transition:border-color var(--dur-fast) var(--ease-out),background-color var(--dur-fast) var(--ease-out),transform var(--dur-lift) var(--ease-out),box-shadow var(--dur-lift) var(--ease-out);}
 @media (hover:hover){
-  .card-item:hover{border-color:var(--border-2);background:var(--surface-2);transform:scale(1.02);box-shadow:0 10px 24px rgba(0,0,0,.34);}
+  /* North Star card treatment: rest → hover-lift-6 (translateY -6px, gold-tinted
+     border, deeper shadow) rather than a flat scale — the card reads as an
+     object lifting off the surface, not a button growing. */
+  .card-item:hover{border-color:rgba(251,191,36,.35);background:var(--surface-2);transform:translateY(-6px);box-shadow:0 20px 36px -20px rgba(0,0,0,.6);}
 }
-.card-item:active{transform:scale(.98);}
+.card-item:active{transform:translateY(-2px);}
 .card-item:focus-visible{outline:2px solid var(--gold);outline-offset:2px;}
 .card-item-img{aspect-ratio:3/4;width:100%;overflow:hidden;background:var(--surface-2);}
 .card-item-img img{width:100%;height:100%;object-fit:contain;}
@@ -240,8 +248,9 @@ input{font-family:inherit;font-size:16px;}
 .asset{margin-bottom:30px;}
 .back-btn{display:inline-flex;align-items:center;gap:4px;color:var(--muted);font-size:14px;font-weight:600;padding:8px 4px;margin-bottom:10px;}
 .back-btn:hover{color:var(--text);}
-.asset-head{display:flex;flex-direction:column;gap:18px;}
-.asset-img{width:160px;align-self:center;aspect-ratio:3/4;border-radius:14px;overflow:hidden;background:var(--surface-2);border:1px solid var(--border);}
+.asset-head{position:relative;display:flex;flex-direction:column;gap:22px;}
+.asset-head::before{content:'';position:absolute;top:-30px;left:-24px;right:-24px;height:280px;background:radial-gradient(60% 100% at 30% 15%,rgba(251,191,36,.09),transparent 62%);pointer-events:none;z-index:-1;}
+.asset-img{width:min(240px,72vw);align-self:center;aspect-ratio:3/4;border-radius:14px;overflow:hidden;background:var(--surface-2);border:1px solid var(--border);}
 /* Phase 2A — micro-zoom immagine principale: molto contenuto (max 1.05),
    contenuto dal overflow:hidden del genitore quindi zero layout shift.
    Hover per desktop (gated da hover:hover per evitare hover "appiccicoso"
@@ -267,7 +276,12 @@ input{font-family:inherit;font-size:16px;}
 .card-object-plate{position:relative;width:100%;height:100%;transform-style:preserve-3d;will-change:transform;}
 .card-object-plate img{width:100%;height:100%;object-fit:contain;display:block;border-radius:inherit;}
 .card-object-sheen{position:absolute;inset:0;border-radius:inherit;pointer-events:none;mix-blend-mode:overlay;opacity:var(--sheen-o,0);background:radial-gradient(circle at var(--mx,50%) var(--my,50%),rgba(255,255,255,.5),transparent 60%);transition:opacity var(--dur-fast) var(--ease-out);}
-.card-object-hero .card-object-plate{filter:drop-shadow(0 18px 40px rgba(0,0,0,.5));}
+.card-object-hero .card-object-plate{filter:drop-shadow(0 18px 40px rgba(0,0,0,.5));overflow:hidden;}
+/* Hero is the one place a continuous ambient effect is allowed even when
+   not owned (README motion budget: "reserved for hero/owned states only") —
+   a faint diagonal scan, the "one moment per page that's pure pleasure". */
+.card-object-hero .card-object-plate::after{content:'';position:absolute;top:0;bottom:0;left:-40%;width:32%;background:linear-gradient(100deg,transparent,rgba(251,191,36,.10),transparent);animation:dgScan 6.5s ease-in-out infinite;pointer-events:none;}
+@keyframes dgScan{0%{left:-40%;}55%{left:104%;}100%{left:104%;}}
 /* Foil-scan: ambient motion reserved for owned cards only (never in
    grid/search utility contexts) — covered by the global
    prefers-reduced-motion animation-duration override above. */
@@ -278,8 +292,11 @@ input{font-family:inherit;font-size:16px;}
    e.g. "CARD → LANGUAGE / PRINT". Second accent (--relation) only. */
 .edge-label{display:block;font-family:'Space Mono',monospace;font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--relation);margin:24px 0 6px;}
 .edge-label + .sec-h{margin-top:8px;}
+.asset-breadcrumb{display:flex;flex-wrap:wrap;align-items:center;gap:7px;font-family:'Space Mono',monospace;font-size:10.5px;letter-spacing:.08em;color:var(--dim);margin-bottom:16px;}
+.asset-breadcrumb b{color:var(--gold);font-weight:700;}
+.asset-breadcrumb span{opacity:.5;}
 .asset-tcg{font-family:'Space Mono',monospace;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;}
-.asset-name{font-family:'Fraunces',serif;font-weight:800;font-size:clamp(22px,5vw,30px);line-height:1.1;letter-spacing:-.02em;margin:6px 0 10px;}
+.asset-name{font-family:'Fraunces',serif;font-weight:800;font-size:clamp(28px,5.2vw,44px);line-height:1.04;letter-spacing:-.02em;margin:8px 0 12px;}
 .asset-meta{display:flex;flex-wrap:wrap;gap:10px;align-items:center;color:var(--muted);font-size:13px;}
 .asset-num{font-family:'Space Mono',monospace;}
 .price-skel{height:78px;border-radius:14px;background:linear-gradient(100deg,var(--surface-2) 30%,var(--surface-3) 50%,var(--surface-2) 70%);background-size:200% 100%;animation:sh 1.4s linear infinite;margin-top:16px;}
@@ -356,11 +373,19 @@ input{font-family:inherit;font-size:16px;}
 .al-cs-item{display:flex;align-items:center;gap:10px;padding:8px 12px;cursor:pointer;transition:.1s;}
 .al-cs-item:hover{background:var(--surface-2);}
 .al-cs-meta{font-size:11px;color:var(--text-2);}
-/* responsive */
-@media(max-width:600px){
-  .asset-head{flex-direction:row;align-items:flex-start;gap:26px;}
-  .asset-img{width:220px;align-self:flex-start;}
+/* responsive — Card Detail becomes the two-column "hub" above 640px: card
+   and info sit side by side, the card sized as a real object rather than a
+   thumbnail (North Star §05 "Card as destination"). Below that, mobile gets
+   its own composition — big centered card, sticky bottom action bar — not
+   a squeezed copy of the desktop row. */
+@media(min-width:640px){
+  .asset-head{flex-direction:row;align-items:flex-start;gap:44px;}
+  .asset-img{width:300px;align-self:flex-start;}
   .asset-actions{max-width:420px;}
+}
+@media(max-width:639px){
+  .asset-actions{position:sticky;bottom:calc(var(--tabh) + env(safe-area-inset-bottom,0px));z-index:30;background:rgba(2,2,8,.92);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);margin:24px calc(var(--p) * -1) 0;padding:12px var(--p) calc(env(safe-area-inset-bottom,0px) + 12px);border-top:1px solid var(--border);}
+  .asset-actions .btn{min-height:46px;}
 }
 .price-chart-wrap{margin:0 0 4px;}
 .pf-chart-wrap{margin:8px 0 4px;padding:0 2px;}
@@ -461,13 +486,21 @@ input{font-family:inherit;font-size:16px;}
 
 /* ─── Related-content rails (altre versioni / altre carte del set) ─── */
 .rel-rail-section{margin-bottom:8px;}
+/* Rail headings read as editorial section titles here (not utility mono
+   labels) — scoped to the two relationship rails only, doesn't touch the
+   shared .sec-h-t used by Hot Picks / sold / eBay live. */
+.rel-rail-section .sec-h-t{font-family:'Fraunces',serif;font-weight:700;font-size:20px;letter-spacing:-.01em;text-transform:none;color:var(--text);}
+.rel-rail-section .edge-label{margin-bottom:2px;}
 .rel-rail{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:6px;margin:0 -2px;}
 .rel-rail-item{flex:0 0 168px;scroll-snap-align:start;}
 .rel-rail .card-item-name{font-size:13px;}
 .rel-rail .card-item-meta{margin-bottom:0;}
 
 /* ─── Set Detail page header ─── */
-.set-detail-head{display:flex;align-items:center;gap:16px;margin:8px 0 22px;}
+.set-detail-head{position:relative;display:flex;flex-direction:column;gap:14px;margin:10px 0 26px;padding-top:6px;}
+.set-detail-head::before{content:'';position:absolute;top:-24px;left:-24px;right:-24px;height:200px;background:radial-gradient(65% 100% at 75% 0%,rgba(126,139,196,.13),transparent 65%);pointer-events:none;z-index:-1;}
+.set-detail-eyebrow{font-family:'Space Mono',monospace;font-size:10.5px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--relation);}
+.set-detail-row{display:flex;align-items:center;gap:16px;}
 .set-detail-head .set-logo-img{height:48px;max-width:200px;object-fit:contain;}
-.set-detail-head .view-t{font-family:'Fraunces',serif;font-weight:800;font-size:26px;letter-spacing:-.01em;}
+.set-detail-head .view-t{font-family:'Fraunces',serif;font-weight:800;font-size:clamp(28px,5vw,42px);letter-spacing:-.015em;line-height:1.02;}
 

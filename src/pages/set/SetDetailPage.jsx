@@ -27,6 +27,7 @@ import { supabase, supabaseReady } from "../../supabase.js";
 import { Icon } from "../../components/shared/Icon.jsx";
 import { SearchResults } from "../../components/search/SearchResults.jsx";
 import { useReveal } from "../../lib/useReveal.js";
+import { TCG_LIST, CARD_LANGS } from "../../DraGold.jsx";
 
 const SET_CARD_FIELDS = "id,name,name_en,set_name,set_id,card_number,image_url,image_url_hi,lang,tcg,canonical_card_id,card_image_cache(cached_url,status)";
 
@@ -130,14 +131,20 @@ export function SetDetailPage({ setRef, setsMap, country, cur, eurRate, onOpen, 
       </button>
 
       <div className="set-detail-head">
-        {info?.logo_url && (
-          <img src={info.logo_url} alt={setName} className="set-logo-img"
-            onError={e => { e.currentTarget.style.display = "none"; }} />
-        )}
-        <div className="view-h" style={{ margin: 0 }}>
-          <h2 className="view-t">{setName}</h2>
+        <span className="set-detail-eyebrow">
+          {(TCG_LIST.find(t => t.id === setRef.tcg)?.label || setRef.tcg)}
+          {setRef.lang && ` · ${(CARD_LANGS.find(l => l.c === setRef.lang)?.label || setRef.lang.toUpperCase())}`}
+          {!loading && ` · ${cards.length} card${cards.length !== 1 ? "s" : ""}`}
+        </span>
+        <div className="set-detail-row">
+          {info?.logo_url && (
+            <img src={info.logo_url} alt={setName} className="set-logo-img"
+              onError={e => { e.currentTarget.style.display = "none"; }} />
+          )}
+          <div className="view-h" style={{ margin: 0 }}>
+            <h2 className="view-t">{setName}</h2>
+          </div>
         </div>
-        {setRef.lang && <span className="asset-num">{setRef.lang.toUpperCase()}</span>}
       </div>
 
       <div ref={gridReveal.ref} className={gridReveal.className} style={gridReveal.style}>
