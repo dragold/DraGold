@@ -1,24 +1,24 @@
-// DraGold — Set Detail (Phase 1 post-P0, validato da DraGold-Next-Evolution-Research.md).
+﻿// DraGold ÔÇö Set Detail (Phase 1 post-P0, validato da DraGold-Next-Evolution-Research.md).
 // Destinazione del link "vedi set" da Card Detail E del click su una tile di Explore.
 // Scope v1 deliberatamente limitato a UNA lingua per volta: interrogare un set senza
 // filtro lingua produce migliaia di righe duplicate cross-lingua (verificato su
-// Supabase l'11/08/2026, es. set "sv04" = 266 carte × 6 lingue = 1596 righe).
+// Supabase l'11/08/2026, es. set "sv04" = 266 carte ├ù 6 lingue = 1596 righe).
 //
 // set_id scheme mismatch (verificato su Supabase il 12/08/2026): `set_logos.set_code`
 // (fonte pokemontcg.io/TCGdex "pretty" per Explore) e `cards.set_id` (fonte reale della
 // carta, per TCG) non sempre coincidono carattere per carattere pur riferendosi allo
 // stesso set reale:
-//   - Pokémon: match diretto case-sensitive 153/153 (nessun problema in pratica).
+//   - Pok├®mon: match diretto case-sensitive 153/153 (nessun problema in pratica).
 //   - One Piece: match diretto 0/31 ("OP01" vs "op01", "ST01" vs "ST-01"), ma
 //     normalizzando (minuscolo + rimozione non-alfanumerici) risolve 31/31.
 // Soluzione minima scelta: invece di un bridge/tabella di mapping, generiamo in memoria
 // un piccolo set di varianti plausibili dell'ID (maiuscole/minuscole, con/senza trattino)
 // e interroghiamo con `.in("set_id", varianti)`. Zero nuove dipendenze, zero nuove
-// tabelle, zero migrazioni — solo normalizzazione stringa lato client.
+// tabelle, zero migrazioni ÔÇö solo normalizzazione stringa lato client.
 //
 // Gap cosmetico (chiuso il 12/08/2026): quando si arriva qui da Card Detail con una
-// carta tcgdex non-EN/JA, `card.set_name` è null (pattern noto: tcgdex valorizza
-// set_name solo per lang 'en'/'ja') e setsMap può non avere il set_id di quella carta
+// carta tcgdex non-EN/JA, `card.set_name` ├¿ null (pattern noto: tcgdex valorizza
+// set_name solo per lang 'en'/'ja') e setsMap pu├▓ non avere il set_id di quella carta
 // (stesso mismatch di schema di cui sopra). In quel caso, e SOLO in quel caso, `load()`
 // esegue una query aggiuntiva minima (stesso set_id/varianti, lang='en') per recuperare
 // un nome leggibile invece di mostrare il codice grezzo nell'header.
@@ -71,7 +71,7 @@ export function SetDetailPage({ setRef, setsMap, country, cur, eurRate, onOpen, 
   // Fallback nome set (vedi commento in testa al file, blocco "gap cosmetico"):
   // usato solo quando arriviamo qui da una carta tcgdex non-EN/JA con set_name
   // nullo e setsMap non ha un logo/nome per quello set_id. Query aggiuntiva
-  // leggera, eseguita SOLO in quel caso raro — nessun impatto sugli altri flussi.
+  // leggera, eseguita SOLO in quel caso raro ÔÇö nessun impatto sugli altri flussi.
   const [fallbackName, setFallbackName] = useState(null);
 
   const info = setsMap?.get(`${setRef.tcg}:${setRef.set_id}`) || null;
@@ -134,8 +134,8 @@ export function SetDetailPage({ setRef, setsMap, country, cur, eurRate, onOpen, 
       <div className="set-detail-head">
         <span className="set-detail-eyebrow">
           {(TCG_LIST.find(t => t.id === setRef.tcg)?.label || setRef.tcg)}
-          {setRef.lang && ` · ${(CARD_LANGS.find(l => l.c === setRef.lang)?.label || setRef.lang.toUpperCase())}`}
-          {!loading && ` · ${cards.length} card${cards.length !== 1 ? "s" : ""}`}
+          {setRef.lang && ` ┬À ${(CARD_LANGS.find(l => l.c === setRef.lang)?.label || setRef.lang.toUpperCase())}`}
+          {!loading && ` ┬À ${cards.length} card${cards.length !== 1 ? "s" : ""}`}
         </span>
         <div className="set-detail-row">
           {info?.logo_url && (
@@ -156,7 +156,7 @@ export function SetDetailPage({ setRef, setsMap, country, cur, eurRate, onOpen, 
         )}
       </div>
 
-      {/* The constellation — every card in the set as one connected field,
+      {/* The constellation ÔÇö every card in the set as one connected field,
           so "belongs to this set" is felt spatially, not just listed.
           Real cards, real click-through (onOpen); capped for render cost. */}
       {cards.length > 0 && (

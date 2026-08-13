@@ -10,10 +10,86 @@
  *
  * Usage:
  *   node scripts/sync-cards.js [--tcg pokemon|mtg|ygo|op] [--lang en,ja,it,...] [--set sv3pt5]
+ *                              [--force] [--force-detail] [--stale-days=N] [--dry-run] [--out=report.json]
  *   SUPABASE_URL e SUPABASE_SERVICE_KEY devono essere in env.
+ *
+ * ============================================================================
+ * PIPELINE POKEMON (TCGdex) — HARDENING, vedi PRODUCT_SPEC/CLAUDE.md §8:
+ * ============================================================================
+ *
+ * Ingestion a DUE STADI, mai uno solo (requisito 1 del task di hardening):
+ *   1. DISCOVERY — `GET /v2/{lang}/sets/{id}` (già una chiamata sola per set,
+ *      invariato). La risposta espone `cards[]` come CardBrief
+ *      (https://tcgdex.dev/reference/card-brief): SOLO `id`,`localId`,`name`,
+ *      `image`. Non contiene `rarity`/`variants`/`illustrator`/`category` in
+ *      modo garantito — non lo si assume mai (era un bug della versione
+ *      precedente di questo script, che leggeva `c.rarity` direttamente dal
+ *      CardBrief).
+ *   2. ENRICHMENT — `GET /v2/{lang}/cards/{id}` (Card completo, vedi
+ *      https://tcgdex.dev/reference/card), chiamata SOLO quando serve
+ *      davvero: carta nuova, metadata mancanti (rarity/illustrator null in
+ *      DB), o `--force-detail`/`--stale-days` espliciti (requisito 2). Non si
+ *      ri-scarica mai una carta già completa "perché sì".
+ *
+ * Logica di merge/diff/classificazione è in `scripts/lib/pokemon-sync.js`
+ * (funzioni pure, testate in `scripts/lib/__tests__/pokemon-sync.test.js`) —
+ * qui dentro c'è solo l'orchestrazione I/O (fetch + Supabase).
+ *
+ * Protezioni attive (vedi anche pokemon-sync.js):
+ *   - MAI scrittura di `canonical_card_id` o altri campi `canonical_*`: non
+ *     letti dalle righe esistenti oltre a MANAGED_FIELDS, non scritti nel
+ *     payload upsert. `assertNoCanonicalFields` lancia un errore rumoroso se
+ *     mai un campo canonical_* finisse nel payload — difesa attiva, non solo
+ *     una promessa nei commenti.
+ *   - Un campo assente/null nel payload TCGdex NON cancella mai un valore
+ *     valido già in DB (`mergeRow`, scelta deliberatamente conservativa —
+ *     vedi commento su `buildIncomingFromDetail`).
+ *   - `print_variant`: MAI la vecchia serializzazione "normal,reverse"
+ *     (scartata esplicitamente). Scritto solo quando la fonte dichiara
+ *     esattamente UNA variante attiva; se ne dichiara più di una, il gap è
+ *     documentato come warning nel report e il campo resta invariato — lo
+ *     schema attuale (una riga per carta/lingua/fonte) non può rappresentare
+ *     correttamente più finish disponibili sulla stessa riga, e non creiamo
+ *     una migration per risolverlo qui.
+ *
+ * --force        : bypassa lo skip-se-già-completo A LIVELLO DI SET (vedi
+ *                   countInDb/totalCards) — serve a rientrare in un set che il
+ *                   conteggio righe considera già completo, per ri-valutare
+ *                   le sue carte una per una (il merge/diff decide comunque
+ *                   cosa cambia davvero, non forza scritture cieche).
+ * --force-detail : forza il fetch "detail" (stadio 2) per OGNI carta
+ *                   incontrata in questa run, anche se già completa in DB —
+ *                   backfill/verifica mirata, non l'impostazione di default.
+ * --stale-days=N : oltre a "nuova"/"incompleta", considera da ri-arricchire
+ *                   anche una carta la cui riga non viene aggiornata da più
+ *                   di N giorni (`cards.updated_at`). Assente di default:
+ *                   nessuna nozione implicita di "scaduto" finché non è
+ *                   esplicitamente richiesta.
+ * --dry-run      : fetch -> normalize -> confronto con DB -> report. ZERO
+ *                   scritture su Supabase. Il report classifica ogni carta
+ *                   come NEW / UPDATED / UNCHANGED / BLOCKED e per UPDATED
+ *                   elenca i campi cambiati con valore prima/dopo.
+ * --out=file     : scrive anche il report completo (tutte le entry, non solo
+ *                   il riepilogo troncato in console) su file locale JSON.
  */
 
 import { createClient } from '@supabase/supabase-js'
+import { writeFileSync } from 'node:fs'
+import {
+  MANAGED_FIELDS,
+  buildCardId,
+  mergeRow,
+  needsDetailFetch,
+  isIncompleteRow,
+  computeNullProtection,
+  buildIncomingFromBrief,
+  buildIncomingFromDetail,
+  buildDiffReportEntry,
+  buildBlockedEntry,
+  assertNoCanonicalFields,
+  processSupabaseReadResult,
+  SupabaseReadError,
+} from './lib/pokemon-sync.js'
 
 const SUPABASE_URL = process.env.SUPABASE_URL
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY
@@ -28,7 +104,9 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_KEY)
 const BATCH_SIZE   = 100
 const DELAY_MS     = 120
 const PKM_LANGS    = ['en','ja','it','fr','de','es','pt','id']
-const TCGDEX_BASE  = 'https://api.tcgdex.net/v2'
+// Override solo per verifiche locali (smoke test contro un mock HTTP, mai in
+// produzione — nessun workflow/env di produzione imposta questa variabile).
+const TCGDEX_BASE  = process.env.TCGDEX_BASE_OVERRIDE || 'https://api.tcgdex.net/v2'
 const SCRYFALL_BASE= 'https://api.scryfall.com'
 const YGOPRO_BASE  = 'https://db.ygoprodeck.com/api/v7'
 
@@ -36,6 +114,12 @@ const args = process.argv.slice(2)
 const argTcg  = args.find(a => a.startsWith('--tcg='))?.split('=')[1]
 const argLang = args.find(a => a.startsWith('--lang='))?.split('=')[1]?.split(',')
 const argSet  = args.find(a => a.startsWith('--set='))?.split('=')[1]
+const argForce  = args.includes('--force')
+const argForceDetail = args.includes('--force-detail')
+const argStaleDaysRaw = args.find(a => a.startsWith('--stale-days='))?.split('=')[1]
+const argStaleDays = argStaleDaysRaw != null && argStaleDaysRaw !== '' ? Number(argStaleDaysRaw) : null
+const argOut    = args.find(a => a.startsWith('--out='))?.split('=')[1]
+const DRY_RUN   = args.includes('--dry-run')
 
 const TCG_FILTER  = argTcg  ? argTcg.split(',') : ['pokemon','mtg','ygo','onepiece']
 const LANG_FILTER = argLang || PKM_LANGS
@@ -52,6 +136,7 @@ async function safeFetch(url, timeout = 15000) {
 
 async function upsertBatch(rows) {
   if (!rows.length) return
+  if (DRY_RUN) return
   const { error } = await supabase.from('cards').upsert(rows, { onConflict: 'id', ignoreDuplicates: false })
   if (error) console.warn('  upsert error:', error.message)
 }
@@ -61,38 +146,268 @@ async function countInDb(setId, lang) {
   return count || 0
 }
 
+/**
+ * Legge in un colpo solo (per set+lingua, non per carta) le righe già in DB
+ * per poter fare merge/diff senza una query per carta. Seleziona
+ * MANAGED_FIELDS + identity + updated_at, più `canonical_card_id` in SOLA
+ * LETTURA a scopo diagnostico (task "DRY-RUN SAFETY + REPORT HARDENING",
+ * requisito 6: sapere se una carta ha già un canonical_card_id serve al
+ * report — `canonicalProtected` — ma quel campo non deve mai finire nella Map
+ * usata per il merge). `processSupabaseReadResult` (pura, in pokemon-sync.js)
+ * lo rimuove subito dalla riga prima di metterla in `map` e lo tiene solo
+ * nel secondo valore ritornato, `canonicalIds`.
+ *
+ * SICUREZZA (requisito 1 — CRITICAL SAFETY FIX): un errore Supabase qui NON
+ * significa più "nessuna riga esistente". Prima di questo task, `if (error) {
+ * console.warn(...); return new Map() }` trasformava silenziosamente un
+ * fallimento infrastrutturale in "questo set non ha carte", classificando poi
+ * ogni carta incontrata come NEW — il comportamento esattamente vietato dal
+ * task. Ora `processSupabaseReadResult` lancia `SupabaseReadError` se
+ * `error` è presente: la funzione NON intercetta quell'eccezione, la lascia
+ * propagare fino a `syncPokemon()` e da lì al catch di livello top (fondo
+ * file), che interrompe l'intero run (BLOCKED_RUN) prima che qualunque
+ * upsert possa partire per questo o per i set successivi.
+ *
+ * @param {string} setId
+ * @param {string} lang
+ * @returns {Promise<{map: Map<string, object>, canonicalIds: Set<string>}>}
+ * @throws {SupabaseReadError} se la lettura Supabase fallisce
+ */
+async function fetchExistingRowsForSet(setId, lang) {
+  const columns = ['id', ...MANAGED_FIELDS, 'updated_at', 'canonical_card_id'].join(',')
+  const { data, error } = await supabase
+    .from('cards')
+    .select(columns)
+    .eq('tcg', 'pokemon').eq('set_id', setId).eq('lang', lang)
+  return processSupabaseReadResult(data, error, { setId, lang })
+}
+
+/**
+ * Stadio 2 — fetch del Card completo per una singola carta
+ * (https://tcgdex.dev/reference/card). Chiamato solo da needsDetailFetch()
+ * in poi, mai in massa.
+ */
+async function fetchCardDetail(lang, setId, localId) {
+  return safeFetch(`${TCGDEX_BASE}/${lang}/cards/${setId}-${localId}`)
+}
+
+/**
+ * Elabora un intero set (per una lingua): discovery (già fetchata dal
+ * chiamante come `setData`), lettura righe esistenti, decisione detail
+ * carta-per-carta, merge, classificazione. Ritorna le entry di report e (se
+ * non dry-run) i batch pronti per l'upsert — separati così il chiamante può
+ * decidere se scrivere o solo riportare, senza duplicare la logica.
+ *
+ * @returns {Promise<{entries: object[], rowsToWrite: object[], detailFetchCount: number, detailFailCount: number}>}
+ */
+async function processSetCards(setMeta, setData, lang) {
+  const setId = setMeta.id
+  const { map: existingMap, canonicalIds } = await fetchExistingRowsForSet(setId, lang)
+  const briefs = (setData.cards || []).filter(c => c.localId && c.name)
+
+  const entries = []
+  const rowsToWrite = []
+  let detailFetchCount = 0
+  let detailFailCount = 0
+
+  for (const brief of briefs) {
+    const id = buildCardId(setId, brief.localId, lang)
+    const existingRow = existingMap.get(id) || null
+    const existed = Boolean(existingRow)
+    const incomplete = isIncompleteRow(existingRow)
+    const canonicalProtected = canonicalIds.has(id)
+
+    const wantsDetail = needsDetailFetch(existingRow, {
+      forceDetail: argForceDetail,
+      staleDays: argStaleDays,
+    })
+
+    const incomingBrief = buildIncomingFromBrief(brief, setMeta, setData)
+    let incomingDetail = {}
+    let detailFetched = false
+
+    if (wantsDetail) {
+      await sleep(DELAY_MS)
+      const fullCard = await fetchCardDetail(lang, setId, brief.localId)
+      detailFetchCount++
+      if (!fullCard) {
+        // Fetch fallito: NON tocchiamo questa carta in questo giro. Nessun
+        // merge, nessun upsert — la riga esistente (se c'è) resta esattamente
+        // com'era, esplicitamente riportata come BLOCKED così il gap è
+        // visibile invece di sparire silenziosamente in un "UNCHANGED".
+        detailFailCount++
+        entries.push(buildBlockedEntry(id, { existed, incomplete, canonicalProtected }))
+        continue
+      }
+      incomingDetail = buildIncomingFromDetail(fullCard)
+      detailFetched = true
+    }
+
+    const incoming = { ...incomingBrief, ...incomingDetail }
+    const { nullProtected } = computeNullProtection(existingRow, incoming)
+    const merged = mergeRow(existingRow, incoming, { id, lang, tcg: 'pokemon' })
+    const entry = buildDiffReportEntry(id, existingRow, merged, {
+      printVariantInfo: incomingDetail._printVariantInfo,
+      detailFetched,
+      detailFetchRequired: wantsDetail,
+      canonicalProtected,
+      nullProtected,
+      existed,
+      incomplete,
+    })
+    entries.push(entry)
+
+    if (entry.classification !== 'UNCHANGED') rowsToWrite.push(merged)
+  }
+
+  return { entries, rowsToWrite, detailFetchCount, detailFailCount }
+}
+
 async function syncPokemon() {
-  console.log('\nSincronizzazione Pokemon (TCGdex)...')
-  let totalNew = 0
+  console.log('\nSincronizzazione Pokemon (TCGdex) — discovery + enrichment a due stadi...')
   const sets = await safeFetch(`${TCGDEX_BASE}/en/sets`)
   if (!Array.isArray(sets)) { console.warn('  TCGdex sets non disponibile'); return }
   const setsToProcess = argSet ? sets.filter(s => s.id === argSet) : sets
   console.log(`  ${setsToProcess.length} set da processare`)
+
+  const allEntries = []
+  let totalDetailFetch = 0, totalDetailFail = 0
+
   for (const setMeta of setsToProcess) {
-    const setId = setMeta.id, setName = setMeta.name, totalCards = setMeta.cardCount || 0
+    // FIX: la lista set (/v2/{lang}/sets) restituisce SetBrief, dove `cardCount` è
+    // un oggetto {total, official} (vedi https://tcgdex.dev/reference/set-brief),
+    // non un numero. Il confronto precedente (`setMeta.cardCount || 0` usato poi
+    // come numero in `existing >= totalCards`) confrontava sempre un intero con un
+    // oggetto: risultato sempre `false` per via della coercion JS (mai uno skip
+    // valido, mai un backfill mirato). Corretto leggendo `.total` esplicitamente.
+    const setId = setMeta.id, totalCards = setMeta.cardCount?.total ?? 0
     for (const lang of LANG_FILTER) {
-      if (!argSet) {
+      // Lo skip a livello di SET (evitare del tutto la discovery) va bypassato
+      // non solo con --force ma anche con --force-detail/--stale-days: quei
+      // flag chiedono esplicitamente di rientrare nelle carte di un set già
+      // "completo" per conteggio righe, per rivalutarle una per una.
+      const bypassSetSkip = argForce || argForceDetail || argStaleDays != null
+      if (!argSet && !bypassSetSkip) {
         const existing = await countInDb(setId, lang)
         if (existing >= totalCards && totalCards > 0) { process.stdout.write('.'); continue }
       }
       await sleep(DELAY_MS)
       const setData = await safeFetch(`${TCGDEX_BASE}/${lang}/sets/${setId}`)
       if (!setData?.cards?.length) continue
-      const rows = setData.cards.filter(c => c.localId && c.name).map(c => ({
-        id: `pokemon:tcgdex:${setId}-${c.localId}:${lang}`,
-        name: c.name, set_id: setId, set_name: setData.name || setName,
-        card_number: String(c.localId), rarity: c.rarity || null,
-        image_url: c.image ? `${c.image}/high.webp` : null,
-        image_url_hi: c.image ? `${c.image}/high.webp` : null,
-        lang, tcg: 'pokemon', series_id: setData.serie?.id || null, series_name: setData.serie?.name || null,
-      }))
-      for (let i = 0; i < rows.length; i += BATCH_SIZE) await upsertBatch(rows.slice(i, i + BATCH_SIZE))
-      totalNew += rows.length
-      console.log(`  OK ${setId} (${lang}): ${rows.length} carte`)
+
+      const { entries, rowsToWrite, detailFetchCount, detailFailCount } = await processSetCards(setMeta, setData, lang)
+      allEntries.push(...entries)
+      totalDetailFetch += detailFetchCount
+      totalDetailFail += detailFailCount
+
+      for (let i = 0; i < rowsToWrite.length; i += BATCH_SIZE) await upsertBatch(rowsToWrite.slice(i, i + BATCH_SIZE))
+
+      const counts = summarizeEntries(entries)
+      console.log(`  ${DRY_RUN ? 'DRY' : 'OK'} ${setId} (${lang}): ${entries.length} carte — NEW ${counts.NEW} UPDATED ${counts.UPDATED} UNCHANGED ${counts.UNCHANGED} BLOCKED ${counts.BLOCKED} (detail fetch: ${detailFetchCount}, falliti: ${detailFailCount})`)
     }
   }
+
   await fixMissingImages()
-  console.log(`\n  Pokemon sync: +${totalNew} righe`)
+  printPokemonReport(allEntries, { totalDetailFetch, totalDetailFail })
+}
+
+/**
+ * Conta le entry di report per classificazione. Pura, usata sia nel log
+ * per-set sia nel riepilogo finale.
+ */
+function summarizeEntries(entries) {
+  const counts = { NEW: 0, UPDATED: 0, UNCHANGED: 0, BLOCKED: 0 }
+  for (const e of entries) counts[e.classification] = (counts[e.classification] || 0) + 1
+  return counts
+}
+
+/**
+ * Riepilogo diagnostico aggregato (task "DRY-RUN SAFETY + REPORT HARDENING",
+ * requisito 3). Pura: somma solo i flag già calcolati da `buildDiffReportEntry`
+ * per ogni entry, non ricalcola nulla di nuovo. `source_conflicts` resta
+ * sempre 0/non applicabile — nessuna seconda fonte è collegata in questo
+ * task, e non lo si inventa qui.
+ *
+ * @param {object[]} entries
+ * @returns {object}
+ */
+function summarizeDiagnostics(entries) {
+  const s = {
+    existing_cards: 0,
+    incomplete_cards: 0,
+    detail_fetch_required: 0,
+    detail_fetch_skipped: 0,
+    cards_with_variants: 0,
+    variant_ambiguous: 0,
+    source_conflicts: 0, // sempre 0: nessuna seconda fonte collegata in questo task
+    canonical_protected: 0,
+    null_protected: 0,
+  }
+  for (const e of entries) {
+    if (e.existed) s.existing_cards++
+    if (e.incomplete) s.incomplete_cards++
+    if (e.detailFetchRequired) s.detail_fetch_required++
+    if (e.detailFetchSkipped) s.detail_fetch_skipped++
+    if (e.variantPresent) s.cards_with_variants++
+    if (e.variantAmbiguous) s.variant_ambiguous++
+    if (e.canonicalProtected) s.canonical_protected++
+    if (e.nullProtected) s.null_protected++
+  }
+  return s
+}
+
+/**
+ * Stampa il riepilogo finale della sync Pokemon (requisito 7): conteggi
+ * NEW/UPDATED/UNCHANGED/BLOCKED, ed elenco (troncato in console, completo se
+ * --out=file) delle UPDATED con campo/valore-prima/valore-dopo e delle
+ * BLOCKED con motivo. Non scrive nulla — solo output.
+ */
+function printPokemonReport(entries, { totalDetailFetch, totalDetailFail }) {
+  const counts = summarizeEntries(entries)
+  const diagnostics = summarizeDiagnostics(entries)
+  const warningsCount = entries.reduce((n, e) => n + (e.warnings?.length || 0), 0)
+
+  console.log('\n  === Report Pokemon (TCGdex) ===')
+  console.log(`  Modalita: ${DRY_RUN ? 'DRY-RUN (nessuna scrittura)' : 'WRITE'}`)
+  console.log(`  Totale carte valutate: ${entries.length}`)
+  console.log(`  NEW: ${counts.NEW}  UPDATED: ${counts.UPDATED}  UNCHANGED: ${counts.UNCHANGED}  BLOCKED: ${counts.BLOCKED}`)
+  console.log(`  Fetch detail eseguiti: ${totalDetailFetch} (falliti: ${totalDetailFail})`)
+  console.log(`  Warning non distruttivi (es. print_variant ambiguo): ${warningsCount}`)
+  console.log('  --- Diagnostica ---')
+  console.log(`  existing_cards: ${diagnostics.existing_cards}  incomplete_cards: ${diagnostics.incomplete_cards}`)
+  console.log(`  detail_fetch_required: ${diagnostics.detail_fetch_required}  detail_fetch_skipped: ${diagnostics.detail_fetch_skipped}`)
+  console.log(`  cards_with_variants: ${diagnostics.cards_with_variants}  variant_ambiguous: ${diagnostics.variant_ambiguous}`)
+  console.log(`  source_conflicts: ${diagnostics.source_conflicts} (non applicabile — nessuna seconda fonte collegata)`)
+  console.log(`  canonical_protected: ${diagnostics.canonical_protected}  null_protected: ${diagnostics.null_protected}`)
+
+  const updated = entries.filter(e => e.classification === 'UPDATED')
+  const blocked = entries.filter(e => e.classification === 'BLOCKED')
+  const CONSOLE_CAP = 50
+
+  if (updated.length) {
+    console.log(`\n  --- UPDATED (prime ${Math.min(CONSOLE_CAP, updated.length)} di ${updated.length}) ---`)
+    for (const e of updated.slice(0, CONSOLE_CAP)) {
+      for (const c of e.changes) console.log(`  ${e.id} | ${c.field}: ${JSON.stringify(c.before)} -> ${JSON.stringify(c.after)}`)
+      for (const w of e.warnings) console.log(`  ${e.id} | WARNING: ${w}`)
+    }
+  }
+  if (blocked.length) {
+    console.log(`\n  --- BLOCKED (prime ${Math.min(CONSOLE_CAP, blocked.length)} di ${blocked.length}) ---`)
+    for (const e of blocked.slice(0, CONSOLE_CAP)) console.log(`  ${e.id} | ${e.reason || 'motivo non specificato'}`)
+  }
+
+  if (argOut) {
+    const report = {
+      mode: DRY_RUN ? 'DRY_RUN' : 'WRITE',
+      generated_at: new Date().toISOString(),
+      counts,
+      diagnostics,
+      totalDetailFetch, totalDetailFail, warningsCount,
+      entries,
+    }
+    writeFileSync(argOut, JSON.stringify(report, null, 2), 'utf8')
+    console.log(`\n  Report completo scritto su: ${argOut}`)
+  }
 }
 
 async function fixMissingImages() {
@@ -382,6 +697,20 @@ try {
   if (TCG_FILTER.includes('onepiece'))      await syncOnePiece()
   if (TCG_FILTER.includes('mtg'))     await syncMTG()
   if (TCG_FILTER.includes('ygo'))     await syncYGO()
-} catch (err) { console.error('Errore critico:', err.message); process.exit(1) }
+} catch (err) {
+  // Requisito 1 (CRITICAL SAFETY FIX): una lettura Supabase fallita durante
+  // la sync Pokemon propaga fin qui come SupabaseReadError (mai come Map
+  // vuota) e interrompe l'intero processo PRIMA di qualunque upsert per il
+  // set/lingua in corso e per tutti quelli successivi non ancora processati.
+  // Etichettato esplicitamente BLOCKED_RUN per essere distinguibile in log/CI
+  // da un generico errore di programmazione.
+  if (err instanceof SupabaseReadError || err?.name === 'SUPABASE_READ_FAILED') {
+    console.error(`\nBLOCKED_RUN: ${err.message}`)
+    console.error('Nessuna scrittura è stata effettuata per il set/lingua in corso o per quelli successivi.')
+  } else {
+    console.error('Errore critico:', err.message)
+  }
+  process.exit(1)
+}
 const elapsed = ((Date.now() - start) / 1000).toFixed(1)
 console.log(`\nSync completato in ${elapsed}s`)

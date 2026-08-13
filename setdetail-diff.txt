@@ -1,0 +1,135 @@
+﻿diff --git a/src/pages/set/SetDetailPage.jsx b/src/pages/set/SetDetailPage.jsx
+index da5433f..12b8ab8 100644
+--- a/src/pages/set/SetDetailPage.jsx
++++ b/src/pages/set/SetDetailPage.jsx
+@@ -29,6 +29,9 @@ import { SearchResults } from "../../components/search/SearchResults.jsx";
+ import { useReveal } from "../../lib/useReveal.js";
+ import { TCG_LIST, CARD_LANGS } from "../../DraGold.jsx";
+ import { pickCardImage } from "../../components/shared/cardImage.js";
++import { groupByCanonical } from "../../lib/search.js";
++import { CardObject } from "../../components/shared/CardObject.jsx";
++import { useDragScroll } from "../../lib/useDragScroll.js";
+ 
+ const SET_CARD_FIELDS = "id,name,name_en,set_name,set_id,card_number,image_url,image_url_hi,lang,tcg,canonical_card_id,card_image_cache(cached_url,status)";
+ 
+@@ -77,6 +80,9 @@ export function SetDetailPage({ setRef, setsMap, country, cur, eurRate, onOpen,
+   const info = setsMap?.get(`${setRef.tcg}:${setRef.set_id}`) || null;
+   const setName = setRef.set_name || info?.set_name || fallbackName || setRef.set_id;
+   const gridReveal = useReveal();
++  const constellationReveal = useReveal();
++  const previewDrag = useDragScroll();
++  const satelliteDrag = useDragScroll();
+ 
+   const load = useCallback(async () => {
+     setLoading(true); setError(null);
+@@ -89,7 +95,17 @@ export function SetDetailPage({ setRef, setsMap, country, cur, eurRate, onOpen,
+         .eq("tcg", setRef.tcg).in("set_id", candidates).eq("lang", setRef.lang)
+         .limit(600);
+       if (dbErr) throw dbErr;
+-      const sorted = (data || []).slice().sort((a, b) => naturalCompare(a.card_number, b.card_number));
++      // Pok├®mon cards are ingested from two independent source pipelines
++      // (tcgdex + pokemontcg.io) that each write their own row for the same
++      // physical card, linked by a shared canonical_card_id ÔÇö verified on
++      // Supabase 13/08/2026: e.g. Fossil (base3) has 2 rows per card_number,
++      // one per source, same canonical_card_id. SearchView already collapses
++      // this via groupByCanonical for search results; this page queried the
++      // raw rows directly and never did, so every card in an affected set
++      // (most Pok├®mon sets ÔÇö One Piece is unaffected, single source) showed
++      // twice. Same dedup as search, applied here.
++      const deduped = groupByCanonical(data || []);
++      const sorted = deduped.slice().sort((a, b) => naturalCompare(a.card_number, b.card_number));
+       setCards(sorted);
+       setVisibleCount(60);
+ 
+@@ -147,7 +163,10 @@ export function SetDetailPage({ setRef, setsMap, country, cur, eurRate, onOpen,
+           </div>
+         </div>
+         {cards.length > 0 && (
+-          <div className="set-preview-strip">
++          <div className="set-preview-strip" ref={previewDrag.ref}
++            onPointerDown={previewDrag.onPointerDown} onPointerMove={previewDrag.onPointerMove}
++            onPointerUp={previewDrag.onPointerUp} onPointerLeave={previewDrag.onPointerLeave}
++            onClickCapture={previewDrag.onClickCapture}>
+             {cards.slice(0, 18).map(c => {
+               const img = pickCardImage(c) || c.imgUrl || c.img;
+               return img ? <div className="set-preview-card" key={c.id}><img src={img} alt="" loading="lazy" /></div> : null;
+@@ -156,30 +175,7 @@ export function SetDetailPage({ setRef, setsMap, country, cur, eurRate, onOpen,
+         )}
+       </div>
+ 
+-      {/* The constellation ÔÇö every card in the set as one connected field,
+-          so "belongs to this set" is felt spatially, not just listed.
+-          Real cards, real click-through (onOpen); capped for render cost. */}
+-      {cards.length > 0 && (
+-        <>
+-          <div className="sec-h sec-h-editorial" style={{ marginTop: 34 }}>
+-            <span className="sec-h-t">The constellation</span>
+-            <span className="sec-h-line" />
+-            <span className="constellation-hint">{Math.min(cards.length, 120)} of {cards.length}</span>
+-          </div>
+-          <div className="constellation">
+-            {cards.slice(0, 120).map(c => {
+-              const img = pickCardImage(c) || c.imgUrl || c.img;
+-              return (
+-                <button type="button" key={c.id} className="constellation-node" title={c.name}
+-                  onClick={() => onOpen?.(c)}>
+-                  {img ? <img src={img} alt="" loading="lazy" /> : <span className="constellation-node-ph" />}
+-                </button>
+-              );
+-            })}
+-          </div>
+-        </>
+-      )}
+-
++      {/* The catalog comes first ÔÇö this is what most visitors came for. */}
+       {cards.length > 0 && (
+         <div className="sec-h" style={{ marginTop: 34 }}>
+           <span className="sec-h-t">All cards</span>
+@@ -198,6 +194,47 @@ export function SetDetailPage({ setRef, setsMap, country, cur, eurRate, onOpen,
+           discoveryMode
+         />
+       </div>
++
++      {/* The constellation ÔÇö relationships, not inventory. A protagonist
++          card with the set's own network gathered around it (same-set is
++          the one relationship this page's data actually supports ÔÇö labeled
++          honestly, nothing fabricated). Desktop: a real orbit in space.
++          Mobile: protagonist + a touch rail, its own composition rather
++          than a squeezed copy of the desktop layout. */}
++      {cards.length > 3 && (() => {
++        const protagonist = cards[0];
++        const satellites = cards.slice(1, 11);
++        return (
++          <div ref={constellationReveal.ref} className={constellationReveal.className} style={constellationReveal.style}>
++            <div className="sec-h sec-h-editorial" style={{ marginTop: 40 }}>
++              <span className="sec-h-t">The constellation</span>
++              <span className="sec-h-line" />
++              <span className="edge-label" style={{ margin: 0 }}>SET ÔåÆ CARD</span>
++            </div>
++            <div className="constellation-orbit">
++              <span className="constellation-ring" aria-hidden="true" />
++              <button type="button" className="constellation-protagonist" onClick={() => onOpen?.(protagonist)} title={protagonist.name}>
++                <CardObject card={protagonist} variant="hero" fallback={null} />
++              </button>
++              <div className="constellation-satellites" ref={satelliteDrag.ref}
++                onPointerDown={satelliteDrag.onPointerDown} onPointerMove={satelliteDrag.onPointerMove}
++                onPointerUp={satelliteDrag.onPointerUp} onPointerLeave={satelliteDrag.onPointerLeave}
++                onClickCapture={satelliteDrag.onClickCapture}>
++                {satellites.map((c, i) => {
++                  const img = pickCardImage(c) || c.imgUrl || c.img;
++                  return (
++                    <button type="button" key={c.id} className="constellation-satellite"
++                      style={{ '--angle': `${(360 / satellites.length) * i}deg` }}
++                      onClick={() => onOpen?.(c)} title={c.name}>
++                      {img ? <img src={img} alt="" loading="lazy" /> : <span className="constellation-node-ph" />}
++                    </button>
++                  );
++                })}
++              </div>
++            </div>
++          </div>
++        );
++      })()}
+     </section>
+   );
+ }
