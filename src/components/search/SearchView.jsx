@@ -310,8 +310,8 @@ export function SearchView({ country, cur, eurRate, onOpenAsset, setsMap, onOpen
 
       {!searched && discoverSets.length > 0 && (
         <div ref={discoverReveal.ref} className={discoverReveal.className} style={discoverReveal.style}>
-          <div className="sec-h">
-            <span className="sec-h-t"><Icon name="grid" size={14} /> Discover a set</span>
+          <div className="sec-h sec-h-editorial">
+            <span className="sec-h-t">Discover a set</span>
             <span className="sec-h-line" />
           </div>
           <div className="discover-rail">

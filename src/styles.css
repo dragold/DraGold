@@ -182,6 +182,10 @@ input{font-family:inherit;font-size:16px;}
 /* section heading */
 .sec-h{display:flex;align-items:center;gap:12px;margin:24px 0 14px;}
 .sec-h-t{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-family:'Space Mono',monospace;}
+/* Editorial sections (discovery, relationships) read as curated writing,
+   not catalog metadata — reserve the mono/uppercase treatment for the
+   sections that are literally data (Hot Picks, All cards, sold prices). */
+.sec-h-editorial .sec-h-t{font-family:'Fraunces',serif;font-weight:700;font-size:19px;letter-spacing:-.005em;text-transform:none;color:var(--text);}
 .sec-h-line{flex:1;height:1px;background:var(--border);}
 
 /* skeleton grid */
@@ -281,7 +285,7 @@ input{font-family:inherit;font-size:16px;}
 .card-item:focus-visible{outline:2px solid var(--gold);outline-offset:2px;}
 .card-item-img{aspect-ratio:3/4;width:100%;overflow:hidden;background:var(--surface-2);}
 .card-item-img img{width:100%;height:100%;object-fit:contain;}
-.card-img-ph{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;background:linear-gradient(150deg,var(--surface-3),var(--surface-2));padding:12px;}
+.card-img-ph{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;background:linear-gradient(150deg,var(--surface-3),var(--surface-2));padding:12px;border-radius:10px;border:1px solid var(--border);}
 .card-img-ph-tcg{font-family:'Space Mono',monospace;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;opacity:.7;}
 .card-img-ph-init{font-family:'Space Mono',monospace;font-size:22px;font-weight:700;color:var(--dim);}
 .card-item-body{padding:10px 10px 12px;}
@@ -309,31 +313,23 @@ input{font-family:inherit;font-size:16px;}
 .back-btn{display:inline-flex;align-items:center;gap:4px;color:var(--muted);font-size:14px;font-weight:600;padding:8px 4px;margin-bottom:10px;}
 .back-btn:hover{color:var(--text);}
 .asset-head{position:relative;display:flex;flex-direction:column;gap:22px;}
-.asset-head::before{content:'';position:absolute;top:-30px;left:-24px;right:-24px;height:280px;background:radial-gradient(60% 100% at 30% 15%,rgba(251,191,36,.09),transparent 62%);pointer-events:none;z-index:-1;}
-.asset-img{width:min(280px,78vw);align-self:center;aspect-ratio:3/4;border-radius:14px;overflow:hidden;background:var(--surface-2);border:1px solid var(--border);}
-/* Phase 2A — micro-zoom immagine principale: molto contenuto (max 1.05),
-   contenuto dal overflow:hidden del genitore quindi zero layout shift.
-   Hover per desktop (gated da hover:hover per evitare hover "appiccicoso"
-   su touch); :active copre la pressione su touch dove il browser lo
-   supporta senza JS — se non supportato, l'immagine resta semplicemente
-   statica, nessuna rottura. */
-/* Direct-child only: CardObject (tilt/sheen plate below) now wraps the hero
-   image in nested divs, so this legacy hover-zoom no longer matches it —
-   left in place, inert, as a fallback for any plain <img> ever placed
-   directly in .asset-img again. */
-.asset-img > img{width:100%;height:100%;object-fit:contain;transform:scale(1);transition:transform var(--dur-fast) var(--ease-out);}
-@media (hover:hover){
-  .asset-img:hover > img{transform:scale(1.05);}
-}
-.asset-img:active > img{transform:scale(1.03);}
+.asset-head::before{content:'';position:absolute;top:-30px;left:-24px;right:-24px;height:340px;background:radial-gradient(55% 100% at 30% 10%,rgba(251,191,36,.10),transparent 62%),radial-gradient(45% 80% at 85% 60%,rgba(126,139,196,.06),transparent 65%);pointer-events:none;z-index:-1;}
+/* The card is an object floating in the page, not a photo inside a window:
+   .asset-img is pure layout (size/position) — no border, no background, no
+   clipping — so CardObject's own drop-shadow bleeds freely into the
+   surrounding negative space instead of being cut off at a frame edge. A
+   separate blurred "contact shadow" grounds it, independent of the card
+   image itself, like an object actually resting on a surface. */
+.asset-img{position:relative;width:min(300px,80vw);align-self:center;aspect-ratio:3/4;}
+.asset-img::after{content:'';position:absolute;left:8%;right:8%;bottom:-22px;height:28px;background:radial-gradient(closest-side,rgba(0,0,0,.55),transparent 75%);filter:blur(6px);z-index:-1;}
 .asset-info{flex:1;min-width:0;}
 
 /* North Star — CardObject: tilt/sheen card treatment (useTilt.js). The
    outer .card-object holds perspective; only .card-object-plate rotates,
    so the frame/shadow/border on the parent (.asset-img, .card-item-img,
    …) stay put. Sheen tracks pointer via --mx/--my/--sheen-o set by the hook. */
-.card-object{position:relative;width:100%;height:100%;perspective:900px;}
-.card-object-plate{position:relative;width:100%;height:100%;transform-style:preserve-3d;will-change:transform;}
+.card-object{position:relative;width:100%;height:100%;perspective:900px;border-radius:10px;}
+.card-object-plate{position:relative;width:100%;height:100%;transform-style:preserve-3d;will-change:transform;border-radius:inherit;}
 .card-object-plate img{width:100%;height:100%;object-fit:contain;display:block;border-radius:inherit;}
 /* Holographic response: the pointer highlight (radial) layers over a
    two-accent foil band whose angle is driven by --foil-angle (set from the
@@ -341,7 +337,14 @@ input{font-family:inherit;font-size:16px;}
    angle like real foil, not a fixed decoration. Two accents only, per the
    design system (gold/relation), never a rainbow. */
 .card-object-sheen{position:absolute;inset:0;border-radius:inherit;pointer-events:none;mix-blend-mode:overlay;opacity:var(--sheen-o,0);background:radial-gradient(circle at var(--mx,50%) var(--my,50%),rgba(255,255,255,.5),transparent 60%),linear-gradient(var(--foil-angle,115deg),transparent 32%,rgba(251,191,36,.24) 46%,rgba(126,139,196,.22) 56%,transparent 72%);transition:opacity var(--dur-fast) var(--ease-out);}
-.card-object-hero .card-object-plate{filter:drop-shadow(0 18px 40px rgba(0,0,0,.5));overflow:hidden;}
+.card-object-hero{border-radius:13px;}
+/* Two-layer shadow (tight contact + soft ambient) — this is what makes the
+   card read as sitting above the page rather than printed on it. Clipping
+   (overflow:hidden, for the scan-line below) and the shadow filter can
+   safely live on the same element: a self-filter still paints outside the
+   element's own clip, it's only an ANCESTOR's overflow that would cut it —
+   and nothing above this in the tree clips anymore. */
+.card-object-hero .card-object-plate{filter:drop-shadow(0 8px 18px rgba(0,0,0,.45)) drop-shadow(0 30px 60px rgba(0,0,0,.5));overflow:hidden;}
 /* Hero is the one place a continuous ambient effect is allowed even when
    not owned (README motion budget: "reserved for hero/owned states only") —
    a faint diagonal scan, the "one moment per page that's pure pleasure". */
@@ -458,6 +461,17 @@ input{font-family:inherit;font-size:16px;}
   .asset-actions .btn{min-height:46px;}
 }
 .price-chart-wrap{margin:0 0 4px;}
+.chart-chg{margin-left:auto;font-family:'Space Mono',monospace;font-size:12px;font-weight:700;}
+.chart-chg.gain{color:var(--gain);}
+.chart-chg.loss{color:var(--loss);}
+/* The chart is a labeled instrument, not a bare inline SVG — its own card,
+   generous margins so nothing clips at any width, readable label contrast. */
+.chart-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px 10px 6px;}
+.chart-svg{width:100%;height:auto;display:block;overflow:visible;}
+.chart-grid{stroke:rgba(255,255,255,.07);stroke-width:1;}
+.chart-axis-label{font-family:'Space Mono',monospace;font-size:9.5px;fill:var(--muted);}
+.chart-point circle:not([fill="transparent"]){transition:r var(--dur-fast) var(--ease-out);}
+.chart-point:hover circle:not([fill="transparent"]){r:5;}
 .pf-chart-wrap{margin:8px 0 4px;padding:0 2px;}
 /* portfolio row (position list) */
 .pf-list{display:flex;flex-direction:column;gap:8px;}
@@ -587,10 +601,15 @@ input{font-family:inherit;font-size:16px;}
 .constellation-hint{margin-left:auto;font-family:'Space Mono',monospace;font-size:10px;letter-spacing:.08em;color:var(--dim);}
 .constellation{display:grid;grid-template-columns:repeat(auto-fill,minmax(52px,1fr));gap:8px;}
 .constellation-node{position:relative;aspect-ratio:63/88;border-radius:6px;overflow:hidden;background:var(--surface-2);border:1px solid var(--border);cursor:pointer;padding:0;transition:transform var(--dur-lift) var(--ease-out),border-color var(--dur-fast) var(--ease-out),box-shadow var(--dur-lift) var(--ease-out);}
-.constellation-node img{width:100%;height:100%;object-fit:cover;display:block;opacity:.88;transition:opacity var(--dur-fast) var(--ease-out);}
+.constellation-node img{width:100%;height:100%;object-fit:cover;display:block;opacity:.88;transition:opacity var(--dur-fast) var(--ease-out),filter var(--dur-fast) var(--ease-out);}
 .constellation-node-ph{display:block;width:100%;height:100%;background:linear-gradient(150deg,var(--surface-3),var(--surface-2));}
 @media(hover:hover){
-  .constellation-node:hover{transform:translateY(-4px) scale(1.06);border-color:rgba(251,191,36,.5);box-shadow:0 16px 28px -16px rgba(0,0,0,.7);z-index:1;}
+  .constellation-node{transition:transform var(--dur-lift) var(--ease-out),border-color var(--dur-fast) var(--ease-out),box-shadow var(--dur-lift) var(--ease-out),opacity var(--dur-fast) var(--ease-out);}
+  .constellation-node:hover{transform:translateY(-5px) scale(1.08);border-color:rgba(251,191,36,.55);box-shadow:0 18px 32px -16px rgba(0,0,0,.75);z-index:1;}
   .constellation-node:hover img{opacity:1;}
+  /* Protagonist focus: hovering one node reads the field as a network —
+     the rest recede instead of competing for attention. Cheap (:has(),
+     pure CSS); browsers without support just skip the dim, no breakage. */
+  .constellation:has(.constellation-node:hover) .constellation-node:not(:hover){opacity:.4;filter:saturate(.7);}
 }
 
