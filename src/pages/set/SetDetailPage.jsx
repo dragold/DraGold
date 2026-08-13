@@ -161,7 +161,7 @@ export function SetDetailPage({ setRef, setsMap, country, cur, eurRate, onOpen, 
           Real cards, real click-through (onOpen); capped for render cost. */}
       {cards.length > 0 && (
         <>
-          <div className="sec-h" style={{ marginTop: 34 }}>
+          <div className="sec-h sec-h-editorial" style={{ marginTop: 34 }}>
             <span className="sec-h-t">The constellation</span>
             <span className="sec-h-line" />
             <span className="constellation-hint">{Math.min(cards.length, 120)} of {cards.length}</span>
