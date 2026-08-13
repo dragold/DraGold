@@ -234,6 +234,13 @@ export function AssetView({ card, onBack, isAuthed, onLogin, country, cur, eurRa
         Back
       </button>
 
+      <div className="asset-breadcrumb">
+        <span>{tcgInfo?.label || "Catalog"}</span>
+        {langInfo && <><span>·</span><span>{langInfo.label}</span></>}
+        {card.set_name && <><span>·</span><span>{card.set_name}</span></>}
+        <span>·</span><b>{card.name}</b>
+      </div>
+
       <div className="asset-head">
         <div className="asset-img">
           <CardObject

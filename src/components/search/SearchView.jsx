@@ -221,7 +221,7 @@ export function SearchView({ country, cur, eurRate, onOpenAsset, setsMap, initia
     <section className="view">
       {showOnboard && <Onboarding onDismiss={dismissOnboard} />}
       <div className="hero">
-        <h1 className="hero-t">Find a card.<br/>Explore the catalog.</h1>
+        <h1 className="hero-t">Find a card.<br/>Explore the <span className="hero-accent">catalog</span>.</h1>
         <p className="hero-s">Pokémon, One Piece, Magic and Yu-Gi-Oh! — search any card, browse sets, and build your collection.</p>
         {onOpenExplore && (
           <button type="button" className="chip" style={{ marginTop: 12 }} onClick={onOpenExplore}>
