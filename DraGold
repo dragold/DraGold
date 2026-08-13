@@ -1,0 +1,216 @@
+/**
+ * DraGold — Sync Pokémon cards da PokemonTCG.io API v2
+ *
+ * Sorgente: https://api.pokemontcg.io/v2
+ *   - sets:  GET /v2/sets?pageSize=250&orderBy=releaseDate
+ *   - cards: GET /v2/cards?q=set.id:{id}&pageSize=250&page={n}
+ *
+ * ID format: "pokemon:ptcg:{card.id}"  (es. "pokemon:ptcg:sv1-1")
+ * Coesiste con TCGdex ("pokemon:tcgdex:...") — nessun conflitto.
+ *
+ * Usage:
+ *   node scripts/sync-pokemon-ptcg.js [--set=sv1]   ← test su 1 set
+ *   node scripts/sync-pokemon-ptcg.js                ← tutti i set EN
+ *
+ * Env richiesti:
+ *   SUPABASE_URL
+ *   SUPABASE_SERVICE_KEY
+ *   PTCG_API_KEY          ← consigliato (1000 req/min), senza key = 30 req/min
+ */
+
+import { createClient } from '@supabase/supabase-js'
+
+// ─── CONFIGURAZIONE ──────────────────────────────────────────────────────────
+
+const SUPABASE_URL  = process.env.SUPABASE_URL
+const SUPABASE_KEY  = process.env.SUPABASE_SERVICE_KEY
+const PTCG_API_KEY  = process.env.PTCG_API_KEY || 'REMOVED_API_KEY'
+
+if (!SUPABASE_URL || !SUPABASE_KEY) {
+  console.error('❌  Env mancanti: SUPABASE_URL e SUPABASE_SERVICE_KEY richiesti')
+  process.exit(1)
+}
+
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY)
+
+const PTCG_BASE  = 'https://api.pokemontcg.io/v2'
+const BATCH_SIZE = 500   // righe per upsert Supabase
+const DELAY_MS   = 200   // ms tra chiamate API (con key: 1000 req/min → 60ms min; 200ms = sicuro)
+
+const args   = process.argv.slice(2)
+const argSet = args.find(a => a.startsWith('--set='))?.split('=')[1] || null
+const argSetList = argSet ? argSet.split(',').map(s => s.trim()).filter(Boolean) : null
+
+// ─── UTILS ───────────────────────────────────────────────────────────────────
+
+const sleep = ms => new Promise(r => setTimeout(r, ms))
+
+const PTCG_HEADERS = {
+  'X-Api-Key': PTCG_API_KEY,
+  'Accept': 'application/json',
+}
+
+const RETRYABLE_STATUS = new Set([500, 502, 503, 504])
+const MAX_RETRIES      = 3
+const RETRY_BASE_MS    = 1000   // backoff: 1000ms → 2000ms → 4000ms
+
+async function safeFetch(url, timeoutMs = 30000) {
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      const res = await fetch(url, {
+        headers: PTCG_HEADERS,
+        signal: AbortSignal.timeout(timeoutMs),
+      })
+      if (!res.ok) {
+        if (RETRYABLE_STATUS.has(res.status) && attempt < MAX_RETRIES) {
+          const delay = RETRY_BASE_MS * 2 ** attempt
+          console.warn(`  ⚠️  HTTP ${res.status} → ${url} — retry ${attempt + 1}/${MAX_RETRIES} in ${delay}ms`)
+          await sleep(delay)
+          continue
+        }
+        console.warn(`  ⚠️  HTTP ${res.status} → ${url}`)
+        return null
+      }
+      return await res.json()
+    } catch (err) {
+      if (attempt < MAX_RETRIES) {
+        const delay = RETRY_BASE_MS * 2 ** attempt
+        console.warn(`  ⚠️  Fetch error (${err.message}) → ${url} — retry ${attempt + 1}/${MAX_RETRIES} in ${delay}ms`)
+        await sleep(delay)
+        continue
+      }
+      console.warn(`  ⚠️  Fetch error (${err.message}) → ${url}`)
+      return null
+    }
+  }
+  return null
+}
+
+async function upsertBatch(rows) {
+  if (!rows.length) return
+  const { error } = await supabase
+    .from('cards')
+    .upsert(rows, { onConflict: 'id', ignoreDuplicates: false })
+  if (error) console.warn(`  ⚠️  Upsert error: ${error.message}`)
+}
+
+// ─── MAPPATURA ───────────────────────────────────────────────────────────────
+
+function mapCard(c) {
+  return {
+    id:           `pokemon:ptcg:${c.id}`,
+    tcg:          'pokemon',
+    source:       'ptcg',
+    source_id:    c.id,
+    lang:         'en',
+    name:         c.name || '',
+    name_en:      c.name || '',
+    set_id:       c.set?.id   || null,
+    set_name:     c.set?.name || null,
+    card_number:  c.number != null ? String(c.number) : null,
+    rarity:       c.rarity    || null,
+    supertype:    c.supertype || null,
+    illustrator:  c.artist    || null,
+    image_url:    c.images?.large || c.images?.small || null,
+    image_url_hi: c.images?.large || null,
+    updated_at:   new Date().toISOString(),
+  }
+}
+
+// ─── FETCH SETS ──────────────────────────────────────────────────────────────
+
+async function fetchAllSets() {
+  const json = await safeFetch(`${PTCG_BASE}/sets?pageSize=250&orderBy=releaseDate`, 30000)
+  return json?.data || []
+}
+
+// ─── SYNC SET ────────────────────────────────────────────────────────────────
+
+async function syncSet(setId, setName) {
+  let page      = 1
+  let total     = 0
+  let imported  = 0
+  let apiFailed = false
+
+  do {
+    await sleep(DELAY_MS)
+    const url  = `${PTCG_BASE}/cards?q=set.id:${setId}&pageSize=250&page=${page}`
+    const json = await safeFetch(url)
+
+    if (!json?.data) {
+      apiFailed = true
+      console.warn(`  ⚠️  ${setId} pag.${page}: nessuna risposta valida dopo i retry`)
+      break
+    }
+
+    const rows = json.data
+      .filter(c => c.id && c.name)
+      .map(mapCard)
+
+    for (let i = 0; i < rows.length; i += BATCH_SIZE) {
+      await upsertBatch(rows.slice(i, i + BATCH_SIZE))
+    }
+
+    imported += rows.length
+    total     = json.totalCount || json.count || imported
+    page++
+  } while (imported < total)
+
+  // Un fallimento API (dopo retry esauriti) NON deve mai essere confuso con un
+  // risultato vuoto legittimo: se safeFetch ha restituito null, nessun dato è
+  // stato scritto in questa pagina (upsertBatch non viene mai chiamato), quindi
+  // i dati eventualmente già presenti nel DB restano intatti. Il set va solo
+  // riprovato, non conteggiato come successo.
+  if (apiFailed) {
+    console.warn(`  ❌  ${setId} (${setName}): sync fallita dopo i retry — dati esistenti preservati, set da riprovare`)
+    return { status: 'RETRYABLE_FAILURE', imported }
+  }
+
+  if (imported === 0) {
+    console.log(`  ℹ️  ${setId} (${setName}): 0 carte restituite dall'API (risultato vuoto)`)
+    return { status: 'EMPTY_RESULT', imported }
+  }
+
+  console.log(`  ✅  ${setId} (${setName}): ${imported} carte`)
+  return { status: 'SUCCESS', imported }
+}
+
+// ─── MAIN ────────────────────────────────────────────────────────────────────
+
+async function main() {
+  console.log('🃏  DraGold — Sync Pokémon da PokemonTCG.io API v2')
+  console.log(`   Set: ${argSet || 'tutti'} | Lingua: en | Key: ${PTCG_API_KEY ? '✓' : '✗ (limit 30/min)'}`)
+
+  console.log('\n📋  Fetching lista set...')
+  const allSets = await fetchAllSets()
+  if (!allSets.length) {
+    console.error('❌  Impossibile scaricare la lista set dall\'API')
+    process.exit(1)
+  }
+  console.log(`   ${allSets.length} set trovati`)
+
+  const setsToProcess = argSetList
+    ? allSets.filter(s => argSetList.includes(s.id))
+    : allSets
+
+  if (argSetList && setsToProcess.length === 0) {
+    console.error(`❌  Set "${argSet}" non trovato`)
+    console.log('   Esempi:', allSets.slice(0, 10).map(s => s.id).join(', '), '...')
+    process.exit(1)
+  }
+
+  let totalImported  = 0
+  const succeededSets = []
+  const failedSets    = []
+  const emptySets     = []
+  const start = Date.now()
+
+  for (let i = 0; i < setsToProcess.length; i++) {
+    const { id: setId, name: setName } = setsToProcess[i]
+    try {
+      const result = await syncSet(setId, setName)
+      totalImported += result.imported
+
+      if (result.status === 'SUCCESS') succeededSets.push(setId)
+      else if (result.status === 'RETRYABLE_FAILURE') failedSets.push(setId)
+      else if (res

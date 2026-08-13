@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase, supabaseReady } from "../../supabase.js";
 import { Icon } from "../shared/Icon.jsx";
 import { Onboarding, ONBOARD_KEY } from "../shared/Onboarding.jsx";
@@ -7,7 +7,6 @@ import { HotPicksSection } from "./HotPicksSection.jsx";
 import { CardObject } from "../shared/CardObject.jsx";
 import { pickCardImage } from "../shared/cardImage.js";
 import { useReveal } from "../../lib/useReveal.js";
-import { useDragScroll } from "../../lib/useDragScroll.js";
 import { norm, rankSearchResults, groupByCanonical } from "../../lib/search.js";
 import { LANG_ALIASES, RARITY_TOKENS, JP_NAME_ALIASES } from "../../lib/searchData.js";
 import { TCG_LIST } from "../../DraGold.jsx";
@@ -33,36 +32,24 @@ export function SearchView({ country, cur, eurRate, onOpenAsset, setsMap, onOpen
   // Real card art for the hero stack — reuses HotPicksSection's own fetch
   // (via its onPicksLoaded callback) rather than issuing a second query.
   const [heroCards, setHeroCards] = useState([]);
-  const discoverDrag = useDragScroll();
   // "Discover sets" rail — reuses the setsMap already loaded once in
   // DraGold.jsx (no new query), ordered by product priority (CLAUDE.md §1:
   // Pokémon → One Piece → MTG/YGO architecture-only, so the latter never
-  // surface here unless they actually have logo data). set_logos carries no
-  // release-date column, so a genuine "most recent" sort isn't available
-  // without inventing one — shuffled per session instead, so the rail
-  // doesn't show the same fixed slice of the catalog every visit.
-  const discoverSets = useMemo(() => {
+  // surface here unless they actually have logo data).
+  const discoverSets = (() => {
     if (!setsMap) return [];
     const byTcg = {};
     for (const s of setsMap.values()) {
       if (!s.logo_url && !s.symbol_url) continue;
       (byTcg[s.tcg] ||= []).push(s);
     }
-    const shuffle = (arr) => {
-      const a = arr.slice();
-      for (let i = a.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [a[i], a[j]] = [a[j], a[i]];
-      }
-      return a;
-    };
     const ordered = [];
     for (const t of TCG_LIST) {
       if (t.id === "mtg" || t.id === "ygo") continue;
-      for (const s of shuffle(byTcg[t.id] || []).slice(0, 8)) ordered.push({ ...s, _tcgInfo: t });
+      for (const s of (byTcg[t.id] || []).slice(0, 8)) ordered.push({ ...s, _tcgInfo: t });
     }
     return ordered.slice(0, 14);
-  }, [setsMap]);
+  })();
 
   const runSearch = useCallback(async (query) => {
     const trimmed = query.trim();
@@ -269,16 +256,19 @@ export function SearchView({ country, cur, eurRate, onOpenAsset, setsMap, onOpen
             </button>
           )}
         </div>
-        {heroCards[0] && (
-          <div className="hero-featured">
-            <div className="hero-featured-card">
-              <CardObject card={heroCards[0]} src={pickCardImage(heroCards[0]) || heroCards[0].imgUrl || heroCards[0].img}
-                alt={heroCards[0].name} variant="hero" fallback={null} />
-            </div>
-            <div className="hero-featured-caption">
-              <span className="hero-featured-eyebrow">Today's find</span>
-              <span className="hero-featured-name">{heroCards[0].name}</span>
-            </div>
+        {heroCards.length > 0 && (
+          <div className="hero-stack" aria-hidden="true">
+            {heroCards.slice(0, 3).map((c, i) => (
+              i === 0 ? (
+                <div className="hero-stack-card hero-stack-front" key={c.id}>
+                  <CardObject card={c} src={pickCardImage(c) || c.imgUrl || c.img} alt="" variant="grid" fallback={null} />
+                </div>
+              ) : (
+                <div className="hero-stack-card hero-stack-back" key={c.id} data-i={i}>
+                  <img src={pickCardImage(c) || c.imgUrl || c.img} alt="" loading="lazy" />
+                </div>
+              )
+            ))}
           </div>
         )}
       </div>
@@ -324,10 +314,7 @@ export function SearchView({ country, cur, eurRate, onOpenAsset, setsMap, onOpen
             <span className="sec-h-t">Discover a set</span>
             <span className="sec-h-line" />
           </div>
-          <div className="discover-rail" ref={discoverDrag.ref}
-            onPointerDown={discoverDrag.onPointerDown} onPointerMove={discoverDrag.onPointerMove}
-            onPointerUp={discoverDrag.onPointerUp} onPointerLeave={discoverDrag.onPointerLeave}
-            onClickCapture={discoverDrag.onClickCapture}>
+          <div className="discover-rail">
             {discoverSets.map(s => (
               <button type="button" key={`${s.tcg}:${s.set_code}`} className="discover-tile"
                 onClick={() => onOpenSet?.({ tcg: s.tcg, set_id: s.set_code, lang: "en", set_name: s.set_name })}
