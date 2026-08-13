@@ -4,6 +4,8 @@ import { Icon } from "../shared/Icon.jsx";
 import { Onboarding, ONBOARD_KEY } from "../shared/Onboarding.jsx";
 import { SearchResults } from "./SearchResults.jsx";
 import { HotPicksSection } from "./HotPicksSection.jsx";
+import { CardObject } from "../shared/CardObject.jsx";
+import { pickCardImage } from "../shared/cardImage.js";
 import { useReveal } from "../../lib/useReveal.js";
 import { norm, rankSearchResults, groupByCanonical } from "../../lib/search.js";
 import { LANG_ALIASES, RARITY_TOKENS, JP_NAME_ALIASES } from "../../lib/searchData.js";
@@ -24,6 +26,9 @@ export function SearchView({ country, cur, eurRate, onOpenAsset, setsMap, initia
     setShowOnboard(false);
   };
   const hotPicksReveal = useReveal();
+  // Real card art for the hero stack — reuses HotPicksSection's own fetch
+  // (via its onPicksLoaded callback) rather than issuing a second query.
+  const [heroCards, setHeroCards] = useState([]);
 
   const runSearch = useCallback(async (query) => {
     const trimmed = query.trim();
@@ -220,13 +225,30 @@ export function SearchView({ country, cur, eurRate, onOpenAsset, setsMap, initia
   return (
     <section className="view">
       {showOnboard && <Onboarding onDismiss={dismissOnboard} />}
-      <div className="hero">
-        <h1 className="hero-t">Find a card.<br/>Explore the <span className="hero-accent">catalog</span>.</h1>
-        <p className="hero-s">Pokémon, One Piece, Magic and Yu-Gi-Oh! — search any card, browse sets, and build your collection.</p>
-        {onOpenExplore && (
-          <button type="button" className="chip" style={{ marginTop: 12 }} onClick={onOpenExplore}>
-            Browse sets →
-          </button>
+      <div className="hero hero-grid">
+        <div>
+          <h1 className="hero-t">Find a card.<br/>Explore the <span className="hero-accent">catalog</span>.</h1>
+          <p className="hero-s">Pokémon, One Piece, Magic and Yu-Gi-Oh! — search any card, browse sets, and build your collection.</p>
+          {onOpenExplore && (
+            <button type="button" className="chip" style={{ marginTop: 12 }} onClick={onOpenExplore}>
+              Browse sets →
+            </button>
+          )}
+        </div>
+        {heroCards.length > 0 && (
+          <div className="hero-stack" aria-hidden="true">
+            {heroCards.slice(0, 3).map((c, i) => (
+              i === 0 ? (
+                <div className="hero-stack-card hero-stack-front" key={c.id}>
+                  <CardObject card={c} src={pickCardImage(c) || c.imgUrl || c.img} alt="" variant="grid" fallback={null} />
+                </div>
+              ) : (
+                <div className="hero-stack-card hero-stack-back" key={c.id} data-i={i}>
+                  <img src={pickCardImage(c) || c.imgUrl || c.img} alt="" loading="lazy" />
+                </div>
+              )
+            ))}
+          </div>
         )}
       </div>
 
@@ -259,7 +281,7 @@ export function SearchView({ country, cur, eurRate, onOpenAsset, setsMap, initia
         />
       ) : (
         <div ref={hotPicksReveal.ref} className={hotPicksReveal.className} style={hotPicksReveal.style}>
-          <HotPicksSection country={country} cur={cur} eurRate={eurRate} onOpen={handleOpenAsset} />
+          <HotPicksSection country={country} cur={cur} eurRate={eurRate} onOpen={handleOpenAsset} onPicksLoaded={setHeroCards} />
         </div>
       )}
     </section>

@@ -28,6 +28,7 @@ import { Icon } from "../../components/shared/Icon.jsx";
 import { SearchResults } from "../../components/search/SearchResults.jsx";
 import { useReveal } from "../../lib/useReveal.js";
 import { TCG_LIST, CARD_LANGS } from "../../DraGold.jsx";
+import { pickCardImage } from "../../components/shared/cardImage.js";
 
 const SET_CARD_FIELDS = "id,name,name_en,set_name,set_id,card_number,image_url,image_url_hi,lang,tcg,canonical_card_id,card_image_cache(cached_url,status)";
 
@@ -145,7 +146,22 @@ export function SetDetailPage({ setRef, setsMap, country, cur, eurRate, onOpen, 
             <h2 className="view-t">{setName}</h2>
           </div>
         </div>
+        {cards.length > 0 && (
+          <div className="set-preview-strip">
+            {cards.slice(0, 18).map(c => {
+              const img = pickCardImage(c) || c.imgUrl || c.img;
+              return img ? <div className="set-preview-card" key={c.id}><img src={img} alt="" loading="lazy" /></div> : null;
+            })}
+          </div>
+        )}
       </div>
+
+      {cards.length > 0 && (
+        <div className="sec-h" style={{ marginTop: 30 }}>
+          <span className="sec-h-t">All cards</span>
+          <span className="sec-h-line" />
+        </div>
+      )}
 
       <div ref={gridReveal.ref} className={gridReveal.className} style={gridReveal.style}>
         <SearchResults
