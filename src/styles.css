@@ -1,5 +1,15 @@
 @import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,700;0,9..144,800;1,9..144,600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap');
 
+/* "Card turn" — native View Transitions API (DraGold.jsx withViewTransition).
+   Replaces the default flat cross-fade with a spatial push/settle so opening
+   a card or set reads as moving deeper into the catalog, not swapping a div.
+   No-ops entirely when unsupported or under prefers-reduced-motion (gated in
+   JS — the browser only fires these pseudo-elements when a transition runs). */
+::view-transition-old(root){animation:dg-vt-out 380ms cubic-bezier(.4,0,.7,1) both;}
+::view-transition-new(root){animation:dg-vt-in 420ms cubic-bezier(.16,1,.3,1) both;}
+@keyframes dg-vt-out{to{opacity:0;transform:scale(.985) translateY(-6px);}}
+@keyframes dg-vt-in{from{opacity:0;transform:scale(1.015) translateY(10px);}}
+
 :root{
   --bg:#020208; --surface:#0b0b18; --surface-2:#111127; --surface-3:#181830;
   --gold:#fbbf24; --gold-deep:#d97706;
@@ -50,6 +60,24 @@ html,body{background:var(--bg);color:var(--text);font-family:'Plus Jakarta Sans'
    transitionDelay from the hook. */
 .reveal{opacity:0;transform:translateY(18px);transition:opacity var(--dur-reveal) var(--ease-out),transform var(--dur-reveal) var(--ease-out);}
 .reveal-in{opacity:1;transform:translateY(0);}
+/* Grids inside a reveal wrapper cascade in card-by-card instead of popping
+   together as one block — cheap (one IntersectionObserver on the wrapper,
+   pure CSS nth-child delays on the children). */
+.reveal .card-grid>*{opacity:0;transform:translateY(14px);}
+.reveal-in .card-grid>*{opacity:1;transform:translateY(0);transition:opacity .5s var(--ease-out),transform .5s var(--ease-out);}
+.reveal-in .card-grid>*:nth-child(1){transition-delay:0ms;}
+.reveal-in .card-grid>*:nth-child(2){transition-delay:30ms;}
+.reveal-in .card-grid>*:nth-child(3){transition-delay:60ms;}
+.reveal-in .card-grid>*:nth-child(4){transition-delay:90ms;}
+.reveal-in .card-grid>*:nth-child(5){transition-delay:120ms;}
+.reveal-in .card-grid>*:nth-child(6){transition-delay:150ms;}
+.reveal-in .card-grid>*:nth-child(7){transition-delay:180ms;}
+.reveal-in .card-grid>*:nth-child(8){transition-delay:210ms;}
+.reveal-in .card-grid>*:nth-child(9){transition-delay:240ms;}
+.reveal-in .card-grid>*:nth-child(10){transition-delay:270ms;}
+.reveal-in .card-grid>*:nth-child(11){transition-delay:300ms;}
+.reveal-in .card-grid>*:nth-child(12){transition-delay:330ms;}
+
 
 a{color:inherit;text-decoration:none;}
 button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit;}
@@ -106,14 +134,30 @@ input{font-family:inherit;font-size:16px;}
 @media(min-width:880px){
   .hero-grid{display:grid;grid-template-columns:1fr 300px;gap:44px;align-items:center;}
 }
-.hero-stack{display:none;position:relative;height:280px;}
-@media(min-width:880px){.hero-stack{display:block;}}
-.hero-stack-card{position:absolute;width:148px;aspect-ratio:63/88;border-radius:11px;overflow:hidden;box-shadow:0 30px 54px -26px rgba(0,0,0,.75);background:var(--surface-2);}
+/* Mobile gets its own compact composition — one real card, centered,
+   static flow (no absolute stack) — not the desktop layout shrunk down.
+   The back cards + full stack only appear once there's room at ≥880px. */
+.hero-stack{display:flex;justify-content:center;margin:24px 0 4px;}
+.hero-stack-card{position:static;width:132px;aspect-ratio:63/88;border-radius:11px;overflow:hidden;box-shadow:0 24px 44px -22px rgba(0,0,0,.75);background:var(--surface-2);}
 .hero-stack-card img{width:100%;height:100%;object-fit:cover;display:block;}
-.hero-stack-back{opacity:.5;filter:saturate(.65);transition:opacity var(--dur-reveal) var(--ease-out);}
-.hero-stack-back[data-i="1"]{left:6px;top:34px;transform:rotate(-10deg);}
-.hero-stack-back[data-i="2"]{right:0;top:2px;transform:rotate(8deg);}
-.hero-stack-front{left:50%;top:52px;width:168px;transform:translateX(-50%);z-index:2;}
+.hero-stack-back{display:none;}
+@media(min-width:880px){
+  .hero-stack{display:block;position:relative;height:280px;margin:0;}
+  .hero-stack-card{position:absolute;width:148px;box-shadow:0 30px 54px -26px rgba(0,0,0,.75);}
+  .hero-stack-back{display:block;opacity:.5;filter:saturate(.65);transition:opacity var(--dur-reveal) var(--ease-out);}
+  .hero-stack-back[data-i="1"]{left:6px;top:34px;transform:rotate(-10deg);}
+  .hero-stack-back[data-i="2"]{right:0;top:2px;transform:rotate(8deg);}
+  .hero-stack-front{left:50%;top:52px;width:168px;transform:translateX(-50%);z-index:2;}
+}
+
+/* Home — "Discover a set": entry points into the catalog, built from the
+   already-loaded setsMap (no new query). */
+.discover-rail{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;padding:2px 2px 8px;margin:0 -2px;}
+.discover-tile{flex:0 0 128px;scroll-snap-align:start;display:flex;flex-direction:column;align-items:center;gap:10px;padding:20px 14px 14px;background:var(--surface);border:1px solid var(--border);border-radius:14px;transition:border-color var(--dur-fast) var(--ease-out),transform var(--dur-lift) var(--ease-out),box-shadow var(--dur-lift) var(--ease-out);}
+.discover-tile img{max-height:34px;max-width:96px;object-fit:contain;}
+.discover-tile-name{font-size:12px;font-weight:700;text-align:center;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.discover-tile-tcg{font-family:'Space Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.12em;color:var(--tcg-color,var(--dim));}
+@media(hover:hover){.discover-tile:hover{border-color:var(--tcg-color,var(--gold));transform:translateY(-5px);box-shadow:0 18px 32px -20px rgba(0,0,0,.6);}}
 
 /* search */
 .search{display:flex;align-items:center;gap:8px;margin:20px 0 14px;background:var(--surface-2);border:1px solid var(--border-2);border-radius:14px;padding:6px 6px 6px 14px;transition:.15s;}
@@ -291,7 +335,12 @@ input{font-family:inherit;font-size:16px;}
 .card-object{position:relative;width:100%;height:100%;perspective:900px;}
 .card-object-plate{position:relative;width:100%;height:100%;transform-style:preserve-3d;will-change:transform;}
 .card-object-plate img{width:100%;height:100%;object-fit:contain;display:block;border-radius:inherit;}
-.card-object-sheen{position:absolute;inset:0;border-radius:inherit;pointer-events:none;mix-blend-mode:overlay;opacity:var(--sheen-o,0);background:radial-gradient(circle at var(--mx,50%) var(--my,50%),rgba(255,255,255,.5),transparent 60%);transition:opacity var(--dur-fast) var(--ease-out);}
+/* Holographic response: the pointer highlight (radial) layers over a
+   two-accent foil band whose angle is driven by --foil-angle (set from the
+   tilt rotation itself in useTilt.js) — the reflection shifts with viewing
+   angle like real foil, not a fixed decoration. Two accents only, per the
+   design system (gold/relation), never a rainbow. */
+.card-object-sheen{position:absolute;inset:0;border-radius:inherit;pointer-events:none;mix-blend-mode:overlay;opacity:var(--sheen-o,0);background:radial-gradient(circle at var(--mx,50%) var(--my,50%),rgba(255,255,255,.5),transparent 60%),linear-gradient(var(--foil-angle,115deg),transparent 32%,rgba(251,191,36,.24) 46%,rgba(126,139,196,.22) 56%,transparent 72%);transition:opacity var(--dur-fast) var(--ease-out);}
 .card-object-hero .card-object-plate{filter:drop-shadow(0 18px 40px rgba(0,0,0,.5));overflow:hidden;}
 /* Hero is the one place a continuous ambient effect is allowed even when
    not owned (README motion budget: "reserved for hero/owned states only") —
@@ -533,4 +582,15 @@ input{font-family:inherit;font-size:16px;}
 .set-preview-strip{position:relative;display:flex;gap:10px;overflow-x:auto;margin-top:20px;padding-top:16px;border-top:1px solid rgba(255,255,255,.08);}
 .set-preview-card{flex:0 0 56px;aspect-ratio:63/88;border-radius:7px;overflow:hidden;border:1px solid var(--border-2);box-shadow:0 10px 20px -12px rgba(0,0,0,.6);}
 .set-preview-card img{width:100%;height:100%;object-fit:cover;display:block;}
+
+/* The constellation — the whole set as one connected field of small nodes. */
+.constellation-hint{margin-left:auto;font-family:'Space Mono',monospace;font-size:10px;letter-spacing:.08em;color:var(--dim);}
+.constellation{display:grid;grid-template-columns:repeat(auto-fill,minmax(52px,1fr));gap:8px;}
+.constellation-node{position:relative;aspect-ratio:63/88;border-radius:6px;overflow:hidden;background:var(--surface-2);border:1px solid var(--border);cursor:pointer;padding:0;transition:transform var(--dur-lift) var(--ease-out),border-color var(--dur-fast) var(--ease-out),box-shadow var(--dur-lift) var(--ease-out);}
+.constellation-node img{width:100%;height:100%;object-fit:cover;display:block;opacity:.88;transition:opacity var(--dur-fast) var(--ease-out);}
+.constellation-node-ph{display:block;width:100%;height:100%;background:linear-gradient(150deg,var(--surface-3),var(--surface-2));}
+@media(hover:hover){
+  .constellation-node:hover{transform:translateY(-4px) scale(1.06);border-color:rgba(251,191,36,.5);box-shadow:0 16px 28px -16px rgba(0,0,0,.7);z-index:1;}
+  .constellation-node:hover img{opacity:1;}
+}
 

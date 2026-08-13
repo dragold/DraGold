@@ -31,6 +31,10 @@ export function useTilt({ max = 7, strength = 1 } = {}) {
       el.style.setProperty("--mx", `${px * 100}%`);
       el.style.setProperty("--my", `${py * 100}%`);
       el.style.setProperty("--sheen-o", "1");
+      // Foil angle rides the tilt itself (not just pointer position) so the
+      // holo band shifts with viewing angle, like a real foil card catching
+      // light as it turns — not a static overlay.
+      el.style.setProperty("--foil-angle", `${115 + rotateY * 3}deg`);
     });
   }, [max, strength]);
 
@@ -41,6 +45,7 @@ export function useTilt({ max = 7, strength = 1 } = {}) {
     el.style.transition = "transform var(--dur-settle) var(--ease-out)";
     el.style.transform = "rotateX(0deg) rotateY(0deg)";
     el.style.setProperty("--sheen-o", "0");
+    el.style.setProperty("--foil-angle", "115deg");
   }, []);
 
   useEffect(() => () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); }, []);
