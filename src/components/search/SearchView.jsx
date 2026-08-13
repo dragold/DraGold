@@ -4,6 +4,7 @@ import { Icon } from "../shared/Icon.jsx";
 import { Onboarding, ONBOARD_KEY } from "../shared/Onboarding.jsx";
 import { SearchResults } from "./SearchResults.jsx";
 import { HotPicksSection } from "./HotPicksSection.jsx";
+import { useReveal } from "../../lib/useReveal.js";
 import { norm, rankSearchResults, groupByCanonical } from "../../lib/search.js";
 import { LANG_ALIASES, RARITY_TOKENS, JP_NAME_ALIASES } from "../../lib/searchData.js";
 
@@ -22,6 +23,7 @@ export function SearchView({ country, cur, eurRate, onOpenAsset, setsMap, initia
     try { localStorage.setItem(ONBOARD_KEY, '1'); } catch {}
     setShowOnboard(false);
   };
+  const hotPicksReveal = useReveal();
 
   const runSearch = useCallback(async (query) => {
     const trimmed = query.trim();
@@ -256,7 +258,9 @@ export function SearchView({ country, cur, eurRate, onOpenAsset, setsMap, initia
           totalCount={results.length}
         />
       ) : (
-        <HotPicksSection country={country} cur={cur} eurRate={eurRate} onOpen={handleOpenAsset} />
+        <div ref={hotPicksReveal.ref} className={hotPicksReveal.className} style={hotPicksReveal.style}>
+          <HotPicksSection country={country} cur={cur} eurRate={eurRate} onOpen={handleOpenAsset} />
+        </div>
       )}
     </section>
   );

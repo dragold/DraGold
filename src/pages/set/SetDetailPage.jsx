@@ -26,6 +26,7 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase, supabaseReady } from "../../supabase.js";
 import { Icon } from "../../components/shared/Icon.jsx";
 import { SearchResults } from "../../components/search/SearchResults.jsx";
+import { useReveal } from "../../lib/useReveal.js";
 
 const SET_CARD_FIELDS = "id,name,name_en,set_name,set_id,card_number,image_url,image_url_hi,lang,tcg,canonical_card_id,card_image_cache(cached_url,status)";
 
@@ -73,6 +74,7 @@ export function SetDetailPage({ setRef, setsMap, country, cur, eurRate, onOpen, 
 
   const info = setsMap?.get(`${setRef.tcg}:${setRef.set_id}`) || null;
   const setName = setRef.set_name || info?.set_name || fallbackName || setRef.set_id;
+  const gridReveal = useReveal();
 
   const load = useCallback(async () => {
     setLoading(true); setError(null);
@@ -138,15 +140,17 @@ export function SetDetailPage({ setRef, setsMap, country, cur, eurRate, onOpen, 
         {setRef.lang && <span className="asset-num">{setRef.lang.toUpperCase()}</span>}
       </div>
 
-      <SearchResults
-        loading={loading} results={cards.slice(0, visibleCount)} priceMap={{}}
-        error={error} term={setName}
-        country={country} cur={cur} eurRate={eurRate}
-        onRetry={load} onOpen={onOpen} setsMap={setsMap}
-        hasMore={visibleCount < cards.length}
-        totalCount={cards.length}
-        discoveryMode
-      />
+      <div ref={gridReveal.ref} className={gridReveal.className} style={gridReveal.style}>
+        <SearchResults
+          loading={loading} results={cards.slice(0, visibleCount)} priceMap={{}}
+          error={error} term={setName}
+          country={country} cur={cur} eurRate={eurRate}
+          onRetry={load} onOpen={onOpen} setsMap={setsMap}
+          hasMore={visibleCount < cards.length}
+          totalCount={cards.length}
+          discoveryMode
+        />
+      </div>
     </section>
   );
 }
