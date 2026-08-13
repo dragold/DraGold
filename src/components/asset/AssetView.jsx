@@ -9,6 +9,7 @@ import { toApiId } from "../../lib/cardId.js";
 import { PriceChart } from "./PriceChart.jsx";
 import { Sparkline } from "./Sparkline.jsx";
 import { SearchResultItem } from "../search/SearchResultItem.jsx";
+import { CardObject } from "../shared/CardObject.jsx";
 
 // Ordina card_number in modo "naturale" (5 prima di 12, non lessicografico):
 // necessario perché nel DB i numeri non sono sempre zero-padded in modo uniforme
@@ -56,7 +57,6 @@ export function AssetView({ card, onBack, isAuthed, onLogin, country, cur, eurRa
   const [loadingPrice, setLoadingPrice] = useState(true);
   const [priceErr, setPriceErr] = useState(false);
   const [ebayItems, setEbayItems] = useState([]);
-  const [imgFailed, setImgFailed] = useState(false);
   const [modal, setModal] = useState(null);     // 'portfolio' | 'alert' | null
   const [watching, setWatching] = useState(false);
   const [watchBusy, setWatchBusy] = useState(false);
@@ -236,14 +236,18 @@ export function AssetView({ card, onBack, isAuthed, onLogin, country, cur, eurRa
 
       <div className="asset-head">
         <div className="asset-img">
-          {imgUrl && !imgFailed ? (
-            <img src={imgUrl} alt={card.name} onError={() => setImgFailed(true)} />
-          ) : (
-            <div className="card-img-ph">
-              {tcgInfo && <span className="card-img-ph-tcg" style={{ color: tcgInfo.color }}>{tcgInfo.short}</span>}
-              <span className="card-img-ph-init">{(card.name || "?").replace(/[^a-zA-Z ]/g, "").trim().split(/\s+/).slice(0, 2).map(w => w[0] || "").join("").toUpperCase() || "?"}</span>
-            </div>
-          )}
+          <CardObject
+            card={card}
+            src={imgUrl}
+            alt={card.name}
+            variant="hero"
+            fallback={
+              <div className="card-img-ph">
+                {tcgInfo && <span className="card-img-ph-tcg" style={{ color: tcgInfo.color }}>{tcgInfo.short}</span>}
+                <span className="card-img-ph-init">{(card.name || "?").replace(/[^a-zA-Z ]/g, "").trim().split(/\s+/).slice(0, 2).map(w => w[0] || "").join("").toUpperCase() || "?"}</span>
+              </div>
+            }
+          />
         </div>
         <div className="asset-info">
           {tcgInfo && <span className="asset-tcg" style={{ color: tcgInfo.color }}>{tcgInfo.label}</span>}
@@ -329,6 +333,7 @@ export function AssetView({ card, onBack, isAuthed, onLogin, country, cur, eurRa
       {/* ALTRE VERSIONI — stessa carta, raggruppate SOLO via canonical_card_id */}
       {variants.length > 0 && (
         <div className="rel-rail-section">
+          <span className="edge-label">CARD → LANGUAGE / PRINT</span>
           <div className="sec-h"><span className="sec-h-t">Other versions of this card</span><span className="sec-h-line" /></div>
           <div className="rel-rail">
             {variants.map(v => (
@@ -452,6 +457,7 @@ export function AssetView({ card, onBack, isAuthed, onLogin, country, cur, eurRa
       {/* ALTRE CARTE DEL SET — stesso tcg+set_id+lang, escludendo la carta corrente */}
       {sameSetCards.length > 0 && (
         <div className="rel-rail-section">
+          <span className="edge-label">CARD → SET</span>
           <div className="sec-h">
             <span className="sec-h-t">More from {card.set_name || setInfo?.set_name || "this set"}</span>
             <span className="sec-h-line" />
