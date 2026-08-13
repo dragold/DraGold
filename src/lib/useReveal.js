@@ -16,6 +16,12 @@ export function useReveal(index = 0) {
       setRevealed(true);
       return;
     }
+    // threshold:0 (any pixel visible) rather than 0.1 (10% of the element's
+    // area) — a tall multi-row grid can be thousands of pixels tall, so a
+    // 10%-of-area threshold may never be satisfiable within a short
+    // viewport and the section stays invisible forever. Fires as soon as
+    // the top edge enters view instead, which is what "reveal on scroll"
+    // actually means for content taller than the screen.
     const io = new IntersectionObserver((entries) => {
       for (const entry of entries) {
         if (entry.isIntersecting) {
@@ -23,7 +29,7 @@ export function useReveal(index = 0) {
           io.disconnect();
         }
       }
-    }, { threshold: 0.1 });
+    }, { threshold: 0, rootMargin: "0px 0px -40px 0px" });
     io.observe(el);
     return () => io.disconnect();
   }, []);
