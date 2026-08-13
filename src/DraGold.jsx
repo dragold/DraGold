@@ -249,8 +249,15 @@ export default function DraGold() {
   // on unsupported browsers this just runs the update directly, same as before.
   const withViewTransition = useCallback((update) => {
     if (typeof document.startViewTransition === "function" &&
-        !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      document.startViewTransition(() => flushSync(update));
+        !window.matchMedia("(prefers-reduced-motion: reduce)").matches &&
+        !document.hidden) {
+      // The spec aborts a transition (rejecting .ready/.finished) if the
+      // document loses visibility mid-flight (tab-switch, alt-tab) — the
+      // state change itself already happened via flushSync regardless, so
+      // this is purely cosmetic; swallow it instead of an unhandled
+      // rejection in the console.
+      const vt = document.startViewTransition(() => flushSync(update));
+      vt.finished?.catch(() => {});
     } else {
       update();
     }
