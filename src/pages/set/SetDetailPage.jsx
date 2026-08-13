@@ -156,8 +156,32 @@ export function SetDetailPage({ setRef, setsMap, country, cur, eurRate, onOpen, 
         )}
       </div>
 
+      {/* The constellation — every card in the set as one connected field,
+          so "belongs to this set" is felt spatially, not just listed.
+          Real cards, real click-through (onOpen); capped for render cost. */}
       {cards.length > 0 && (
-        <div className="sec-h" style={{ marginTop: 30 }}>
+        <>
+          <div className="sec-h" style={{ marginTop: 34 }}>
+            <span className="sec-h-t">The constellation</span>
+            <span className="sec-h-line" />
+            <span className="constellation-hint">{Math.min(cards.length, 120)} of {cards.length}</span>
+          </div>
+          <div className="constellation">
+            {cards.slice(0, 120).map(c => {
+              const img = pickCardImage(c) || c.imgUrl || c.img;
+              return (
+                <button type="button" key={c.id} className="constellation-node" title={c.name}
+                  onClick={() => onOpen?.(c)}>
+                  {img ? <img src={img} alt="" loading="lazy" /> : <span className="constellation-node-ph" />}
+                </button>
+              );
+            })}
+          </div>
+        </>
+      )}
+
+      {cards.length > 0 && (
+        <div className="sec-h" style={{ marginTop: 34 }}>
           <span className="sec-h-t">All cards</span>
           <span className="sec-h-line" />
         </div>

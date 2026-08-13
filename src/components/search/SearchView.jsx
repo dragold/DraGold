@@ -9,8 +9,9 @@ import { pickCardImage } from "../shared/cardImage.js";
 import { useReveal } from "../../lib/useReveal.js";
 import { norm, rankSearchResults, groupByCanonical } from "../../lib/search.js";
 import { LANG_ALIASES, RARITY_TOKENS, JP_NAME_ALIASES } from "../../lib/searchData.js";
+import { TCG_LIST } from "../../DraGold.jsx";
 
-export function SearchView({ country, cur, eurRate, onOpenAsset, setsMap, initialSearchState, onSearchStateChange, onSearchStateClear, onOpenExplore }) {
+export function SearchView({ country, cur, eurRate, onOpenAsset, setsMap, onOpenSet, initialSearchState, onSearchStateChange, onSearchStateClear, onOpenExplore }) {
   const [q, setQ] = useState(() => initialSearchState?.q || "");
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState(() => initialSearchState?.results || []);
@@ -26,9 +27,29 @@ export function SearchView({ country, cur, eurRate, onOpenAsset, setsMap, initia
     setShowOnboard(false);
   };
   const hotPicksReveal = useReveal();
+  const discoverReveal = useReveal(1);
+  const resultsReveal = useReveal();
   // Real card art for the hero stack — reuses HotPicksSection's own fetch
   // (via its onPicksLoaded callback) rather than issuing a second query.
   const [heroCards, setHeroCards] = useState([]);
+  // "Discover sets" rail — reuses the setsMap already loaded once in
+  // DraGold.jsx (no new query), ordered by product priority (CLAUDE.md §1:
+  // Pokémon → One Piece → MTG/YGO architecture-only, so the latter never
+  // surface here unless they actually have logo data).
+  const discoverSets = (() => {
+    if (!setsMap) return [];
+    const byTcg = {};
+    for (const s of setsMap.values()) {
+      if (!s.logo_url && !s.symbol_url) continue;
+      (byTcg[s.tcg] ||= []).push(s);
+    }
+    const ordered = [];
+    for (const t of TCG_LIST) {
+      if (t.id === "mtg" || t.id === "ygo") continue;
+      for (const s of (byTcg[t.id] || []).slice(0, 8)) ordered.push({ ...s, _tcgInfo: t });
+    }
+    return ordered.slice(0, 14);
+  })();
 
   const runSearch = useCallback(async (query) => {
     const trimmed = query.trim();
@@ -270,18 +291,43 @@ export function SearchView({ country, cur, eurRate, onOpenAsset, setsMap, initia
       </form>
 
       {searched ? (
-        <SearchResults
-          loading={loading} results={results.slice(0, visibleCount)} priceMap={priceMap}
-          error={error} term={searchTerm}
-          country={country} cur={cur} eurRate={eurRate}
-          onRetry={() => runSearch(searchTerm)}
-          onOpen={handleOpenAsset} setsMap={setsMap}
-          hasMore={visibleCount < results.length}
-          totalCount={results.length}
-        />
+        <div ref={resultsReveal.ref} className={resultsReveal.className} style={resultsReveal.style}>
+          <SearchResults
+            loading={loading} results={results.slice(0, visibleCount)} priceMap={priceMap}
+            error={error} term={searchTerm}
+            country={country} cur={cur} eurRate={eurRate}
+            onRetry={() => runSearch(searchTerm)}
+            onOpen={handleOpenAsset} setsMap={setsMap}
+            hasMore={visibleCount < results.length}
+            totalCount={results.length}
+          />
+        </div>
       ) : (
         <div ref={hotPicksReveal.ref} className={hotPicksReveal.className} style={hotPicksReveal.style}>
           <HotPicksSection country={country} cur={cur} eurRate={eurRate} onOpen={handleOpenAsset} onPicksLoaded={setHeroCards} />
+        </div>
+      )}
+
+      {!searched && discoverSets.length > 0 && (
+        <div ref={discoverReveal.ref} className={discoverReveal.className} style={discoverReveal.style}>
+          <div className="sec-h">
+            <span className="sec-h-t"><Icon name="grid" size={14} /> Discover a set</span>
+            <span className="sec-h-line" />
+          </div>
+          <div className="discover-rail">
+            {discoverSets.map(s => (
+              <button type="button" key={`${s.tcg}:${s.set_code}`} className="discover-tile"
+                onClick={() => onOpenSet?.({ tcg: s.tcg, set_id: s.set_code, lang: "en", set_name: s.set_name })}
+                style={{ '--tcg-color': s._tcgInfo?.color }}>
+                {(s.logo_url || s.symbol_url) && (
+                  <img src={s.logo_url || s.symbol_url} alt="" loading="lazy"
+                    onError={e => { e.currentTarget.style.display = 'none'; }} />
+                )}
+                <span className="discover-tile-name">{s.set_name || s.set_code}</span>
+                <span className="discover-tile-tcg">{s._tcgInfo?.short}</span>
+              </button>
+            ))}
+          </div>
         </div>
       )}
     </section>

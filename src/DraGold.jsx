@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import { flushSync } from "react-dom";
 import {
   supabase, supabaseReady,
   sendMagicLink, getSession, onAuth, signOut as sbSignOut,
@@ -242,18 +243,30 @@ export default function DraGold() {
     else setAuthOpen(true);
   }, [isAuthed]);
 
-  const openAsset = useCallback((card) => {
-    setAsset(card);
-    window.scrollTo({ top: 0, behavior: "auto" });
+  // "Card turn" — native View Transitions API (feature-detected, zero deps).
+  // The DOM mutation must happen synchronously inside the transition callback
+  // for the browser to capture correct before/after snapshots, hence flushSync;
+  // on unsupported browsers this just runs the update directly, same as before.
+  const withViewTransition = useCallback((update) => {
+    if (typeof document.startViewTransition === "function" &&
+        !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      document.startViewTransition(() => flushSync(update));
+    } else {
+      update();
+    }
   }, []);
-  const closeAsset = useCallback(() => setAsset(null), []);
+
+  const openAsset = useCallback((card) => {
+    withViewTransition(() => setAsset(card));
+    window.scrollTo({ top: 0, behavior: "auto" });
+  }, [withViewTransition]);
+  const closeAsset = useCallback(() => withViewTransition(() => setAsset(null)), [withViewTransition]);
 
   const openSet = useCallback((ref) => {
-    setViewSet(ref);
-    setAsset(null);
+    withViewTransition(() => { setViewSet(ref); setAsset(null); });
     window.scrollTo({ top: 0, behavior: "auto" });
-  }, []);
-  const closeSet = useCallback(() => setViewSet(null), []);
+  }, [withViewTransition]);
+  const closeSet = useCallback(() => withViewTransition(() => setViewSet(null)), [withViewTransition]);
 
   /* ── formattatore valuta (i prezzi DB sono in USD) ── */
   const fmt = useCallback((usd) => {
@@ -341,7 +354,7 @@ export default function DraGold() {
         {tab==="markets" && (
           <SearchView
             country={country} cur={cur} eurRate={eurRate}
-            onOpenAsset={openAsset} setsMap={setsMap}
+            onOpenAsset={openAsset} setsMap={setsMap} onOpenSet={openSet}
             initialSearchState={getSavedSearch()}
             onSearchStateChange={setSavedSearch}
             onSearchStateClear={clearSavedSearch}
