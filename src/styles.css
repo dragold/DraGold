@@ -382,10 +382,24 @@ input{font-family:inherit;font-size:16px;}
 .asset-breadcrumb span{opacity:.5;}
 .asset-tcg{font-family:'Space Mono',monospace;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;}
 .asset-name{font-family:'Fraunces',serif;font-weight:800;font-size:clamp(30px,6vw,52px);line-height:1.0;letter-spacing:-.02em;margin:8px 0 14px;}
-.asset-meta{display:flex;flex-wrap:wrap;align-items:center;color:var(--muted);font-size:13px;font-family:'Space Mono',monospace;letter-spacing:.02em;border:1px solid var(--border);border-radius:11px;background:var(--surface);margin-top:4px;overflow:hidden;}
-.asset-meta>*{padding:10px 14px;border-right:1px solid var(--border);display:flex;align-items:center;gap:5px;}
-.asset-meta>*:last-child{border-right:none;}
-.asset-num{font-family:'Space Mono',monospace;}
+/* Card identity — image column caption, language pills, fact grid.
+   Matches the approved Card Detail design: image caption below the hero
+   card, a language-switcher pill row with an active dot, and a labeled
+   2-col fact grid (mono key over value) instead of a single strip of
+   unlabeled chips. */
+.asset-img-col{display:flex;flex-direction:column;align-items:center;gap:12px;}
+.asset-img-caption{font-family:'Space Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);}
+.asset-lang-pills{display:flex;flex-wrap:wrap;gap:7px;margin:14px 0 2px;}
+.asset-lang-pill{position:relative;border:1px solid var(--border);border-radius:999px;padding:7px 14px;font-family:'Space Mono',monospace;font-size:11px;letter-spacing:.06em;color:var(--muted);background:none;cursor:pointer;transition:border-color var(--dur-fast) var(--ease-out),color var(--dur-fast) var(--ease-out);}
+.asset-lang-pill:hover{border-color:var(--border-2);color:var(--text);}
+.asset-lang-pill.on{color:var(--text);border-color:var(--gold);cursor:default;padding-right:20px;}
+.asset-lang-pill-dot{position:absolute;top:50%;right:9px;width:5px;height:5px;margin-top:-2.5px;border-radius:50%;background:var(--gold);}
+.asset-fact-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:11px;overflow:hidden;margin-top:14px;}
+.asset-fact{background:var(--surface);padding:11px 14px;display:flex;flex-direction:column;gap:4px;min-width:0;}
+.asset-fact-k{font-family:'Space Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);}
+.asset-fact-v{font-size:13.5px;color:var(--text);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.asset-fact-v .asset-meta-link{font-size:13.5px;font-weight:600;color:var(--text);}
+.asset-fact-mono{font-family:'Space Mono',monospace;font-weight:700;}
 .price-skel{height:78px;border-radius:14px;background:linear-gradient(100deg,var(--surface-2) 30%,var(--surface-3) 50%,var(--surface-2) 70%);background-size:200% 100%;animation:sh 1.4s linear infinite;margin-top:16px;}
 .fmv-block{margin-top:20px;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:22px 20px;}
 .fmv-row{display:flex;align-items:baseline;gap:10px;}
