@@ -18,8 +18,14 @@
 // è un progetto piccolo/non garantito; optcgapi.com ripropone gli stessi asset
 // ufficiali con lo stesso blocco hotlink). Soluzione: fallback elegante invece di un
 // rettangolo bianco — tile brandizzata con codice set ben leggibile.
+//
+// Design-system pass (2026-08): questa pagina era rimasta con lo stile "P0"
+// originale (hover a scala, header generico) mentre il resto del prodotto è
+// passato al linguaggio North Star (lift+press sulle tile, header editoriale,
+// reveal-on-scroll). Nessun dato/logica toccato, solo presentazione.
 import { useState } from "react";
 import { TCG_LIST } from "../../DraGold.jsx";
+import { useReveal } from "../../lib/useReveal.js";
 
 function SetTile({ s, tcg, onOpenSet }) {
   const [imgOk, setImgOk] = useState(true);
@@ -50,6 +56,26 @@ function SetTile({ s, tcg, onOpenSet }) {
   );
 }
 
+function TcgSection({ tcg, sets, onOpenSet, index }) {
+  const reveal = useReveal(index);
+  return (
+    <div ref={reveal.ref} className={reveal.className} style={reveal.style}>
+      <div className="set-section">
+        <div className="sec-h">
+          <span className="sec-h-t" style={{ color: tcg.color }}>{tcg.label}</span>
+          <span className="sec-h-line" />
+          <span className="explore-count">{sets.length}</span>
+        </div>
+        <div className="set-grid">
+          {sets.map(s => (
+            <SetTile key={`${s.tcg}:${s.set_code}`} s={s} tcg={tcg} onOpenSet={onOpenSet} />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function SetsView({ setsMap, onOpenSet }) {
   const loading = setsMap == null;
   const allSets = loading ? [] : [...setsMap.values()];
@@ -66,10 +92,17 @@ export function SetsView({ setsMap, onOpenSet }) {
   // Ordine di visualizzazione coerente con la priorità di prodotto (CLAUDE.md §1):
   // Pokémon → One Piece → MTG/Yu-Gi-Oh.
   const orderedTcgs = TCG_LIST.filter(t => byTcg[t.id]?.length);
+  const totalSets = orderedTcgs.reduce((n, t) => n + byTcg[t.id].length, 0);
 
   return (
     <section className="view">
-      <div className="view-h"><h2 className="view-t">Explore</h2></div>
+      <div className="explore-head">
+        <span className="explore-eyebrow">The catalog, by set</span>
+        <h1 className="explore-title">Explore</h1>
+        {!loading && totalSets > 0 && (
+          <p className="explore-sub">{totalSets} sets across {orderedTcgs.length} game{orderedTcgs.length !== 1 ? "s" : ""}.</p>
+        )}
+      </div>
 
       {loading ? (
         <div className="set-grid">
@@ -86,18 +119,8 @@ export function SetsView({ setsMap, onOpenSet }) {
           <div className="zero-sub">Try again in a moment.</div>
         </div>
       ) : (
-        orderedTcgs.map(tcg => (
-          <div key={tcg.id} className="set-section">
-            <div className="sec-h">
-              <span className="sec-h-t" style={{ color: tcg.color }}>{tcg.label}</span>
-              <span className="sec-h-line" />
-            </div>
-            <div className="set-grid">
-              {byTcg[tcg.id].map(s => (
-                <SetTile key={`${s.tcg}:${s.set_code}`} s={s} tcg={tcg} onOpenSet={onOpenSet} />
-              ))}
-            </div>
-          </div>
+        orderedTcgs.map((tcg, i) => (
+          <TcgSection key={tcg.id} tcg={tcg} sets={byTcg[tcg.id]} onOpenSet={onOpenSet} index={i} />
         ))
       )}
     </section>
