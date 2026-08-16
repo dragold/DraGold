@@ -10,6 +10,7 @@ import { PriceChart } from "./PriceChart.jsx";
 import { Sparkline } from "./Sparkline.jsx";
 import { SearchResultItem } from "../search/SearchResultItem.jsx";
 import { CardObject } from "../shared/CardObject.jsx";
+import { useDragScroll } from "../../lib/useDragScroll.js";
 
 // Ordina card_number in modo "naturale" (5 prima di 12, non lessicografico):
 // necessario perché nel DB i numeri non sono sempre zero-padded in modo uniforme
@@ -53,6 +54,8 @@ function sourceLabel(source) {
 }
 
 export function AssetView({ card, onBack, isAuthed, onLogin, country, cur, eurRate, setsMap, onOpenCard, onOpenSet }) {
+  const variantsDrag = useDragScroll();
+  const sameSetDrag = useDragScroll();
   const [snaps, setSnaps] = useState([]);       // [{price_market, source, captured_at}] asc
   const [loadingPrice, setLoadingPrice] = useState(true);
   const [priceErr, setPriceErr] = useState(false);
@@ -342,7 +345,10 @@ export function AssetView({ card, onBack, isAuthed, onLogin, country, cur, eurRa
         <div className="rel-rail-section">
           <span className="edge-label">CARD → LANGUAGE / PRINT</span>
           <div className="sec-h"><span className="sec-h-t">Other versions of this card</span><span className="sec-h-line" /></div>
-          <div className="rel-rail">
+          <div className="rel-rail" ref={variantsDrag.ref}
+            onPointerDown={variantsDrag.onPointerDown} onPointerMove={variantsDrag.onPointerMove}
+            onPointerUp={variantsDrag.onPointerUp} onPointerLeave={variantsDrag.onPointerLeave}
+            onClickCapture={variantsDrag.onClickCapture}>
             {variants.map(v => (
               <div className="rel-rail-item" key={v.id}>
                 <SearchResultItem card={v} priceInfo={null} country={country} cur={cur} eurRate={eurRate}
@@ -475,7 +481,10 @@ export function AssetView({ card, onBack, isAuthed, onLogin, country, cur, eurRa
               </button>
             )}
           </div>
-          <div className="rel-rail">
+          <div className="rel-rail" ref={sameSetDrag.ref}
+            onPointerDown={sameSetDrag.onPointerDown} onPointerMove={sameSetDrag.onPointerMove}
+            onPointerUp={sameSetDrag.onPointerUp} onPointerLeave={sameSetDrag.onPointerLeave}
+            onClickCapture={sameSetDrag.onClickCapture}>
             {sameSetCards.map(c => (
               <div className="rel-rail-item" key={c.id}>
                 <SearchResultItem card={c} priceInfo={null} country={country} cur={cur} eurRate={eurRate}
