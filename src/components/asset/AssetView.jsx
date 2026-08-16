@@ -73,6 +73,12 @@ export function AssetView({ card, onBack, isAuthed, onLogin, country, cur, eurRa
   // pagina terminale a nodo esplorabile (vedi DraGold-Next-Evolution-Research.md).
   const [variants, setVariants] = useState([]);
   const [sameSetCards, setSameSetCards] = useState([]);
+  // Fact-grid enrichment (rarity/illustrator/print variant): these columns
+  // exist on `cards` but aren't part of the field lists the pages that can
+  // open a card (search, hot picks, set grid, rails) select — fetching them
+  // here, by primary key, is a single lightweight indexed lookup scoped to
+  // this page only, no other query touched.
+  const [cardExtra, setCardExtra] = useState(null);
 
   const tcgInfo = TCG_LIST.find(t => t.id === card.tcg);
   const langInfo = CARD_LANGS.find(l => l.c === card.lang);
@@ -200,6 +206,27 @@ export function AssetView({ card, onBack, isAuthed, onLogin, country, cur, eurRa
 
   useEffect(() => { loadPrice(); loadEbay(); loadSoldData(); loadRelated(); }, [loadPrice, loadEbay, loadSoldData, loadRelated]);
 
+  useEffect(() => {
+    if (!supabaseReady) { setCardExtra(null); return; }
+    let cancelled = false;
+    supabase.from("cards").select("rarity,illustrator,print_variant,supertype").eq("id", card.id).maybeSingle()
+      .then(({ data }) => { if (!cancelled) setCardExtra(data || null); })
+      .catch(() => { if (!cancelled) setCardExtra(null); });
+    return () => { cancelled = true; };
+  }, [card.id]);
+
+  // Language pills: distinct languages available for this canonical card
+  // (from the variants rail's own data — no extra query), current language
+  // first, each entry pointing at one concrete row in that language.
+  const langPills = (() => {
+    const byLang = new Map();
+    byLang.set(card.lang, card);
+    for (const v of variants) if (!byLang.has(v.lang)) byLang.set(v.lang, v);
+    return [...byLang.entries()].map(([lang, c]) => ({
+      lang, card: c, info: CARD_LANGS.find(l => l.c === lang),
+    }));
+  })();
+
   /* Price formatting for sold rows (may be EUR from EBAY-IT or USD from EBAY-US) */
   const fmtSold = (val, currency) => {
     if (val == null) return "—";
@@ -245,23 +272,40 @@ export function AssetView({ card, onBack, isAuthed, onLogin, country, cur, eurRa
       </div>
 
       <div className="asset-head">
-        <div className="asset-img">
-          <CardObject
-            card={card}
-            src={imgUrl}
-            alt={card.name}
-            variant="hero"
-            fallback={
-              <div className="card-img-ph">
-                {tcgInfo && <span className="card-img-ph-tcg" style={{ color: tcgInfo.color }}>{tcgInfo.short}</span>}
-                <span className="card-img-ph-init">{(card.name || "?").replace(/[^a-zA-Z ]/g, "").trim().split(/\s+/).slice(0, 2).map(w => w[0] || "").join("").toUpperCase() || "?"}</span>
-              </div>
-            }
-          />
+        <div className="asset-img-col">
+          <div className="asset-img">
+            <CardObject
+              card={card}
+              src={imgUrl}
+              alt={card.name}
+              variant="hero"
+              fallback={
+                <div className="card-img-ph">
+                  {tcgInfo && <span className="card-img-ph-tcg" style={{ color: tcgInfo.color }}>{tcgInfo.short}</span>}
+                  <span className="card-img-ph-init">{(card.name || "?").replace(/[^a-zA-Z ]/g, "").trim().split(/\s+/).slice(0, 2).map(w => w[0] || "").join("").toUpperCase() || "?"}</span>
+                </div>
+              }
+            />
+          </div>
+          {imgUrl && <span className="asset-img-caption">Tilt to inspect</span>}
         </div>
         <div className="asset-info">
           {tcgInfo && <span className="asset-tcg" style={{ color: tcgInfo.color }}>{tcgInfo.label}</span>}
           <h1 className="asset-name">{card.name}</h1>
+
+          {langPills.length > 1 && (
+            <div className="asset-lang-pills">
+              {langPills.map(p => (
+                <button type="button" key={p.lang}
+                  className={`asset-lang-pill${p.lang === card.lang ? " on" : ""}`}
+                  onClick={() => p.lang !== card.lang && onOpenCard?.(p.card)}>
+                  {p.info?.label || p.lang.toUpperCase()}
+                  {p.lang === card.lang && <span className="asset-lang-pill-dot" />}
+                </button>
+              ))}
+            </div>
+          )}
+
           {(() => {
             const canOpenSet = !!(onOpenSet && card.set_id);
             const openThisSet = () => onOpenSet({ tcg: card.tcg, set_id: card.set_id, lang: card.lang, set_name: setInfo?.set_name || card.set_name });
@@ -276,18 +320,49 @@ export function AssetView({ card, onBack, isAuthed, onLogin, country, cur, eurRa
                     <img src={setInfo.logo_url} alt={card.set_name || ''} className="set-logo-img" onError={e=>{e.currentTarget.style.display='none';}} />
                   )
                 )}
-                <div className="asset-meta">
+                <div className="asset-fact-grid">
                   {card.set_name && (
-                    canOpenSet
-                      ? (
-                        <button type="button" className="asset-meta-link" onClick={openThisSet}>
-                          {card.set_name}<Icon name="chevron" size={11} stroke={2.5} />
-                        </button>
-                      )
-                      : <span>{card.set_name}</span>
+                    <div className="asset-fact">
+                      <span className="asset-fact-k">Set</span>
+                      <span className="asset-fact-v">
+                        {canOpenSet ? (
+                          <button type="button" className="asset-meta-link" onClick={openThisSet}>
+                            {card.set_name}<Icon name="chevron" size={11} stroke={2.5} />
+                          </button>
+                        ) : card.set_name}
+                      </span>
+                    </div>
                   )}
-                  {cardNum && <span className="asset-num">#{cardNum}</span>}
-                  {langInfo && <span>{langInfo.flag} {langInfo.label}</span>}
+                  {cardNum && (
+                    <div className="asset-fact">
+                      <span className="asset-fact-k">Number</span>
+                      <span className="asset-fact-v asset-fact-mono">#{cardNum}</span>
+                    </div>
+                  )}
+                  {langInfo && (
+                    <div className="asset-fact">
+                      <span className="asset-fact-k">Language</span>
+                      <span className="asset-fact-v">{langInfo.flag} {langInfo.label}</span>
+                    </div>
+                  )}
+                  {cardExtra?.rarity && (
+                    <div className="asset-fact">
+                      <span className="asset-fact-k">Rarity</span>
+                      <span className="asset-fact-v">{cardExtra.rarity}</span>
+                    </div>
+                  )}
+                  {cardExtra?.illustrator && (
+                    <div className="asset-fact">
+                      <span className="asset-fact-k">Illustrator</span>
+                      <span className="asset-fact-v">{cardExtra.illustrator}</span>
+                    </div>
+                  )}
+                  {cardExtra?.print_variant && (
+                    <div className="asset-fact">
+                      <span className="asset-fact-k">Print</span>
+                      <span className="asset-fact-v">{cardExtra.print_variant}</span>
+                    </div>
+                  )}
                 </div>
               </>
             );
