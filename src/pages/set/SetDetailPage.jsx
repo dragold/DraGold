@@ -27,8 +27,11 @@ import { supabase, supabaseReady } from "../../supabase.js";
 import { Icon } from "../../components/shared/Icon.jsx";
 import { SearchResults } from "../../components/search/SearchResults.jsx";
 import { useReveal } from "../../lib/useReveal.js";
+import { useDragScroll } from "../../lib/useDragScroll.js";
 import { TCG_LIST, CARD_LANGS } from "../../DraGold.jsx";
 import { pickCardImage } from "../../components/shared/cardImage.js";
+import { groupByCanonical } from "../../lib/search.js";
+import { CardObject } from "../../components/shared/CardObject.jsx";
 
 const SET_CARD_FIELDS = "id,name,name_en,set_name,set_id,card_number,image_url,image_url_hi,lang,tcg,canonical_card_id,card_image_cache(cached_url,status)";
 
@@ -77,6 +80,9 @@ export function SetDetailPage({ setRef, setsMap, country, cur, eurRate, onOpen, 
   const info = setsMap?.get(`${setRef.tcg}:${setRef.set_id}`) || null;
   const setName = setRef.set_name || info?.set_name || fallbackName || setRef.set_id;
   const gridReveal = useReveal();
+  const constellationReveal = useReveal();
+  const previewDrag = useDragScroll();
+  const constellationDrag = useDragScroll();
 
   const load = useCallback(async () => {
     setLoading(true); setError(null);
@@ -89,7 +95,16 @@ export function SetDetailPage({ setRef, setsMap, country, cur, eurRate, onOpen, 
         .eq("tcg", setRef.tcg).in("set_id", candidates).eq("lang", setRef.lang)
         .limit(600);
       if (dbErr) throw dbErr;
-      const sorted = (data || []).slice().sort((a, b) => naturalCompare(a.card_number, b.card_number));
+      // Pokémon cards are ingested from two independent source pipelines
+      // (tcgdex + pokemontcg.io) that each write their own row for the same
+      // physical card, linked by a shared canonical_card_id (verified on
+      // Supabase: e.g. Fossil/base3 has 2 rows per card_number, one per
+      // source, same canonical_card_id — One Piece is unaffected, single
+      // source). SearchView already collapses this via groupByCanonical for
+      // search results; apply the same dedup here so a set page shows each
+      // card once.
+      const deduped = groupByCanonical(data || []);
+      const sorted = deduped.slice().sort((a, b) => naturalCompare(a.card_number, b.card_number));
       setCards(sorted);
       setVisibleCount(60);
 
@@ -147,7 +162,10 @@ export function SetDetailPage({ setRef, setsMap, country, cur, eurRate, onOpen, 
           </div>
         </div>
         {cards.length > 0 && (
-          <div className="set-preview-strip">
+          <div className="set-preview-strip" ref={previewDrag.ref}
+            onPointerDown={previewDrag.onPointerDown} onPointerMove={previewDrag.onPointerMove}
+            onPointerUp={previewDrag.onPointerUp} onPointerLeave={previewDrag.onPointerLeave}
+            onClickCapture={previewDrag.onClickCapture}>
             {cards.slice(0, 18).map(c => {
               const img = pickCardImage(c) || c.imgUrl || c.img;
               return img ? <div className="set-preview-card" key={c.id}><img src={img} alt="" loading="lazy" /></div> : null;
@@ -156,30 +174,7 @@ export function SetDetailPage({ setRef, setsMap, country, cur, eurRate, onOpen, 
         )}
       </div>
 
-      {/* The constellation — every card in the set as one connected field,
-          so "belongs to this set" is felt spatially, not just listed.
-          Real cards, real click-through (onOpen); capped for render cost. */}
-      {cards.length > 0 && (
-        <>
-          <div className="sec-h sec-h-editorial" style={{ marginTop: 34 }}>
-            <span className="sec-h-t">The constellation</span>
-            <span className="sec-h-line" />
-            <span className="constellation-hint">{Math.min(cards.length, 120)} of {cards.length}</span>
-          </div>
-          <div className="constellation">
-            {cards.slice(0, 120).map(c => {
-              const img = pickCardImage(c) || c.imgUrl || c.img;
-              return (
-                <button type="button" key={c.id} className="constellation-node" title={c.name}
-                  onClick={() => onOpen?.(c)}>
-                  {img ? <img src={img} alt="" loading="lazy" /> : <span className="constellation-node-ph" />}
-                </button>
-              );
-            })}
-          </div>
-        </>
-      )}
-
+      {/* The catalog comes first — this is what most visitors came for. */}
       {cards.length > 0 && (
         <div className="sec-h" style={{ marginTop: 34 }}>
           <span className="sec-h-t">All cards</span>
@@ -198,6 +193,45 @@ export function SetDetailPage({ setRef, setsMap, country, cur, eurRate, onOpen, 
           discoveryMode
         />
       </div>
+
+      {/* The constellation — relationships, not inventory. A protagonist
+          card with its same-set network gathered alongside it in a rail:
+          structured (a featured card + related cards), not a random
+          circular arrangement and not a second copy of the "All cards"
+          grid above. Same-set is the one relationship this page's data
+          actually supports — labeled honestly via the edge-label, nothing
+          fabricated. A rail is inherently the same interaction on mobile
+          as desktop (native horizontal scroll), so no separate fallback
+          composition is needed. */}
+      {cards.length > 3 && (() => {
+        const protagonist = cards[0];
+        const satellites = cards.slice(1, 13);
+        return (
+          <div ref={constellationReveal.ref} className={constellationReveal.className} style={constellationReveal.style}>
+            <div className="sec-h sec-h-editorial" style={{ marginTop: 40 }}>
+              <span className="sec-h-t">The constellation</span>
+              <span className="sec-h-line" />
+              <span className="edge-label" style={{ margin: 0 }}>SET → CARD</span>
+            </div>
+            <div className="constellation-rail" ref={constellationDrag.ref}
+              onPointerDown={constellationDrag.onPointerDown} onPointerMove={constellationDrag.onPointerMove}
+              onPointerUp={constellationDrag.onPointerUp} onPointerLeave={constellationDrag.onPointerLeave}
+              onClickCapture={constellationDrag.onClickCapture}>
+              <button type="button" className="constellation-protagonist" onClick={() => onOpen?.(protagonist)} title={protagonist.name}>
+                <CardObject card={protagonist} variant="hero" fallback={null} />
+              </button>
+              {satellites.map(c => {
+                const img = pickCardImage(c) || c.imgUrl || c.img;
+                return (
+                  <button type="button" key={c.id} className="constellation-satellite" onClick={() => onOpen?.(c)} title={c.name}>
+                    {img ? <img src={img} alt="" loading="lazy" /> : <span className="constellation-node-ph" />}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })()}
     </section>
   );
 }
