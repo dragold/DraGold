@@ -33,7 +33,7 @@ import { pickCardImage } from "../../components/shared/cardImage.js";
 import { groupByCanonical } from "../../lib/search.js";
 import { CardObject } from "../../components/shared/CardObject.jsx";
 
-const SET_CARD_FIELDS = "id,name,name_en,set_name,set_id,card_number,image_url,image_url_hi,lang,tcg,canonical_card_id,card_image_cache(cached_url,status)";
+const SET_CARD_FIELDS = "id,name,name_en,set_name,set_id,card_number,image_url,image_url_hi,lang,tcg,canonical_card_id,series_name,card_image_cache(cached_url,status)";
 
 // Genera le varianti plausibili di un set_id/set_code per coprire le differenze di
 // schema note tra fonti (case, trattino tra lettere e cifre). Vedi commento in testa
@@ -66,11 +66,18 @@ function naturalCompare(a, b) {
   return 0;
 }
 
-export function SetDetailPage({ setRef, setsMap, country, cur, eurRate, onOpen, onBack }) {
+export function SetDetailPage({ setRef, setsMap, country, cur, eurRate, onOpen, onBack, isAuthed }) {
   const [cards, setCards] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [visibleCount, setVisibleCount] = useState(60);
+  // Completion — which of this set's cards the signed-in user already owns.
+  // RLS on `collection` scopes rows to auth.uid() automatically (same
+  // pattern as supabase.js's listCollection()), so no user id needs to be
+  // threaded through — just gate the query on isAuthed to skip it for
+  // anonymous visitors. Real data only: skipped entirely, not zeroed out,
+  // when the user isn't signed in.
+  const [ownedIds, setOwnedIds] = useState(null);
   // Fallback nome set (vedi commento in testa al file, blocco "gap cosmetico"):
   // usato solo quando arriviamo qui da una carta tcgdex non-EN/JA con set_name
   // nullo e setsMap non ha un logo/nome per quello set_id. Query aggiuntiva
@@ -130,6 +137,16 @@ export function SetDetailPage({ setRef, setsMap, country, cur, eurRate, onOpen, 
   useEffect(() => { load(); window.scrollTo({ top: 0, behavior: "auto" }); }, [load]);
 
   useEffect(() => {
+    if (!isAuthed || !supabaseReady || cards.length === 0) { setOwnedIds(null); return; }
+    let cancelled = false;
+    const ids = cards.map(c => c.id);
+    supabase.from("collection").select("card_api_id").in("card_api_id", ids)
+      .then(({ data }) => { if (!cancelled) setOwnedIds(new Set((data || []).map(r => r.card_api_id))); })
+      .catch(() => { if (!cancelled) setOwnedIds(null); });
+    return () => { cancelled = true; };
+  }, [isAuthed, cards]);
+
+  useEffect(() => {
     const onScroll = () => {
       if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 300) {
         setVisibleCount(v => Math.min(v + 60, cards.length));
@@ -151,6 +168,9 @@ export function SetDetailPage({ setRef, setsMap, country, cur, eurRate, onOpen, 
           {(TCG_LIST.find(t => t.id === setRef.tcg)?.label || setRef.tcg)}
           {setRef.lang && ` · ${(CARD_LANGS.find(l => l.c === setRef.lang)?.label || setRef.lang.toUpperCase())}`}
           {!loading && ` · ${cards.length} card${cards.length !== 1 ? "s" : ""}`}
+          {/* SET → SERIES — real data (cards.series_name), shown only when the
+              source actually populated it; never inferred or fabricated. */}
+          {cards[0]?.series_name && ` · ${cards[0].series_name} series`}
         </span>
         <div className="set-detail-row">
           {info?.logo_url && (
@@ -160,6 +180,16 @@ export function SetDetailPage({ setRef, setsMap, country, cur, eurRate, onOpen, 
           <div className="view-h" style={{ margin: 0 }}>
             <h2 className="view-t">{setName}</h2>
           </div>
+          {/* Completion ring — only when the user is signed in and we have
+              real ownership rows for this set's cards; never a fake 0%. */}
+          {ownedIds && cards.length > 0 && (
+            <div className="set-completion-ring" style={{ '--pct': `${(ownedIds.size / cards.length) * 100}%` }}>
+              <div className="set-completion-ring-inner">
+                <span className="set-completion-n">{ownedIds.size}<small>/{cards.length}</small></span>
+                <span className="set-completion-k">Collected</span>
+              </div>
+            </div>
+          )}
         </div>
         {cards.length > 0 && (
           <div className="set-preview-strip" ref={previewDrag.ref}
@@ -168,7 +198,8 @@ export function SetDetailPage({ setRef, setsMap, country, cur, eurRate, onOpen, 
             onClickCapture={previewDrag.onClickCapture}>
             {cards.slice(0, 18).map(c => {
               const img = pickCardImage(c) || c.imgUrl || c.img;
-              return img ? <div className="set-preview-card" key={c.id}><img src={img} alt="" loading="lazy" /></div> : null;
+              const owned = ownedIds?.has(c.id);
+              return img ? <div className={`set-preview-card${owned ? " owned" : ""}`} key={c.id}><img src={img} alt="" loading="lazy" /></div> : null;
             })}
           </div>
         )}
@@ -218,12 +249,13 @@ export function SetDetailPage({ setRef, setsMap, country, cur, eurRate, onOpen, 
               onPointerUp={constellationDrag.onPointerUp} onPointerLeave={constellationDrag.onPointerLeave}
               onClickCapture={constellationDrag.onClickCapture}>
               <button type="button" className="constellation-protagonist" onClick={() => onOpen?.(protagonist)} title={protagonist.name}>
-                <CardObject card={protagonist} variant="hero" fallback={null} />
+                <CardObject card={protagonist} variant="hero" owned={!!ownedIds?.has(protagonist.id)} fallback={null} />
               </button>
               {satellites.map(c => {
                 const img = pickCardImage(c) || c.imgUrl || c.img;
+                const owned = ownedIds?.has(c.id);
                 return (
-                  <button type="button" key={c.id} className="constellation-satellite" onClick={() => onOpen?.(c)} title={c.name}>
+                  <button type="button" key={c.id} className={`constellation-satellite${owned ? " owned" : ""}`} onClick={() => onOpen?.(c)} title={c.name}>
                     {img ? <img src={img} alt="" loading="lazy" /> : <span className="constellation-node-ph" />}
                   </button>
                 );

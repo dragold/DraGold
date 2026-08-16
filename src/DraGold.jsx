@@ -355,6 +355,7 @@ export default function DraGold() {
             setRef={viewSet} setsMap={setsMap}
             country={country} cur={cur} eurRate={eurRate}
             onOpen={openAsset} onBack={closeSet}
+            isAuthed={isAuthed}
           />
         ) : (
         <>

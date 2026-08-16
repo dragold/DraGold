@@ -1,4 +1,8 @@
-export function Sparkline({ values, gain }) {
+// North Star house rule: "No red/green price signals — value is never the
+// emotional centre of a screen." The line is always gold (the product's
+// one accent for focus/attention), never color-coded by direction; the
+// `gain` prop is kept for callers but no longer drives color.
+export function Sparkline({ values }) {
   const W = 300, H = 64, pad = 4;
   const min = Math.min(...values), max = Math.max(...values);
   const span = max - min || 1;
@@ -9,7 +13,7 @@ export function Sparkline({ values, gain }) {
   });
   const d = pts.map((p, i) => `${i ? "L" : "M"}${p[0].toFixed(1)} ${p[1].toFixed(1)}`).join(" ");
   const area = `${d} L${pts[pts.length - 1][0].toFixed(1)} ${H} L${pts[0][0].toFixed(1)} ${H} Z`;
-  const col = gain ? "var(--gain)" : "var(--loss)";
+  const col = "var(--gold)";
   return (
     <svg className="spark-svg" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" aria-hidden="true">
       <defs>
