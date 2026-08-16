@@ -56,6 +56,7 @@ function sourceLabel(source) {
 export function AssetView({ card, onBack, isAuthed, onLogin, country, cur, eurRate, setsMap, onOpenCard, onOpenSet }) {
   const variantsDrag = useDragScroll();
   const sameSetDrag = useDragScroll();
+  const artistDrag = useDragScroll();
   const [snaps, setSnaps] = useState([]);       // [{price_market, source, captured_at}] asc
   const [loadingPrice, setLoadingPrice] = useState(true);
   const [priceErr, setPriceErr] = useState(false);
@@ -79,6 +80,11 @@ export function AssetView({ card, onBack, isAuthed, onLogin, country, cur, eurRa
   // here, by primary key, is a single lightweight indexed lookup scoped to
   // this page only, no other query touched.
   const [cardExtra, setCardExtra] = useState(null);
+  // "Related cards" (CARD → ARTIST) — the North Star's one relationship rail
+  // not yet built: other cards by the same illustrator, an already-indexed
+  // real column (cards_illustrator_idx), truthfully labeled by what it
+  // actually is rather than a fuzzy "related" score we can't compute.
+  const [artistCards, setArtistCards] = useState([]);
 
   const tcgInfo = TCG_LIST.find(t => t.id === card.tcg);
   const langInfo = CARD_LANGS.find(l => l.c === card.lang);
@@ -214,6 +220,18 @@ export function AssetView({ card, onBack, isAuthed, onLogin, country, cur, eurRa
       .catch(() => { if (!cancelled) setCardExtra(null); });
     return () => { cancelled = true; };
   }, [card.id]);
+
+  useEffect(() => {
+    if (!supabaseReady || !cardExtra?.illustrator) { setArtistCards([]); return; }
+    let cancelled = false;
+    supabase.from("cards").select(RELATED_CARD_FIELDS)
+      .eq("tcg", card.tcg).eq("lang", card.lang).eq("illustrator", cardExtra.illustrator)
+      .neq("id", card.id)
+      .limit(12)
+      .then(({ data }) => { if (!cancelled) setArtistCards(data || []); })
+      .catch(() => { if (!cancelled) setArtistCards([]); });
+    return () => { cancelled = true; };
+  }, [card.id, card.tcg, card.lang, cardExtra?.illustrator]);
 
   // Language pills: distinct languages available for this canonical card
   // (from the variants rail's own data — no extra query), current language
@@ -561,6 +579,28 @@ export function AssetView({ card, onBack, isAuthed, onLogin, country, cur, eurRa
             onPointerUp={sameSetDrag.onPointerUp} onPointerLeave={sameSetDrag.onPointerLeave}
             onClickCapture={sameSetDrag.onClickCapture}>
             {sameSetCards.map(c => (
+              <div className="rel-rail-item" key={c.id}>
+                <SearchResultItem card={c} priceInfo={null} country={country} cur={cur} eurRate={eurRate}
+                  onOpen={onOpenCard} setsMap={setsMap} discoveryMode />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* CARTE CORRELATE PER ILLUSTRATORE — stesso tcg+lang+illustrator */}
+      {artistCards.length > 0 && (
+        <div className="rel-rail-section">
+          <span className="edge-label">CARD → ARTIST</span>
+          <div className="sec-h">
+            <span className="sec-h-t">More by {cardExtra.illustrator}</span>
+            <span className="sec-h-line" />
+          </div>
+          <div className="rel-rail" ref={artistDrag.ref}
+            onPointerDown={artistDrag.onPointerDown} onPointerMove={artistDrag.onPointerMove}
+            onPointerUp={artistDrag.onPointerUp} onPointerLeave={artistDrag.onPointerLeave}
+            onClickCapture={artistDrag.onClickCapture}>
+            {artistCards.map(c => (
               <div className="rel-rail-item" key={c.id}>
                 <SearchResultItem card={c} priceInfo={null} country={country} cur={cur} eurRate={eurRate}
                   onOpen={onOpenCard} setsMap={setsMap} discoveryMode />
