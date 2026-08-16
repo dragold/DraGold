@@ -85,6 +85,7 @@ export function AssetView({ card, onBack, isAuthed, onLogin, country, cur, eurRa
   // real column (cards_illustrator_idx), truthfully labeled by what it
   // actually is rather than a fuzzy "related" score we can't compute.
   const [artistCards, setArtistCards] = useState([]);
+  const [zoomOpen, setZoomOpen] = useState(false);
 
   const tcgInfo = TCG_LIST.find(t => t.id === card.tcg);
   const langInfo = CARD_LANGS.find(l => l.c === card.lang);
@@ -212,6 +213,17 @@ export function AssetView({ card, onBack, isAuthed, onLogin, country, cur, eurRa
 
   useEffect(() => { loadPrice(); loadEbay(); loadSoldData(); loadRelated(); }, [loadPrice, loadEbay, loadSoldData, loadRelated]);
 
+  // Artwork zoom lightbox — Esc to close. No focus-trap dependency: a
+  // single full-bleed image with one dismiss action doesn't need one, and
+  // the North Star's own implementation notes call a focus-trap lib merely
+  // a "candidate", not a requirement.
+  useEffect(() => {
+    if (!zoomOpen) return;
+    const onKey = (e) => { if (e.key === "Escape") setZoomOpen(false); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [zoomOpen]);
+
   useEffect(() => {
     if (!supabaseReady) { setCardExtra(null); return; }
     let cancelled = false;
@@ -305,7 +317,13 @@ export function AssetView({ card, onBack, isAuthed, onLogin, country, cur, eurRa
               }
             />
           </div>
-          {imgUrl && <span className="asset-img-caption">Tilt to inspect</span>}
+          {imgUrl && (
+            <div className="asset-img-caption-row">
+              <span className="asset-img-caption">Tilt to inspect</span>
+              <span className="asset-img-caption-sep">·</span>
+              <button type="button" className="asset-img-caption-action" onClick={() => setZoomOpen(true)}>Zoom artwork</button>
+            </div>
+          )}
         </div>
         <div className="asset-info">
           {tcgInfo && <span className="asset-tcg" style={{ color: tcgInfo.color }}>{tcgInfo.label}</span>}
@@ -620,6 +638,15 @@ export function AssetView({ card, onBack, isAuthed, onLogin, country, cur, eurRa
       )}
 
       {toast && <div className="toast">{toast}</div>}
+
+      {zoomOpen && imgUrl && (
+        <div className="artwork-lightbox" onClick={() => setZoomOpen(false)}>
+          <button type="button" className="artwork-lightbox-close" onClick={() => setZoomOpen(false)} aria-label="Close">
+            <Icon name="close" size={20} />
+          </button>
+          <img src={card.image_url_hi || imgUrl} alt={card.name} onClick={e => e.stopPropagation()} />
+        </div>
+      )}
     </section>
   );
 }

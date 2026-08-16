@@ -38,7 +38,11 @@ export function PriceChart({ snaps, priceStr }) {
   const range = (maxV - minV) || (minV * 0.02) || 1;
   const chg = vals[0] > 0 ? ((vals[vals.length - 1] - vals[0]) / vals[0]) * 100 : 0;
   const gain = vals[vals.length - 1] >= vals[0];
-  const col = gain ? 'var(--gain)' : 'var(--loss)';
+  // North Star house rule: "No red/green price signals — value is never the
+  // emotional centre of a screen." Direction is still legible (the ↑/↓ glyph
+  // below), it just isn't color-coded; the line/fill/points stay the
+  // product's one focus accent (gold) regardless of trend.
+  const col = 'var(--gold)';
   // Wider margins than a dashboard sparkline needs — this is a labeled axis,
   // not a decoration, so the price labels get room to breathe at any width.
   const W = 360, H = 148, PT = 14, PB = 30, PL = 58, PR = 14;
@@ -55,7 +59,7 @@ export function PriceChart({ snaps, priceStr }) {
       <div className="sec-h">
         <span className="sec-h-t">Price history</span>
         <span className="sec-h-line" />
-        <span className={`chart-chg ${gain ? 'gain' : 'loss'}`}>{gain ? '↑' : '↓'} {Math.abs(chg).toFixed(1)}%</span>
+        <span className="chart-chg">{gain ? '↑' : '↓'} {Math.abs(chg).toFixed(1)}%</span>
       </div>
       <div className="chart-card">
         <svg viewBox={`0 0 ${W} ${H}`} className="chart-svg" preserveAspectRatio="xMidYMid meet">
