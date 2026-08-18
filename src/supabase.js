@@ -55,6 +55,18 @@ export async function deleteAlert(id) {
   return supabase.from('alerts').delete().eq('id', id)
 }
 
+// ---- Card lookup (by cards.id) ----
+// Used for direct navigation to /card/{id} (temporary internal deep-link route,
+// see DraGold.jsx — NOT the canonical SEO url, that remains /carta/{slug}).
+export async function getCardById(id) {
+  if (!supabase || !id) return null
+  const { data } = await supabase.from('cards')
+    .select('id,name,name_en,set_name,set_id,card_number,image_url,image_url_hi,lang,tcg,rarity,canonical_card_id,card_image_cache(cached_url,status)')
+    .eq('id', id)
+    .maybeSingle()
+  return data || null
+}
+
 // ---- Collection / Watchlist ----
 export async function listCollection() {
   if (!supabase) return []
@@ -75,6 +87,32 @@ export async function addToCollection(card) {
 export async function removeFromCollection(id) {
   if (!supabase) return
   return supabase.from('collection').delete().eq('id', id)
+}
+
+// Add-or-increment atomico via RPC (Block Quantity, 18/08/2026): un upsert
+// supabase-js semplice non puo' esprimere "quantity = quantity + 1" lato server,
+// quindi la RPC add_or_increment_collection (migration applicata su Supabase)
+// fa insert-or-update in una singola query atomica, senza SELECT->+1 in JS.
+// Ritorna out_inserted=true se e' una riga nuova (prima copia), false se era
+// gia' in collezione (quantity incrementata) — usato per il feedback UI.
+export async function addOrIncrementCollection(card) {
+  if (!supabase) return { error: 'Backend not configured' }
+  const { data: u } = await supabase.auth.getUser()
+  const userId = u?.user?.id
+  if (!userId) return { error: 'Not signed in' }
+  const { data, error } = await supabase.rpc('add_or_increment_collection', {
+    p_card_api_id: card.card_api_id,
+    p_tcg: card.tcg,
+    p_card_name: card.card_name,
+    p_set_name: card.set_name,
+    p_image_url: card.image_url,
+    p_card_number: card.card_number ?? null,
+    p_rarity: card.rarity ?? null,
+    p_language: card.language ?? null,
+  })
+  if (error) return { error }
+  const row = Array.isArray(data) ? data[0] : data
+  return { data: row }
 }
 
 // ---- Watchlist (tracked cards → included in future price refreshes) ----
