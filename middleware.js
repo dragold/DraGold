@@ -28,8 +28,9 @@
 // Block 6 - TCG Hub SEO Foundation: stesso middleware esteso alle 4 URL esatte
 // /pokemon, /onepiece, /mtg, /ygo — terzo riuso dello stesso sistema (matcher,
 // bot-detection, helper), nessun secondo middleware creato.
+// Blocco "Illustrator Pages": quarto riuso dello stesso sistema, /illustrator/:slug.
 export const config = {
-  matcher: ['/carta/:slug', '/set/:slug', '/pokemon', '/onepiece', '/mtg', '/ygo'],
+  matcher: ['/carta/:slug', '/set/:slug', '/illustrator/:slug', '/pokemon', '/onepiece', '/mtg', '/ygo'],
 };
 
 const BOT_UA = /googlebot|bingbot|yandexbot|duckduckbot|baiduspider|slurp|facebookexternalhit|twitterbot|linkedinbot|discordbot|telegrambot|whatsapp|slackbot|redditbot|pinterest|applebot|semrushbot|ahrefsbot|mj12bot|dotbot|petalbot|bytespider|w3c_validator/i;
@@ -70,8 +71,10 @@ async function supaRest(path, env) {
 }
 
 function notFoundHtml(kind) {
-  const label = kind === 'set' ? 'Set' : 'Card';
-  const msg = kind === 'set' ? 'This set is not yet available on DraGold.' : 'This card is not yet available on DraGold.';
+  const label = kind === 'set' ? 'Set' : kind === 'illustrator' ? 'Illustrator' : 'Card';
+  const msg = kind === 'set' ? 'This set is not yet available on DraGold.'
+    : kind === 'illustrator' ? 'This illustrator is not yet available on DraGold.'
+    : 'This card is not yet available on DraGold.';
   return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">
 <title>${label} not found — DraGold</title>
 <meta name="robots" content="noindex">
@@ -96,7 +99,7 @@ async function handleCardBot(slug) {
   }
 
   const variants = await supaRest(
-    `cards?canonical_card_id=eq.${canonical.id}&select=id,tcg,name,set_id,set_name,card_number,rarity,image_url,image_url_hi,lang`,
+    `cards?canonical_card_id=eq.${canonical.id}&select=id,tcg,name,set_id,set_name,card_number,rarity,image_url,image_url_hi,lang,illustrator`,
     env
   ) || [];
   if (!variants.length) {
@@ -200,6 +203,7 @@ ${imageUrl ? `<meta name="twitter:image" content="${escapeHtml(imageUrl)}">` : '
 <p>${escapeHtml(displaySetName)} · #${escapeHtml(primary.card_number)} · ${escapeHtml((primary.lang || '').toUpperCase())}</p>
 ${imageUrl ? `<img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(displayName)}">` : ''}
 ${priceLine}
+${primary.illustrator ? `<p>Illustrator: <a href="https://dragold.org/illustrator/${escapeHtml(slugifyIllustrator(primary.illustrator))}">${escapeHtml(primary.illustrator)}</a></p>` : ''}
 <h2>More from ${escapeHtml(displaySetName)}${setUrl ? ` — <a href="${setUrl}">View full set</a>` : ''}</h2>
 ${links || '<p>No other cards from this set indexed yet.</p>'}
 </body></html>`;
@@ -424,6 +428,125 @@ ${firstLogo ? `<meta name="twitter:image" content="${escapeHtml(firstLogo)}">` :
   return new Response(html, { status: 200, headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'public, max-age=3600, s-maxage=3600' } });
 }
 
+// Blocco "Illustrator Pages" - stesso principio gia' validato per Set/TCG Hub:
+// duplicazione locale mirata della stessa regola di src/lib/illustratorSlug.js
+// (bundle Edge separato dal resto della SPA). Fonte unica: cards.illustrator
+// (colonna reale indicizzata, nessuna nuova tabella). Duplicate handling
+// deterministico identico a src/pages/illustrator/illustratorPageData.js: se piu'
+// varianti raw collassano sullo stesso slug si aggregano e si sceglie come nome
+// canonico quella con piu' carte (tie-break alfabetico).
+function slugifyIllustrator(name) {
+  return String(name || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+}
+
+// PostgREST richiede gli elementi di in.(...) tra virgolette quando contengono
+// caratteri speciali (virgola, parentesi, virgolette) — verificato su Supabase che
+// cards.illustrator li contiene davvero (es. 'K. Hoshiba, CR CG gangs', '"Big Mama"
+// Tagawa, CR CG gangs'). Si costruisce la lista quotata/escaped e si URL-encoda
+// l'intero valore come un solo componente di query string, cosi' le virgole/virgolette
+// interne al nome non vengono confuse con i delimitatori della lista da PostgREST.
+function pgInFilter(values) {
+  const quoted = values.map(v => '"' + String(v).replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"').join(',');
+  return encodeURIComponent(`in.(${quoted})`);
+}
+
+async function handleIllustratorBot(slug) {
+  const env = typeof process !== 'undefined' ? process.env : {};
+
+  const rawRows = await supaRest(`cards?illustrator=not.is.null&select=illustrator&limit=40000`, env) || [];
+  const seen = new Set();
+  for (const r of rawRows) if (r.illustrator) seen.add(r.illustrator);
+  const variants = [...seen].filter(name => slugifyIllustrator(name) === slug);
+  if (!variants.length) {
+    return new Response(notFoundHtml('illustrator'), { status: 404, headers: { 'content-type': 'text/html; charset=utf-8' } });
+  }
+
+  let canonicalName = variants[0];
+  if (variants.length > 1) {
+    const countRows = await supaRest(`cards?illustrator=${pgInFilter(variants)}&select=illustrator&limit=5000`, env) || [];
+    const counts = new Map();
+    for (const r of countRows) counts.set(r.illustrator, (counts.get(r.illustrator) || 0) + 1);
+    canonicalName = [...variants].sort((a, b) => (counts.get(b) || 0) - (counts.get(a) || 0) || a.localeCompare(b))[0];
+  }
+
+  const FIELDS = 'id,tcg,name,set_id,card_number,image_url,image_url_hi,lang,canonical_card_id';
+  let rows = await supaRest(`cards?illustrator=${pgInFilter(variants)}&lang=eq.en&select=${FIELDS}&limit=400`, env) || [];
+  let langUsed = 'en';
+  if (!rows.length) {
+    rows = await supaRest(`cards?illustrator=${pgInFilter(variants)}&select=${FIELDS}&limit=400`, env) || [];
+    langUsed = null;
+  }
+  if (!rows.length) {
+    return new Response(notFoundHtml('illustrator'), { status: 404, headers: { 'content-type': 'text/html; charset=utf-8' } });
+  }
+
+  const ccIds = [...new Set(rows.map(c => c.canonical_card_id).filter(Boolean))];
+  const ccRows = ccIds.length ? await supaRest(`canonical_cards?id=in.(${ccIds.join(',')})&select=id,slug`, env) : [];
+  const slugMap = new Map((ccRows || []).map(r => [r.id, r.slug]));
+  const linkable = rows.filter(c => c.canonical_card_id && slugMap.get(c.canonical_card_id));
+  if (!linkable.length) {
+    return new Response(notFoundHtml('illustrator'), { status: 404, headers: { 'content-type': 'text/html; charset=utf-8' } });
+  }
+
+  const tcgs = [...new Set(linkable.map(c => c.tcg))].sort();
+  const tcgLabelsTxt = tcgs.map(t => TCG_LABELS[t] || t).join(', ');
+  const cardCount = linkable.length;
+  const hasMore = rows.length >= 400;
+  const countTxt = hasMore ? `${cardCount}+ cards` : `${cardCount} card${cardCount === 1 ? '' : 's'}`;
+  const illustratorUrl = `https://dragold.org/illustrator/${slug}`;
+  const title = `${canonicalName} — Illustrator, Cards & Artwork — DraGold`;
+  const description = `${canonicalName} has illustrated ${countTxt} on DraGold${tcgLabelsTxt ? ` (${tcgLabelsTxt})` : ''}. Browse the full gallery with prices and rarities.`;
+
+  const graph = [{
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'DraGold', item: 'https://dragold.org/' },
+      { '@type': 'ListItem', position: 2, name: canonicalName, item: illustratorUrl },
+    ],
+  }, {
+    '@type': 'CollectionPage',
+    name: `${canonicalName} — Illustrator — DraGold`,
+    description,
+    url: illustratorUrl,
+    mainEntity: {
+      '@type': 'ItemList',
+      numberOfItems: cardCount,
+      itemListElement: linkable.slice(0, 60).map((c, i) => ({
+        '@type': 'ListItem', position: i + 1, name: c.name, url: `https://dragold.org/carta/${slugMap.get(c.canonical_card_id)}`,
+      })),
+    },
+  }];
+  const jsonLd = JSON.stringify({ '@context': 'https://schema.org', '@graph': graph });
+
+  const cardLinksHtml = linkable.map(c => {
+    const cSlug = slugMap.get(c.canonical_card_id);
+    return `<li><a href="https://dragold.org/carta/${escapeHtml(cSlug)}">${escapeHtml(c.name)} #${escapeHtml(c.card_number || '')}</a></li>`;
+  }).join('');
+
+  const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">
+<title>${escapeHtml(title)}</title>
+<meta name="description" content="${escapeHtml(description)}">
+<link rel="canonical" href="${illustratorUrl}">
+<meta name="robots" content="index,follow">
+<meta property="og:type" content="website">
+<meta property="og:title" content="${escapeHtml(title)}">
+<meta property="og:description" content="${escapeHtml(description)}">
+<meta property="og:url" content="${illustratorUrl}">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="${escapeHtml(title)}">
+<meta name="twitter:description" content="${escapeHtml(description)}">
+<script type="application/ld+json">${jsonLd}</script>
+</head><body>
+<a href="https://dragold.org/">← DraGold</a>
+<h1>${escapeHtml(canonicalName)}</h1>
+<p>Illustrator${tcgLabelsTxt ? ` · ${escapeHtml(tcgLabelsTxt)}` : ''} · ${escapeHtml(countTxt)}</p>
+<h2>Cards illustrated by ${escapeHtml(canonicalName)}</h2>
+<ul>${cardLinksHtml}</ul>
+</body></html>`;
+
+  return new Response(html, { status: 200, headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'public, max-age=3600, s-maxage=3600' } });
+}
+
 export default async function middleware(request) {
   const ua = request.headers.get('user-agent') || '';
   if (!BOT_UA.test(ua)) return; // utenti reali: nessun intervento, passa alla SPA normale
@@ -438,6 +561,11 @@ export default async function middleware(request) {
     const slug = decodeURIComponent(url.pathname.replace(/^\/set\//, ''));
     if (!slug) return;
     return handleSetBot(slug);
+  }
+  if (url.pathname.startsWith('/illustrator/')) {
+    const slug = decodeURIComponent(url.pathname.replace(/^\/illustrator\//, ''));
+    if (!slug) return;
+    return handleIllustratorBot(slug);
   }
   // Block 6: solo le 4 URL esatte sono TCG Hub validi — nessuna route dinamica.
   const tcgPath = url.pathname.replace(/^\//, '').replace(/\/$/, '');

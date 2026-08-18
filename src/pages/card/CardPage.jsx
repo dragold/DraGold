@@ -4,6 +4,7 @@ import { getCardPageData } from './cardPageData.js'
 import { addOrIncrementCollection, addToWatchlist } from '../../supabase.js'
 import { buildSetSlug } from '../../lib/setSlug.js'
 import { getTcgHub } from '../../lib/tcgConfig.js'
+import { slugifyIllustrator } from '../../lib/illustratorSlug.js'
 import { useEffect, useState, createElement as h, Fragment } from 'react'
 function formatPrice(value, currency) {
   if (value == null) return null
@@ -243,7 +244,8 @@ const priceBlock = (currentPrice && currentPrice.price_market != null)
   : h('div', { style: styles.muted }, 'Price not yet available for this card.')
 
 const metaEls = []
-  if (primary.illustrator) metaEls.push(h('p', { style: styles.meta, key: 'ill' }, 'Illustrator: ', h('strong', null, primary.illustrator)))
+  if (primary.illustrator) metaEls.push(h('p', { style: styles.meta, key: 'ill' }, 'Illustrator: ',
+    h('a', { href: '/illustrator/' + slugifyIllustrator(primary.illustrator), style: styles.link }, h('strong', null, primary.illustrator))))
   if (primary.evolves_from) metaEls.push(h('p', { style: styles.meta, key: 'evo' }, 'Evolves from: ', h('strong', null, primary.evolves_from)))
   if (primary.series_name) metaEls.push(h('p', { style: styles.meta, key: 'series' }, 'Series: ', h('strong', null, primary.series_name)))
 
