@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { supabase, supabaseReady, addToWatchlist, addToCollection } from "../../supabase.js";
+import { supabase, supabaseReady, addToWatchlist, addOrIncrementCollection } from "../../supabase.js";
 import { TCG_LIST, CARD_LANGS, ebayURL, ebayItemURL } from "../../DraGold.jsx";
 import { pickCardImage, getSetInfo } from "../shared/cardImage.js";
 import { Icon } from "../shared/Icon.jsx";
@@ -286,21 +286,33 @@ export function AssetView({ card, onBack, isAuthed, onLogin, country, cur, eurRa
   };
 
   // Aggiungi alla collezione — core loop di PRODUCT_SPEC §4 (Collection come layer
-  // di engagement/progresso, non più solo portfolio finanziario). Riusa addToCollection
-  // già esistente in supabase.js (stessa chiamata usata da CardPage.jsx), nessuna nuova
-  // query né tabella.
+  // di engagement/progresso, non più solo portfolio finanziario). Block Quantity
+  // (18/08/2026): usa la RPC atomica add_or_increment_collection invece del vecchio
+  // upsert semplice, cosi' un secondo click sulla stessa carta incrementa quantity
+  // in modo sicuro (nessuna race SELECT->+1 lato client) invece di essere un no-op.
+  // Il bottone resta cliccabile anche dopo il primo add (non piu' "disabled":
+  // cliccare di nuovo e' un'azione valida = "ho un'altra copia"), il feedback
+  // distingue esplicitamente prima copia vs copia aggiuntiva cosi' un click per
+  // sbaglio non sembra un "Added" fasullo su una carta gia' in collezione.
   const addCollection = async () => {
     if (!isAuthed) { onLogin?.(); return; }
-    if (collectBusy || collected) return;
+    if (collectBusy) return;
     setCollectBusy(true);
-    const res = await addToCollection({
+    const res = await addOrIncrementCollection({
       card_api_id: toApiId(card), tcg: card.tcg, card_name: card.name,
       set_name: card.set_name || "", image_url: imgUrl,
+      card_number: card.card_number || null, rarity: card.rarity || null,
+      language: card.lang || null,
     });
     setCollectBusy(false);
     if (res?.error) { flash(typeof res.error === "string" ? res.error : "Could not add to collection."); return; }
     setCollected(true);
-    flash("Added to your collection");
+    const row = res?.data;
+    if (row?.out_inserted) {
+      flash("Added to your collection");
+    } else {
+      flash(`Another copy added — you now have ${row?.quantity ?? "multiple"}`);
+    }
   };
 
   const gateAuth = (m) => { if (!isAuthed) { onLogin?.(); } else { setModal(m); } };
@@ -463,8 +475,8 @@ export function AssetView({ card, onBack, isAuthed, onLogin, country, cur, eurRa
 
       {/* AZIONI */}
       <div className="asset-actions">
-        <button className="btn btn-primary" onClick={addCollection} disabled={collectBusy || collected}>
-          <Icon name="card" size={18} /> {collected ? "In your collection ✓" : collectBusy ? "…" : "+ Add to Collection"}
+        <button className="btn btn-primary" onClick={addCollection} disabled={collectBusy}>
+          <Icon name="card" size={18} /> {collectBusy ? "…" : collected ? "In your collection · add another" : "+ Add to Collection"}
         </button>
         <button className="btn btn-primary" onClick={() => gateAuth("portfolio")}>
           <Icon name="wallet" size={18} /> Add to portfolio

@@ -1,7 +1,7 @@
 // DraGold - Public Card Page (Fase 2, V1)
 // Componente isolato: DraGold.jsx fa solo routing verso questa pagina.
 import { getCardPageData } from './cardPageData.js'
-import { addToCollection, addToWatchlist } from '../../supabase.js'
+import { addOrIncrementCollection, addToWatchlist } from '../../supabase.js'
 import { useEffect, useState, createElement as h, Fragment } from 'react'
 function formatPrice(value, currency) {
   if (value == null) return null
@@ -54,6 +54,24 @@ function setSeoMeta({ title, description, image, url }) {
   setMeta('meta[name="twitter:card"]', 'twitter:card', false, 'summary_large_image')
 }
 
+// Block 4 - SEO Foundation: nessuna gestione robots/noindex esisteva prima.
+// Serve per il caso not_found (pagina vuota che altrimenti resta indicizzabile
+// con status 200 lato client) e per ripulire il meta quando si torna a una
+// card valida dopo aver visitato uno slug inesistente (stessa SPA, stesso DOM).
+function setRobotsMeta(content) {
+  let el = document.querySelector('meta[name="robots"]')
+  if (content) {
+    if (!el) {
+      el = document.createElement('meta')
+      el.setAttribute('name', 'robots')
+      document.head.appendChild(el)
+    }
+    el.setAttribute('content', content)
+  } else if (el) {
+    el.remove()
+  }
+}
+
 function setJsonLd(data) {
     let el = document.getElementById('ld-card')
     if (!el) {
@@ -86,24 +104,35 @@ useEffect(() => {
 useEffect(() => {
   const d = state.data
   if (!d) return
-  const { primary, currentPrice, displayName, displaySetName } = d
+  const { primary, currentPrice, displayName, displaySetName, canonical } = d
   const priceTxt = currentPrice?.price_market ? ` — ${formatPrice(currentPrice.price_market, currentPrice.currency)}` : ''
+  // Block 4 - SEO Foundation: usare canonical.slug (dato DB, gia' risolto e
+  // deterministico dopo il fix in cardPageData.js) invece del parametro slug
+  // grezzo preso dall'URL. Sono quasi sempre identici, ma se in futuro
+  // arrivasse un redirect/alias o uno slug con casing diverso nell'URL
+  // digitato dall'utente, il canonical deve sempre puntare alla versione
+  // canonica reale, non a qualunque stringa sia finita nella barra indirizzi.
+  const canonicalSlug = (canonical && canonical.slug) || slug
+  setRobotsMeta(null)
   setSeoMeta({
     title: `${displayName} (${displaySetName} #${primary.card_number}) — DraGold${priceTxt}`,
     description: `${displayName} — ${displaySetName} #${primary.card_number}, rarity: ${primary.rarity || 'N/A'}. Market price, price history and best offers on DraGold.`,
     image: primary.image_url_hi || primary.image_url,
-    url: `https://dragold.org/carta/${slug}`,
+    url: `https://dragold.org/carta/${canonicalSlug}`,
   })
 
-      const cardUrl = `https://dragold.org/carta/${slug}`
+      const cardUrl = `https://dragold.org/carta/${canonicalSlug}`
       const imageUrl = primary.image_url_hi || primary.image_url
       const graph = []
+      // Block 4 - SEO Foundation: il breadcrumb precedente puntava il nodo
+      // "set" allo stesso cardUrl del nodo "card" (item duplicato, fuorviante
+      // per Google - non esiste ancora una pagina reale per il set). Tolto il
+      // livello set finche' non esiste una vera pagina /set/{...} da linkare.
       graph.push({
               '@type': 'BreadcrumbList',
               itemListElement: [
                 { '@type': 'ListItem', position: 1, name: 'DraGold', item: 'https://dragold.org/' },
-                { '@type': 'ListItem', position: 2, name: displaySetName, item: cardUrl },
-                { '@type': 'ListItem', position: 3, name: displayName, item: cardUrl },
+                { '@type': 'ListItem', position: 2, name: displayName, item: cardUrl },
                       ]
       })
       if (imageUrl) {
@@ -146,6 +175,13 @@ if (state.loading) {
   ))
 }
   if (state.error || !state.data) {
+    // Block 4 - SEO Foundation: prima non veniva impostato nessun robots meta
+    // per questo stato. Con routing puramente client-side (nessuna vera 404
+    // HTTP, vedi vercel.json rewrite catch-all) uno slug inesistente serviva
+    // comunque status 200 con contenuto vuoto e indicizzabile: rischio di
+    // "soft 404" indicizzati da Google. noindex e' il minimo compatibile con
+    // l'architettura attuale senza introdurre SSR/status code reali.
+    setRobotsMeta('noindex')
     return h('div', { style: styles.page }, h('div', { style: styles.center },
                                               h('h1', { style: styles.h1 }, 'Card not found'),
                                               h('p', { style: styles.muted }, 'This card is not yet available on DraGold.'),
@@ -165,8 +201,15 @@ const primary = state.data.primary
 
 async function handleAddCollection() {
   setCtaMsg('Adding...')
-  const res = await addToCollection({ card_api_id: primary.id, tcg: primary.tcg, card_name: primary.name, set_name: primary.set_name, image_url: primary.image_url })
-  setCtaMsg(res && res.error ? ('Error: ' + (res.error.message || res.error)) : 'Added to collection!')
+  const res = await addOrIncrementCollection({
+    card_api_id: primary.id, tcg: primary.tcg, card_name: primary.name,
+    set_name: primary.set_name, image_url: primary.image_url,
+    card_number: primary.card_number || null, rarity: primary.rarity || null,
+    language: primary.lang || null,
+  })
+  if (res && res.error) { setCtaMsg('Error: ' + (res.error.message || res.error)); return }
+  const row = res?.data
+  setCtaMsg(row?.out_inserted ? 'Added to collection!' : `Another copy added — you now have ${row?.quantity ?? 'multiple'}`)
 }
 
 async function handleAddWatchlist() {
