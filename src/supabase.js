@@ -89,6 +89,32 @@ export async function removeFromCollection(id) {
   return supabase.from('collection').delete().eq('id', id)
 }
 
+// Add-or-increment atomico via RPC (Block Quantity, 18/08/2026): un upsert
+// supabase-js semplice non puo' esprimere "quantity = quantity + 1" lato server,
+// quindi la RPC add_or_increment_collection (migration applicata su Supabase)
+// fa insert-or-update in una singola query atomica, senza SELECT->+1 in JS.
+// Ritorna out_inserted=true se e' una riga nuova (prima copia), false se era
+// gia' in collezione (quantity incrementata) — usato per il feedback UI.
+export async function addOrIncrementCollection(card) {
+  if (!supabase) return { error: 'Backend not configured' }
+  const { data: u } = await supabase.auth.getUser()
+  const userId = u?.user?.id
+  if (!userId) return { error: 'Not signed in' }
+  const { data, error } = await supabase.rpc('add_or_increment_collection', {
+    p_card_api_id: card.card_api_id,
+    p_tcg: card.tcg,
+    p_card_name: card.card_name,
+    p_set_name: card.set_name,
+    p_image_url: card.image_url,
+    p_card_number: card.card_number ?? null,
+    p_rarity: card.rarity ?? null,
+    p_language: card.language ?? null,
+  })
+  if (error) return { error }
+  const row = Array.isArray(data) ? data[0] : data
+  return { data: row }
+}
+
 // ---- Watchlist (tracked cards → included in future price refreshes) ----
 // Live schema (proven in prod): user_id, card_api_id, tcg, card_name, set_name, image_url.
 // card_api_id is cards.id WITHOUT the leading "<tcg>:" prefix, so refresh-prices can

@@ -28,6 +28,16 @@ export function SearchResults({ loading, results, priceMap, error, term, country
         target="_blank" rel="noreferrer">
         Search "{term}" on eBay
       </a>
+      {/* Missing card: never a dead end. No new table/backend for this yet — a
+          mailto with the query prefilled is the minimum that (a) doesn't block
+          the user's own task and (b) gives the DraGold catalog pipeline a real
+          signal to enrich later. See PRODUCT_SPEC.md §1: Core Data Layer is
+          still being built out; a report queue is a natural next step once
+          this signal proves out, not before. */}
+      <a className="btn btn-ghost btn-sm" style={{ marginTop: 8 }}
+        href={`mailto:hello@dragold.org?subject=${encodeURIComponent(`Missing card: ${term}`)}&body=${encodeURIComponent(`I searched for "${term}" and couldn't find it on DraGold.\n\nCard name / set / language:\n`)}`}>
+        Can't find your card? Tell us →
+      </a>
     </div>
   );
   return (

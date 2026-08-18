@@ -14,7 +14,15 @@ function getSupabaseAdmin() {
   return createClient(url, key, { auth: { persistSession: false } });
 }
 
-const MAX_URLS = 45000;
+// Block 4 - SEO Foundation (18/08/2026): MAX_URLS era condiviso tra TUTTI i
+// TCG in un'unica risposta, interrogati in ordine pokemon->onepiece->mtg->ygo.
+// Verificato su Supabase: pokemon da solo ha 43.215 righe con slug -> MTG
+// (27.475 righe) e YGO (13.857 righe) restavano SEMPRE fuori dalla sitemap,
+// quindi mai sottoposti a Google. Fix: split per-TCG via ?tcg=, ogni sitemap
+// resta sotto il limite di spec (50.000 URL) per il proprio TCG, e
+// sitemap.xml (l'indice) elenca una entry per ciascun TCG invece di una sola
+// combinata. Nessuna nuova libreria, nessun nuovo sistema di generazione.
+const MAX_URLS_PER_TCG = 49000;
 const TCG_ORDER = ["pokemon", "onepiece", "mtg", "ygo"];
 
 function escapeXml(s) {
@@ -34,17 +42,23 @@ let supabase;
     return res.status(500).send("Server misconfigured");
   }
 
+  const requestedTcg = (req.query && req.query.tcg) || "";
+  const tcgsToFetch = TCG_ORDER.includes(requestedTcg) ? [requestedTcg] : TCG_ORDER;
+  // Nessun ?tcg= valido: mantiene il comportamento storico (combinato) come
+  // fallback di sicurezza, ma con lo stesso cap per-TCG applicato ad ognuno
+  // invece di un budget unico condiviso — cosi' anche la risposta legacy
+  // /api/sitemap-cards senza query param non esclude piu' silenziosamente
+  // interi TCG.
+
 const rows = [];
-  for (const tcg of TCG_ORDER) {
-    if (rows.length >= MAX_URLS) break;
-    const remaining = MAX_URLS - rows.length;
+  for (const tcg of tcgsToFetch) {
     const { data, error } = await supabase
     .from("canonical_cards")
     .select("slug, updated_at")
     .eq("tcg", tcg)
     .not("slug", "is", null)
     .order("updated_at", { ascending: false })
-    .limit(remaining);
+    .limit(MAX_URLS_PER_TCG);
     if (!error && data) rows.push(...data);
   }
 

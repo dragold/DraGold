@@ -50,7 +50,7 @@ function PortfolioRow({ pos, priceInfo, cur, eurRate, fmt, isConfirm, onConfirm,
 
       {/* Body */}
       <div className="pf-body">
-        <div className="pf-name">{pos.card_name || "—"}</div>
+        <div className="pf-name">{pos.card_name || "—"}{pos.quantity > 1 && <span style={{ opacity: 0.6, fontWeight: 400 }}> ×{pos.quantity}</span>}</div>
         <div className="pf-meta">
           {pos.condition && <span className="pf-cond">{pos.condition}</span>}
           {pos.set_name  && <span className="pf-set">{pos.set_name}</span>}
