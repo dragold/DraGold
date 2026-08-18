@@ -5,6 +5,7 @@ import {
   sendMagicLink, getSession, onAuth, signOut as sbSignOut,
   addToCollection, listCollection, removeFromCollection,
   createAlert, listAlerts, deleteAlert, addToWatchlist,
+  getCardById,
 } from "./supabase.js";
 import { getSavedSearch, setSavedSearch, clearSavedSearch, loadSetsMap } from "./lib/state.js";
 import { Icon } from "./components/shared/Icon.jsx";
@@ -263,17 +264,79 @@ export default function DraGold() {
     }
   }, []);
 
+  // ── Deep-link temporaneo /card/{id} (TASK: Block 1 — user journey MVP) ──
+  // NON è l'url SEO canonico (quello resta /carta/{slug}, vedi CardPage.jsx):
+  // qui serve solo a rendere condivisibile/back-navigabile la vista interattiva
+  // (AssetView) aperta dentro la SPA, usando cards.id (sempre presente) invece
+  // dello slug canonico (copertura oggi parziale, vedi canonical_cards). Nessuna
+  // nuova libreria: solo History API nativa. Nessun canonical tag/JSON-LD qui.
+  const clearAssetUrl = useCallback(() => {
+    if (window.location.pathname.startsWith("/card/")) {
+      window.history.pushState({}, "", "/");
+    }
+  }, []);
+
   const openAsset = useCallback((card) => {
     withViewTransition(() => setAsset(card));
     window.scrollTo({ top: 0, behavior: "auto" });
+    if (card?.id) {
+      const path = `/card/${encodeURIComponent(card.id)}`;
+      if (window.location.pathname !== path) window.history.pushState({ dgAssetId: card.id }, "", path);
+    }
   }, [withViewTransition]);
-  const closeAsset = useCallback(() => withViewTransition(() => setAsset(null)), [withViewTransition]);
+  const closeAsset = useCallback(() => {
+    withViewTransition(() => setAsset(null));
+    clearAssetUrl();
+  }, [withViewTransition, clearAssetUrl]);
 
   const openSet = useCallback((ref) => {
     withViewTransition(() => { setViewSet(ref); setAsset(null); });
     window.scrollTo({ top: 0, behavior: "auto" });
-  }, [withViewTransition]);
+    clearAssetUrl();
+  }, [withViewTransition, clearAssetUrl]);
   const closeSet = useCallback(() => withViewTransition(() => setViewSet(null)), [withViewTransition]);
+
+  // Load iniziale: se l'utente arriva direttamente su /card/{id} (link condiviso,
+  // refresh), risolve la carta e apre AssetView dentro la shell normale (header/nav
+  // inclusi — a differenza di /carta/{slug} che è una pagina standalone separata).
+  // Se l'id non esiste più, torna silenziosamente alla home (nessun errore bloccante).
+  useEffect(() => {
+    const m = window.location.pathname.match(/^\/card\/([^/]+)\/?$/);
+    if (!m) return;
+    const id = decodeURIComponent(m[1]);
+    getCardById(id).then((card) => {
+      if (card) setAsset(card);
+      else window.history.replaceState({}, "", "/");
+    }).catch(() => window.history.replaceState({}, "", "/"));
+  }, []);
+
+  // Back/forward: riflette l'url corrente nello stato React senza fare push
+  // (evita loop con openAsset/closeAsset sopra).
+  useEffect(() => {
+    const onPopState = () => {
+      const m = window.location.pathname.match(/^\/card\/([^/]+)\/?$/);
+      if (m) {
+        const id = decodeURIComponent(m[1]);
+        setAsset((cur) => {
+          if (cur?.id === id) return cur;
+          getCardById(id).then((card) => { if (card) withViewTransition(() => setAsset(card)); });
+          return cur;
+        });
+      } else {
+        withViewTransition(() => setAsset(null));
+      }
+    };
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, [withViewTransition]);
+
+  // Naviga a un tab primario/account chiudendo asset e set aperti — centralizza
+  // i punti che prima facevano setAsset(null)/setViewSet(null)/setTab(...) a mano,
+  // così l'url /card/{id} viene sempre ripulito insieme allo stato (Block 1).
+  const goTab = useCallback((id) => {
+    setAsset(null); setViewSet(null); setTab(id);
+    clearAssetUrl();
+  }, [clearAssetUrl]);
 
   /* ── formattatore valuta (i prezzi DB sono in USD) ── */
   const fmt = useCallback((usd) => {
@@ -286,7 +349,7 @@ export default function DraGold() {
             {/* ░░ HEADER ░░ */}
       <header className="hdr">
         <div className="hdr-in">
-          <button className="brand" onClick={()=>{ setAsset(null); setViewSet(null); setTab("markets"); }}>
+          <button className="brand" onClick={()=>goTab("markets")}>
             <img src="/logo192.png" alt="DraGold" style={{height:30,width:30,borderRadius:7,flexShrink:0}}/>
             <span className="logo-txt font-syne">DraGold</span>
           </button>
@@ -296,7 +359,7 @@ export default function DraGold() {
             {PRIMARY_TABS.map(t => (
               <button key={t.id}
                 className={`topnav-i ${tab===t.id?"on":""}`}
-                onClick={()=>{ setAsset(null); setViewSet(null); setTab(t.id); }}>
+                onClick={()=>goTab(t.id)}>
                 {t.label}
               </button>
             ))}
@@ -323,7 +386,7 @@ export default function DraGold() {
                       <div className="menu-email">{userEmail}</div>
                       {ACCOUNT_LINKS.map(l => (
                         <button key={l.id} className="menu-i"
-                          onClick={()=>{ setAsset(null); setViewSet(null); setTab(l.id); setMenuOpen(false); }}>
+                          onClick={()=>{ goTab(l.id); setMenuOpen(false); }}>
                           <Icon name={l.icon} size={16}/> {l.label}
                         </button>
                       ))}
@@ -366,7 +429,7 @@ export default function DraGold() {
             initialSearchState={getSavedSearch()}
             onSearchStateChange={setSavedSearch}
             onSearchStateClear={clearSavedSearch}
-            onOpenExplore={()=>{ setAsset(null); setViewSet(null); setTab("explore"); }}
+            onOpenExplore={()=>goTab("explore")}
           />
         )}
         {tab==="explore" && (
@@ -405,9 +468,9 @@ export default function DraGold() {
           <span className="font-syne foot-logo">DraGold</span>
           <span className="foot-sub">The catalog for serious TCG collectors.</span>
           <div className="foot-links">
-            <button onClick={()=>{ setAsset(null); setViewSet(null); setTab("portfolio"); }}>Portfolio</button>
+            <button onClick={()=>goTab("portfolio")}>Portfolio</button>
             <span>·</span>
-            <button onClick={()=>{ setAsset(null); setViewSet(null); setTab("alerts"); }}>Alerts</button>
+            <button onClick={()=>goTab("alerts")}>Alerts</button>
             <span>·</span>
             <a href="mailto:hello@dragold.org">Contact</a>
             <span>·</span>
@@ -421,7 +484,7 @@ export default function DraGold() {
       {/* ░░ BOTTOM TAB (mobile) ░░ */}
       <nav className="tabbar">
         {PRIMARY_TABS.map(t => (
-          <button key={t.id} className={`tab-i ${tab===t.id?"on":""}`} onClick={()=>{ setAsset(null); setViewSet(null); setTab(t.id); }}>
+          <button key={t.id} className={`tab-i ${tab===t.id?"on":""}`} onClick={()=>goTab(t.id)}>
             <Icon name={t.icon} size={22} stroke={tab===t.id?2.4:2} />
             <span>{t.label}</span>
           </button>
