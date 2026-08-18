@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { supabase, supabaseReady, addToWatchlist } from "../../supabase.js";
+import { supabase, supabaseReady, addToWatchlist, addToCollection } from "../../supabase.js";
 import { TCG_LIST, CARD_LANGS, ebayURL, ebayItemURL } from "../../DraGold.jsx";
 import { pickCardImage, getSetInfo } from "../shared/cardImage.js";
 import { Icon } from "../shared/Icon.jsx";
@@ -64,6 +64,8 @@ export function AssetView({ card, onBack, isAuthed, onLogin, country, cur, eurRa
   const [modal, setModal] = useState(null);     // 'portfolio' | 'alert' | null
   const [watching, setWatching] = useState(false);
   const [watchBusy, setWatchBusy] = useState(false);
+  const [collected, setCollected] = useState(false);
+  const [collectBusy, setCollectBusy] = useState(false);
   const [toast, setToast] = useState("");
   // eBay sold timeframes (Finding API) — {'7d': {avg, median, count, currency}, ...}
   const [soldData, setSoldData] = useState({});
@@ -283,6 +285,24 @@ export function AssetView({ card, onBack, isAuthed, onLogin, country, cur, eurRa
     flash("Tracking — we'll price it on the next refresh");
   };
 
+  // Aggiungi alla collezione — core loop di PRODUCT_SPEC §4 (Collection come layer
+  // di engagement/progresso, non più solo portfolio finanziario). Riusa addToCollection
+  // già esistente in supabase.js (stessa chiamata usata da CardPage.jsx), nessuna nuova
+  // query né tabella.
+  const addCollection = async () => {
+    if (!isAuthed) { onLogin?.(); return; }
+    if (collectBusy || collected) return;
+    setCollectBusy(true);
+    const res = await addToCollection({
+      card_api_id: toApiId(card), tcg: card.tcg, card_name: card.name,
+      set_name: card.set_name || "", image_url: imgUrl,
+    });
+    setCollectBusy(false);
+    if (res?.error) { flash(typeof res.error === "string" ? res.error : "Could not add to collection."); return; }
+    setCollected(true);
+    flash("Added to your collection");
+  };
+
   const gateAuth = (m) => { if (!isAuthed) { onLogin?.(); } else { setModal(m); } };
 
   const ebayHref = ebayURL(card.name, card.set_name || "", country, card.tcg || "pokemon", cardNum);
@@ -443,6 +463,9 @@ export function AssetView({ card, onBack, isAuthed, onLogin, country, cur, eurRa
 
       {/* AZIONI */}
       <div className="asset-actions">
+        <button className="btn btn-primary" onClick={addCollection} disabled={collectBusy || collected}>
+          <Icon name="card" size={18} /> {collected ? "In your collection ✓" : collectBusy ? "…" : "+ Add to Collection"}
+        </button>
         <button className="btn btn-primary" onClick={() => gateAuth("portfolio")}>
           <Icon name="wallet" size={18} /> Add to portfolio
         </button>

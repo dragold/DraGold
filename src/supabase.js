@@ -55,6 +55,18 @@ export async function deleteAlert(id) {
   return supabase.from('alerts').delete().eq('id', id)
 }
 
+// ---- Card lookup (by cards.id) ----
+// Used for direct navigation to /card/{id} (temporary internal deep-link route,
+// see DraGold.jsx — NOT the canonical SEO url, that remains /carta/{slug}).
+export async function getCardById(id) {
+  if (!supabase || !id) return null
+  const { data } = await supabase.from('cards')
+    .select('id,name,name_en,set_name,set_id,card_number,image_url,image_url_hi,lang,tcg,rarity,canonical_card_id,card_image_cache(cached_url,status)')
+    .eq('id', id)
+    .maybeSingle()
+  return data || null
+}
+
 // ---- Collection / Watchlist ----
 export async function listCollection() {
   if (!supabase) return []
