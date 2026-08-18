@@ -2,6 +2,8 @@
 // Componente isolato: DraGold.jsx fa solo routing verso questa pagina.
 import { getCardPageData } from './cardPageData.js'
 import { addOrIncrementCollection, addToWatchlist } from '../../supabase.js'
+import { buildSetSlug } from '../../lib/setSlug.js'
+import { getTcgHub } from '../../lib/tcgConfig.js'
 import { useEffect, useState, createElement as h, Fragment } from 'react'
 function formatPrice(value, currency) {
   if (value == null) return null
@@ -123,18 +125,25 @@ useEffect(() => {
 
       const cardUrl = `https://dragold.org/carta/${canonicalSlug}`
       const imageUrl = primary.image_url_hi || primary.image_url
+      // Block 5 - SEO Foundation for Sets: ora che /set/{slug} esiste davvero,
+      // il breadcrumb torna a 3 livelli con un URL reale (non piu' fittizio
+      // come prima del fix di Block 4). setSlug e' deterministico da tcg+set_id,
+      // stessa regola gia' usata per generare gli slug carta.
+      const setSlug = buildSetSlug(primary.tcg, primary.set_id)
+      const setUrl = setSlug ? `https://dragold.org/set/${setSlug}` : null
+      // Block 6 - TCG Hub SEO Foundation: /{tcg} esiste davvero ora, il breadcrumb
+      // arriva a 4 livelli. hubUrl usa direttamente primary.tcg: e' gia' identico
+      // al path della Hub (cards.tcg === 'pokemon' === /pokemon), zero mapping.
+      const tcgHub = getTcgHub(primary.tcg)
+      const hubUrl = tcgHub ? `https://dragold.org/${primary.tcg}` : null
       const graph = []
-      // Block 4 - SEO Foundation: il breadcrumb precedente puntava il nodo
-      // "set" allo stesso cardUrl del nodo "card" (item duplicato, fuorviante
-      // per Google - non esiste ancora una pagina reale per il set). Tolto il
-      // livello set finche' non esiste una vera pagina /set/{...} da linkare.
-      graph.push({
-              '@type': 'BreadcrumbList',
-              itemListElement: [
-                { '@type': 'ListItem', position: 1, name: 'DraGold', item: 'https://dragold.org/' },
-                { '@type': 'ListItem', position: 2, name: displayName, item: cardUrl },
-                      ]
-      })
+      const breadcrumbItems = [
+        { '@type': 'ListItem', position: 1, name: 'DraGold', item: 'https://dragold.org/' },
+      ]
+      if (hubUrl) breadcrumbItems.push({ '@type': 'ListItem', position: breadcrumbItems.length + 1, name: tcgHub.label, item: hubUrl })
+      if (setUrl) breadcrumbItems.push({ '@type': 'ListItem', position: breadcrumbItems.length + 1, name: displaySetName, item: setUrl })
+      breadcrumbItems.push({ '@type': 'ListItem', position: breadcrumbItems.length + 1, name: displayName, item: cardUrl })
+      graph.push({ '@type': 'BreadcrumbList', itemListElement: breadcrumbItems })
       if (imageUrl) {
               graph.push({ '@type': 'ImageObject', contentUrl: imageUrl, url: imageUrl })
       }
@@ -218,6 +227,7 @@ async function handleAddWatchlist() {
   setCtaMsg(res && res.error ? ('Error: ' + (res.error.message || res.error)) : 'Added to watchlist!')
 }
 
+const setPageSlug = buildSetSlug(primary.tcg, primary.set_id)
 const heroImage = primary.image_url_hi || primary.image_url
   const badgeEls = [
     (rarity && rarity.label_en) ? h('span', { style: styles.badge, key: 'rarity' }, rarity.label_en) : (primary.rarity ? h('span', { style: styles.badge, key: 'rarity' }, primary.rarity) : null),
@@ -272,9 +282,19 @@ const relatedGrid = (sameSetCards && sameSetCards.length > 0)
   }))
   : h('p', { style: styles.muted }, 'No other cards from this set indexed yet.')
 
+const tcgHubInfo = getTcgHub(primary.tcg)
 return h('div', { style: styles.page },
          h('div', { style: styles.wrap },
            h('a', { href: '/', style: styles.backLink }, '← DraGold'),
+           // Block 6 - TCG Hub SEO Foundation: breadcrumb visibile Card -> Set -> TCG,
+           // stesso pattern gia' usato in SetPage.jsx/TcgPage.jsx.
+           h('nav', { style: styles.breadcrumb, 'aria-label': 'breadcrumb' },
+             h('a', { href: '/', style: styles.breadcrumbLink }, 'DraGold'),
+             tcgHubInfo ? h('span', null, ' / ') : null,
+             tcgHubInfo ? h('a', { href: '/' + primary.tcg, style: styles.breadcrumbLink }, tcgHubInfo.label) : null,
+             setPageSlug ? h('span', null, ' / ') : null,
+             setPageSlug ? h('a', { href: '/set/' + setPageSlug, style: styles.breadcrumbLink }, displaySetName) : null
+           ),
            h('div', { style: styles.hero },
              h('div', { style: styles.imgWrap },
                heroImage ? h('img', { src: heroImage, alt: primary.name, style: styles.img }) : h('div', { style: styles.imgPlaceholder }, 'Image not available')
@@ -296,7 +316,10 @@ return h('div', { style: styles.page },
            langSection,
            variantSection,
            h('section', { style: styles.section },
-             h('h2', { style: styles.h2 }, 'Set: ' + displaySetName),
+             h('h2', { style: styles.h2 },
+               'Set: ' + displaySetName,
+               setPageSlug ? h('a', { href: '/set/' + setPageSlug, style: styles.setLink }, 'View full set →') : null
+               ),
              relatedGrid
              )
            )
@@ -308,7 +331,9 @@ const styles = {
   page: { minHeight: '100vh', background: '#020208', color: '#f4f4f8', fontFamily: 'system-ui, -apple-system, sans-serif', padding: '24px 16px' },
   wrap: { maxWidth: 960, margin: '0 auto' },
   center: { textAlign: 'center', padding: '80px 16px' },
-  backLink: { color: '#9aa0ff', textDecoration: 'none', fontSize: 14, display: 'inline-block', marginBottom: 24 },
+  backLink: { color: '#9aa0ff', textDecoration: 'none', fontSize: 14, display: 'inline-block', marginBottom: 12 },
+  breadcrumb: { fontSize: 13, color: '#888', marginBottom: 24 },
+  breadcrumbLink: { color: '#9aa0ff', textDecoration: 'none' },
   hero: { display: 'flex', gap: 32, flexWrap: 'wrap', marginBottom: 40 },
   imgWrap: { flex: '0 0 280px', maxWidth: 280 },
   img: { width: '100%', borderRadius: 12, boxShadow: '0 8px 24px rgba(0,0,0,0.5)' },
@@ -340,4 +365,5 @@ const styles = {
   relatedImg: { width: '100%', borderRadius: 8, marginBottom: 6 },
   relatedName: { fontSize: 13, fontWeight: 600, lineHeight: 1.3 },
   link: { color: '#9aa0ff' },
+  setLink: { color: '#9aa0ff', textDecoration: 'none', fontSize: 13, fontWeight: 500, marginLeft: 12 },
 }
