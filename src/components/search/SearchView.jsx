@@ -211,6 +211,34 @@ export function SearchView({ country, cur, eurRate, onOpenAsset, setsMap, onOpen
             return n !== 0 ? n : (a.lang || '').localeCompare(b.lang || '');
           });
           cards = allCards;
+        } else if (nameMatches.length > 0) {
+          // Entity-identity expand for plain name queries (es. "Pikachu"): il testo
+          // da solo NON basta a coprire tutte le lingue — verificato su Supabase
+          // (17/08/2026): name_en è popolato solo sul 36% delle righe ja e sullo 0%
+          // di zh-tw/th/zh-cn/ko, quindi "pikachu" via ilike su name/name_en non
+          // troverà mai quelle lingue anche se la carta esiste. canonical_card_id
+          // è la vera chiave d'identità della carta (stesso approccio di TCGdex:
+          // un id canonico language-independent, testo tradotto come overlay) —
+          // già usata per raggruppare i risultati (groupByCanonical) ma non ancora
+          // per ESPANDERE la ricerca prima del raggruppamento. Qui si prendono i
+          // canonical_card_id già trovati dal text-match e si tirano dentro TUTTE
+          // le righe che li condividono, cosi' groupByCanonical() sotto costruisce
+          // un elenco variantLangs completo invece che limitato alle lingue il cui
+          // testo ha fatto match diretto.
+          const canonIds = [...new Set(nameMatches.map(c => c.canonical_card_id).filter(Boolean))];
+          if (canonIds.length > 0 && canonIds.length <= 200) {
+            const knownIds = new Set(nameMatches.map(c => c.id));
+            const { data: canonExpand } = await supabase
+              .from('cards')
+              .select('id,name,name_en,set_name,set_id,card_number,image_url,lang,tcg,rarity,canonical_card_id,card_image_cache(cached_url,status)')
+              .in('canonical_card_id', canonIds)
+              .limit(2000);
+            const merged = [...nameMatches];
+            for (const c of (canonExpand || [])) {
+              if (!knownIds.has(c.id)) { knownIds.add(c.id); merged.push(c); }
+            }
+            cards = merged;
+          }
         }
       }
 

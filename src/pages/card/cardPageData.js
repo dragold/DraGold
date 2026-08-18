@@ -5,10 +5,24 @@ import { supabase } from '../../supabase.js'
   export async function getCardPageData(slug) {
 if (!supabase || !slug) return null
 
+  // NOTE (Block 4 - SEO Foundation, 18/08/2026): verificato su Supabase che
+  // slug non e' garantito univoco (280 gruppi duplicati, 560 righe, es.
+  // 'pokemon-sv10-074' causato da un mismatch di case su set_id 'sv10' vs
+  // 'SV10'). Senza un ORDER BY deterministico, .limit(1) puo' restituire una
+  // riga arbitraria ad ogni richiesta -> stessa URL che serve contenuti
+  // diversi a run diversi (rischio SEO reale: Google indicizza uno snapshot
+  // instabile). Verificato anche che created_at da solo NON basta come
+  // tiebreaker: le righe duplicate condividono lo stesso created_at
+  // (inserite nello stesso batch), quindi ordino anche per id (stabile,
+  // univoco) come secondo criterio, cosi' la riga scelta e' sempre la stessa
+  // finche' il bug di dati a monte (slug duplicati) non viene risolto
+  // separatamente.
   const { data: canonical, error: canonicalErr } = await supabase
 .from('canonical_cards')
   .select('*')
   .eq('slug', slug)
+  .order('created_at', { ascending: true })
+  .order('id', { ascending: true })
   .limit(1)
   .maybeSingle()
 
