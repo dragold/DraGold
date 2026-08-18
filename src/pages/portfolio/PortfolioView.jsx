@@ -210,26 +210,49 @@ export function PortfolioView({ isAuthed, onLogin, onExplore, cur, eurRate }) {
       if (data.length > 0) {
         const ids = ids0;
         if (ids.length) {
+          // "Now" price per card: must be the latest SPOT snapshot (timeframe IS NULL).
+          // Without this filter, eBay "sold" aggregate rows (source=ebay_finding,
+          // timeframe='7d'/'30d'/'90d' — see refresh-prices/index.ts) sort into the
+          // same captured_at ordering and can shadow the true spot price for a card
+          // whenever a sold-aggregate row lands at/after the spot row for that
+          // refresh cycle, silently swapping "Now" for a rolling sold average.
           const { data: priceRows } = await supabase
             .from("card_prices")
             .select("card_id,price_market,captured_at")
             .in("card_id", ids)
+            .is("timeframe", null)
             .order("captured_at", { ascending: false })
             .limit(ids.length * 4);
           const pm = {};
           for (const p of (priceRows || [])) { if (!pm[p.card_id]) pm[p.card_id] = p; }
           setPriceMap(pm);
 
+          // Portfolio value history (chart): fetch newest-first with a generous flat
+          // safety cap, THEN sort ascending in JS before handing off to
+          // computePortfolioHistory. Root-cause fix (Block 2): the previous version
+          // ordered ascending and capped at `ids.length * 120` — once a collection's
+          // total matching snapshots in the 90-day window exceeded that cap (routine
+          // for a modest collection, since card_prices accumulates multiple
+          // sources/day per card), Postgres returns the OLDEST N rows first and
+          // silently drops everything newer. The chart then has no "day" entries past
+          // that cutoff and visually freezes on an old date, even though fresher
+          // prices exist in card_prices — exactly the reported "stuck around June 20"
+          // symptom. Fetching DESC-first guarantees recent data is never the part
+          // that gets truncated; the date-range filter below still bounds the query.
           const since90 = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
-          const { data: histRows } = await supabase
+          const HIST_SAFETY_CAP = Math.max(4000, ids.length * 150);
+          const { data: histRowsDesc } = await supabase
             .from("card_prices")
             .select("card_id,price_market,captured_at")
             .in("card_id", ids)
             .gte("captured_at", since90)
             .is("timeframe", null)
-            .order("captured_at", { ascending: true })
-            .limit(ids.length * 120);
-          setPfPoints(computePortfolioHistory(histRows || [], ids));
+            .order("captured_at", { ascending: false })
+            .limit(HIST_SAFETY_CAP);
+          const histRows = (histRowsDesc || [])
+            .slice()
+            .sort((a, b) => new Date(a.captured_at) - new Date(b.captured_at));
+          setPfPoints(computePortfolioHistory(histRows, ids));
         }
       } else {
         setPriceMap({});
