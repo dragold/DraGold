@@ -9,4 +9,5 @@
   <sitemap><loc>https://dragold.org/api/sitemap-sets?tcg=onepiece</loc></sitemap>
   <sitemap><loc>https://dragold.org/api/sitemap-sets?tcg=mtg</loc></sitemap>
   <sitemap><loc>https://dragold.org/api/sitemap-sets?tcg=ygo</loc></sitemap>
+  <sitemap><loc>https://dragold.org/api/sitemap-illustrators</loc></sitemap>
 </sitemapindex>
