@@ -450,12 +450,34 @@ function pgInFilter(values) {
   return encodeURIComponent(`in.(${quoted})`);
 }
 
+// BUG FIX: stesso identico problema di src/pages/illustrator/illustratorPageData.js
+// (root cause verificata su dati reali, vedi commento li') — un singolo fetch con
+// limit=40000 e nessun order esplicito non copre l'intera colonna cards.illustrator:
+// il server tronca a un massimo di righe per richiesta e, senza ORDER BY, Postgres
+// restituisce le righe nell'ordine fisico dello scan, fortemente raggruppato per
+// illustrator. Risultato: handleIllustratorBot vedeva quasi solo "5ban Graphics" e
+// restituiva 404 ai crawler per "Ken Sugimori"/"Mitsuhiro Arita" pur avendo
+// migliaia di carte reali. Fix minimo identico: paginare con offset/limit avanzando
+// dell'esatto numero di righe restituite, fino a pagina vuota o al cap.
+const ILLUSTRATOR_SCAN_CAP = 40000;
+const SCAN_PAGE_SIZE = 1000;
+async function fetchAllIllustratorValuesBot(env) {
+  const seen = new Set();
+  let offset = 0;
+  while (offset < ILLUSTRATOR_SCAN_CAP) {
+    const page = await supaRest(`cards?illustrator=not.is.null&select=illustrator&limit=${SCAN_PAGE_SIZE}&offset=${offset}`, env) || [];
+    if (!page.length) break;
+    for (const r of page) if (r.illustrator) seen.add(r.illustrator);
+    offset += page.length;
+    if (page.length < SCAN_PAGE_SIZE) break;
+  }
+  return seen;
+}
+
 async function handleIllustratorBot(slug) {
   const env = typeof process !== 'undefined' ? process.env : {};
 
-  const rawRows = await supaRest(`cards?illustrator=not.is.null&select=illustrator&limit=40000`, env) || [];
-  const seen = new Set();
-  for (const r of rawRows) if (r.illustrator) seen.add(r.illustrator);
+  const seen = await fetchAllIllustratorValuesBot(env);
   const variants = [...seen].filter(name => slugifyIllustrator(name) === slug);
   if (!variants.length) {
     return new Response(notFoundHtml('illustrator'), { status: 404, headers: { 'content-type': 'text/html; charset=utf-8' } });

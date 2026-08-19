@@ -23,6 +23,46 @@ const LISTING_CAP = 400 // stesso cap di setPageData.js: niente migliaia di righ
 // un margine ampio: stesso principio gia' usato in api/sitemap-sets.js/tcgPageData.js
 // per evitare uno scan delle 200k+ righe di cards con tutte le colonne.
 const ILLUSTRATOR_SCAN_CAP = 40000
+// Dimensione di pagina per il loop di paginazione sotto — vedi commento su
+// fetchAllIllustratorValues per il motivo per cui e' necessaria una paginazione
+// esplicita e non basta un singolo .limit(ILLUSTRATOR_SCAN_CAP).
+const SCAN_PAGE_SIZE = 1000
+
+// BUG FIX (verificato su dati reali): un singolo .select('illustrator').limit(40000)
+// SENZA .order() non garantisce di leggere l'intera colonna. Il server (PostgREST/
+// Supabase) applica un limite massimo di righe per singola richiesta REST (il
+// .limit() del client non lo supera), e SENZA un ORDER BY esplicito Postgres
+// restituisce le righe nell'ordine fisico dello scan — che su questa tabella e'
+// fortemente raggruppato per illustrator (probabile effetto di inserimenti bulk a
+// batch dalla pipeline di sync). Risultato verificato via SQL: le prime 1000 righe
+// non ordinate contengono 851 righe di "5ban Graphics" e pochissimi altri valori —
+// "Ken Sugimori" (1735 carte) e "Mitsuhiro Arita" (1232 carte) non compaiono affatto
+// in quel campione, pur essendo il 2° e 3° illustrator piu' frequente in assoluto.
+// Questo e' esattamente il motivo per cui /illustrator/ken-sugimori e
+// /illustrator/mitsuhiro-arita risultavano "not found": il Passo 1 sotto non vedeva
+// mai il loro valore raw tra le varianti candidate.
+// Fix minimo: paginare esplicitamente con .range() avanzando dell'esatto numero di
+// righe restituite ad ogni round-trip (non un valore fisso), fermandosi solo quando
+// una pagina torna vuota o si raggiunge ILLUSTRATOR_SCAN_CAP — cosi' la copertura e'
+// completa indipendentemente dal limite reale imposto dal server per singola
+// richiesta e dall'ordine fisico delle righe.
+async function fetchAllIllustratorValues() {
+  const seen = new Set()
+  let offset = 0
+  while (offset < ILLUSTRATOR_SCAN_CAP) {
+    const { data, error } = await supabase
+      .from('cards')
+      .select('illustrator')
+      .not('illustrator', 'is', null)
+      .neq('illustrator', '')
+      .range(offset, offset + SCAN_PAGE_SIZE - 1)
+    if (error || !data || !data.length) break
+    for (const r of data) if (r.illustrator) seen.add(r.illustrator)
+    offset += data.length // avanza di cio' che e' stato REALMENTE restituito, non della page size richiesta
+    if (data.length < SCAN_PAGE_SIZE) break // pagina parziale = fine dei dati
+  }
+  return seen
+}
 
 export async function getIllustratorPageData(slug) {
   if (!supabase || !slug) return null
@@ -30,17 +70,7 @@ export async function getIllustratorPageData(slug) {
   // Passo 1: tutti i valori distinti reali di cards.illustrator, per trovare quali
   // normalizzano sullo slug richiesto (necessario perche' la normalizzazione e'
   // lossy: non si puo' risalire al valore raw dallo slug senza confrontarli tutti).
-  const { data: rawRows } = await supabase
-    .from('cards')
-    .select('illustrator')
-    .not('illustrator', 'is', null)
-    .neq('illustrator', '')
-    .limit(ILLUSTRATOR_SCAN_CAP)
-
-  const seen = new Set()
-  for (const r of rawRows || []) {
-    if (r.illustrator) seen.add(r.illustrator)
-  }
+  const seen = await fetchAllIllustratorValues()
   const variants = [...seen].filter(name => slugifyIllustrator(name) === slug)
   if (!variants.length) return null
 

@@ -27,12 +27,43 @@ function getSupabaseAdmin() {
 }
 
 const SCAN_CAP = 40000; // stesso principio del cap gia' usato in setPageData.js/sitemap-sets.js
+const SCAN_PAGE_SIZE = 1000;
 
 // Stessa regola di normalizzazione di src/lib/illustratorSlug.js — duplicata qui
 // perche' questa e' una funzione serverless indipendente (stesso principio gia'
 // applicato a middleware.js per il caso Set, nessuna nuova convenzione).
 function slugifyIllustrator(name) {
   return String(name || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+}
+
+// BUG FIX: stessa identica root cause gia' corretta in
+// src/pages/illustrator/illustratorPageData.js e in middleware.js
+// (handleIllustratorBot) — un singolo fetch con limit=40000 e nessun ORDER BY
+// esplicito non copre l'intera colonna cards.illustrator: il server tronca a un
+// massimo di righe per singola richiesta e, senza ORDER BY, Postgres restituisce le
+// righe nell'ordine fisico dello scan, fortemente raggruppato per illustrator
+// (verificato su Supabase: le prime 1000 righe non ordinate contengono 851 righe di
+// "5ban Graphics" e quasi nient'altro). Risultato: questa sitemap elencava solo gli
+// illustrator "clusterizzati" all'inizio della tabella, non tutti i 418 reali. Fix
+// minimo identico agli altri due file: paginare con range/offset avanzando
+// dell'esatto numero di righe restituite, fino a pagina vuota o al cap.
+async function fetchAllIllustratorValues(supabase) {
+  const seen = new Set();
+  let offset = 0;
+  while (offset < SCAN_CAP) {
+    const { data, error } = await supabase
+      .from("cards")
+      .select("illustrator")
+      .not("illustrator", "is", null)
+      .neq("illustrator", "")
+      .range(offset, offset + SCAN_PAGE_SIZE - 1);
+    if (error) throw error;
+    if (!data || !data.length) break;
+    for (const row of data) if (row.illustrator) seen.add(row.illustrator);
+    offset += data.length;
+    if (data.length < SCAN_PAGE_SIZE) break;
+  }
+  return seen;
 }
 
 function escapeXml(s) {
@@ -52,14 +83,10 @@ export default async function handler(req, res) {
     return res.status(500).send("Server misconfigured");
   }
 
-  const { data, error } = await supabase
-    .from("cards")
-    .select("illustrator")
-    .not("illustrator", "is", null)
-    .neq("illustrator", "")
-    .limit(SCAN_CAP);
-
-  if (error) {
+  let rawIllustrators;
+  try {
+    rawIllustrators = await fetchAllIllustratorValues(supabase);
+  } catch (e) {
     return res.status(500).send("Query failed");
   }
 
@@ -68,8 +95,8 @@ export default async function handler(req, res) {
   // includere lo slug una sola volta, la risoluzione del nome canonico avviene
   // lato pagina/middleware al momento della richiesta.
   const slugs = new Set();
-  for (const row of data || []) {
-    const slug = slugifyIllustrator(row.illustrator);
+  for (const illustrator of rawIllustrators) {
+    const slug = slugifyIllustrator(illustrator);
     if (slug) slugs.add(slug);
   }
 
