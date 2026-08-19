@@ -38,7 +38,9 @@ const SET_CARD_FIELDS = "id,name,name_en,set_name,set_id,card_number,image_url,i
 // Genera le varianti plausibili di un set_id/set_code per coprire le differenze di
 // schema note tra fonti (case, trattino tra lettere e cifre). Vedi commento in testa
 // al file per i dati di verifica.
-function setIdCandidates(code) {
+// Esportata anche per riuso in setPageData.js (Block 5 — /set/:slug SEO page):
+// stesso problema di mismatch set_id tra fonti, stessa soluzione, zero duplicazione.
+export function setIdCandidates(code) {
   const c = String(code || "").trim();
   if (!c) return [];
   const variants = new Set([c, c.toLowerCase(), c.toUpperCase()]);
@@ -53,7 +55,8 @@ function setIdCandidates(code) {
   return [...variants];
 }
 
-function naturalCompare(a, b) {
+// Esportata anche per riuso in setPageData.js/SetPage.jsx (Block 5).
+export function naturalCompare(a, b) {
   const re = /(\d+)|(\D+)/g;
   const pa = String(a || "").match(re) || [];
   const pb = String(b || "").match(re) || [];
