@@ -101,6 +101,10 @@ La collezione personale resta, ma il suo scopo primario cambia: non è più "il 
 
 Il valore economico della collezione (quanto vale in euro) resta visibile se disponibile, ma non è più l'elemento organizzativo principale della schermata: il completamento e il progresso lo sono.
 
+### Addendum 2026-08-19 — Portfolio 2.0 (decisione di Ermal, sostituisce parzialmente quanto sopra per la sola schermata Portfolio)
+
+"Add to Collection" e "Add to Portfolio" sono state unificate in un'unica azione/etichetta ("Add to Portfolio" / "In Portfolio · X copies"): non esiste più un concetto di Collection separato dal Portfolio. Per la schermata Portfolio stessa (non per Set/Character/Illustrator pages, che restano guidate dal completamento come sopra), il valore economico torna a essere centrale: valore totale, andamento storico (7D/30D/90D/1Y/ALL), quantità e valore per posizione (unit price × quantity), Biggest Movers, Most Valuable. Nessuna nuova tabella: lo storico è derivato a lettura da `card_prices` (bucket giornaliero sull'ultimo prezzo noto), non da uno snapshot scritto periodicamente. Vedi src/pages/portfolio/PortfolioView.jsx.
+
 ## 5. MARKET DATA — fase successiva (non guida l'architettura)
 
 Prezzi e alert restano possibili e utili, ma sono un layer sopra il Core Data Layer, non il centro del prodotto. Non si costruisce nuova architettura per servirli meglio finché il grafo e l'Academy non hanno utenti.
@@ -117,7 +121,7 @@ Nessuna dipendenza forte su eBay per il pricing primario. eBay, se usato, resta 
 
 Questi elementi non vengono eliminati — sono lavoro valido che resta nel codice/DB come modulo disattivabile o secondario, pronto a essere riattivato quando il prodotto avrà utenti e la priorità cambierà:
 
-- Portfolio avanzato in stile "broker" (valore totale, P&L per posizione, colori verde/rosso stile Trade Republic) — la spec precedente (Markets/Portfolio/Alerts come le 4 schermate core, FMV come dato centrale) descriveva questo modulo in dettaglio: resta un riferimento implementativo valido per quando questo modulo verrà riattivato, non per ora.
+- Portfolio avanzato in stile "broker" (valore totale, P&L per posizione) — RIATTIVATO il 2026-08-19 per la sola schermata Portfolio (vedi Addendum §4), ma senza estetica trading/crypto: niente verde/rosso dominante, palette neutra + gold DraGold, artwork della carta protagonista. Le altre 4 schermate core restano guidate da Search/Explore/Academy come da pivot precedente.
 - Alert prezzo (soglie sopra/sotto, direction, is_active) — funzione esistente in DB (alerts, Edge Function check-alerts), resta funzionante ma non è più un'area di investimento attivo.
 - Pricing evoluto (multi-fonte comparato, storico prezzo per condizione/grade, stime PSA avanzate) — non prioritario.
 - PLANS (Free/Collector/Pro) — esistono già in codice ma non gatekeepano nulla: la monetizzazione via piani resta un modulo futuro, non un focus adesso.

@@ -219,7 +219,7 @@ async function handleAddCollection() {
   })
   if (res && res.error) { setCtaMsg('Error: ' + (res.error.message || res.error)); return }
   const row = res?.data
-  setCtaMsg(row?.out_inserted ? 'Added to collection!' : `Another copy added — you now have ${row?.quantity ?? 'multiple'}`)
+  setCtaMsg(row?.out_inserted ? 'Added to portfolio!' : `Another copy added — you now have ${row?.quantity ?? 'multiple'}`)
 }
 
 async function handleAddWatchlist() {
@@ -308,7 +308,7 @@ return h('div', { style: styles.page },
                h('div', { style: styles.priceBox }, priceBlock),
                metaEls,
                h('div', { style: styles.ctaRow },
-                 h('button', { style: styles.btnPrimary, onClick: handleAddCollection }, '+ Add to Collection'),
+                 h('button', { style: styles.btnPrimary, onClick: handleAddCollection }, '+ Add to Portfolio'),
                  h('button', { style: styles.btnSecondary, onClick: handleAddWatchlist }, '+ Add to Watchlist')
                  ),
                ctaMsg ? h('p', { style: styles.muted }, ctaMsg) : null

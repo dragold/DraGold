@@ -436,7 +436,7 @@ export default function DraGold() {
           <SetsView setsMap={setsMap} onOpenSet={openSet} />
         )}
         {tab==="portfolio" && (
-          <PortfolioView isAuthed={isAuthed} onLogin={()=>setAuthOpen(true)} onExplore={()=>setTab("markets")} cur={cur} eurRate={eurRate} />
+          <PortfolioView isAuthed={isAuthed} onLogin={()=>setAuthOpen(true)} onExplore={()=>setTab("markets")} cur={cur} eurRate={eurRate} onOpenCard={openAsset} />
         )}
         {tab==="alerts" && (
           <AlertsView isAuthed={isAuthed} onLogin={()=>setAuthOpen(true)} onExplore={()=>setTab("markets")}
@@ -497,11 +497,9 @@ export default function DraGold() {
 }
 
 
-/* Portfolio, Alerts e i loro sotto-componenti (PortfolioRow, PortfolioChart,
-   computePortfolioHistory, AlertRow, AlertCardSearch, AlertSearchResultItem)
+/* Portfolio (Portfolio 2.0, Aug 2026) e Alerts e i loro sotto-componenti
    sono stati estratti in src/pages/portfolio/PortfolioView.jsx e
-   src/pages/alerts/AlertsView.jsx (CLAUDE.md §5, modularizzazione).
-   Logica invariata, solo spostamento di file. */
+   src/pages/alerts/AlertsView.jsx (CLAUDE.md §5, modularizzazione). */
 
 /* ════════════════════════════════════════════════════════════════════════
    ASSET — dettaglio carta (TASK 4)
