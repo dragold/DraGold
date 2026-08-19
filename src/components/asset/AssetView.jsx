@@ -66,6 +66,12 @@ export function AssetView({ card, onBack, isAuthed, onLogin, country, cur, eurRa
   const [watchBusy, setWatchBusy] = useState(false);
   const [collected, setCollected] = useState(false);
   const [collectBusy, setCollectBusy] = useState(false);
+  // Real quantity already in the user's portfolio for this card — fetched on
+  // mount so the CTA reflects reality on first paint ("In Portfolio · X
+  // copies"), not only after a click during this session (Portfolio 2.0,
+  // FASE 1: "Add to Collection" and "Add to Portfolio" are the same action,
+  // quantity must always be represented).
+  const [myQty, setMyQty] = useState(0);
   const [toast, setToast] = useState("");
   // eBay sold timeframes (Finding API) — {'7d': {avg, median, count, currency}, ...}
   const [soldData, setSoldData] = useState({});
@@ -213,6 +219,17 @@ export function AssetView({ card, onBack, isAuthed, onLogin, country, cur, eurRa
     });
   }, [isAuthed]);
 
+  /* Real portfolio quantity for this card — RLS scopes to auth.uid() automatically
+     (same pattern as listCollection()/SetDetailPage), so no explicit user filter. */
+  useEffect(() => {
+    if (!isAuthed || !supabaseReady) { setMyQty(0); return; }
+    let cancelled = false;
+    supabase.from("collection").select("quantity").eq("card_api_id", toApiId(card)).maybeSingle()
+      .then(({ data }) => { if (!cancelled) setMyQty(data?.quantity || 0); })
+      .catch(() => { if (!cancelled) setMyQty(0); });
+    return () => { cancelled = true; };
+  }, [isAuthed, card.id]);
+
   useEffect(() => { loadPrice(); loadEbay(); loadSoldData(); loadRelated(); }, [loadPrice, loadEbay, loadSoldData, loadRelated]);
 
   // Artwork zoom lightbox — Esc to close. No focus-trap dependency: a
@@ -305,11 +322,12 @@ export function AssetView({ card, onBack, isAuthed, onLogin, country, cur, eurRa
       language: card.lang || null,
     });
     setCollectBusy(false);
-    if (res?.error) { flash(typeof res.error === "string" ? res.error : "Could not add to collection."); return; }
+    if (res?.error) { flash(typeof res.error === "string" ? res.error : "Could not add to portfolio."); return; }
     setCollected(true);
     const row = res?.data;
+    if (row?.quantity != null) setMyQty(row.quantity);
     if (row?.out_inserted) {
-      flash("Added to your collection");
+      flash("Added to your portfolio");
     } else {
       flash(`Another copy added — you now have ${row?.quantity ?? "multiple"}`);
     }
@@ -473,13 +491,27 @@ export function AssetView({ card, onBack, isAuthed, onLogin, country, cur, eurRa
         </div>
       </div>
 
-      {/* AZIONI */}
+      {/* AZIONI — "Add to Collection" e "Add to Portfolio" sono la stessa azione
+          (Portfolio 2.0, FASE 1): un solo CTA primario che usa il sistema di
+          quantità esistente (RPC add_or_increment_collection), più un'azione
+          secondaria per registrare prezzo pagato/condizione sulla stessa riga. */}
       <div className="asset-actions">
-        <button className="btn btn-primary" onClick={addCollection} disabled={collectBusy}>
-          <Icon name="card" size={18} /> {collectBusy ? "…" : collected ? "In your collection · add another" : "+ Add to Collection"}
-        </button>
-        <button className="btn btn-primary" onClick={() => gateAuth("portfolio")}>
-          <Icon name="wallet" size={18} /> Add to portfolio
+        {myQty > 0 ? (
+          <div className="pf-status-row">
+            <span className="pf-status-badge">
+              <Icon name="wallet" size={14} /> In Portfolio · {myQty} {myQty === 1 ? "copy" : "copies"}
+            </span>
+            <button className="btn btn-ghost btn-sm" onClick={addCollection} disabled={collectBusy}>
+              {collectBusy ? "…" : "+ Add another"}
+            </button>
+          </div>
+        ) : (
+          <button className="btn btn-primary" onClick={addCollection} disabled={collectBusy}>
+            <Icon name="wallet" size={18} /> {collectBusy ? "…" : "+ Add to Portfolio"}
+          </button>
+        )}
+        <button className="btn btn-ghost" onClick={() => gateAuth("portfolio")}>
+          <Icon name="doc" size={16} /> {myQty > 0 ? "Edit price & condition" : "Set purchase price"}
         </button>
         <button className="btn btn-ghost" onClick={() => gateAuth("alert")}>
           <Icon name="bell" size={18} /> Create alert
