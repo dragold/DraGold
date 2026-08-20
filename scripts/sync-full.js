@@ -221,13 +221,17 @@ async function syncOnePieceEN() {
   log('\n[One Piece EN] optcgapi.com...')
   const OPTCG = 'https://optcgapi.com/api'
 
-  // Set da provare: OP-01..OP-16, ST-01..ST-24, promo
+  // Set da provare: OP-01..OP-16, ST-01..ST-24.
+  // NON includere qui i promo ('PR-01'): optcgapi.com non espone alcun set
+  // Promotion (verificato via /api/allSets/, nessun set_id promo presente) e
+  // questa richiesta restituiva sempre 404, silenziosamente skippata. La
+  // fonte Promotion reale e' lo scraper Bandai in sync-cards.js#syncOnePiece
+  // (serie 569901) - non duplicarla qui.
   // L'API restituisce 404 per set inesistenti â skip automatico
   const allSets = [
     ...Array.from({ length: 25 }, (_, i) => `OP-${String(i + 1).padStart(2, '0')}`),
     ...Array.from({ length: 30 }, (_, i) => `ST-${String(i + 1).padStart(2, '0')}`),
           ...Array.from({ length: 5 }, (_, i) => `EB-${String(i + 1).padStart(2, '0')}`),
-    'PR-01',
   ]
 
   const toProcess = argSet
@@ -300,7 +304,6 @@ async function syncOnePieceJA() {
     ...Array.from({ length: 25 }, (_, i) => `OP-${String(i + 1).padStart(2, '0')}`),
     ...Array.from({ length: 30 }, (_, i) => `ST-${String(i + 1).padStart(2, '0')}`),
       ...Array.from({ length: 5 }, (_, i) => `EB-${String(i + 1).padStart(2, '0')}`),
-    'PR-01',
   ]
 
   const toProcess = argSet
