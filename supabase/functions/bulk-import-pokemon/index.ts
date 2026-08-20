@@ -8,6 +8,22 @@
 // the /sets/{setId} endpoint instead gives us complete metadata in roughly the same
 // number of total network bytes.
 //
+// FIX SUPERTYPE (bug verificato in audit 2026-08-19, vedi CHARACTER_ENTITY_AUDIT e
+// scripts/enrich-cards.js): questa funzione scriveva `supertype: 'Pokémon'` come
+// costante fissa per OGNI riga importata, incluse carte Energia/Trainer (verificato
+// su dati reali: righe con nome "Darkness Energy"/"Psychic Energy" registrate con
+// supertype='Pokémon'). Causa: GET /v2/{lang}/sets/{setId} restituisce solo il
+// CardBrief per ogni carta (id/localId/name/image — vedi commento in
+// scripts/lib/pokemon-sync.js), che NON espone `category` (il campo TCGdex che
+// distingue Pokemon/Trainer/Energy, verificato su tcgdex.dev/reference/card) — questa
+// funzione non ha mai avuto il dato per scrivere un supertype corretto. Non lo si
+// inventa più: `supertype` resta `null` (sconosciuto) per le righe scritte da questa
+// funzione; la classificazione corretta è responsabilità di scripts/enrich-cards.js,
+// che fa un fetch di dettaglio per carta e da questo stesso fix legge `category`.
+// Questa funzione non è schedulata in alcun workflow GitHub Actions (nessun file in
+// .github/workflows la invoca): il fix qui evita che una futura invocazione manuale
+// riscriva lo stesso bug, non corregge da solo le righe già scritte in passato.
+//
 // Invocation: POST https://{project}.supabase.co/functions/v1/bulk-import-pokemon
 //   Optional body: { langs: ['en','ja','it'], limit_per_lang: 50000 }
 
@@ -64,7 +80,10 @@ serve(async (req) => {
           set_name: setName,
           card_number: c.localId ? String(c.localId) : null,
           rarity: c.rarity || null,
-          supertype: 'Pokémon',
+          // FIX SUPERTYPE (vedi commento in testa al file): CardBrief non espone
+          // `category`, quindi non possiamo saperlo qui. `null` (sconosciuto) invece
+          // di una costante fissa che si è già dimostrata falsa per Energia/Trainer.
+          supertype: null,
           image_url: c.image ? `${c.image}/low.webp` : null,
           image_url_hi: c.image ? `${c.image}/high.webp` : null,
           metadata: { localId: c.localId, setReleaseDate: setMeta.releaseDate },
