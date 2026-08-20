@@ -8,7 +8,7 @@ import { CardObject } from "../shared/CardObject.jsx";
 import { pickCardImage } from "../shared/cardImage.js";
 import { useReveal } from "../../lib/useReveal.js";
 import { useDragScroll } from "../../lib/useDragScroll.js";
-import { norm, rankSearchResults, groupByCanonical } from "../../lib/search.js";
+import { norm, rankSearchResults, groupByCanonical, cardCodeIlikePattern } from "../../lib/search.js";
 import { LANG_ALIASES, RARITY_TOKENS, JP_NAME_ALIASES } from "../../lib/searchData.js";
 import { TCG_LIST } from "../../DraGold.jsx";
 
@@ -129,6 +129,38 @@ export function SearchView({ country, cur, eurRate, onOpenAsset, setsMap, onOpen
       if (dbErr) throw dbErr;
 
       let nameMatches = data || [];
+
+      // Card-code match robusto ai separatori: la query sopra cerca il token grezzo
+      // dell'utente (splittato per spazi) dentro card_number via ilike, quindi fallisce
+      // quando la formattazione non coincide esattamente con quella salvata nel DB —
+      // "p159" non è substring di "P-159", e un token di 1 carattere come "p" (da "P 159")
+      // viene scartato a monte (words.filter(w => w.length >= 2)), perdendo la lettera
+      // del prefisso. card_number_norm (colonna generata, vedi migration
+      // supabase/migrations/20260820_card_number_norm.sql) applica lato DB la stessa
+      // normalizzazione di norm(): "P-159"/"P 159"/"P159"/"p-159" diventano tutte
+      // "p159", "OP01-001"/"OP01 001"/"OP01001" diventano tutte "op01001" — un ilike
+      // substring su quella colonna basta, senza dover indovinare pattern con wildcard
+      // (che falliscono per input senza alcun separatore quando il DB usa un trattino
+      // tra due gruppi di sole cifre, es. "OP01001" vs "OP01-001"). Generico per
+      // qualsiasi TCG — non sostituisce la query esistente, la integra. Un input
+      // puramente numerico ("159") resta un semplice substring match: non viene mai
+      // riscritto come "P-159".
+      if (/\d/.test(normQ) && normQ.length >= 2) {
+        try {
+          const pattern = cardCodeIlikePattern(normQ);
+          const { data: codeMatches } = await supabase
+            .from('cards')
+            .select('id,name,name_en,set_name,set_id,card_number,image_url,lang,tcg,rarity,canonical_card_id,card_image_cache(cached_url,status)')
+            .ilike('card_number_norm', pattern)
+            .limit(200);
+          if (codeMatches?.length) {
+            const knownIds = new Set(nameMatches.map(c => c.id));
+            for (const c of codeMatches) {
+              if (!knownIds.has(c.id)) { knownIds.add(c.id); nameMatches.push(c); }
+            }
+          }
+        } catch (_) { /* ignora errori query aggiuntiva card code */ }
+      }
 
       // Client-side filter: rimuove falsi positivi da set_name/card_number
       // Per query name-like (solo lettere, es. "pikachu"): richiede match su name

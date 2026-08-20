@@ -4,6 +4,19 @@ export function norm(s) {
   return (s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
 }
 export function tokenize(s) { return (s || '').toLowerCase().split(/[^a-z0-9]+/).filter(Boolean); }
+
+// Pattern ilike per la ricerca su card_number_norm (colonna generata lato DB, vedi
+// migration supabase/migrations/20260820_card_number_norm.sql: stesso algoritmo di
+// norm() applicato a card_number — minuscolo, senza separatori — così un ilike
+// substring semplice basta a matchare "P-159"/"P 159"/"P159"/"p-159" con un'unica
+// query, indipendentemente da quale separatore (o nessuno) l'utente ha digitato o il
+// DB ha salvato. Generico per qualsiasi TCG/formato codice: nessuna logica specifica
+// per set o gioco. Un input puramente numerico (es. "159") produce lo stesso pattern
+// di un semplice substring match — non viene mai riscritto in un card code con
+// prefisso lettera arbitrario.
+export function cardCodeIlikePattern(normalizedCode, wildcard = '%') {
+  return `${wildcard}${normalizedCode}${wildcard}`;
+}
 // Raggruppa varianti linguistiche/regionali della stessa carta usando ESCLUSIVAMENTE
 // canonical_card_id — mai nome normalizzato, string similarity, numero carta da solo,
 // set+nome o fuzzy matching. Due record con canonical_card_id diversi restano SEMPRE
@@ -42,6 +55,12 @@ export function rankSearchResults(cards, rawQuery) {
     const nWords = tokenize(c.name || '');
     const neWords = tokenize(c.name_en || '');
     const allWords = [...nWords, ...neWords];
+    // Match esatto sul card code (a formattazione normalizzata, es. query "p159" contro
+    // card_number "P-159") viene prima di tutto: è un identificativo preciso, non un
+    // nome — se l'utente ha digitato esattamente un codice esistente, quella è la carta
+    // che cerca. Non tocca il ranking per query di solo nome (card_number raramente
+    // coincide con un nome normalizzato).
+    if (norm(c.card_number || '') === q) return -1;
     if (n === q) return 0;
     if (ne === q) return 1;
     if (n.startsWith(q) || ne.startsWith(q)) return 2;
