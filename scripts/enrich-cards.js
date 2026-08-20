@@ -1,17 +1,48 @@
 /**
 * DraGold - Card Enrichment Script (Fase 1 Knowledge Graph)
 * Arricchisce gradualmente le carte Pokemon esistenti con dati gia' disponibili
-* in TCGdex ma non salvati dal sync principale: illustrator, evolveFrom, dexId/hp/types/stage.
+* in TCGdex ma non salvati dal sync principale: illustrator, evolveFrom, dexId/hp/types/stage,
+* e (da questo fix) supertype (da TCGdex `category`, vedi FIX SUPERTYPE sotto).
 * Una chiamata per carta (endpoint dettaglio TCGdex) -> batch piccoli apposta per non
-* sforare rate limit/timeout Action. Idempotente: prende solo le righe con illustrator
-* ancora nullo, quindi puo' girare piu' volte al giorno finche' non copre tutto il catalogo.
+* sforare rate limit/timeout Action.
+*
+* FIX CODA BLOCCATA (bug verificato in audit 2026-08-19 — vedi CHARACTER_ENTITY_AUDIT):
+* prima di questo fix, l'eleggibilita' era `illustrator IS NULL` e la riga veniva
+* ri-scritta con `illustrator: detail.illustrator || null` — se TCGdex non restituiva
+* un illustrator per quella carta (caso reale e frequente, non un errore), il campo
+* restava null dopo l'update e la riga tornava eleggibile al giro successivo. Poiche'
+* il run reale non usa un cursore (`fetchPage` senza `afterId`), la query
+* `ORDER BY id ASC LIMIT pageSize` senza offset ripescava sempre le stesse righe in
+* testa alla coda (idenficamente riprodotto: le carte del set `2011bw`, tra le prime in
+* ordine lessicografico di `id`, risultavano ancora prive di `illustrator`/`metadata.dexId`
+* dopo mesi di run programmati) — la coda non avanzava mai oltre quel punto, motivo
+* verificato della copertura `dexId` bassissima (2,7% delle righe `tcgdex` Pokemon).
+*
+* Fix: l'eleggibilita' ora usa un marcatore scritto SEMPRE quando il detail fetch va a
+* buon fine (indipendentemente da cosa contiene la risposta) — `metadata._enrichedAt`.
+* Una riga esce dalla coda una volta tentata con successo (risposta HTTP ok), non solo
+* quando il campo desiderato risulta popolato. Un fetch fallito (rete/timeout, HTTP non
+* ok) NON scrive il marcatore: quella riga resta eleggibile e viene ritentata al giro
+* successivo, comportamento invariato per i fallimenti transitori.
+*
+* FIX SUPERTYPE (bug verificato in audit 2026-08-19): alcune righe `tcg='pokemon'
+* source='tcgdex'` hanno `supertype='Pokémon'` anche per carte Energia/Trainer — causa
+* verificata: `supabase/functions/bulk-import-pokemon/index.ts` scriveva
+* `supertype: 'Pokémon'` come costante fissa per OGNI riga importata, mai derivata dal
+* dato reale (quella funzione non e' schedulata in nessun workflow GitHub Actions,
+* quindi non e' piu' una sorgente attiva del bug, ma le righe che ha gia' scritto in
+* passato restano sbagliate finche' qualcosa non le corregge). Il campo TCGdex
+* `category` ("Pokemon" | "Trainer" | "Energy", verificato via documentazione ufficiale
+* tcgdex.dev/reference/card) e' presente nella risposta Card completa che questo script
+* gia' scarica per ogni riga — non richiede una nuova fonte esterna. Da questo fix,
+* `enrichRow` corregge `supertype` con `detail.category` quando presente.
 *
 * Priorita' (CLAUDE.md §1): EN va esaurito completamente prima di JA, JA prima delle
 * altre lingue. Ogni lingua prioritaria e' una fase a se'; dentro ogni fase si pagina
-* con una "coda autoconsumante": si ripete la stessa query (illustrator IS NULL, stessa
-* lingua, ordinata per id) finche' non restituisce piu' righe, senza usare offset/range
-* -- il filtro si restringe da solo man mano che le righe vengono aggiornate, quindi un
-* offset numerico salterebbe righe (le posizioni slittano ad ogni pagina scritta).
+* con una "coda autoconsumante" basata sul marcatore `metadata._enrichedAt` (vedi FIX
+* CODA BLOCCATA sopra), ordinata per id, senza usare offset/range -- il filtro si
+* restringe da solo man mano che le righe vengono marcate, quindi un offset numerico
+* salterebbe righe (le posizioni slittano ad ogni pagina scritta).
 *
 * Usage: node scripts/enrich-cards.js [--limit=500] [--lang=en,ja,it,fr,de,es,pt,id]
 *   [--page-size=500] [--time-budget-min=25] [--dry-run]
@@ -20,7 +51,7 @@
 *   --time-budget-min: minuti massimi di esecuzione prima di fermarsi in modo pulito
 *     (deve restare sotto il timeout-minutes del job GitHub Actions).
 *   --dry-run: valida SOLO la logica di fasi/paginazione contro Supabase (sola lettura,
-*     stessa query illustrator IS NULL + stesso ordinamento). Non chiama TCGdex, non
+*     stessa query — marcatore metadata._enrichedAt assente — + stesso ordinamento). Non chiama TCGdex, non
 *     scrive mai su Supabase. Utile per verificare EN->JA->resto senza spendere quota
 *     API reale su un catalogo grande. Vedi runDryRun() piu' sotto.
 * SUPABASE_URL e SUPABASE_SERVICE_KEY devono essere in env.
@@ -67,12 +98,12 @@ return r.json()
 const PRIORITY_LANGS = ['en', 'ja']
 
 // Una pagina della coda autoconsumante: stessa query, nessun offset. Le righe gia'
-// arricchite escono da sole dal risultato (illustrator non e' piu' null), quindi
-// ripetere la query e' sufficiente per ottenere "la pagina successiva".
+// tentate escono da sole dal risultato (metadata._enrichedAt non e' piu' assente),
+// quindi ripetere la query e' sufficiente per ottenere "la pagina successiva".
 //
 // afterId (opzionale) e' usato SOLO dal dry-run: essendo sola lettura, il dry-run non
-// scrive mai, quindi il filtro illustrator IS NULL non si restringe da solo pagina dopo
-// pagina come nel run reale. Per evitare di rileggere all'infinito le stesse righe (e
+// scrive mai, quindi il filtro su metadata._enrichedAt non si restringe da solo pagina
+// dopo pagina come nel run reale. Per evitare di rileggere all'infinito le stesse righe (e
 // senza usare .range/offset, vietato perche' e' proprio il problema che vogliamo
 // evitare) si ancora la pagina successiva all'ultimo id gia' letto con .gt('id', afterId)
 // -- e' un cursore per chiave stabile, non una posizione numerica: non soffre dello
@@ -80,11 +111,22 @@ const PRIORITY_LANGS = ['en', 'ja']
 // mai afterId, quindi il suo comportamento e' identico a prima.
 async function fetchPage(langs, pageSize, afterId = null) {
 if (!langs.length || pageSize <= 0) return []
+// FIX CODA BLOCCATA: eleggibilita' basata sul marcatore `metadata._enrichedAt`
+// (assente = mai tentata con successo), non piu' su `illustrator IS NULL`. Un
+// illustrator/dexId genuinamente assente in fonte non deve piu' bloccare la coda
+// per sempre — vedi commento in testa al file. Solo source='tcgdex': questo script
+// scarica dati da TCGdex per id (`set_id`/`card_number`), che per le righe
+// source='ptcg' (pokemontcg.io) vive in uno spazio di identificatori diverso e
+// incompatibile — includerle qui rischierebbe di interrogare TCGdex con un
+// set_id/card_number che non gli appartiene. Non era filtrato esplicitamente prima
+// di questo fix: corretto qui, stessa correzione, stesso motivo (bug adiacente
+// scoperto durante la stessa verifica, non una nuova funzionalita').
 let query = supabase
 .from('cards')
-.select('id, set_id, card_number, lang, metadata')
+.select('id, set_id, card_number, lang, metadata, supertype')
 .eq('tcg', 'pokemon')
-.is('illustrator', null)
+.eq('source', 'tcgdex')
+.is('metadata->>_enrichedAt', null)
 .not('set_id', 'is', null)
 .not('card_number', 'is', null)
 .in('lang', langs)
@@ -94,6 +136,22 @@ const { data, error } = await query
 .limit(pageSize)
 if (error) { console.error('select error:', error.message); process.exit(1) }
 return data || []
+}
+
+// Valori noti del campo TCGdex `category` (https://tcgdex.dev/reference/card,
+// verificato in audit 2026-08-19). Solo questi tre vengono scritti in `supertype`:
+// un valore inatteso/non documentato NON viene inventato, la riga resta con il
+// supertype esistente (stesso principio conservativo gia' in uso nel resto dello
+// script per rarity/illustrator).
+const KNOWN_CATEGORIES = new Set(['Pokemon', 'Trainer', 'Energy'])
+// TCGdex usa "Pokemon" (senza accento) per `category`; `cards.supertype` in
+// produzione usa storicamente "Pokémon" (con accento, coerente con pokemontcg.io/
+// sync-pokemon-ptcg.js) — mappato esplicitamente per non introdurre due grafie
+// diverse per lo stesso valore nello stesso campo.
+function mapCategoryToSupertype(category) {
+  if (category === 'Pokemon') return 'Pokémon'
+  if (KNOWN_CATEGORIES.has(category)) return category
+  return null
 }
 
 // Fasi esclusive e ordinate: EN da sola, poi JA da sola, poi il resto delle lingue
@@ -108,6 +166,10 @@ return restPhase.length ? [...priorityPhases, restPhase] : priorityPhases
 async function enrichRow(row) {
 await sleep(DELAY_MS)
 const detail = await safeFetch(`${TCGDEX_BASE}/${row.lang}/sets/${row.set_id}/${row.card_number}`)
+// Fetch fallito (rete/timeout/HTTP non-ok): NON scriviamo il marcatore
+// `_enrichedAt`, la riga resta eleggibile e viene ritentata a un run successivo.
+// Comportamento invariato rispetto a prima del fix — solo il caso "risposta
+// ricevuta ma campo assente" (sotto) e' cambiato.
 if (!detail) return 'notFound'
 
 const patch = {
@@ -116,14 +178,25 @@ evolves_from: detail.evolveFrom || null,
 }
 if (detail.rarity) patch.rarity = detail.rarity
 
+// FIX SUPERTYPE: `category` e' un campo affidabile del Card object TCGdex
+// (Pokemon/Trainer/Energy). Scritto solo quando il valore e' uno dei tre noti —
+// vedi mapCategoryToSupertype. Corregge sia le righe mai classificate
+// (supertype null) sia quelle scritte in passato da bulk-import-pokemon con la
+// costante fissa 'Pokémon' indipendentemente dal vero tipo di carta.
+const mappedSupertype = mapCategoryToSupertype(detail.category)
+if (mappedSupertype) patch.supertype = mappedSupertype
+
 const extraMeta = {}
 if (detail.dexId) extraMeta.dexId = detail.dexId
 if (detail.hp) extraMeta.hp = detail.hp
 if (detail.types) extraMeta.types = detail.types
 if (detail.stage) extraMeta.stage = detail.stage
-if (Object.keys(extraMeta).length) {
+// Marcatore di avanzamento coda (FIX CODA BLOCCATA): scritto SEMPRE quando
+// arriviamo qui, indipendentemente da quali campi sopra erano popolati in questa
+// risposta — e' quello che garantisce che la riga esca dall'eleggibilita' anche
+// quando TCGdex non ha illustrator/dexId/category per questa carta specifica.
+extraMeta._enrichedAt = new Date().toISOString()
 patch.metadata = { ...(row.metadata || {}), ...extraMeta }
-}
 
 const { error: upErr } = await supabase.from('cards').update(patch).eq('id', row.id)
 if (upErr) { console.warn(` update error ${row.id}:`, upErr.message); return 'error' }
