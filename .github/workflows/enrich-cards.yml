@@ -1,8 +1,8 @@
 name: Enrich Cards (illustrator/evolveFrom)
 
 on:
-  # schedule:
-#     - cron: '15 */2 * * *'
+  schedule:
+    - cron: '15 */2 * * *'
   workflow_dispatch:
     inputs:
       limit:
@@ -47,7 +47,7 @@ jobs:
 
       - name: Run enrichment (scheduled)
         if: github.event_name == 'schedule'
-        run: node scripts/enrich-cards.js --limit=500
+        run: node scripts/enrich-cards.js --limit=2000 --lang=en --page-size=500 --time-budget-min=25
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
