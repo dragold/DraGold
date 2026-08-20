@@ -614,12 +614,17 @@ async function syncOnePiece() {
         continue
       }
 
+      // FIX (dry-run reale per One Piece): prima chiamava supabase.from('cards')
+      // .upsert(...) direttamente, bypassando l'unico punto che rispetta DRY_RUN
+      // (upsertBatch(), già usato da syncPokemon/syncMTG/syncYGO — vedi riga 137).
+      // Risultato: --dry-run non proteggeva mai questo ramo, scriveva comunque su
+      // Supabase. Ora riusa upsertBatch(): stesso onConflict:'id', stessa semantica
+      // di scrittura quando DRY_RUN=false, ma nessuna scrittura quando DRY_RUN=true —
+      // nessuna seconda implementazione del check.
       for (let i = 0; i < cards.length; i += BATCH_SIZE) {
-        const batch = cards.slice(i, i + BATCH_SIZE)
-        const { error } = await supabase.from('cards').upsert(batch, { onConflict: 'id' })
-        if (error) console.error(`  ERROR ${setCode} batch ${i}: ${error.message}`)
+        await upsertBatch(cards.slice(i, i + BATCH_SIZE))
       }
-      console.log(`  OP ${lang.toUpperCase()} ${setCode}: ${cards.length} cards synced`)
+      console.log(`  ${DRY_RUN ? 'DRY' : 'OK'} OP ${lang.toUpperCase()} ${setCode}: ${cards.length} cards ${DRY_RUN ? 'parsed (dry-run, nessuna scrittura)' : 'synced'}`)
       totalSynced += cards.length
     } catch (e) {
       console.error(`  ERROR ${setCode}: ${e.message}`)
