@@ -1,0 +1,96 @@
+name: Image Audit (Pokémon EN/JA + One Piece EN/JA)
+
+# Esegue scripts/image-audit/{dump-cards,crawl-images,resolve-fallback,summarize}.mjs.
+# Richiede egress di rete reale verso gli host immagine (assets.tcgdex.net,
+# images.pokemontcg.io, optcgapi.com, onepiece-cardgame.com, ...) — per questo gira qui e
+# non nella sandbox Cowork usata per sviluppare questi script, che ha un proxy egress
+# allowlist-only e non raggiunge quegli host (vedi commento in crawl-images.mjs).
+#
+# SOLA LETTURA: nessuno di questi script scrive su Supabase (vedi header dei singoli file).
+# resolve-fallback.mjs (cascata di recovery multi-fonte: TCGdex retry, Scrydex,
+# pokemontcg.io, PokemonPriceTracker) copre solo Pokémon per ora — per One Piece questo
+# workflow produce comunque il crawl+summarize (classificazione VALID/BROKEN/MISSING/...),
+# che è quanto richiesto per la verifica delle 4 combinazioni; l'estensione della cascata di
+# recovery a One Piece (fonti: optcgapi.com, onepiece-cardgame.com) resta un task successivo
+# esplicito, non implicito in questo workflow.
+
+on:
+  workflow_dispatch:
+    inputs:
+      tcg:
+        description: 'pokemon | onepiece | all'
+        required: false
+        default: 'all'
+      langs:
+        description: 'Lingue, comma-separated'
+        required: false
+        default: 'en,ja'
+      limit:
+        description: 'Limite carte per combinazione (vuoto = tutte)'
+        required: false
+        default: ''
+      run_resolve:
+        description: 'Esegui anche resolve-fallback.mjs per Pokémon (richiede eventuali API key opzionali in secrets)'
+        required: false
+        default: 'true'
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    strategy:
+      fail-fast: false
+      matrix:
+        tcg: ${{ fromJson(github.event.inputs.tcg == 'all' && '["pokemon","onepiece"]' || format('["{0}"]', github.event.inputs.tcg)) }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install dependencies
+        run: npm install @supabase/supabase-js
+      - name: Dump cards (${{ matrix.tcg }})
+        run: |
+          node scripts/image-audit/dump-cards.mjs --tcg=${{ matrix.tcg }} --langs=${{ github.event.inputs.langs }}
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+      - name: Crawl images (${{ matrix.tcg }})
+        run: |
+          IN="scripts/image-audit/data/cards-${{ matrix.tcg }}-$(echo ${{ github.event.inputs.langs }} | tr ',' '-').ndjson"
+          OUT="scripts/image-audit/data/crawl-${{ matrix.tcg }}.ndjson"
+          ARGS=""
+          if [ -n "${{ github.event.inputs.limit }}" ]; then ARGS="$ARGS --limit=${{ github.event.inputs.limit }}"; fi
+          node scripts/image-audit/crawl-images.mjs --in="$IN" --out="$OUT" $ARGS
+      - name: Resolve fallback (solo Pokémon)
+        if: matrix.tcg == 'pokemon' && github.event.inputs.run_resolve == 'true'
+        run: |
+          node scripts/image-audit/resolve-fallback.mjs \
+            --broken=scripts/image-audit/data/crawl-pokemon.ndjson \
+            --cards=scripts/image-audit/data/cards-pokemon-$(echo ${{ github.event.inputs.langs }} | tr ',' '-').ndjson \
+            --out=scripts/image-audit/data/resolve-pokemon.ndjson
+        env:
+          SCRYDEX_API_KEY: ${{ secrets.SCRYDEX_API_KEY }}
+          SCRYDEX_TEAM_ID: ${{ secrets.SCRYDEX_TEAM_ID }}
+          POKEMONTCG_API_KEY: ${{ secrets.POKEMONTCG_API_KEY }}
+          POKEMONPRICETRACKER_API_KEY: ${{ secrets.POKEMONPRICETRACKER_API_KEY }}
+      - name: Summarize (${{ matrix.tcg }})
+        run: |
+          RESOLVE_ARG=""
+          if [ -f "scripts/image-audit/data/resolve-pokemon.ndjson" ]; then
+            RESOLVE_ARG="--resolve=scripts/image-audit/data/resolve-pokemon.ndjson"
+          fi
+          node scripts/image-audit/summarize.mjs \
+            --crawl=scripts/image-audit/data/crawl-${{ matrix.tcg }}.ndjson \
+            $RESOLVE_ARG \
+            --out=scripts/image-audit/data/final-summary-${{ matrix.tcg }}.json
+      - name: Upload audit results
+        uses: actions/upload-artifact@v4
+        with:
+          name: image-audit-${{ matrix.tcg }}
+          path: |
+            scripts/image-audit/data/*.ndjson
+            scripts/image-audit/data/final-summary-${{ matrix.tcg }}.json
+          retention-days: 30

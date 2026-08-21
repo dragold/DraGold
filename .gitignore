@@ -5,3 +5,8 @@ dist
 .DS_Store
 *.log
 .vercel
+
+# Output locali dell'image-audit tool (NDJSON dump/crawl/resolve, grandi e volatili —
+# vedi CLAUDE.md §10, non congelare dati volatili in git). I risultati "ufficiali" di un
+# run CI vivono come artifact del workflow .github/workflows/image-audit.yml, non qui.
+scripts/image-audit/data/
