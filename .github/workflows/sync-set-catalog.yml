@@ -1,0 +1,83 @@
+name: Sync Set Catalog (MTG / YGO / Lorcana)
+
+on:
+  workflow_dispatch:
+    inputs:
+      tcg:
+        description: 'Quale adapter eseguire (mtg, ygo, lorcana, all)'
+        required: false
+        default: 'all'
+      dry_run:
+        description: 'Dry run - solo fetch/log, nessuna scrittura su Supabase'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  sync-mtg:
+    name: Sync MTG sets (Scryfall)
+    if: ${{ github.event.inputs.tcg == 'mtg' || github.event.inputs.tcg == 'all' || github.event.inputs.tcg == '' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - run: npm install @supabase/supabase-js
+      - run: node scripts/sync-mtg-sets.js ${{ github.event.inputs.dry_run == 'true' && '--dry-run' || '' }}
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+
+  sync-ygo:
+    name: Sync YGO sets (YGOPRODeck)
+    if: ${{ github.event.inputs.tcg == 'ygo' || github.event.inputs.tcg == 'all' || github.event.inputs.tcg == '' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - run: npm install @supabase/supabase-js
+      - run: node scripts/sync-ygo-sets.js ${{ github.event.inputs.dry_run == 'true' && '--dry-run' || '' }}
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+
+  sync-lorcana:
+    name: Sync Lorcana sets (Lorcast)
+    if: ${{ github.event.inputs.tcg == 'lorcana' || github.event.inputs.tcg == 'all' || github.event.inputs.tcg == '' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - run: npm install @supabase/supabase-js
+      - run: node scripts/sync-lorcana-sets.js ${{ github.event.inputs.dry_run == 'true' && '--dry-run' || '' }}
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+
+  summary:
+    name: Report finale (partial-failure visibile)
+    needs: [sync-mtg, sync-ygo, sync-lorcana]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Riepilogo
+        run: |
+          echo "mtg:     ${{ needs.sync-mtg.result }}"
+          echo "ygo:     ${{ needs.sync-ygo.result }}"
+          echo "lorcana: ${{ needs.sync-lorcana.result }}"
+          if [ "${{ needs.sync-mtg.result }}" = "failure" ] || [ "${{ needs.sync-ygo.result }}" = "failure" ] || [ "${{ needs.sync-lorcana.result }}" = "failure" ]; then
+            echo "PARTIAL FAILURE: almeno un adapter e' fallito, vedi i job sopra per il dettaglio (gli altri sono comunque andati avanti grazie a continue-on-error)."
+          else
+            echo "Tutti gli adapter completati senza errori bloccanti."
+          fi
