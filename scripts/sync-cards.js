@@ -121,7 +121,18 @@ const argStaleDays = argStaleDaysRaw != null && argStaleDaysRaw !== '' ? Number(
 const argOut    = args.find(a => a.startsWith('--out='))?.split('=')[1]
 const DRY_RUN   = args.includes('--dry-run')
 
-const TCG_FILTER  = argTcg  ? argTcg.split(',') : ['pokemon','mtg','ygo','onepiece']
+// BUGFIX (verificato in audit + confermato in questo task): l'usage del CLI e il
+// default del workflow_dispatch (.github/workflows/sync-cards.yml) usano l'alias
+// 'op' per One Piece, ma il dispatch sotto controllava solo
+// TCG_FILTER.includes('onepiece') -- 'op' non normalizzato non la matcha mai.
+// Risultato reale in produzione: ogni run schedulato (cron giornaliero, default
+// '--tcg=pokemon,mtg,ygo,op') e ogni run manuale con il default del workflow
+// NON hanno mai invocato syncOnePiece(), silenziosamente (nessun errore, nessun
+// log). Normalizziamo l'alias qui, in un solo punto, cosi' sia 'op' che
+// 'onepiece' funzionano ovunque nello script.
+const TCG_ALIASES = { op: 'onepiece' }
+const TCG_FILTER  = (argTcg ? argTcg.split(',') : ['pokemon','mtg','ygo','onepiece'])
+  .map(t => TCG_ALIASES[t] || t)
 const LANG_FILTER = argLang || PKM_LANGS
 
 const sleep = ms => new Promise(r => setTimeout(r, ms))
@@ -245,7 +256,16 @@ async function processSetCards(setMeta, setData, lang) {
 
     const incoming = { ...incomingBrief, ...incomingDetail }
     const { nullProtected } = computeNullProtection(existingRow, incoming)
-    const merged = mergeRow(existingRow, incoming, { id, lang, tcg: 'pokemon' })
+    // FIX (bug strutturale, vedi IMAGE_AUDIT_REPORT / assertCompleteIdentity in
+    // pokemon-sync.js): source/source_id sono NOT NULL senza default in
+    // `cards` ma non venivano mai passati a mergeRow, causando il fallimento
+    // dell'intero batch di upsert per ogni batch contenente almeno una carta
+    // NEW. source e' sempre 'tcgdex' per questa pipeline; source_id e' l'id
+    // carta cosi' come lo espone TCGdex stesso (brief.id, es. "swsh3-136"),
+    // con fallback a set+localId nel raro caso in cui il CardBrief non lo
+    // esponga (non documentato come possibile da TCGdex, ma non lo si assume).
+    const sourceId = brief.id || `${setId}-${brief.localId}`
+    const merged = mergeRow(existingRow, incoming, { id, lang, tcg: 'pokemon', source: 'tcgdex', source_id: sourceId })
     const entry = buildDiffReportEntry(id, existingRow, merged, {
       printVariantInfo: incomingDetail._printVariantInfo,
       detailFetched,
@@ -714,3 +734,4 @@ try {
 }
 const elapsed = ((Date.now() - start) / 1000).toFixed(1)
 console.log(`\nSync completato in ${elapsed}s`)
+console.log('SYNC_REPORT_JSON=' + JSON.stringify({ kind: 'sync-cards-report', tcg: TCG_FILTER, lang: LANG_FILTER, set: argSet || null, dryRun: DRY_RUN, elapsedSec: Number(elapsed) }))
