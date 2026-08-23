@@ -762,3 +762,48 @@ input{font-family:inherit;font-size:16px;}
   .constellation-rail:has(.constellation-satellite:hover) .constellation-satellite:not(:hover){opacity:.4;filter:saturate(.7);}
 }
 
+
+/* ════════════════════════════════════════════════════════════════════════
+   AUTH PAGES — /login /register /forgot-password /reset-password /account
+   (Auth/Profile/Username feature) — reuses .btn/.input/.auth-* tokens above.
+   ════════════════════════════════════════════════════════════════════════ */
+.authpage{min-height:100svh;display:flex;align-items:center;justify-content:center;padding:32px var(--p);background:var(--bg);}
+.authpage-card{width:100%;max-width:420px;background:var(--surface);border:1px solid var(--border-2);border-radius:22px;padding:32px 26px;box-shadow:0 30px 80px rgba(0,0,0,.5);}
+.authpage-back{color:var(--muted);font-size:13px;margin-bottom:18px;display:inline-block;transition:.15s;}
+.authpage-back:hover{color:var(--text);}
+.authpage-sep{display:flex;align-items:center;gap:10px;color:var(--dim);font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;margin:16px 0;}
+.authpage-sep::before,.authpage-sep::after{content:'';flex:1;height:1px;background:var(--border);}
+.authpage-foot{text-align:center;margin-top:20px;font-size:13.5px;color:var(--muted);}
+.authpage-foot a{color:var(--gold);font-weight:700;}
+.authpage-link{color:var(--gold);font-weight:700;font-size:13.5px;}
+.authpage-links-row{display:flex;justify-content:space-between;align-items:center;margin:-4px 0 14px;font-size:13px;}
+.btn-google{background:#fff;color:#1f1f1f;border:1px solid var(--border-2);}
+.btn-google:hover{filter:brightness(.97);}
+.btn-google svg{flex-shrink:0;}
+.field{margin-bottom:14px;}
+.field-label{display:block;font-size:12.5px;font-weight:700;color:var(--muted);margin-bottom:6px;letter-spacing:.02em;}
+.field-hint{font-size:12px;color:var(--dim);margin-top:-8px;margin-bottom:12px;}
+.checkbox-row{display:flex;align-items:flex-start;gap:10px;margin:6px 0 16px;font-size:13px;color:var(--muted);line-height:1.5;}
+.checkbox-row a{color:var(--gold);font-weight:600;}
+.checkbox-row input{margin-top:3px;width:16px;height:16px;accent-color:var(--gold);flex-shrink:0;}
+.auth-ok{background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.3);color:var(--gain);font-size:13px;padding:9px 12px;border-radius:9px;margin-bottom:12px;}
+
+/* Account page */
+.account-hero{display:flex;align-items:center;gap:14px;margin-bottom:22px;}
+.account-avatar{width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,var(--gold),var(--gold-deep));color:#1a1200;font-weight:800;font-size:22px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.account-name{font-size:19px;font-weight:800;letter-spacing:-.01em;}
+.account-email{color:var(--muted);font-size:13.5px;margin-top:2px;}
+.account-section{background:var(--surface-2);border:1px solid var(--border);border-radius:14px;padding:16px 18px;margin-bottom:14px;}
+.account-section-h{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--dim);margin-bottom:10px;}
+.account-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border);font-size:14px;gap:12px;}
+.account-row:last-child{border-bottom:none;}
+.account-row-label{color:var(--muted);flex-shrink:0;}
+.account-row-value{font-weight:600;text-align:right;word-break:break-word;}
+.badge-todo{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--dim);background:var(--surface-3);padding:3px 8px;border-radius:6px;flex-shrink:0;}
+
+/* Legal placeholder pages */
+.legal-page{max-width:720px;margin:0 auto;padding:40px var(--p) 80px;}
+.legal-page h1{font-family:'Fraunces',serif;font-size:clamp(26px,5vw,36px);font-weight:800;margin-bottom:8px;}
+.legal-page .legal-note{background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.25);color:var(--muted);font-size:13.5px;padding:12px 14px;border-radius:11px;margin:18px 0 26px;line-height:1.55;}
+.legal-page h2{font-size:17px;font-weight:800;margin:26px 0 8px;}
+.legal-page p{color:var(--muted);font-size:14.5px;line-height:1.7;margin-bottom:10px;}

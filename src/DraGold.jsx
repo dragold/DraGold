@@ -1,12 +1,12 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { flushSync } from "react-dom";
 import {
-  supabase, supabaseReady,
-  sendMagicLink, getSession, onAuth, signOut as sbSignOut,
+  supabase,
   addToCollection, listCollection, removeFromCollection,
   createAlert, listAlerts, deleteAlert, addToWatchlist,
   getCardById,
 } from "./supabase.js";
+import { useAuth } from "./lib/auth.js";
 import { getSavedSearch, setSavedSearch, clearSavedSearch, loadSetsMap } from "./lib/state.js";
 import { Icon } from "./components/shared/Icon.jsx";
 import { Onboarding, ONBOARD_KEY } from "./components/shared/Onboarding.jsx";
@@ -127,64 +127,15 @@ export function Empty({ icon, title, sub, cta, onCta }) {
 }
 
 /* ════════════════════════════════════════════════════════════════════════
-   AUTH MODAL — magic link
-   ════════════════════════════════════════════════════════════════════════ */
-function AuthModal({ open, onClose }) {
-  const [email, setEmail] = useState("");
-  const [status, setStatus] = useState("idle"); // idle | sending | sent | error
-  const [msg, setMsg] = useState("");
-
-  if (!open) return null;
-
-  const submit = async (e) => {
-    e.preventDefault();
-    if (!email.trim() || status==="sending") return;
-    if (!supabaseReady) { setStatus("error"); setMsg("Backend non configurato."); return; }
-    setStatus("sending"); setMsg("");
-    const { error } = await sendMagicLink(email.trim());
-    if (error) { setStatus("error"); setMsg(error.message || "Send failed, please try again."); }
-    else { setStatus("sent"); }
-  };
-
-  return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal" onClick={e=>e.stopPropagation()}>
-        <button className="modal-x" onClick={onClose} aria-label="Chiudi"><Icon name="close" size={18}/></button>
-        <div className="modal-logo"><img src="/logo192.png" alt="DraGold" style={{width:64,height:64,borderRadius:14,display:"block",margin:"0 auto 10px"}}/><span className="font-syne">DraGold</span></div>
-        {status==="sent" ? (
-          <div className="auth-sent">
-            <div className="auth-sent-ic"><Icon name="mail" size={28}/></div>
-            <h3>Check your email</h3>
-            <p>We sent a magic link to <b>{email}</b>. Open it on this device to sign in.</p>
-            <button className="btn btn-ghost" onClick={onClose}>Got it</button>
-          </div>
-        ) : (
-          <form onSubmit={submit} className="auth-form">
-            <h3>Sign in or create account</h3>
-            <p className="auth-p">No password needed. We'll send you a magic link by email.</p>
-            <input
-              type="email" inputMode="email" autoComplete="email" required
-              placeholder="your@email.com" value={email}
-              onChange={e=>setEmail(e.target.value)} className="input"
-            />
-            {status==="error" && <div className="auth-err">{msg}</div>}
-            <button type="submit" className="btn btn-primary btn-block" disabled={status==="sending"}>
-              {status==="sending" ? "Sending…" : "Send magic link"}
-            </button>
-          </form>
-        )}
-      </div>
-    </div>
-  );
-}
-
-/* ════════════════════════════════════════════════════════════════════════
    APP
    ════════════════════════════════════════════════════════════════════════ */
 export default function DraGold() {
-  const [session, setSession]   = useState(null);
-  const [authReady, setAuthReady] = useState(false);
-  const [authOpen, setAuthOpen] = useState(false);
+  // Auth/Profile/Username feature — central state from lib/auth.js
+  // (AuthProvider, mounted in main.jsx) instead of a local getSession/onAuth
+  // subscription. "Sign in"/"Create account" now navigate to /login /register
+  // (standalone pages) rather than opening an in-page magic-link modal.
+  const { session, status: authStatus, profile, signOut: authSignOut } = useAuth();
+  const authReady = authStatus !== "loading";
   const [menuOpen, setMenuOpen] = useState(false);
 
   const [tab, setTab]   = useState("markets");
@@ -197,18 +148,6 @@ export default function DraGold() {
 
   /* ── carica sets (loghi) ── */
   useEffect(() => { loadSetsMap().then(setSetsMap).catch(() => {}); }, []);
-
-  /* ── sessione globale ── */
-  useEffect(() => {
-    let off = () => {};
-    (async () => {
-      const s = await getSession();
-      setSession(s);
-      setAuthReady(true);
-      off = onAuth((s2) => { setSession(s2); if (s2) setAuthOpen(false); });
-    })();
-    return () => off();
-  }, []);
 
   /* ── geo + tasso di cambio (default valuta) ── */
   useEffect(() => {
@@ -232,16 +171,17 @@ export default function DraGold() {
 
   const isAuthed = !!session;
   const userEmail = session?.user?.email || "";
+  const displayName = profile?.username || profile?.display_name || (userEmail ? userEmail.split("@")[0] : "");
+  const avatarInitial = (displayName || userEmail || "U").slice(0,1).toUpperCase();
 
   const signOut = useCallback(async () => {
-    await sbSignOut();
-    setSession(null);
+    await authSignOut();
     setMenuOpen(false);
-  }, []);
+  }, [authSignOut]);
 
   const requireAuth = useCallback((fn) => {
     if (isAuthed) fn?.();
-    else setAuthOpen(true);
+    else window.location.href = "/login";
   }, [isAuthed]);
 
   // "Card turn" — native View Transitions API (feature-detected, zero deps).
@@ -377,13 +317,16 @@ export default function DraGold() {
             ) : isAuthed ? (
               <div className="usermenu">
                 <button className="avatar" onClick={()=>setMenuOpen(o=>!o)} aria-label="Account">
-                  {userEmail.slice(0,1).toUpperCase() || "U"}
+                  {avatarInitial}
                 </button>
                 {menuOpen && (
                   <>
                     <div className="menu-scrim" onClick={()=>setMenuOpen(false)} />
                     <div className="menu">
-                      <div className="menu-email">{userEmail}</div>
+                      <div className="menu-email">{displayName || userEmail}</div>
+                      <a className="menu-i" href="/account">
+                        <Icon name="card" size={16}/> Account
+                      </a>
                       {ACCOUNT_LINKS.map(l => (
                         <button key={l.id} className="menu-i"
                           onClick={()=>{ goTab(l.id); setMenuOpen(false); }}>
@@ -398,7 +341,10 @@ export default function DraGold() {
                 )}
               </div>
             ) : (
-              <button className="btn btn-primary btn-sm" onClick={()=>setAuthOpen(true)}>Sign in</button>
+              <div style={{display:"flex",gap:8}}>
+                <a className="btn btn-ghost btn-sm" href="/login">Sign in</a>
+                <a className="btn btn-primary btn-sm" href="/register">Create account</a>
+              </div>
             )}
           </div>
         </div>
@@ -409,7 +355,7 @@ export default function DraGold() {
         {asset ? (
           <AssetView
             card={asset} onBack={closeAsset}
-            isAuthed={isAuthed} onLogin={()=>setAuthOpen(true)}
+            isAuthed={isAuthed} onLogin={()=>{ window.location.href="/login"; }}
             country={country} cur={cur} eurRate={eurRate} setsMap={setsMap}
             onOpenCard={openAsset} onOpenSet={openSet}
           />
@@ -436,10 +382,10 @@ export default function DraGold() {
           <SetsView setsMap={setsMap} onOpenSet={openSet} />
         )}
         {tab==="portfolio" && (
-          <PortfolioView isAuthed={isAuthed} onLogin={()=>setAuthOpen(true)} onExplore={()=>setTab("markets")} cur={cur} eurRate={eurRate} onOpenCard={openAsset} />
+          <PortfolioView isAuthed={isAuthed} onLogin={()=>{ window.location.href="/login"; }} onExplore={()=>setTab("markets")} cur={cur} eurRate={eurRate} onOpenCard={openAsset} />
         )}
         {tab==="alerts" && (
-          <AlertsView isAuthed={isAuthed} onLogin={()=>setAuthOpen(true)} onExplore={()=>setTab("markets")}
+          <AlertsView isAuthed={isAuthed} onLogin={()=>{ window.location.href="/login"; }} onExplore={()=>setTab("markets")}
             cur={cur} eurRate={eurRate} country={country} />
         )}
 
@@ -491,7 +437,6 @@ export default function DraGold() {
         ))}
       </nav>
 
-      <AuthModal open={authOpen} onClose={()=>setAuthOpen(false)} />
     </div>
   );
 }

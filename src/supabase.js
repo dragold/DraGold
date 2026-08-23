@@ -147,3 +147,123 @@ export async function subscribeNewsletter(email) {
   if (!supabase) return
   return supabase.from('newsletter').insert({ email, source: 'landing' })
 }
+
+// ════════════════════════════════════════════════════════════════════════
+// AUTH — email/password + Google OAuth + username + password reset
+// (Auth/Profile/Username feature — extends the magic-link auth above,
+// does not replace it: sendMagicLink/getSession/onAuth/signOut stay as-is.)
+// ════════════════════════════════════════════════════════════════════════
+
+export const USERNAME_RE = /^[a-zA-Z0-9_]{3,20}$/
+
+export function validateUsername(u) {
+  const v = (u || '').trim()
+  if (!v) return 'Username is required.'
+  if (!USERNAME_RE.test(v)) return 'Username must be 3–20 characters: letters, numbers and underscore only.'
+  return null
+}
+
+export function validatePassword(p) {
+  if (!p || p.length < 6) return 'Password must be at least 6 characters.'
+  return null
+}
+
+// Best-effort availability check (also enforced server-side by the unique
+// index on lower(username) + profiles_username_format — this is UX only,
+// a race at signup time still fails safely with a normalized error).
+export async function isUsernameAvailable(username) {
+  if (!supabase || !username) return true
+  const { data, error } = await supabase.from('profiles').select('id').ilike('username', username).maybeSingle()
+  if (error) return true
+  return !data
+}
+
+export async function signUpWithPassword({ email, password, username }) {
+  if (!supabase) return { error: { message: 'Backend not configured' } }
+  return supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      data: { username },
+      emailRedirectTo: `${window.location.origin}/login`,
+    },
+  })
+}
+
+export async function signInWithPassword({ email, password }) {
+  if (!supabase) return { error: { message: 'Backend not configured' } }
+  return supabase.auth.signInWithPassword({ email, password })
+}
+
+// Requires Google OAuth to be configured in the Supabase dashboard
+// (Authentication → Providers → Google) — see final report for manual steps.
+export async function signInWithGoogle(redirectPath = '/') {
+  if (!supabase) return { error: { message: 'Backend not configured' } }
+  return supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: { redirectTo: `${window.location.origin}${redirectPath}` },
+  })
+}
+
+export async function sendPasswordReset(email) {
+  if (!supabase) return { error: { message: 'Backend not configured' } }
+  return supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${window.location.origin}/reset-password`,
+  })
+}
+
+export async function updatePassword(newPassword) {
+  if (!supabase) return { error: { message: 'Backend not configured' } }
+  return supabase.auth.updateUser({ password: newPassword })
+}
+
+export async function resendVerificationEmail(email) {
+  if (!supabase) return { error: { message: 'Backend not configured' } }
+  return supabase.auth.resend({
+    type: 'signup',
+    email,
+    options: { emailRedirectTo: `${window.location.origin}/login` },
+  })
+}
+
+export async function getProfile(userId) {
+  if (!supabase || !userId) return null
+  const { data } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle()
+  return data || null
+}
+
+// Normalizes a raw Supabase/Postgres error into a human message. Full
+// technical detail always goes to console for debugging.
+export function normalizeAuthError(error) {
+  const raw = error?.message || (typeof error === 'string' ? error : '') || ''
+  const msg = raw.toLowerCase()
+  if (error) console.error('[auth]', error)
+  if (!raw) return 'Something went wrong. Please try again.'
+
+  if (msg.includes('already registered') || msg.includes('user already exists') ||
+      (msg.includes('duplicate') && msg.includes('email')))
+    return 'An account with this email already exists. Try signing in instead.'
+  if (msg.includes('invalid login credentials') || msg.includes('invalid_credentials'))
+    return 'Incorrect email or password.'
+  if (msg.includes('email not confirmed') || msg.includes('email_not_confirmed'))
+    return 'Please verify your email before signing in — check your inbox.'
+  if (msg.includes('profiles_username_lower_idx') || msg.includes('profiles_username_key') ||
+      (msg.includes('username') && msg.includes('duplicate')) ||
+      (msg.includes('username') && msg.includes('already')))
+    return 'This username is already taken.'
+  if (msg.includes('profiles_username_format'))
+    return 'Username must be 3–20 characters: letters, numbers and underscore only.'
+  if (msg.includes('password') && (msg.includes('at least') || msg.includes('should be') || msg.includes('weak') || msg.includes('short')))
+    return 'Password is too weak — use at least 6 characters.'
+  if (msg.includes('rate limit') || msg.includes('too many requests') || msg.includes('429'))
+    return 'Too many attempts — please wait a moment and try again.'
+  if (msg.includes('expired') || msg.includes('invalid or expired') || msg.includes('token has expired'))
+    return 'This link has expired. Please request a new one.'
+  if (msg.includes('failed to fetch') || msg.includes('network'))
+    return 'Network error — check your connection and try again.'
+  if (msg.includes('unsupported provider') || msg.includes('provider is not enabled') || msg.includes('oauth'))
+    return 'Google sign-in is not available right now. Try email and password instead.'
+  if (msg.includes('session') && (msg.includes('expired') || msg.includes('missing')))
+    return 'Your session has expired — please sign in again.'
+  return raw
+}

@@ -6,6 +6,14 @@ import CardPage from './pages/card/CardPage.jsx'
 import SetPage from './pages/set/SetPage.jsx'
 import TcgPage from './pages/tcg/TcgPage.jsx'
 import IllustratorPage from './pages/illustrator/IllustratorPage.jsx'
+import LoginPage from './pages/auth/LoginPage.jsx'
+import RegisterPage from './pages/auth/RegisterPage.jsx'
+import ForgotPasswordPage from './pages/auth/ForgotPasswordPage.jsx'
+import ResetPasswordPage from './pages/auth/ResetPasswordPage.jsx'
+import AccountPage from './pages/auth/AccountPage.jsx'
+import TermsPage from './pages/legal/TermsPage.jsx'
+import PrivacyPage from './pages/legal/PrivacyPage.jsx'
+import { AuthProvider } from './lib/auth.js'
 import { TCG_HUBS } from './lib/tcgConfig.js'
 import './styles.css'
 
@@ -23,12 +31,29 @@ const illustratorMatch = window.location.pathname.match(/^\/illustrator\/([^/]+)
 // futura viene intercettata per errore).
 const pathNoSlash = window.location.pathname.replace(/\/$/, '') || '/'
 const tcgMatch = TCG_HUBS.find(hub => `/${hub.tcg}` === pathNoSlash)
+
+// Auth/Profile/Username feature — standalone routes, same pattern as the
+// blocks above (exact-match on pathNoSlash, mounted before the SPA shell).
+const AUTH_ROUTES = {
+  '/login': LoginPage,
+  '/register': RegisterPage,
+  '/forgot-password': ForgotPasswordPage,
+  '/reset-password': ResetPasswordPage,
+  '/account': AccountPage,
+  '/terms': TermsPage,
+  '/privacy': PrivacyPage,
+}
+const authRouteComp = AUTH_ROUTES[pathNoSlash]
+
 const RootView = cardMatch ? h(CardPage, { slug: decodeURIComponent(cardMatch[1]) })
   : setMatch ? h(SetPage, { slug: decodeURIComponent(setMatch[1]) })
   : illustratorMatch ? h(IllustratorPage, { slug: decodeURIComponent(illustratorMatch[1]) })
   : tcgMatch ? h(TcgPage, { tcg: tcgMatch.tcg })
+  : authRouteComp ? h(authRouteComp, null)
   : h(DraGold, null)
 
 createRoot(document.getElementById('root')).render(
-  h(StrictMode, null, RootView, h(Analytics, null))
+  h(StrictMode, null,
+    h(AuthProvider, null, RootView, h(Analytics, null))
+  )
   )
