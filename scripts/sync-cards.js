@@ -131,9 +131,30 @@ const DRY_RUN   = args.includes('--dry-run')
 // log). Normalizziamo l'alias qui, in un solo punto, cosi' sia 'op' che
 // 'onepiece' funzionano ovunque nello script.
 const TCG_ALIASES = { op: 'onepiece' }
+const KNOWN_TCGS = ['pokemon', 'onepiece', 'mtg', 'ygo']
 const TCG_FILTER  = (argTcg ? argTcg.split(',') : ['pokemon','mtg','ygo','onepiece'])
   .map(t => TCG_ALIASES[t] || t)
 const LANG_FILTER = argLang || PKM_LANGS
+
+// GUARD (Task 3.2 -- incidente reale osservato: un run con --tcg=op eseguito
+// contro codice pre-fix ha completato "in 0.0s" senza log intermedi ne'
+// errori, perche' nessuno dei quattro `if (TCG_FILTER.includes(...))` sotto
+// matchava 'op' non normalizzato: zero rami eseguiti, successo silenzioso).
+// Il codice di questo branch normalizza gia' correttamente 'op' (vedi sopra)
+// -- verificato con un test diretto del parsing: `--tcg=op` -> ['onepiece'].
+// Questo guard e' una difesa indipendente per QUALUNQUE causa futura dello
+// stesso sintomo (typo, nuovo alias non mappato, branch/ref sbagliato in CI):
+// se TCG_FILTER non contiene NESSUN tcg noto, e' un errore di configurazione,
+// non un "niente da fare" -- usciamo con errore esplicito invece di
+// completare silenziosamente senza aver sincronizzato nulla.
+const unknownTcgs = TCG_FILTER.filter(t => !KNOWN_TCGS.includes(t))
+if (unknownTcgs.length) {
+  console.warn(`ATTENZIONE: valori --tcg non riconosciuti (ignorati): ${unknownTcgs.join(', ')}. Validi: ${KNOWN_TCGS.join(', ')} (alias: ${Object.keys(TCG_ALIASES).join(', ')}).`)
+}
+if (!TCG_FILTER.some(t => KNOWN_TCGS.includes(t))) {
+  console.error(`ERROR: nessun TCG valido in --tcg="${argTcg || ''}". Nessun sync eseguito. Validi: ${KNOWN_TCGS.join(', ')} (alias: ${Object.keys(TCG_ALIASES).join(', ')}).`)
+  process.exit(1)
+}
 
 const sleep = ms => new Promise(r => setTimeout(r, ms))
 
