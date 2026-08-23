@@ -11,7 +11,7 @@
 import { supabase } from '../../supabase.js'
 import { setIdCandidates, naturalCompare } from './SetDetailPage.jsx'
 import { groupByCanonical } from '../../lib/search.js'
-import { parseSetSlug, slugifySetId } from '../../lib/setSlug.js'
+import { parseSetSlug, slugifySetId, normalizeSetKey } from '../../lib/setSlug.js'
 
 const LISTING_CAP = 400 // vedi nota "PAGINAZIONE/PERFORMANCE" nel task: niente migliaia di righe nel markup iniziale
 
@@ -34,20 +34,29 @@ export async function getSetPageData(slug) {
   const { tcg, setIdSlug } = parsed
 
   // Passo 1: trova il set_id reale (con la casing effettiva in `cards`) tra i candidati.
+  // .order() rende deterministico quale spelling viene scelto quando piu' righe
+  // con set_id diversi (es. "OP-01" e "op01") sono entrambe candidate per lo
+  // stesso slug — vedi normalizeSetKey in lib/setSlug.js.
   const { data: probeRows } = await supabase
     .from('cards')
     .select('set_id')
     .eq('tcg', tcg)
     .in('set_id', rawSetIdCandidates(setIdSlug))
+    .order('set_id', { ascending: true })
     .limit(1)
   const realSetId = probeRows?.[0]?.set_id
   if (!realSetId) return null
 
   // Verifica di determinismo: lo slug ricostruito dal set_id trovato deve combaciare
-  // con quello richiesto, altrimenti due set_id diversi potrebbero collassare sullo
-  // stesso slug normalizzato (collisione, non osservata sui dati reali ma non esclusa
-  // a priori) — in quel caso non si sceglie arbitrariamente, si tratta come not-found.
-  if (slugifySetId(realSetId) !== setIdSlug) return null
+  // (a livello di normalizeSetKey, non piu' di uguaglianza esatta — Explorer/Set-
+  // Experience fix, 2026-08-23) con quello richiesto, altrimenti due set_id diversi
+  // potrebbero collassare sullo stesso slug (collisione, non osservata sui dati
+  // reali ma non esclusa a priori) — in quel caso non si sceglie arbitrariamente,
+  // si tratta come not-found. La versione precedente usava uguaglianza esatta su
+  // slugifySetId(), che rifiutava erroneamente set_id validi trovati con
+  // punteggiatura diversa da quella dello slug richiesto (es. slug "onepiece-op01"
+  // -> probe trova "OP-01", slugifySetId("OP-01")="op-01" != "op01" -> falso 404).
+  if (normalizeSetKey(realSetId) !== normalizeSetKey(setIdSlug)) return null
 
   const candidates = setIdCandidates(realSetId)
   const FIELDS = 'id,name,name_en,set_name,set_id,card_number,image_url,image_url_hi,lang,tcg,canonical_card_id,series_name'

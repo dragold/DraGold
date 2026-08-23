@@ -5,6 +5,7 @@
 // Discovery + SEO + navigazione: NIENTE market dashboard, prezzi aggregati,
 // grafici, portfolio.
 import { getTcgPageData } from './tcgPageData.js'
+import { getTcgHub } from '../../lib/tcgConfig.js'
 import { useEffect, useState, createElement as h } from 'react'
 
 function setSeoMeta({ title, description, image, url }) {
@@ -76,6 +77,7 @@ function setJsonLd(data) {
 
 export default function TcgPage({ tcg }) {
   const [state, setState] = useState({ loading: true, data: null, error: null })
+  const hub = getTcgHub(tcg)
 
   useEffect(() => {
     let alive = true
@@ -95,7 +97,7 @@ export default function TcgPage({ tcg }) {
     const d = state.data
     if (!d) return
     const hubUrl = `https://dragold.org/${d.tcg}`
-    const firstLogo = d.sets.find(s => s.logoUrl)?.logoUrl || null
+    const firstLogo = d.sets.find(s => s.logoUrl)?.logoUrl || d.logo || null
     setRobotsMeta(null)
     setSeoMeta({
       title: `${d.label} — Sets, Cards & Market Prices — DraGold`,
@@ -153,15 +155,47 @@ export default function TcgPage({ tcg }) {
 
   const d = state.data
 
+  // Explorer/Set-Experience feature — group the already release_date-DESC
+  // sorted list (lib/tcgSets.js) into year buckets so the year is visible
+  // without opening a set. mtg/ygo have no release-date source in this DB
+  // (verified — no invented dates), so their sets land in one "release date
+  // unknown" bucket instead of fabricated year headers.
+  const yearGroups = []
+  for (const set of d.sets) {
+    const key = set.releaseYear != null ? String(set.releaseYear) : 'unknown'
+    let g = yearGroups[yearGroups.length - 1]
+    if (!g || g.key !== key) {
+      g = { key, label: set.releaseYear != null ? String(set.releaseYear) : 'Release date unknown', items: [] }
+      yearGroups.push(g)
+    }
+    g.items.push(set)
+  }
+  const showYearHeaders = yearGroups.length > 1 || (yearGroups[0] && yearGroups[0].key !== 'unknown')
+
+  const setTile = (s) => h('a', { href: '/set/' + s.slug, className: 'dg-tcg-tile', style: styles.setTile, key: s.slug },
+    s.logoUrl
+      ? h('img', { src: s.logoUrl, alt: s.setName, style: styles.setLogo, loading: 'lazy', onError: e => { e.currentTarget.style.display = 'none'; e.currentTarget.nextSibling?.style && (e.currentTarget.nextSibling.style.display = 'flex') } })
+      : null,
+    // Fallback when this TCG/set has no logo asset (mtg/ygo today, or a
+    // one-off missing row) — a labeled placeholder, never a blank tile and
+    // never a generated/invented logo.
+    h('div', { style: { ...styles.setLogoFallback, display: s.logoUrl ? 'none' : 'flex', color: hub?.color || '#9aa0ff' } }, s.setId),
+    h('div', { style: styles.setName }, s.setName),
+    h('div', { style: styles.muted },
+      `${s.cardCount} card${s.cardCount === 1 ? '' : 's'}`,
+      s.releaseDate ? ` · ${formatReleaseDate(s.releaseDate)}` : ''
+    )
+  )
+
   const setList = d.sets.length
-    ? h('div', { style: styles.grid }, d.sets.map(s => h('a', { href: '/set/' + s.slug, style: styles.setTile, key: s.slug },
-        s.logoUrl ? h('img', { src: s.logoUrl, alt: s.setName, style: styles.setLogo, loading: 'lazy', onError: e => { e.currentTarget.style.display = 'none' } }) : null,
-        h('div', { style: styles.setName }, s.setName),
-        h('div', { style: styles.muted }, `${s.cardCount} card${s.cardCount === 1 ? '' : 's'}`)
-      )))
+    ? yearGroups.map(g => h('div', { key: g.key, style: { marginBottom: 28 } },
+        showYearHeaders ? h('div', { style: styles.yearHead }, g.label) : null,
+        h('div', { style: styles.grid }, g.items.map(setTile))
+      ))
     : h('p', { style: styles.muted }, 'No sets indexed yet.')
 
   return h('div', { style: styles.page },
+    h('style', null, TILE_CSS),
     h('div', { style: styles.wrap },
       h('a', { href: '/', style: styles.backLink }, '← DraGold'),
       h('nav', { style: styles.breadcrumb, 'aria-label': 'breadcrumb' },
@@ -170,9 +204,15 @@ export default function TcgPage({ tcg }) {
         h('span', { style: styles.breadcrumbCurrent }, d.label)
       ),
       h('div', { style: styles.head },
-        h('h1', { style: styles.h1 }, d.label),
-        h('p', { style: styles.subtitle }, d.description),
-        h('p', { style: styles.muted }, `${d.setCount} set${d.setCount === 1 ? '' : 's'} indexed`)
+        // TCG logo — real asset already in the project (public/logos/*.png),
+        // shown at header size (not a small icon) since this is the primary
+        // identity of the page, not decoration.
+        d.logo ? h('img', { src: d.logo, alt: `${d.label} logo`, style: styles.hubLogo }) : null,
+        h('div', null,
+          h('h1', { style: styles.h1 }, d.label),
+          h('p', { style: styles.subtitle }, 'Explore sets and cards'),
+          h('p', { style: styles.muted }, `${d.setCount} set${d.setCount === 1 ? '' : 's'} indexed`)
+        )
       ),
       h('section', { style: styles.section },
         h('h2', { style: styles.h2 }, 'Sets'),
@@ -182,6 +222,22 @@ export default function TcgPage({ tcg }) {
   )
 }
 
+function formatReleaseDate(iso) {
+  try {
+    return new Date(iso).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+  } catch { return iso }
+}
+
+// Inline-style pages (this file, SetPage.jsx, CardPage.jsx) can't express
+// :hover/:focus-visible via style objects — one small scoped <style> tag
+// instead of switching the whole page to a stylesheet, same gold-outline
+// focus convention already used across styles.css.
+const TILE_CSS = `
+.dg-tcg-tile{transition:transform .15s ease,border-color .15s ease;}
+.dg-tcg-tile:hover{transform:translateY(-2px);border-color:#3a3a55;}
+.dg-tcg-tile:focus-visible{outline:2px solid #fbbf24;outline-offset:2px;border-color:#3a3a55;}
+`
+
 const styles = {
   page: { minHeight: '100vh', background: '#020208', color: '#f4f4f8', fontFamily: 'system-ui, -apple-system, sans-serif', padding: '24px 16px' },
   wrap: { maxWidth: 1100, margin: '0 auto' },
@@ -190,15 +246,18 @@ const styles = {
   breadcrumb: { fontSize: 13, color: '#888', marginBottom: 24 },
   breadcrumbLink: { color: '#9aa0ff', textDecoration: 'none' },
   breadcrumbCurrent: { color: '#c0c0d0' },
-  head: { marginBottom: 32 },
+  head: { marginBottom: 32, display: 'flex', gap: 20, alignItems: 'center', flexWrap: 'wrap' },
   h1: { fontSize: 30, margin: '0 0 8px', fontWeight: 700 },
   h2: { fontSize: 18, margin: '0 0 16px', fontWeight: 600 },
   subtitle: { color: '#a0a0b0', margin: '0 0 8px', fontSize: 15, maxWidth: 640 },
   section: { marginTop: 20, borderTop: '1px solid #1a1a28', paddingTop: 24 },
   grid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 16 },
-  setTile: { textDecoration: 'none', color: 'inherit', display: 'block', background: '#0f0f18', border: '1px solid #23233a', borderRadius: 12, padding: 14 },
+  setTile: { textDecoration: 'none', color: 'inherit', display: 'block', background: '#0f0f18', border: '1px solid #23233a', borderRadius: 12, padding: 14, outline: 'none' },
   setLogo: { maxHeight: 40, maxWidth: '100%', objectFit: 'contain', marginBottom: 10, display: 'block' },
+  setLogoFallback: { alignItems: 'center', justifyContent: 'center', height: 40, marginBottom: 10, border: '1px dashed currentColor', borderRadius: 8, fontSize: 11, fontWeight: 700, letterSpacing: '.04em', opacity: .85 },
   setName: { fontSize: 14, fontWeight: 600, marginBottom: 4, lineHeight: 1.3 },
   muted: { color: '#777', fontSize: 13 },
   link: { color: '#9aa0ff' },
+  hubLogo: { height: 64, maxWidth: 200, objectFit: 'contain', flexShrink: 0 },
+  yearHead: { fontSize: 13, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', color: '#8a8aa0', marginBottom: 12, paddingBottom: 8, borderBottom: '1px solid #1e1e2e' },
 }

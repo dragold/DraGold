@@ -286,16 +286,21 @@ const relatedGrid = (sameSetCards && sameSetCards.length > 0)
 
 const tcgHubInfo = getTcgHub(primary.tcg)
 return h('div', { style: styles.page },
+         h('style', null, CARD_LINK_CSS),
          h('div', { style: styles.wrap },
            h('a', { href: '/', style: styles.backLink }, '← DraGold'),
            // Block 6 - TCG Hub SEO Foundation: breadcrumb visibile Card -> Set -> TCG,
            // stesso pattern gia' usato in SetPage.jsx/TcgPage.jsx.
            h('nav', { style: styles.breadcrumb, 'aria-label': 'breadcrumb' },
-             h('a', { href: '/', style: styles.breadcrumbLink }, 'DraGold'),
+             h('a', { href: '/', style: styles.breadcrumbLink, className: 'dg-cp-link' }, 'DraGold'),
              tcgHubInfo ? h('span', null, ' / ') : null,
-             tcgHubInfo ? h('a', { href: '/' + primary.tcg, style: styles.breadcrumbLink }, tcgHubInfo.label) : null,
+             tcgHubInfo ? h('a', { href: '/' + primary.tcg, style: styles.breadcrumbLink, className: 'dg-cp-link' }, tcgHubInfo.label) : null,
+             // Card -> Set link (Explorer/Set-Experience feature): a real,
+             // clearly-clickable <a> to /set/:slug — same element that already
+             // existed here, now with an explicit hover/focus style (dg-cp-link,
+             // below) instead of relying on the browser's implicit default.
              setPageSlug ? h('span', null, ' / ') : null,
-             setPageSlug ? h('a', { href: '/set/' + setPageSlug, style: styles.breadcrumbLink }, displaySetName) : null
+             setPageSlug ? h('a', { href: '/set/' + setPageSlug, style: styles.breadcrumbLink, className: 'dg-cp-link' }, displaySetName) : null
            ),
            h('div', { style: styles.hero },
              h('div', { style: styles.imgWrap },
@@ -320,7 +325,7 @@ return h('div', { style: styles.page },
            h('section', { style: styles.section },
              h('h2', { style: styles.h2 },
                'Set: ' + displaySetName,
-               setPageSlug ? h('a', { href: '/set/' + setPageSlug, style: styles.setLink }, 'View full set →') : null
+               setPageSlug ? h('a', { href: '/set/' + setPageSlug, style: styles.setLink, className: 'dg-cp-link' }, 'View full set →') : null
                ),
              relatedGrid
              )
@@ -328,6 +333,11 @@ return h('div', { style: styles.page },
          )
 }
 
+
+const CARD_LINK_CSS = `
+.dg-cp-link:hover{text-decoration:underline;}
+.dg-cp-link:focus-visible{outline:2px solid #fbbf24;outline-offset:2px;border-radius:3px;}
+`
 
 const styles = {
   page: { minHeight: '100vh', background: '#020208', color: '#f4f4f8', fontFamily: 'system-ui, -apple-system, sans-serif', padding: '24px 16px' },

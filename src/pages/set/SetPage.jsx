@@ -3,9 +3,8 @@
 // solo routing verso questa pagina. /set/{slug} e' la URL SEO pubblica del Set,
 // entita' intermedia del Knowledge Graph TCG -> Set -> Canonical Card -> Print/lang.
 import { getSetPageData } from './setPageData.js'
+import { getTcgHub } from '../../lib/tcgConfig.js'
 import { useEffect, useState, createElement as h } from 'react'
-
-const TCG_LABELS = { pokemon: 'Pokémon', mtg: 'Magic: The Gathering', ygo: 'Yu-Gi-Oh!', onepiece: 'One Piece' }
 
 function setSeoMeta({ title, description, image, url }) {
   if (title) document.title = title
@@ -94,7 +93,8 @@ export default function SetPage({ slug }) {
   useEffect(() => {
     const d = state.data
     if (!d) return
-    const tcgLabel = TCG_LABELS[d.tcg] || d.tcg
+    const hub = getTcgHub(d.tcg)
+    const tcgLabel = hub?.label || d.tcg
     const setUrl = `https://dragold.org/set/${d.slug}`
     const countTxt = d.hasMore ? `${d.cardCount}+ cards` : `${d.cardCount} card${d.cardCount === 1 ? '' : 's'}`
     setRobotsMeta(null)
@@ -159,13 +159,15 @@ export default function SetPage({ slug }) {
   }
 
   const d = state.data
-  const tcgLabel = TCG_LABELS[d.tcg] || d.tcg
+  const hub = getTcgHub(d.tcg)
+  const tcgLabel = hub?.label || d.tcg
+  const releaseYear = d.releaseDate ? new Date(d.releaseDate).getFullYear() : null
   const countTxt = d.hasMore ? `${d.cardCount}+ cards` : `${d.cardCount} card${d.cardCount === 1 ? '' : 's'}`
 
   const cardGrid = d.cards.length
     ? h('div', { style: styles.grid }, d.cards.map(c => {
         const tag = c.cardSlug ? 'a' : 'div'
-        const props = { style: styles.cardTile, key: c.id }
+        const props = { style: styles.cardTile, key: c.id, className: c.cardSlug ? 'dg-card-tile' : undefined }
         if (c.cardSlug) props.href = '/carta/' + c.cardSlug
         const img = c.image_url_hi || c.image_url
         return h(tag, props,
@@ -177,23 +179,30 @@ export default function SetPage({ slug }) {
     : h('p', { style: styles.muted }, 'No cards indexed for this set yet.')
 
   return h('div', { style: styles.page },
+    h('style', null, TILE_CSS),
     h('div', { style: styles.wrap },
       h('a', { href: '/', style: styles.backLink }, '← DraGold'),
+      // Breadcrumb "DraGold > TCG > Set" — the requested "Explorer > TCG > Set"
+      // trail: DraGold has no separate /explorer route today (Explore is an
+      // in-app tab, see pages/sets/SetsView.jsx), so the root crumb stays
+      // "DraGold" -> "/" rather than pointing at a route that doesn't exist.
       h('nav', { style: styles.breadcrumb, 'aria-label': 'breadcrumb' },
-        h('a', { href: '/', style: styles.breadcrumbLink }, 'DraGold'),
+        h('a', { href: '/', style: styles.breadcrumbLink, className: 'dg-set-link' }, 'DraGold'),
         h('span', null, ' / '),
-        h('a', { href: '/' + d.tcg, style: styles.breadcrumbLink }, tcgLabel),
+        h('a', { href: '/' + d.tcg, style: styles.breadcrumbLink, className: 'dg-set-link' }, tcgLabel),
         h('span', null, ' / '),
         h('span', { style: styles.breadcrumbCurrent }, d.setName)
       ),
       h('div', { style: styles.head },
         d.logoUrl ? h('img', { src: d.logoUrl, alt: d.setName, style: styles.logo, onError: e => { e.currentTarget.style.display = 'none' } }) : null,
         h('div', null,
+          hub?.logo ? h('img', { src: hub.logo, alt: '', style: styles.hubBadge }) : null,
           h('h1', { style: styles.h1 }, d.setName),
           h('p', { style: styles.subtitle },
             tcgLabel,
             ' · ', d.setId,
-            d.releaseDate ? ` · Released ${d.releaseDate}` : '',
+            d.releaseDate ? ` · Released ${formatDate(d.releaseDate)}` : '',
+            releaseYear ? ` (${releaseYear})` : '',
             ` · ${countTxt}`,
             d.seriesName ? ` · ${d.seriesName} series` : ''
           )
@@ -207,6 +216,19 @@ export default function SetPage({ slug }) {
   )
 }
 
+function formatDate(iso) {
+  try { return new Date(iso).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) }
+  catch { return iso }
+}
+
+const TILE_CSS = `
+.dg-set-link:hover{text-decoration:underline;}
+.dg-set-link:focus-visible{outline:2px solid #fbbf24;outline-offset:2px;border-radius:3px;}
+.dg-card-tile{transition:transform .15s ease;}
+.dg-card-tile:hover{transform:translateY(-2px);}
+.dg-card-tile:focus-visible{outline:2px solid #fbbf24;outline-offset:2px;}
+`
+
 const styles = {
   page: { minHeight: '100vh', background: '#020208', color: '#f4f4f8', fontFamily: 'system-ui, -apple-system, sans-serif', padding: '24px 16px' },
   wrap: { maxWidth: 1100, margin: '0 auto' },
@@ -217,12 +239,13 @@ const styles = {
   breadcrumbCurrent: { color: '#c0c0d0' },
   head: { display: 'flex', gap: 20, alignItems: 'center', marginBottom: 32, flexWrap: 'wrap' },
   logo: { maxHeight: 64, maxWidth: 220, objectFit: 'contain' },
+  hubBadge: { height: 16, marginBottom: 6, opacity: .8, display: 'block' },
   h1: { fontSize: 28, margin: '0 0 6px', fontWeight: 700 },
   h2: { fontSize: 18, margin: '0 0 16px', fontWeight: 600 },
   subtitle: { color: '#a0a0b0', margin: 0, fontSize: 14 },
   section: { marginTop: 20, borderTop: '1px solid #1a1a28', paddingTop: 24 },
   grid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: 16 },
-  cardTile: { textDecoration: 'none', color: 'inherit', display: 'block' },
+  cardTile: { textDecoration: 'none', color: 'inherit', display: 'block', borderRadius: 8 },
   cardImg: { width: '100%', borderRadius: 8, marginBottom: 6, aspectRatio: '3/4', objectFit: 'cover' },
   cardImgPh: { width: '100%', aspectRatio: '3/4', background: '#14141f', borderRadius: 8, marginBottom: 6 },
   cardName: { fontSize: 13, fontWeight: 600, lineHeight: 1.3 },
