@@ -683,10 +683,14 @@ input{font-family:inherit;font-size:16px;}
 .set-card-fallback-code{font-family:'Space Mono',monospace;font-size:13px;font-weight:700;letter-spacing:.03em;line-height:1;}
 .set-card-fallback-tcg{font-size:9px;font-weight:700;letter-spacing:.08em;opacity:.65;line-height:1;}
 .set-card-name{font-size:12px;font-weight:600;line-height:1.3;color:var(--text);overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;}
+.set-card-meta{font-family:'Space Mono',monospace;font-size:10px;color:var(--dim);letter-spacing:.02em;}
+.set-section-logo{height:20px;width:auto;object-fit:contain;opacity:.9;}
+.set-year-head{font-family:'Space Mono',monospace;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);margin:4px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--border);}
 
 /* ─── Card Detail → Set link (Phase 1 post-P0) ─── */
 .set-logo-link{background:none;border:none;padding:0;cursor:pointer;display:inline-flex;opacity:.9;transition:.15s;}
 .set-logo-link:hover{opacity:1;}
+.set-logo-link:focus-visible{outline:2px solid var(--gold);outline-offset:3px;border-radius:4px;}
 /* Affordance visibile anche senza hover (icona chevron sempre presente, non solo
    sottolineatura al passaggio del mouse) — resta elegante/secondario: stesso colore
    muted del testo circostante, solo l'icona segnala "questo porta altrove". */
@@ -694,6 +698,7 @@ input{font-family:inherit;font-size:16px;}
 .asset-meta-link svg{opacity:.6;transition:.15s;}
 .asset-meta-link:hover{color:var(--text);}
 .asset-meta-link:hover svg{opacity:1;transform:translateX(1px);}
+.asset-meta-link:focus-visible{outline:2px solid var(--gold);outline-offset:2px;border-radius:4px;}
 
 /* ─── "See full set" — text-link leggero, non un chip/bottone pieno ─── */
 .rail-more-link{background:none;border:none;padding:0;margin:0;font-size:11px;font-weight:700;letter-spacing:.04em;
