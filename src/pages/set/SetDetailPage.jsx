@@ -74,6 +74,15 @@ export function SetDetailPage({ setRef, setsMap, country, cur, eurRate, onOpen, 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [visibleCount, setVisibleCount] = useState(60);
+  // Explorer/Set-Experience completeness (2026-08-25): some logo URLs "load"
+  // (onError never fires) but resolve to a 0x0 image — same hotlink-protection
+  // case already handled in Explore's SetTile (see SetsView.jsx comment,
+  // verified for One Piece official logos). Set Detail used to just hide the
+  // broken <img>, leaving blank space instead of the same elegant branded
+  // fallback Explore already shows for this exact case — inconsistent visual
+  // fallback between the two surfaces for the same set. Mirrors SetTile's
+  // imgOk/naturalWidth check so both surfaces resolve to the same outcome.
+  const [logoOk, setLogoOk] = useState(true);
   // Completion — which of this set's cards the signed-in user already owns.
   // RLS on `collection` scopes rows to auth.uid() automatically (same
   // pattern as supabase.js's listCollection()), so no user id needs to be
@@ -97,6 +106,9 @@ export function SetDetailPage({ setRef, setsMap, country, cur, eurRate, onOpen, 
   // for this tile. setRef.logo_url carries that resolved logo through
   // instead of silently dropping it here.
   const logoUrl = setRef.logo_url || info?.logo_url || null;
+  const tcgMeta = TCG_LIST.find(t => t.id === setRef.tcg);
+  useEffect(() => { setLogoOk(true); }, [logoUrl]);
+  const showLogo = !!logoUrl && logoOk;
   const gridReveal = useReveal();
   const constellationReveal = useReveal();
   const previewDrag = useDragScroll();
@@ -184,9 +196,14 @@ export function SetDetailPage({ setRef, setsMap, country, cur, eurRate, onOpen, 
           {cards[0]?.series_name && ` · ${cards[0].series_name} series`}
         </span>
         <div className="set-detail-row">
-          {logoUrl && (
+          {showLogo ? (
             <img src={logoUrl} alt={setName} className="set-logo-img"
-              onError={e => { e.currentTarget.style.display = "none"; }} />
+              onError={() => setLogoOk(false)}
+              onLoad={e => { if (e.currentTarget.naturalWidth === 0) setLogoOk(false); }} />
+          ) : (
+            <div className="set-detail-logo-fallback" style={{ color: tcgMeta?.color, borderColor: `${tcgMeta?.color}33` }}>
+              <span className="set-detail-logo-fallback-code">{setRef.set_id}</span>
+            </div>
           )}
           <div className="view-h" style={{ margin: 0 }}>
             <h2 className="view-t">{setName}</h2>

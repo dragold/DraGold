@@ -417,7 +417,15 @@ export function AssetView({ card, onBack, isAuthed, onLogin, country, cur, eurRa
 
           {(() => {
             const canOpenSet = !!(onOpenSet && card.set_id);
-            const openThisSet = () => onOpenSet({ tcg: card.tcg, set_id: card.set_id, lang: card.lang, set_name: setInfo?.set_name || card.set_name });
+            // Explorer/Set-Experience completeness (2026-08-25): setInfo.logo_url
+            // is already resolved above (getSetInfo) and used to render this very
+            // logo a few lines below — it just wasn't threaded into the ref passed
+            // to onOpenSet, so Set Detail had to re-resolve it from its own
+            // (eager, International-only) setsMap cache and silently lost the logo
+            // for any set only resolved lazily (e.g. Japanese sets) when reached
+            // via Card Detail's "view set" link. Same fix already applied to
+            // Explore's SetTile in the earlier Explorer/Catalog Completeness task.
+            const openThisSet = () => onOpenSet({ tcg: card.tcg, set_id: card.set_id, lang: card.lang, set_name: setInfo?.set_name || card.set_name, logo_url: setInfo?.logo_url || null });
             return (
               <>
                 {setInfo?.logo_url && (
@@ -687,7 +695,7 @@ export function AssetView({ card, onBack, isAuthed, onLogin, country, cur, eurRa
             <span className="sec-h-line" />
             {onOpenSet && card.set_id && (
               <button type="button" className="rail-more-link"
-                onClick={() => onOpenSet({ tcg: card.tcg, set_id: card.set_id, lang: card.lang, set_name: setInfo?.set_name || card.set_name })}>
+                onClick={() => onOpenSet({ tcg: card.tcg, set_id: card.set_id, lang: card.lang, set_name: setInfo?.set_name || card.set_name, logo_url: setInfo?.logo_url || null })}>
                 See full set <Icon name="chevron" size={11} stroke={2.5} />
               </button>
             )}
