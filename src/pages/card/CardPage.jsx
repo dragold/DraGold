@@ -31,6 +31,24 @@ function readRequestedLang() {
     return /^[a-z]{2}(-[a-z]{2,4})?$/.test(v) ? v : null
   } catch { return null }
 }
+// Reload-persistence fix (Alpha Core, Fase 3-B): selecting a language pill
+// only updated React state (selectedId), never the URL — a reload (or a
+// shared/bookmarked link) silently dropped back to the default print
+// (curated/English) instead of the language the user was actually looking
+// at. history.replaceState keeps the same canonical slug/page (no
+// navigation, no extra history entry) while making ?lang= reflect the real
+// selection, consistent with the ?lang= convention already used by
+// SetPage.jsx / getCardPageData. English has no explicit param elsewhere in
+// this app (it's the implicit default), so we drop the param entirely when
+// the selection is English, and set it for every other real language.
+function syncLangInUrl(lang) {
+  try {
+    const url = new URL(window.location.href)
+    if (!lang || lang === 'en') url.searchParams.delete('lang')
+    else url.searchParams.set('lang', lang)
+    window.history.replaceState(window.history.state, '', url.pathname + url.search + url.hash)
+  } catch { /* no-op: URL sync is a UX nicety, never block the language switch itself */ }
+}
 // Market/Purchase Discovery MVP (2026-08-25): stessa costruzione URL/affiliate
 // eBay già usata da AssetView.jsx, importata dal modulo leggero lib/ebayLinks.js
 // (non da DraGold.jsx, il bundle SPA pesante che questa pagina evita apposta —
@@ -77,6 +95,13 @@ function formatPrice(value, currency) {
 const LANG_LABELS = {
   en: 'English', ja: '日本語', it: 'Italiano', de: 'Deutsch', fr: 'Français',
   es: 'Español', pt: 'Português', id: 'Indonesia', ko: '한국어',
+  // Alpha Core (Fase 1): verificato su Supabase (cards.lang, tcg=pokemon) che
+  // esistono davvero righe in queste tre lingue (zh-tw 7436, th 2921,
+  // zh-cn 877) oltre a quelle gia' mappate sopra — mancavano qui, quindi il
+  // pill esisteva ed era cliccabile (languages viene da un DISTINCT reale,
+  // non da questa mappa) ma mostrava il codice grezzo maiuscolo invece di
+  // un'etichetta leggibile.
+  'zh-tw': '繁體中文', 'zh-cn': '简体中文', th: 'ภาษาไทย',
 }
 function langLabel(code) {
   return LANG_LABELS[code] || (code || '').toUpperCase()
@@ -414,7 +439,7 @@ const languagePills = (languages && languages.length > 1)
       return h('button', {
         type: 'button', key: code,
         style: active ? styles.pillActive : styles.pill,
-        onClick: () => candidate && setSelectedId(candidate.id),
+        onClick: () => { if (candidate) { setSelectedId(candidate.id); syncLangInUrl(code) } },
         disabled: !candidate,
       }, langLabel(code))
     }))
