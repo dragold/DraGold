@@ -138,3 +138,136 @@ export function loadTcgSets(tcg) {
   }
   return _cache.get(tcg)
 }
+
+// Explorer language grouping (Explorer + Catalog Completeness task, 2026-08-25).
+//
+// Verified live on Supabase before writing this: only pokemon and onepiece
+// have any cards.lang other than 'en' (mtg/ygo are 100% 'en' — confirmed by
+// `select tcg, count(distinct set_id) from cards where lang != 'en' group by
+// tcg`, which returns only pokemon/onepiece rows). So which TCGs get a
+// "Japanese" section is detected live per tcg (detectJapaneseSets below), not
+// hardcoded — a 5th tcg or a future ja source for mtg/ygo needs no code change.
+//
+// Within pokemon, 'ja' is its own real set_id namespace (e.g. CP1, E1..E5,
+// M1L, M2a, PCG1..9 — verified live, zero overlap with the en/fr/de/it/es/pt
+// namespace of base1/bw1/swshp/...). The other 9 non-en pokemon languages
+// (fr/de/it/es/pt/zh-tw/th/id/zh-cn/ko) instead reuse the SAME set_id as the
+// en row for the same physical set (verified: cards.set_id='base1' has
+// en/it/de/fr rows, all one set) — they are print-language variants of a set
+// already represented by the "International" (en) entry, not a distinct set
+// identity, so they're deliberately not exploded into their own Explorer
+// sections (CLAUDE.md §1 product priority is EN/JA; a 12-language filter row
+// would also violate this task's explicit "avoid a huge language filter").
+//
+// Within onepiece, 'ja' sets (OP-01, ST-01, ...) collide with their en
+// counterpart (OP01, ST01) under normalizeSetKey() — same real set under two
+// source-id spellings (see setSlug.js) — so the ja entry below reuses the
+// same set_logos row (name/logo/release date) as the en entry: not a
+// duplicate identity, not an invented asset, just the same official source
+// already used for the International entry.
+function parseDateLoose(d) {
+  if (!d) return null
+  const t = new Date(d)
+  return isNaN(t.getTime()) ? null : t
+}
+
+// Same shape as computeTcgSets, but scoped to one cards.lang value instead of
+// the language-agnostic canonical_cards/cards union. Used for the "Japanese"
+// Explorer section of pokemon/onepiece — computeTcgSets itself stays
+// untouched (still used as-is by mtg/ygo, which have no lang variation).
+export async function computeLangSets(tcg, lang) {
+  if (!supabase || !tcg || !lang) return { sets: [], setCount: 0 }
+
+  const counts = new Map() // normKey -> Map<rawSetId, count>
+  const { data: rows } = await supabase
+    .from('cards')
+    .select('set_id')
+    .eq('tcg', tcg).eq('lang', lang)
+    .not('set_id', 'is', null)
+    .limit(MAX_ROWS)
+  for (const r of rows || []) {
+    const normKey = normalizeSetKey(r.set_id)
+    if (!normKey) continue
+    let group = counts.get(normKey)
+    if (!group) { group = new Map(); counts.set(normKey, group) }
+    group.set(r.set_id, (group.get(r.set_id) || 0) + 1)
+  }
+  if (!counts.size) return { sets: [], setCount: 0 }
+
+  // Real name for this language, from the cards rows themselves (e.g. native
+  // Japanese set names — verified populated for pokemon/onepiece ja rows) —
+  // used only as a fallback when set_logos has no matching row for this set.
+  const nameByNormKey = new Map()
+  const { data: nameRows } = await supabase
+    .from('cards')
+    .select('set_id, set_name')
+    .eq('tcg', tcg).eq('lang', lang)
+    .not('set_name', 'is', null)
+    .limit(MAX_ROWS)
+  for (const r of nameRows || []) {
+    const normKey = normalizeSetKey(r.set_id)
+    if (normKey && !nameByNormKey.has(normKey)) nameByNormKey.set(normKey, r.set_name)
+  }
+
+  const { data: logoRows } = await supabase
+    .from('set_logos')
+    .select('set_code, set_name, logo_url, release_date')
+    .eq('tcg', tcg)
+  const logoByNormKey = new Map((logoRows || []).map(r => [normalizeSetKey(r.set_code), r]))
+
+  const sets = [...counts.entries()].map(([normKey, group]) => {
+    const setId = pickCanonicalSetId(group, logoByNormKey, normKey)
+    const cardCount = [...group.values()].reduce((a, b) => a + b, 0)
+    const logo = logoByNormKey.get(normKey) || null
+    const releaseDate = logo?.release_date || null
+    return {
+      slug: buildSetSlug(tcg, setId),
+      setId,
+      setName: logo?.set_name || nameByNormKey.get(normKey) || setId,
+      logoUrl: logo?.logo_url || null,
+      releaseDate,
+      releaseYear: releaseDate ? new Date(releaseDate).getFullYear() : null,
+      cardCount,
+      lang,
+    }
+  })
+
+  sets.sort((a, b) => {
+    const da = parseDateLoose(a.releaseDate), db = parseDateLoose(b.releaseDate)
+    if (da && db) return db - da
+    if (da && !db) return -1
+    if (!da && db) return 1
+    return a.setName.localeCompare(b.setName)
+  })
+
+  return { sets, setCount: sets.length }
+}
+
+const _langCache = new Map() // `${tcg}:${lang}` -> Promise<{sets,setCount}>
+
+export function loadLangSets(tcg, lang) {
+  if (!supabase || !tcg || !lang) return Promise.resolve({ sets: [], setCount: 0 })
+  const key = `${tcg}:${lang}`
+  if (!_langCache.has(key)) {
+    _langCache.set(key, computeLangSets(tcg, lang).catch(() => ({ sets: [], setCount: 0 })))
+  }
+  return _langCache.get(key)
+}
+
+// Cheap live existence check ("does this tcg have any ja cards at all?") —
+// one row, head-less .limit(1) query, cached per tcg. Never hardcoded to
+// pokemon/onepiece: a future tcg/source adding ja data needs no code change
+// here, and a tcg without ja data (mtg/ygo today) never shows an empty/dead
+// "Japanese" section.
+const _jaAvailCache = new Map() // tcg -> Promise<boolean>
+
+export function detectJapaneseSets(tcg) {
+  if (!supabase || !tcg) return Promise.resolve(false)
+  if (!_jaAvailCache.has(tcg)) {
+    _jaAvailCache.set(tcg, supabase
+      .from('cards').select('id').eq('tcg', tcg).eq('lang', 'ja').limit(1)
+      .then(({ data }) => !!(data && data.length))
+      .catch(() => false))
+  }
+  return _jaAvailCache.get(tcg)
+}
