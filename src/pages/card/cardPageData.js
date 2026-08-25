@@ -48,7 +48,15 @@ if (!supabase || !slug) return null
     const displayName = (enVariant && enVariant.name) || `${langLabels[primary.lang] || (primary.lang || '').toUpperCase()} ${tcgLabels[primary.tcg] || primary.tcg} Card ${primary.card_number || ''}`.trim()
     const displaySetName = (enVariant && enVariant.set_name) || (primary.lang === 'en' ? primary.set_name : null) || primary.set_id || primary.set_name
 
-  const [{ data: prices }, { data: rarityRow }, { data: sameSet }] = await Promise.all([
+  // Market/Purchase Discovery MVP (2026-08-25): eBay sold-average timeframes
+  // (source='ebay_finding', stessa tabella card_prices, stesso filtro già
+  // usato da AssetView.jsx loadSoldData — nessuna nuova tabella/API, solo
+  // riuso dello stesso pattern qui nel data layer server-side). Interrogata
+  // separatamente dallo storico prezzi generico sopra (che non filtra per
+  // source) perché limit(60) su tutte le fonti non garantirebbe di includere
+  // le righe ebay_finding più recenti per ogni finestra se altre fonti
+  // scrivono più spesso — stesso motivo per cui AssetView la tiene distinta.
+  const [{ data: prices }, { data: rarityRow }, { data: sameSet }, { data: soldRows }] = await Promise.all([
 supabase
 .from('card_prices')
 .select('source, currency, price_market, price_low, price_high, price_median, captured_at, timeframe')
@@ -66,10 +74,28 @@ supabase
 .eq('lang', primary.lang)
 .neq('id', primary.id)
 .limit(12),
+supabase
+.from('card_prices')
+.select('price_market, price_median, timeframe, currency, captured_at, raw_response')
+.eq('card_id', primary.id)
+.eq('source', 'ebay_finding')
+.not('timeframe', 'is', null)
+.order('captured_at', { ascending: false })
+.limit(30),
 ])
 
 const priceHistory = prices || []
 const currentPrice = priceHistory[0] || null
+
+// Solo la riga più recente per finestra (7d/30d/90d) — stessa riduzione di
+// AssetView.jsx loadSoldData, count reale estratto da raw_response quando
+// presente, mai inventato.
+const soldByTimeframe = {}
+for (const row of (soldRows || [])) {
+  if (!soldByTimeframe[row.timeframe]) {
+    soldByTimeframe[row.timeframe] = { ...row, count: row.raw_response?.count ?? null }
+  }
+}
 
 
 let sameSetCards = sameSet || []
@@ -92,6 +118,7 @@ return {
   rarity: rarityRow || null,
   currentPrice,
   priceHistory,
+  soldByTimeframe,
   sameSetCards,
 }
   }

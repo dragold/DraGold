@@ -17,7 +17,36 @@ import { buildSetSlug } from '../../lib/setSlug.js'
 import { getTcgHub } from '../../lib/tcgConfig.js'
 import { slugifyIllustrator } from '../../lib/illustratorSlug.js'
 import { useAuth } from '../../lib/auth.js'
+// Market/Purchase Discovery MVP (2026-08-25): stessa costruzione URL/affiliate
+// eBay già usata da AssetView.jsx, importata dal modulo leggero lib/ebayLinks.js
+// (non da DraGold.jsx, il bundle SPA pesante che questa pagina evita apposta —
+// vedi commento su LANG_LABELS sopra) — nessuna seconda implementazione.
+import { ebayURL, ebayItemURL } from '../../lib/ebayLinks.js'
 import { useEffect, useState, createElement as h, Fragment } from 'react'
+
+// Etichette fonte prezzo — stessa mappa (ridotta alle sole fonti realmente
+// presenti in card_prices) già usata da AssetView.jsx SOURCE_LABELS, per non
+// mostrare mai un "Market price" senza dire da dove viene: può essere l'ultima
+// riga di QUALSIASI fonte in card_prices, eBay sold-average incluso quando è
+// la più recente — l'etichetta è quindi parte della "distinzione chiara"
+// richiesta dal task, non solo un dettaglio estetico.
+const PRICE_SOURCE_LABELS = {
+  tcgplayer: 'TCGplayer', cardmarket: 'Cardmarket', justtcg: 'JustTCG',
+  ebay_sold: 'eBay (sold)', ebay_finding: 'eBay (sold)',
+}
+function priceSourceLabel(source) {
+  if (!source) return 'market'
+  if (PRICE_SOURCE_LABELS[source]) return PRICE_SOURCE_LABELS[source]
+  return source.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+}
+
+// Numero carta "distintivo" = filtrabile in modo affidabile su eBay — stessa
+// regola/soglia di AssetView.jsx (Fix #3 lì): un numero corto puro come "5"
+// matcherebbe qualunque titolo, falsi positivi, quindi niente eBay Live in
+// quel caso.
+function isDistinctiveCardNumber(cardNum) {
+  return !!cardNum && (/[a-z]/i.test(cardNum) || /[-/]/.test(cardNum) || cardNum.replace(/[^a-z0-9]/gi, '').length >= 5)
+}
 function formatPrice(value, currency) {
   if (value == null) return null
   try {
@@ -121,6 +150,11 @@ export default function CardPage({ slug }) {
   const [qtyLoading, setQtyLoading] = useState(false)
   const [collectBusy, setCollectBusy] = useState(false)
   const [decrementBusy, setDecrementBusy] = useState(false)
+  // eBay live listings (Market/Purchase Discovery MVP) — stesso endpoint reale
+  // già usato da AssetView.jsx (/api/ebay-search, Browse API), stesso gate sul
+  // numero carta distintivo, stesso filtro dei match sul titolo. Ricaricato
+  // quando cambia il record selezionato (lingua/variant = card_number diverso).
+  const [ebayItems, setEbayItems] = useState([])
   const { status: authStatus, isAuthed } = useAuth()
 
 useEffect(() => {
@@ -226,6 +260,32 @@ useEffect(() => {
   return () => { cancelled = true }
 }, [isAuthed, selected && selected.id])
 
+// eBay live listings (Market/Purchase Discovery MVP, 2026-08-25) — stesso
+// endpoint reale già in produzione per Card Detail (/api/ebay-search, Browse
+// API), stessa soglia "numero distintivo" per evitare falsi positivi. Va
+// prima degli early return sotto per la stessa ragione dell'effect sopra.
+useEffect(() => {
+  const cardNum = selected?.card_number || ''
+  if (!selected || !isDistinctiveCardNumber(cardNum)) { setEbayItems([]); return }
+  let cancelled = false
+  const numNorm = cardNum.replace(/[^a-z0-9]/gi, '').toLowerCase()
+  const suffix = selected.tcg === 'mtg' ? 'magic the gathering'
+    : selected.tcg === 'ygo' ? 'yugioh'
+    : selected.tcg === 'onepiece' ? 'one piece card' : 'pokemon card'
+  const q = `${selected.name} ${cardNum} ${suffix}`.replace(/\s+/g, ' ').trim()
+  fetch(`/api/ebay-search?q=${encodeURIComponent(q)}&market=US&limit=20`, { signal: AbortSignal.timeout(8000) })
+    .then(r => (r && r.ok) ? r.json() : { items: [] })
+    .then(d => {
+      if (cancelled) return
+      const matches = (d.items || [])
+        .filter(it => (it.title || '').replace(/[^a-z0-9]/gi, '').toLowerCase().includes(numNorm))
+        .slice(0, 5)
+      setEbayItems(matches)
+    })
+    .catch(() => { if (!cancelled) setEbayItems([]) })
+  return () => { cancelled = true }
+}, [selected && selected.id])
+
 if (state.loading) {
   // Riusa il sistema skeleton globale (.skel-*, definito in styles.css e già
   // usato da SearchResults/HotPicks/Portfolio/Alerts) invece di un testo statico.
@@ -263,6 +323,7 @@ const primary = state.data.primary
   const rarity = state.data.rarity
   const currentPrice = state.data.currentPrice
   const priceHistory = state.data.priceHistory
+  const soldByTimeframe = state.data.soldByTimeframe || {}
   const sameSetCards = state.data.sameSetCards
 
 async function handleAddCollection() {
@@ -305,6 +366,16 @@ async function handleAddWatchlist() {
 }
 
 const setPageSlug = buildSetSlug(primary.tcg, primary.set_id)
+// One Piece EN/JA set_id spellings collapse to the SAME /set/:slug (see the
+// ?lang= routing fix, task "risolvere il limite strutturale One Piece
+// Japanese") — without an explicit ?lang=ja, /set/:slug defaults to English,
+// so a JP card here would silently link to the EN set page. Suffix based on
+// `selected` (the record actually shown right now, changes with the language
+// pills above), not `primary`, so switching to a JP print also switches the
+// Set link. Pokémon JP lives in its own set_id namespace (no collision, see
+// lib/tcgSets.js) and already resolves correctly without this — unaffected.
+const setLangSuffix = (primary.tcg === 'onepiece' && selected.lang && selected.lang !== 'en') ? `?lang=${encodeURIComponent(selected.lang)}` : ''
+const setHref = setPageSlug ? '/set/' + setPageSlug + setLangSuffix : null
 const heroImage = selected.image_url_hi || selected.image_url
 
 // Identity row (sez. 1/10): Rarity / Language / Variant del record mostrato.
@@ -360,7 +431,7 @@ const infoFacts = [
   { k: 'Card number', v: primary.card_number },
   { k: 'Rarity', v: selectedRarityLabel },
   { k: 'Language', v: selected.lang ? langLabel(selected.lang) : null },
-  { k: 'Set', v: displaySetName, href: setPageSlug ? '/set/' + setPageSlug : null },
+  { k: 'Set', v: displaySetName, href: setHref },
   { k: 'Variant', v: selected.print_variant },
   { k: 'Illustrator', v: primary.illustrator, href: primary.illustrator ? '/illustrator/' + slugifyIllustrator(primary.illustrator) : null },
   { k: 'Series', v: primary.series_name },
@@ -375,13 +446,31 @@ const infoSection = infoFacts.length ? h('section', { style: styles.section, key
   )))
 ) : null
 
+// Market/Purchase Discovery MVP (2026-08-25): oggi un solo elemento reale
+// (eBay, unica integrazione con affiliate tracking effettivamente configurato
+// — stessa struttura array introdotta in AssetView.jsx per lo stesso motivo:
+// aggiungere TCGplayer/Cardmarket in futuro, una volta che esiste una loro
+// registrazione affiliate reale, e' un elemento in piu' in questo array, non
+// un rifacimento di questo blocco).
+const marketLinks = [
+  { key: 'ebay', label: 'Find listings on eBay', href: ebayURL(selected.name || primary.name, displaySetName, 'US', primary.tcg, primary.card_number) },
+].filter(l => l.href)
+
+// PREZZO — distinzione esplicita fra prezzo interno (currentPrice, qualunque
+// sia la sua fonte reale — vedi priceSourceLabel sopra) e nessun prezzo
+// affidabile (fallback onesto verso eBay, mai un valore inventato).
 const priceBlock = (currentPrice && currentPrice.price_market != null)
   ? h(Fragment, null,
       h('div', { style: styles.priceLabel }, 'Market price'),
       h('div', { style: styles.priceValue }, formatPrice(currentPrice.price_market, currentPrice.currency)),
-      currentPrice.captured_at ? h('div', { style: styles.muted }, 'Updated on ' + new Date(currentPrice.captured_at).toLocaleDateString('en-US')) : null
+      h('div', { style: styles.muted }, priceSourceLabel(currentPrice.source) + (currentPrice.captured_at ? ' · updated ' + new Date(currentPrice.captured_at).toLocaleDateString('en-US') : ''))
       )
-  : h('div', { style: styles.muted }, 'Price not yet available for this card.')
+  : h(Fragment, null,
+      h('div', { style: styles.muted }, 'No market price yet for this card.'),
+      h('div', { style: styles.marketLinkRow }, marketLinks.map(l =>
+        h('a', { key: l.key, href: l.href, target: '_blank', rel: 'noreferrer', style: styles.btnPrimaryLink, className: 'dg-cp-link' }, l.label + ' ↗')
+      ))
+      )
 
 const historySection = (priceHistory && priceHistory.length > 1) ? h('section', { style: styles.section, key: 'history' },
                                                                      h('h2', { style: styles.h2 }, 'Price history'),
@@ -390,6 +479,39 @@ const historySection = (priceHistory && priceHistory.length > 1) ? h('section', 
                                                                                                                                                        h('span', null, formatPrice(p.price_market, p.currency) || '—')
                                                                                                                                                        )))
                                                                      ) : null
+
+// eBay SOLD AVERAGE (Market/Purchase Discovery MVP) — dati "osservati" reali,
+// distinti dal prezzo interno sopra (sezione a parte, etichetta esplicita
+// "eBay sold · avg price"). Nessun gating per piano: PRODUCT_SPEC.md §6, i
+// piani "non gatekeepano nulla" oggi — mostrate tutte le finestre realmente
+// presenti, nessuna inventata per quelle assenti.
+const soldTfOrder = [['7d', '7 days'], ['30d', '30 days'], ['90d', '90 days']]
+const soldRowsPresent = soldTfOrder.filter(([tf]) => soldByTimeframe[tf])
+const soldSection = soldRowsPresent.length ? h('section', { style: styles.section, key: 'sold' },
+  h('h2', { style: styles.h2 }, 'eBay sold · avg price'),
+  h('div', { style: styles.historyList }, soldRowsPresent.map(([tf, label]) => {
+    const row = soldByTimeframe[tf]
+    return h('div', { style: styles.historyRow, key: tf },
+      h('span', null, label),
+      h('span', null, formatPrice(row.price_market, row.currency) || '—'),
+      h('span', { style: styles.muted }, row.count != null ? row.count + ' sales' : '')
+    )
+  }))
+) : null
+
+// eBay LIVE (Market/Purchase Discovery MVP) — listing reali via lo stesso
+// endpoint /api/ebay-search già usato da AssetView.jsx, nascosta se zero match
+// (mai una lista vuota mostrata come se fosse un risultato).
+const ebayLiveSection = ebayItems.length > 0 ? h('section', { style: styles.section, key: 'ebay-live' },
+  h('h2', { style: styles.h2 }, 'eBay live listings'),
+  h('div', { style: styles.historyList }, ebayItems.map((it, i) =>
+    h('a', { key: i, href: ebayItemURL(it.url, 'US'), target: '_blank', rel: 'noreferrer', style: styles.historyRow, className: 'dg-cp-link' },
+      h('span', null, it.title),
+      h('span', null, (it.currency === 'EUR' ? '€' : it.currency === 'GBP' ? '£' : '$') + Number(it.price).toFixed(2))
+    )
+  )),
+  marketLinks[0] ? h('a', { href: marketLinks[0].href, target: '_blank', rel: 'noreferrer', style: styles.setLink, className: 'dg-cp-link' }, 'See all on eBay →') : null
+) : null
 
 // Academy (sez. 7): stesso link gia' introdotto in Task 5, ora una sezione
 // dedicata invece di una riga persa tra i meta. Card Anatomy e' la seconda
@@ -421,7 +543,7 @@ const relatedSection = (sameSetCards && sameSetCards.length > 0) ? h('section', 
              h('div', { style: styles.muted }, '#' + c.card_number)
              )
   })),
-  setPageSlug ? h('a', { href: '/set/' + setPageSlug, style: styles.setLink, className: 'dg-cp-link' }, 'View full set →') : null
+  setHref ? h('a', { href: setHref, style: styles.setLink, className: 'dg-cp-link' }, 'View full set →') : null
 ) : null
 
 // Collection CTA (sez. 2/11): riusa add_or_increment_collection /
@@ -466,8 +588,8 @@ return h('div', { style: styles.page },
              // clearly-clickable <a> to /set/:slug — same element that already
              // existed here, now with an explicit hover/focus style (dg-cp-link,
              // below) instead of relying on the browser's implicit default.
-             setPageSlug ? h('span', null, ' / ') : null,
-             setPageSlug ? h('a', { href: '/set/' + setPageSlug, style: styles.breadcrumbLink, className: 'dg-cp-link' }, displaySetName) : null
+             setHref ? h('span', null, ' / ') : null,
+             setHref ? h('a', { href: setHref, style: styles.breadcrumbLink, className: 'dg-cp-link' }, displaySetName) : null
            ),
            h('div', { style: styles.hero },
              h('div', { style: styles.imgWrap },
@@ -476,7 +598,7 @@ return h('div', { style: styles.page },
              h('div', { style: styles.info },
                h('h1', { style: styles.h1 }, displayName),
                h('p', { style: styles.subtitle },
-                 setPageSlug ? h('a', { href: '/set/' + setPageSlug, style: styles.subtitleLink, className: 'dg-cp-link' }, displaySetName) : displaySetName,
+                 setHref ? h('a', { href: setHref, style: styles.subtitleLink, className: 'dg-cp-link' }, displaySetName) : displaySetName,
                  ' · #' + primary.card_number
                  ),
                h('div', { style: styles.badges }, identityBadges),
@@ -490,6 +612,8 @@ return h('div', { style: styles.page },
            infoSection,
            printVariantSection,
            historySection,
+           soldSection,
+           ebayLiveSection,
            academySection,
            relatedSection
            )
@@ -534,6 +658,7 @@ const styles = {
   priceBox: { background: '#0f0f18', border: '1px solid #23233a', borderRadius: 12, padding: 16, marginBottom: 16, marginTop: 4 },
   priceLabel: { fontSize: 12, color: '#888', marginBottom: 4 },
   priceValue: { fontSize: 28, fontWeight: 700 },
+  marketLinkRow: { display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 8 },
   meta: { fontSize: 14, color: '#c0c0d0', margin: '4px 0' },
   muted: { color: '#777', fontSize: 13 },
   mutedSmall: { color: '#777', fontSize: 12, margin: '6px 0 0' },
