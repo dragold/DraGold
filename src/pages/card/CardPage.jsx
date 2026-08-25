@@ -505,9 +505,14 @@ const soldSection = soldRowsPresent.length ? h('section', { style: styles.sectio
 const ebayLiveSection = ebayItems.length > 0 ? h('section', { style: styles.section, key: 'ebay-live' },
   h('h2', { style: styles.h2 }, 'eBay live listings'),
   h('div', { style: styles.historyList }, ebayItems.map((it, i) =>
-    h('a', { key: i, href: ebayItemURL(it.url, 'US'), target: '_blank', rel: 'noreferrer', style: styles.historyRow, className: 'dg-cp-link' },
-      h('span', null, it.title),
-      h('span', null, (it.currency === 'EUR' ? '€' : it.currency === 'GBP' ? '£' : '$') + Number(it.price).toFixed(2))
+    // Data Completeness / UX Holes (2026-08-25, mobile check): real eBay
+    // listing titles can be long — historyRow (used above for date/price
+    // rows, both short) has no wrap handling, so a long title would push a
+    // narrow viewport into horizontal overflow. Own row style: title
+    // truncates with ellipsis instead, price stays fixed-width and visible.
+    h('a', { key: i, href: ebayItemURL(it.url, 'US'), target: '_blank', rel: 'noreferrer', style: styles.ebayLiveRow, className: 'dg-cp-link' },
+      h('span', { style: styles.ebayLiveTitle }, it.title),
+      h('span', { style: styles.ebayLivePrice }, (it.currency === 'EUR' ? '€' : it.currency === 'GBP' ? '£' : '$') + Number(it.price).toFixed(2))
     )
   )),
   marketLinks[0] ? h('a', { href: marketLinks[0].href, target: '_blank', rel: 'noreferrer', style: styles.setLink, className: 'dg-cp-link' }, 'See all on eBay →') : null
@@ -668,6 +673,9 @@ const styles = {
   section: { marginBottom: 36, borderTop: '1px solid #1a1a28', paddingTop: 24 },
   historyList: { display: 'flex', flexDirection: 'column', gap: 6 },
   historyRow: { display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #14141f', fontSize: 14 },
+  ebayLiveRow: { display: 'flex', alignItems: 'center', gap: 10, padding: '6px 0', borderBottom: '1px solid #14141f', fontSize: 14, minWidth: 0 },
+  ebayLiveTitle: { flex: '1 1 auto', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
+  ebayLivePrice: { flex: '0 0 auto', fontWeight: 600 },
   factGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 16 },
   fact: { display: 'flex', flexDirection: 'column', gap: 2 },
   factK: { fontSize: 11, color: '#777', textTransform: 'uppercase', letterSpacing: '0.03em' },

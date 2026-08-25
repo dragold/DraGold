@@ -19,7 +19,22 @@ export function SearchResults({ loading, results, priceMap, error, term, country
       <button className="btn btn-ghost btn-sm" style={{ marginLeft: 'auto' }} onClick={onRetry}>Retry</button>
     </div>
   );
-  if (!results.length) return (
+  if (!results.length) return discoveryMode ? (
+    // Data Completeness / UX Holes (2026-08-25): this same component renders
+    // Set Detail's card grid (SetsView -> SetDetailPage, discoveryMode=true,
+    // term=setName) — a real set can genuinely have zero cards indexed yet
+    // (e.g. a set_logos row without matching cards rows, or a language edge
+    // case). The search-tuned copy below ("No results for 'x'", "try fewer
+    // words", eBay-search-by-term, "missing card?" mailto) is actively
+    // misleading here: the user didn't type a query, they clicked a set tile,
+    // and none of those actions fix a catalog gap. Honest, set-specific
+    // empty state instead — no invented reason, no CTA that doesn't apply
+    // (the page's own Back button above already covers "what can I do next").
+    <div className="zero-state">
+      <div className="zero-title">No cards indexed yet for {term}</div>
+      <div className="zero-sub">This set is in our catalog, but we don't have its cards yet.</div>
+    </div>
+  ) : (
     <div className="zero-state">
       <div className="zero-title">No results for "{term}"</div>
       <div className="zero-sub">Try fewer words or the card number.</div>

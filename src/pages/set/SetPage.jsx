@@ -380,7 +380,23 @@ export default function SetPage({ slug }) {
         h('span', { style: styles.breadcrumbCurrent }, d.setName + (d.langUsed === 'ja' ? ' (Japanese)' : ''))
       ),
       h('div', { style: styles.head },
-        d.logoUrl ? h('img', { src: d.logoUrl, alt: d.setName, style: styles.logo, onError: e => { e.currentTarget.style.display = 'none' } }) : null,
+        // Data Completeness / UX Holes (2026-08-25): onError used to just hide
+        // the broken <img>, leaving blank space — a real gap when a logoUrl
+        // "loads" but resolves to 0x0 (One Piece's hotlink-protected official
+        // logos, same case already handled in Explore/Set Detail's SetTile).
+        // Same DOM-toggle fallback TcgPage.jsx already uses for this exact
+        // case (no React state needed here, consistent with that file's
+        // approach), so Explore -> Set / TCG -> Set / Set Detail / this SEO
+        // page all resolve to the same visible outcome now.
+        d.logoUrl
+          ? h('div', { style: { position: 'relative' } },
+              h('img', { src: d.logoUrl, alt: d.setName, style: styles.logo, onError: e => {
+                e.currentTarget.style.display = 'none'
+                if (e.currentTarget.nextSibling) e.currentTarget.nextSibling.style.display = 'flex'
+              } }),
+              h('div', { style: { ...styles.logoFallback, display: 'none' } }, d.setId)
+            )
+          : h('div', { style: styles.logoFallback }, d.setId),
         h('div', null,
           hub?.logo ? h('img', { src: hub.logo, alt: '', style: styles.hubBadge }) : null,
           h('h1', { style: styles.h1 }, d.setName),
@@ -431,6 +447,7 @@ const styles = {
   breadcrumbCurrent: { color: '#c0c0d0' },
   head: { display: 'flex', gap: 20, alignItems: 'center', marginBottom: 20, flexWrap: 'wrap' },
   logo: { maxHeight: 64, maxWidth: 220, objectFit: 'contain' },
+  logoFallback: { display: 'flex', alignItems: 'center', justifyContent: 'center', height: 64, minWidth: 120, padding: '0 16px', border: '1px dashed currentColor', borderRadius: 8, fontSize: 12, fontWeight: 700, letterSpacing: '.04em', opacity: .85, color: '#9aa0ff' },
   hubBadge: { height: 16, marginBottom: 6, opacity: .8, display: 'block' },
   h1: { fontSize: 28, margin: '0 0 6px', fontWeight: 700 },
   h2: { fontSize: 18, margin: '0 0 16px', fontWeight: 600 },
