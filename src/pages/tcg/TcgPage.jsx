@@ -4,8 +4,44 @@
 // livello piu' alto del Knowledge Graph TCG -> Set -> Canonical Card -> Print/lang.
 // Discovery + SEO + navigazione: NIENTE market dashboard, prezzi aggregati,
 // grafici, portfolio.
+//
+// International/Japanese (Explorer + Catalog Completeness follow-up,
+// 2026-08-25): stessa logica gia' verificata e usata da pages/sets/SetsView.jsx
+// (Explorer in-app) — riusata qui, non riscritta. detectJapaneseSets(tcg) e'
+// l'unica query in piu' sul load iniziale (un .limit(1)), e SOLO per i tcg che
+// risultano avere davvero righe ja (pokemon/onepiece, verificato live — mtg/ygo
+// sono 100% 'en', mai una sezione Japanese vuota). Il carico "Japanese" resta
+// lazy dietro un bottone, come in Explorer (requisito: niente query aggiuntive
+// sul load iniziale che possano essere lazy).
+//
+// Per i tcg con dati ja reali, la lista "International" passa da
+// getTcgPageData()/computeTcgSets() (che per One Piece somma le righe cards
+// senza filtro lingua — verificato su Supabase: canonical_cards.set_id e' NULL
+// al 100% per onepiece, quindi cade sul fallback `cards` non filtrato, e
+// conterebbe en+ja insieme sotto lo stesso set) a loadLangSets(tcg,'en') —
+// stessa funzione usata per la sezione Japanese, stavolta con lang='en': conteggi
+// e identita' di set correttamente scoped a una sola lingua per volta, mai
+// mescolati. Per mtg/ygo (nessun dato ja) il path resta quello originale,
+// invariato: zero rischio, zero query in piu'.
+//
+// Limite noto, non risolto qui (fuori scope — richiederebbe uno schema di slug
+// con lingua, tocca setPageData.js/SetPage.jsx): /set/:slug non incorpora la
+// lingua nell'URL e per One Piece lo slug EN e JA normalizzano allo stesso
+// set_id "canonico" (OP01/OP-01, vedi setSlug.js normalizeSetKey) — la query in
+// setPageData.js preferisce sempre 'en' quando esiste. Risultato verificato:
+// oggi NON esiste un modo, via /set/:slug, di aprire la lista carte JP di un
+// set One Piece — il link mostrerebbe silenziosamente le carte EN sotto
+// un'etichetta "Japanese", quindi qui quella tile non e' resa cliccabile
+// (nessuna identita'/relazione inventata). I set Pokemon JP invece vivono in un
+// namespace di set_id del tutto distinto da quello EN (verificato: CP1/E1/M1L/
+// PCG1.. vs base1/bw1/swshp — mai la stessa stringa candidata), quindi per loro
+// /set/:slug risolve gia' correttamente alla lista JP reale (zero righe 'en'
+// trovate per quell'id -> fallback "qualunque lingua" in setPageData.js) e la
+// tile resta un link normale.
 import { getTcgPageData } from './tcgPageData.js'
 import { getTcgHub } from '../../lib/tcgConfig.js'
+import { loadLangSets, detectJapaneseSets } from '../../lib/tcgSets.js'
+import { normalizeSetKey } from '../../lib/setSlug.js'
 import { useEffect, useState, createElement as h } from 'react'
 
 function setSeoMeta({ title, description, image, url }) {
@@ -79,49 +115,99 @@ export default function TcgPage({ tcg }) {
   const [state, setState] = useState({ loading: true, data: null, error: null })
   const hub = getTcgHub(tcg)
 
+  // Japanese subsection state — separate from `state.data` (which stays the
+  // International list) so its lazy load never blocks or re-triggers the
+  // primary page render. jaAvail is null while the live existence check is
+  // still in flight (nothing renders until it resolves, so no section
+  // flashes in/out).
+  const [jaAvail, setJaAvail] = useState(null) // null=checking | true | false
+  const [jaSets, setJaSets] = useState([])
+  const [jaState, setJaState] = useState('idle') // idle | loading | done
+
   useEffect(() => {
     let alive = true
     setState({ loading: true, data: null, error: null })
-    getTcgPageData(tcg).then(data => {
+    setJaAvail(null); setJaSets([]); setJaState('idle')
+
+    detectJapaneseSets(tcg).then(hasJa => {
       if (!alive) return
-      if (!data) { setState({ loading: false, data: null, error: 'not_found' }); return }
-      setState({ loading: false, data, error: null })
-    }).catch(err => {
-      if (!alive) return
-      setState({ loading: false, data: null, error: err.message || 'error' })
+      setJaAvail(hasJa)
+
+      if (hasJa) {
+        // Real ja data exists for this tcg (pokemon/onepiece today) — use the
+        // same lang-scoped computation as the Japanese section itself, just
+        // with lang='en', instead of the generic (language-agnostic)
+        // getTcgPageData/computeTcgSets path. Necessary, not additional: it
+        // replaces the page's one required set-list query, it doesn't add to it.
+        const h2 = getTcgHub(tcg)
+        loadLangSets(tcg, 'en').then(({ sets, setCount }) => {
+          if (!alive) return
+          setState({ loading: false, data: { tcg, label: h2.label, description: h2.description, logo: h2.logo, setCount, sets }, error: null })
+        }).catch(err => {
+          if (!alive) return
+          setState({ loading: false, data: null, error: err.message || 'error' })
+        })
+      } else {
+        // No real ja data for this tcg — original path, unchanged, zero extra
+        // queries beyond the one detectJapaneseSets() check above.
+        getTcgPageData(tcg).then(data => {
+          if (!alive) return
+          if (!data) { setState({ loading: false, data: null, error: 'not_found' }); return }
+          setState({ loading: false, data, error: null })
+        }).catch(err => {
+          if (!alive) return
+          setState({ loading: false, data: null, error: err.message || 'error' })
+        })
+      }
     })
+
     return () => { alive = false }
   }, [tcg])
+
+  const loadJapanese = () => {
+    setJaState('loading')
+    loadLangSets(tcg, 'ja').then(({ sets }) => {
+      setJaSets(sets)
+      setJaState('done')
+    })
+  }
 
   useEffect(() => {
     const d = state.data
     if (!d) return
-    const hubUrl = `https://dragold.org/${d.tcg}`
-    const firstLogo = d.sets.find(s => s.logoUrl)?.logoUrl || d.logo || null
+    const hub = getTcgHub(d.tcg)
+    const tcgLabel = hub?.label || d.tcg
+    const setUrl = `https://dragold.org/${d.tcg}`
+    // Conteggio/elenco reali: include i set Japanese solo una volta davvero
+    // caricati (jaState==='done'), mai stimati o anticipati.
+    const jaLoaded = jaState === 'done'
+    const totalSetCount = d.setCount + (jaLoaded ? jaSets.length : 0)
+    const allSetsForLd = jaLoaded ? [...d.sets, ...jaSets] : d.sets
+    const firstLogo = allSetsForLd.find(s => s.logoUrl)?.logoUrl || d.logo || null
     setRobotsMeta(null)
     setSeoMeta({
       title: `${d.label} — Sets, Cards & Collector's Guide — DraGold`,
-      description: `${d.description} ${d.setCount} sets indexed.`,
+      description: `${d.description} ${totalSetCount} sets indexed.`,
       image: firstLogo,
-      url: hubUrl,
+      url: setUrl,
     })
 
     const graph = [{
       '@type': 'BreadcrumbList',
       itemListElement: [
         { '@type': 'ListItem', position: 1, name: 'DraGold', item: 'https://dragold.org/' },
-        { '@type': 'ListItem', position: 2, name: d.label, item: hubUrl },
+        { '@type': 'ListItem', position: 2, name: d.label, item: setUrl },
       ],
     }]
     graph.push({
       '@type': 'CollectionPage',
       name: `${d.label} — DraGold`,
       description: d.description,
-      url: hubUrl,
+      url: setUrl,
       mainEntity: {
         '@type': 'ItemList',
-        numberOfItems: d.setCount,
-        itemListElement: d.sets.slice(0, 100).map((s, i) => ({
+        numberOfItems: totalSetCount,
+        itemListElement: allSetsForLd.slice(0, 100).map((s, i) => ({
           '@type': 'ListItem',
           position: i + 1,
           name: s.setName,
@@ -130,7 +216,7 @@ export default function TcgPage({ tcg }) {
       },
     })
     setJsonLd({ '@context': 'https://schema.org', '@graph': graph })
-  }, [state.data])
+  }, [state.data, jaState, jaSets])
 
   if (state.loading) {
     return h('div', { style: styles.page }, h('div', { style: styles.wrap },
@@ -160,39 +246,75 @@ export default function TcgPage({ tcg }) {
   // without opening a set. mtg/ygo have no release-date source in this DB
   // (verified — no invented dates), so their sets land in one "release date
   // unknown" bucket instead of fabricated year headers.
-  const yearGroups = []
-  for (const set of d.sets) {
-    const key = set.releaseYear != null ? String(set.releaseYear) : 'unknown'
-    let g = yearGroups[yearGroups.length - 1]
-    if (!g || g.key !== key) {
-      g = { key, label: set.releaseYear != null ? String(set.releaseYear) : 'Release date unknown', items: [] }
-      yearGroups.push(g)
+  function yearGroupsOf(sets) {
+    const groups = []
+    for (const set of sets) {
+      const key = set.releaseYear != null ? String(set.releaseYear) : 'unknown'
+      let g = groups[groups.length - 1]
+      if (!g || g.key !== key) {
+        g = { key, label: set.releaseYear != null ? String(set.releaseYear) : 'Release date unknown', items: [] }
+        groups.push(g)
+      }
+      g.items.push(set)
     }
-    g.items.push(set)
+    return groups
   }
-  const showYearHeaders = yearGroups.length > 1 || (yearGroups[0] && yearGroups[0].key !== 'unknown')
 
-  const setTile = (s) => h('a', { href: '/set/' + s.slug, className: 'dg-tcg-tile', style: styles.setTile, key: s.slug },
-    s.logoUrl
+  // One Piece's ja slugs collide with their en counterpart under
+  // normalizeSetKey() (see file-header comment) — setPageData.js always
+  // resolves that collision to the 'en' card list, so linking a ja tile
+  // there would silently show English cards under a "Japanese" heading.
+  // Detected from the real data already on the page (no extra query, no
+  // hardcoding to onepiece specifically): a ja set is safe to link only when
+  // its normalized set_id doesn't collide with an International one.
+  const intlKeys = new Set(d.sets.map(s => normalizeSetKey(s.setId)))
+  const jaLinkable = (s) => !intlKeys.has(normalizeSetKey(s.setId))
+
+  function renderSetTile(s, { linkable = true } = {}) {
+    const logo = s.logoUrl
       ? h('img', { src: s.logoUrl, alt: s.setName, style: styles.setLogo, loading: 'lazy', onError: e => { e.currentTarget.style.display = 'none'; e.currentTarget.nextSibling?.style && (e.currentTarget.nextSibling.style.display = 'flex') } })
-      : null,
-    // Fallback when this TCG/set has no logo asset (mtg/ygo today, or a
+      : null
+    // Fallback when this TCG/set has no logo asset (mtg/ygo, Pokemon JP, or a
     // one-off missing row) — a labeled placeholder, never a blank tile and
-    // never a generated/invented logo.
-    h('div', { style: { ...styles.setLogoFallback, display: s.logoUrl ? 'none' : 'flex', color: hub?.color || '#9aa0ff' } }, s.setId),
-    h('div', { style: styles.setName }, s.setName),
-    h('div', { style: styles.muted },
+    // never a generated/invented logo. Same fallback already used everywhere
+    // else on this page (and in Explorer).
+    const fallback = h('div', { style: { ...styles.setLogoFallback, display: s.logoUrl ? 'none' : 'flex', color: hub?.color || '#9aa0ff' } }, s.setId)
+    const meta = h('div', { style: styles.muted },
       `${s.cardCount} card${s.cardCount === 1 ? '' : 's'}`,
       s.releaseDate ? ` · ${formatReleaseDate(s.releaseDate)}` : ''
     )
+    const children = [logo, fallback, h('div', { style: styles.setName }, s.setName), meta]
+    if (linkable) {
+      return h('a', { href: '/set/' + s.slug, className: 'dg-tcg-tile', style: styles.setTile, key: s.slug }, ...children)
+    }
+    // Not linkable (see jaLinkable above): same tile, no href — still shows
+    // the set exists and its real data, doesn't pretend a working link.
+    return h('div', { style: { ...styles.setTile, cursor: 'default', opacity: .82 }, key: `${s.slug}-nolink` }, ...children)
+  }
+
+  function renderSetList(sets, { emptyLabel, linkable }) {
+    if (!sets.length) return h('p', { style: styles.muted }, emptyLabel)
+    const groups = yearGroupsOf(sets)
+    const showYearHeaders = groups.length > 1 || (groups[0] && groups[0].key !== 'unknown')
+    return groups.map(g => h('div', { key: g.key, style: { marginBottom: 28 } },
+      showYearHeaders ? h('div', { style: styles.yearHead }, g.label) : null,
+      h('div', { style: styles.grid }, g.items.map(s => renderSetTile(s, { linkable: linkable ? linkable(s) : true })))
+    ))
+  }
+
+  const internationalSection = h('div', { style: { marginBottom: jaAvail ? 36 : 0 } },
+    jaAvail ? h('h3', { style: styles.langHead }, 'International') : null,
+    renderSetList(d.sets, { emptyLabel: 'No sets indexed yet.' })
   )
 
-  const setList = d.sets.length
-    ? yearGroups.map(g => h('div', { key: g.key, style: { marginBottom: 28 } },
-        showYearHeaders ? h('div', { style: styles.yearHead }, g.label) : null,
-        h('div', { style: styles.grid }, g.items.map(setTile))
-      ))
-    : h('p', { style: styles.muted }, 'No sets indexed yet.')
+  const japaneseSection = jaAvail ? h('div', null,
+    h('h3', { style: styles.langHead }, 'Japanese'),
+    jaState === 'idle'
+      ? h('button', { type: 'button', style: styles.btnGhost, onClick: loadJapanese }, 'Show Japanese sets')
+      : jaState === 'loading'
+        ? h('p', { style: styles.muted }, 'Loading Japanese sets…')
+        : renderSetList(jaSets, { emptyLabel: 'No Japanese sets indexed yet.', linkable: jaLinkable })
+  ) : null
 
   return h('div', { style: styles.page },
     h('style', null, TILE_CSS),
@@ -211,7 +333,7 @@ export default function TcgPage({ tcg }) {
         h('div', null,
           h('h1', { style: styles.h1 }, d.label),
           h('p', { style: styles.subtitle }, 'Explore sets and cards'),
-          h('p', { style: styles.muted }, `${d.setCount} set${d.setCount === 1 ? '' : 's'} indexed`),
+          h('p', { style: styles.muted }, `${d.setCount}${jaAvail && jaState === 'done' ? ` + ${jaSets.length} Japanese` : ''} set${d.setCount === 1 ? '' : 's'} indexed`),
           h('p', { style: styles.muted },
             h('a', { href: '/', style: styles.link }, 'Explore in DraGold'),
             ' · ',
@@ -221,7 +343,8 @@ export default function TcgPage({ tcg }) {
       ),
       h('section', { style: styles.section },
         h('h2', { style: styles.h2 }, 'Sets'),
-        setList
+        internationalSection,
+        japaneseSection
       )
     )
   )
@@ -254,6 +377,7 @@ const styles = {
   head: { marginBottom: 32, display: 'flex', gap: 20, alignItems: 'center', flexWrap: 'wrap' },
   h1: { fontSize: 30, margin: '0 0 8px', fontWeight: 700 },
   h2: { fontSize: 18, margin: '0 0 16px', fontWeight: 600 },
+  langHead: { fontSize: 13, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', color: '#8a8aa0', margin: '0 0 14px' },
   subtitle: { color: '#a0a0b0', margin: '0 0 8px', fontSize: 15, maxWidth: 640 },
   section: { marginTop: 20, borderTop: '1px solid #1a1a28', paddingTop: 24 },
   grid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 16 },
@@ -265,4 +389,5 @@ const styles = {
   link: { color: '#9aa0ff' },
   hubLogo: { height: 64, maxWidth: 200, objectFit: 'contain', flexShrink: 0 },
   yearHead: { fontSize: 13, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', color: '#8a8aa0', marginBottom: 12, paddingBottom: 8, borderBottom: '1px solid #1e1e2e' },
+  btnGhost: { background: 'transparent', color: '#c0c0d0', border: '1px solid #2a2a3a', borderRadius: 8, padding: '8px 14px', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' },
 }
