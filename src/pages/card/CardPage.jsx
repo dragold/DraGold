@@ -17,6 +17,20 @@ import { buildSetSlug } from '../../lib/setSlug.js'
 import { getTcgHub } from '../../lib/tcgConfig.js'
 import { slugifyIllustrator } from '../../lib/illustratorSlug.js'
 import { useAuth } from '../../lib/auth.js'
+// E2E fix (bug #1/#2, preview 09585cc): stesso pattern gia' usato da
+// SetPage.jsx readRequestedLang() — un ?lang= sull'URL (propagato dai link
+// carta di SetPage.jsx quando esiste una lingua nota) disambigua uno slug
+// canonical_cards ambiguo e seleziona la stampa giusta al primo render,
+// invece di affidarsi sempre al fallback English. Solo un codice lingua
+// plausibile viene onorato, il resto e' ignorato invece di essere passato a
+// supabase come filtro as-is.
+function readRequestedLang() {
+  try {
+    const raw = new URLSearchParams(window.location.search).get('lang')
+    const v = (raw || '').trim().toLowerCase()
+    return /^[a-z]{2}(-[a-z]{2,4})?$/.test(v) ? v : null
+  } catch { return null }
+}
 // Market/Purchase Discovery MVP (2026-08-25): stessa costruzione URL/affiliate
 // eBay già usata da AssetView.jsx, importata dal modulo leggero lib/ebayLinks.js
 // (non da DraGold.jsx, il bundle SPA pesante che questa pagina evita apposta —
@@ -162,7 +176,7 @@ useEffect(() => {
   setState({ loading: true, data: null, error: null })
   setSelectedId(null)
   setCtaMsg('')
-  getCardPageData(slug).then(data => {
+  getCardPageData(slug, readRequestedLang()).then(data => {
     if (!alive) return
     if (!data) { setState({ loading: false, data: null, error: 'not_found' }); return }
     setState({ loading: false, data, error: null })
@@ -417,7 +431,16 @@ const printVariantSection = (sameLangVariants.length > 1) ? h('section', { style
     style: v.id === selected.id ? styles.variantCardActive : styles.variantCard,
     onClick: () => setSelectedId(v.id),
   },
-    v.image_url ? h('img', { src: v.image_url, alt: v.name, style: styles.variantImg }) : h('div', { style: styles.imgPlaceholderSmall }),
+    v.image_url
+      ? h('img', {
+          src: v.image_url, alt: v.name, style: styles.variantImg,
+          // E2E fix: a stored image_url that fails to load (broken URL) used to
+          // leave the browser's native broken-image icon showing — swap to the
+          // same placeholder box already used when image_url is absent.
+          onError: e => { e.currentTarget.style.display = 'none'; e.currentTarget.nextSibling.style.display = 'block' },
+        })
+      : null,
+    h('div', { style: { ...styles.imgPlaceholderSmall, display: v.image_url ? 'none' : 'block' } }),
     h('div', { style: styles.muted }, v.print_variant || 'Standard')
   )))
 ) : null
@@ -549,7 +572,13 @@ const relatedSection = (sameSetCards && sameSetCards.length > 0) ? h('section', 
     const props = { style: styles.relatedCard, key: c.id, className: slug2 ? 'dg-cp-link' : undefined }
     if (slug2) props.href = '/carta/' + slug2
     return h(tag, props,
-             c.image_url ? h('img', { src: c.image_url, alt: c.name, style: styles.relatedImg }) : h('div', { style: styles.imgPlaceholderSmall }),
+             // E2E fix: same broken-image-icon issue as the Variants grid above —
+             // fall back to the existing imgPlaceholderSmall box on load failure.
+             c.image_url ? h('img', {
+               src: c.image_url, alt: c.name, style: styles.relatedImg,
+               onError: e => { e.currentTarget.style.display = 'none'; e.currentTarget.nextSibling.style.display = 'block' },
+             }) : null,
+             h('div', { style: { ...styles.imgPlaceholderSmall, display: c.image_url ? 'none' : 'block' } }),
              h('div', { style: styles.relatedName }, c.name),
              h('div', { style: styles.muted }, '#' + c.card_number)
              )

@@ -323,7 +323,14 @@ export default function SetPage({ slug }) {
     ? h('div', { style: styles.grid }, visibleCards.map(c => {
         const tag = c.cardSlug ? 'a' : 'div'
         const props = { style: styles.cardTile, key: c.id, className: c.cardSlug ? 'dg-card-tile' : undefined }
-        if (c.cardSlug) props.href = '/carta/' + c.cardSlug
+        // E2E fix (bug #1/#2, preview 09585cc): propaga la lingua reale della
+        // riga cliccata alla Card Page via ?lang=, cosi' cardPageData.js puo'
+        // (a) disambiguare uno slug canonical_cards ambiguo (caso reale
+        // verificato: due gruppi diversi con lo stesso slug "pokemon-sv10-001",
+        // uno EN uno JA-only) e (b) aprire subito la stampa nella lingua da cui
+        // si e' partiti invece di ripiegare sempre su English. c.lang e' un
+        // dato reale gia' caricato da questa stessa query, non un'euristica.
+        if (c.cardSlug) props.href = '/carta/' + c.cardSlug + (c.lang ? '?lang=' + encodeURIComponent(c.lang) : '')
         const img = c.image_url_hi || c.image_url
         const qty = collectionMap.get(c.id) || 0
         const otherLangs = (c.variantLangs || []).filter(l => l !== c.lang)
