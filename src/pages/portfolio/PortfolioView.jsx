@@ -7,7 +7,7 @@
 // idempotente per costruzione — stesso giorno => stesso valore, nessun
 // duplicato, nessuna scrittura periodica necessaria.
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import { supabase, listCollection, removeFromCollection, addToWatchlist } from "../../supabase.js";
+import { supabase, listCollection, removeFromCollection, decrementOrRemoveCollection, addToWatchlist } from "../../supabase.js";
 import { Icon } from "../../components/shared/Icon.jsx";
 import { pickCardImage } from "../../components/shared/cardImage.js";
 import { TCG_LIST, Empty } from "../../DraGold.jsx";
@@ -73,7 +73,7 @@ function buildSeries(rows, positions) {
 }
 
 /* ─── PortfolioRow — vista compatta (riuso invariato, ora cliccabile → Card Detail) ─── */
-function PortfolioRow({ pos, priceInfo, cur, eurRate, fmt, isConfirm, onConfirm, onCancelConfirm, onRemove, onTrack, trackBusy, trackDone, removeBusy, onOpen }) {
+function PortfolioRow({ pos, priceInfo, cur, eurRate, fmt, isConfirm, onConfirm, onCancelConfirm, onRemove, onTrack, trackBusy, trackDone, removeBusy, onOpen, onDecrement, decrementBusy }) {
   const [imgFailed, setImgFailed] = useState(false);
   const imgUrl = pickCardImage(pos) || null;
   const initials = (pos.card_name || "")
@@ -114,7 +114,20 @@ function PortfolioRow({ pos, priceInfo, cur, eurRate, fmt, isConfirm, onConfirm,
       </a>
 
       <div className="pf-body">
-        <div className="pf-name">{pos.card_name || "—"}{pos.quantity > 1 && <span style={{ opacity: 0.6, fontWeight: 400 }}> ×{pos.quantity}</span>}</div>
+        <div className="pf-name">
+          {pos.card_name || "—"}
+          {pos.quantity > 1 && (
+            <span className="pf-qty-stepper" style={{ opacity: 0.6, fontWeight: 400 }}>
+              {" "}×{pos.quantity}
+              <button type="button" className="btn btn-ghost btn-sm" disabled={decrementBusy}
+                onClick={(e) => { e.stopPropagation(); onDecrement?.(); }}
+                aria-label={`Remove one copy of ${pos.card_name || "this card"}`}
+                style={{ marginLeft: 6, padding: "0 6px" }}>
+                {decrementBusy ? "…" : "−"}
+              </button>
+            </span>
+          )}
+        </div>
         <div className="pf-meta">
           {pos.condition && <span className="pf-cond">{pos.condition}</span>}
           {pos.set_name  && <span className="pf-set">{pos.set_name}</span>}
@@ -457,6 +470,28 @@ export function PortfolioView({ isAuthed, onLogin, onExplore, cur, eurRate, onOp
     flash("Removed from portfolio");
   }, [flash]);
 
+  // Rimuove una singola copia (gemella di addCollection/addOrIncrementCollection
+  // in AssetView, stessa RPC atomica decrement_or_remove_collection). A
+  // differenza di doRemove (elimina sempre l'intera posizione), qui a
+  // quantity 1 la riga viene comunque eliminata dal server: sync-iamo lo
+  // stato locale di conseguenza invece di limitarci a decrementare.
+  const [decrementBusyId, setDecrementBusyId] = useState(null);
+  const doDecrement = useCallback(async (pos) => {
+    if (decrementBusyId) return;
+    setDecrementBusyId(pos.id);
+    const res = await decrementOrRemoveCollection(pos.card_api_id);
+    setDecrementBusyId(null);
+    if (res?.error || !res?.data) { flash("Could not remove copy."); return; }
+    const row = res.data;
+    if (row.out_deleted) {
+      setPositions(ps => ps.filter(p => p.id !== pos.id));
+      flash("Removed from portfolio");
+    } else {
+      setPositions(ps => ps.map(p => p.id === pos.id ? { ...p, quantity: row.quantity } : p));
+      flash(`Copy removed — you now have ${row.quantity}`);
+    }
+  }, [decrementBusyId, flash]);
+
   const doTrack = useCallback(async (pos) => {
     setWatchBusy(b => ({ ...b, [pos.id]: true }));
     const res = await addToWatchlist({
@@ -743,6 +778,8 @@ export function PortfolioView({ isAuthed, onLogin, onExplore, cur, eurRate, onOp
               trackBusy={!!watchBusy[pos.id]}
               trackDone={!!watched[pos.id]}
               removeBusy={removeBusy && confirmId === pos.id}
+              onDecrement={() => doDecrement(pos)}
+              decrementBusy={decrementBusyId === pos.id}
             />
           ))}
         </div>

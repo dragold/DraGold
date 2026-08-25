@@ -89,6 +89,24 @@ export async function removeFromCollection(id) {
   return supabase.from('collection').delete().eq('id', id)
 }
 
+// Decrement-or-remove atomico, gemella di addOrIncrementCollection: stessa
+// RPC pattern (nessun SELECT->-1 in JS). quantity>1 -> decrementa di 1 e la
+// riga resta; quantity===1 -> la riga viene eliminata (out_deleted=true,
+// quantity torna 0 per la UI). Usata da AssetView e Collection cosi' il
+// bottone "-" ha lo stesso comportamento ovunque.
+export async function decrementOrRemoveCollection(cardApiId) {
+  if (!supabase) return { error: 'Backend not configured' }
+  const { data: u } = await supabase.auth.getUser()
+  const userId = u?.user?.id
+  if (!userId) return { error: 'Not signed in' }
+  const { data, error } = await supabase.rpc('decrement_or_remove_collection', {
+    p_card_api_id: cardApiId,
+  })
+  if (error) return { error }
+  const row = Array.isArray(data) ? data[0] : data
+  return { data: row }
+}
+
 // Add-or-increment atomico via RPC (Block Quantity, 18/08/2026): un upsert
 // supabase-js semplice non puo' esprimere "quantity = quantity + 1" lato server,
 // quindi la RPC add_or_increment_collection (migration applicata su Supabase)
