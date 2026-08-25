@@ -100,7 +100,7 @@ export default function TcgPage({ tcg }) {
     const firstLogo = d.sets.find(s => s.logoUrl)?.logoUrl || d.logo || null
     setRobotsMeta(null)
     setSeoMeta({
-      title: `${d.label} — Sets, Cards & Market Prices — DraGold`,
+      title: `${d.label} — Sets, Cards & Collector's Guide — DraGold`,
       description: `${d.description} ${d.setCount} sets indexed.`,
       image: firstLogo,
       url: hubUrl,
@@ -211,7 +211,12 @@ export default function TcgPage({ tcg }) {
         h('div', null,
           h('h1', { style: styles.h1 }, d.label),
           h('p', { style: styles.subtitle }, 'Explore sets and cards'),
-          h('p', { style: styles.muted }, `${d.setCount} set${d.setCount === 1 ? '' : 's'} indexed`)
+          h('p', { style: styles.muted }, `${d.setCount} set${d.setCount === 1 ? '' : 's'} indexed`),
+          h('p', { style: styles.muted },
+            h('a', { href: '/', style: styles.link }, 'Explore in DraGold'),
+            ' · ',
+            h('a', { href: '/academy', style: styles.link }, 'New to TCGs? Visit the Academy')
+          )
         )
       ),
       h('section', { style: styles.section },

@@ -6,4 +6,11 @@
   <url><loc>https://dragold.org/onepiece</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
   <url><loc>https://dragold.org/mtg</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
   <url><loc>https://dragold.org/ygo</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <!-- Academy MVP (Task 4) — public, indexable content (Task 5, SEO Foundation). -->
+  <url><loc>https://dragold.org/academy</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://dragold.org/academy/tcg-basics</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://dragold.org/academy/card-anatomy</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://dragold.org/academy/rarity-variants</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://dragold.org/academy/pokemon-en-jp</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://dragold.org/academy/collection-basics</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
 </urlset>

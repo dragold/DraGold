@@ -100,7 +100,7 @@ export default function SetPage({ slug }) {
     setRobotsMeta(null)
     setSeoMeta({
       title: `${d.setName} (${tcgLabel}) — Set Guide & Card List — DraGold`,
-      description: `${d.setName} is a ${tcgLabel} set${d.releaseDate ? ` released ${d.releaseDate}` : ''} with ${countTxt}. Browse every card, price and rarity on DraGold.`,
+      description: `${d.setName} is a ${tcgLabel} set${d.releaseDate ? ` released ${d.releaseDate}` : ''} with ${countTxt}. Browse every card, rarity and variant, and track this set in your collection on DraGold.`,
       image: d.logoUrl || null,
       url: setUrl,
     })
@@ -205,6 +205,11 @@ export default function SetPage({ slug }) {
             releaseYear ? ` (${releaseYear})` : '',
             ` · ${countTxt}`,
             d.seriesName ? ` · ${d.seriesName} series` : ''
+          ),
+          h('p', { style: { ...styles.muted, marginTop: 8 } },
+            h('a', { href: '/', style: styles.link, className: 'dg-set-link' }, 'Track this set in your Collection'),
+            ' · ',
+            h('a', { href: '/academy/tcg-basics', style: styles.link, className: 'dg-set-link' }, 'Learn: Card, Set, Release & Variant')
           )
         )
       ),

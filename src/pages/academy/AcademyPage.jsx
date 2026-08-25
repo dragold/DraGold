@@ -10,9 +10,98 @@ import { Icon } from "../../components/shared/Icon.jsx";
 import { listAcademyProgress } from "../../supabase.js";
 import { ACADEMY_CATEGORIES, ACADEMY_LESSONS, getCategory } from "./academyContent.js";
 
+// Task 5 (SEO Foundation) — same setSeoMeta/JSON-LD pattern already
+// established in CardPage.jsx/SetPage.jsx/TcgPage.jsx (title, description,
+// canonical, OG, Twitter). Academy is one of the public entity pillars
+// (sitemap-static.xml), so it gets the same treatment, not a lesser one.
+function setSeoMeta({ title, description, url }) {
+  if (title) document.title = title;
+  const setMeta = (selector, attr, isProperty, content) => {
+    let el = document.querySelector(selector);
+    if (!el) {
+      el = document.createElement("meta");
+      if (isProperty) el.setAttribute("property", attr);
+      else el.setAttribute("name", attr);
+      document.head.appendChild(el);
+    }
+    el.setAttribute("content", content);
+  };
+  const setLink = (rel, href) => {
+    let el = document.querySelector(`link[rel="${rel}"]`);
+    if (!el) {
+      el = document.createElement("link");
+      el.setAttribute("rel", rel);
+      document.head.appendChild(el);
+    }
+    el.setAttribute("href", href);
+  };
+  if (description) {
+    setMeta('meta[name="description"]', "description", false, description);
+    setMeta('meta[property="og:description"]', "og:description", true, description);
+    setMeta('meta[name="twitter:description"]', "twitter:description", false, description);
+  }
+  if (title) {
+    setMeta('meta[property="og:title"]', "og:title", true, title);
+    setMeta('meta[name="twitter:title"]', "twitter:title", false, title);
+  }
+  if (url) {
+    setMeta('meta[property="og:url"]', "og:url", true, url);
+    setLink("canonical", url);
+  }
+  setMeta('meta[property="og:type"]', "og:type", true, "website");
+  setMeta('meta[name="twitter:card"]', "twitter:card", false, "summary");
+}
+
+function setJsonLd(data) {
+  let el = document.getElementById("ld-academy");
+  if (!el) {
+    el = document.createElement("script");
+    el.type = "application/ld+json";
+    el.id = "ld-academy";
+    document.head.appendChild(el);
+  }
+  el.textContent = JSON.stringify(data);
+}
+
+const ACADEMY_HUB_URL = "https://dragold.org/academy";
+const ACADEMY_DESCRIPTION = "Short, focused lessons on how TCG collecting works: reading a card, telling rarities and variants apart, and building a collection. Free to read, no sign-up required.";
+
 export default function AcademyPage() {
   const { isAuthed, status } = useAuth();
   const [completed, setCompleted] = useState(new Set());
+
+  useEffect(() => {
+    setSeoMeta({
+      title: "DraGold Academy — Learn TCG Collecting",
+      description: ACADEMY_DESCRIPTION,
+      url: ACADEMY_HUB_URL,
+    });
+    setJsonLd({
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "BreadcrumbList",
+          itemListElement: [
+            { "@type": "ListItem", position: 1, name: "DraGold", item: "https://dragold.org/" },
+            { "@type": "ListItem", position: 2, name: "Academy", item: ACADEMY_HUB_URL },
+          ],
+        },
+        {
+          "@type": "CollectionPage",
+          name: "DraGold Academy",
+          description: ACADEMY_DESCRIPTION,
+          url: ACADEMY_HUB_URL,
+          mainEntity: {
+            "@type": "ItemList",
+            numberOfItems: ACADEMY_LESSONS.length,
+            itemListElement: ACADEMY_LESSONS.map((l, i) => ({
+              "@type": "ListItem", position: i + 1, name: l.title, url: `https://dragold.org/academy/${l.slug}`,
+            })),
+          },
+        },
+      ],
+    });
+  }, []);
 
   useEffect(() => {
     if (status === "loading") return;

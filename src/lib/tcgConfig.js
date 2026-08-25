@@ -12,10 +12,10 @@
 // leggero/SEO-first. Aggiungere una quinta riga qui (es. lorcana) in futuro
 // non richiede refactoring — solo un nuovo oggetto in questo array.
 export const TCG_HUBS = [
-  { tcg: 'pokemon', label: 'Pokémon', description: 'Pokémon Trading Card Game — every set from the original Base Set to the latest release, with real market prices and rarities.', logo: '/logos/pkm.png', color: '#f87171' },
-  { tcg: 'onepiece', label: 'One Piece', description: 'One Piece Card Game — every set, every card, with real market prices tracked in real time.', logo: '/logos/op.png', color: '#f97316' },
-  { tcg: 'mtg', label: 'Magic: The Gathering', description: 'Magic: The Gathering — decades of sets, from vintage to the latest release, with real market prices.', logo: '/logos/mtg.png', color: '#60a5fa' },
-  { tcg: 'ygo', label: 'Yu-Gi-Oh!', description: 'Yu-Gi-Oh! Trading Card Game — every set, every card, with real market prices in one place.', logo: '/logos/ygo.png', color: '#fbbf24' },
+  { tcg: 'pokemon', label: 'Pokémon', description: 'Pokémon Trading Card Game — every set from the original Base Set to the latest release. Browse cards, sets and rarities, and track your own collection.', logo: '/logos/pkm.png', color: '#f87171' },
+  { tcg: 'onepiece', label: 'One Piece', description: 'One Piece Card Game — every set, every card. Browse the full catalog and track your own collection.', logo: '/logos/op.png', color: '#f97316' },
+  { tcg: 'mtg', label: 'Magic: The Gathering', description: 'Magic: The Gathering — decades of sets, from vintage to the latest release. Browse cards, sets and rarities, and track your own collection.', logo: '/logos/mtg.png', color: '#60a5fa' },
+  { tcg: 'ygo', label: 'Yu-Gi-Oh!', description: 'Yu-Gi-Oh! Trading Card Game — every set, every card. Browse the full catalog and track your own collection.', logo: '/logos/ygo.png', color: '#fbbf24' },
 ]
 
 export function getTcgHub(tcg) {

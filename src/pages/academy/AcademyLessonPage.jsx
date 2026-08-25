@@ -8,6 +8,75 @@ import { Icon } from "../../components/shared/Icon.jsx";
 import { listAcademyProgress, markLessonComplete } from "../../supabase.js";
 import { getLesson, getAdjacentLessons, getCategory } from "./academyContent.js";
 
+// Task 5 (SEO Foundation) — same setSeoMeta/robots/JSON-LD pattern as
+// CardPage.jsx/SetPage.jsx/TcgPage.jsx/AcademyPage.jsx. LearningResource
+// (not Product): no price/rating/availability exists for a lesson, so a
+// commercial schema type would mean inventing fields — LearningResource
+// only asserts what's real (name, description, url, the Academy it's part
+// of).
+function setSeoMeta({ title, description, url }) {
+  if (title) document.title = title;
+  const setMeta = (selector, attr, isProperty, content) => {
+    let el = document.querySelector(selector);
+    if (!el) {
+      el = document.createElement("meta");
+      if (isProperty) el.setAttribute("property", attr);
+      else el.setAttribute("name", attr);
+      document.head.appendChild(el);
+    }
+    el.setAttribute("content", content);
+  };
+  const setLink = (rel, href) => {
+    let el = document.querySelector(`link[rel="${rel}"]`);
+    if (!el) {
+      el = document.createElement("link");
+      el.setAttribute("rel", rel);
+      document.head.appendChild(el);
+    }
+    el.setAttribute("href", href);
+  };
+  if (description) {
+    setMeta('meta[name="description"]', "description", false, description);
+    setMeta('meta[property="og:description"]', "og:description", true, description);
+    setMeta('meta[name="twitter:description"]', "twitter:description", false, description);
+  }
+  if (title) {
+    setMeta('meta[property="og:title"]', "og:title", true, title);
+    setMeta('meta[name="twitter:title"]', "twitter:title", false, title);
+  }
+  if (url) {
+    setMeta('meta[property="og:url"]', "og:url", true, url);
+    setLink("canonical", url);
+  }
+  setMeta('meta[property="og:type"]', "og:type", true, "article");
+  setMeta('meta[name="twitter:card"]', "twitter:card", false, "summary");
+}
+
+function setRobotsMeta(content) {
+  let el = document.querySelector('meta[name="robots"]');
+  if (content) {
+    if (!el) {
+      el = document.createElement("meta");
+      el.setAttribute("name", "robots");
+      document.head.appendChild(el);
+    }
+    el.setAttribute("content", content);
+  } else if (el) {
+    el.remove();
+  }
+}
+
+function setJsonLd(data) {
+  let el = document.getElementById("ld-academy-lesson");
+  if (!el) {
+    el = document.createElement("script");
+    el.type = "application/ld+json";
+    el.id = "ld-academy-lesson";
+    document.head.appendChild(el);
+  }
+  el.textContent = JSON.stringify(data);
+}
+
 function Header() {
   return (
     <header className="hdr">
@@ -32,8 +101,41 @@ export default function AcademyLessonPage({ slug }) {
   const [err, setErr] = useState(false);
 
   useEffect(() => {
-    document.title = lesson ? `${lesson.title} — DraGold Academy` : "Lesson not found — DraGold Academy";
-  }, [lesson]);
+    if (!lesson) {
+      // Same "soft 404" limit as CardPage/SetPage/TcgPage (no true SSR
+      // status code on this client-routed slug) — noindex is the minimum
+      // compatible fix, matching the exact convention already used there.
+      document.title = "Lesson not found — DraGold Academy";
+      setRobotsMeta("noindex");
+      return;
+    }
+    setRobotsMeta(null);
+    const lessonUrl = `https://dragold.org/academy/${lesson.slug}`;
+    const title = `${lesson.title} — DraGold Academy`;
+    setSeoMeta({ title, description: lesson.summary, url: lessonUrl });
+    setJsonLd({
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "BreadcrumbList",
+          itemListElement: [
+            { "@type": "ListItem", position: 1, name: "DraGold", item: "https://dragold.org/" },
+            { "@type": "ListItem", position: 2, name: "Academy", item: "https://dragold.org/academy" },
+            { "@type": "ListItem", position: 3, name: lesson.title, item: lessonUrl },
+          ],
+        },
+        {
+          "@type": "LearningResource",
+          name: lesson.title,
+          description: lesson.summary,
+          url: lessonUrl,
+          learningResourceType: "Lesson",
+          isPartOf: { "@type": "CollectionPage", name: "DraGold Academy", url: "https://dragold.org/academy" },
+          ...(category ? { about: category.label } : {}),
+        },
+      ],
+    });
+  }, [lesson, category]);
 
   useEffect(() => {
     setCompleted(false);
