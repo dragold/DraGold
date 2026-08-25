@@ -215,7 +215,21 @@ useEffect(() => {
 useEffect(() => {
   const d = state.data
   if (!d) return
-  const { primary, currentPrice, displayName, displaySetName, canonical } = d
+  const { primary, currentPrice, displayName, displaySetName, canonical, variants } = d
+  // Alpha Core P0.3 fix (Preview E2E): the page actually displayed here can be
+  // a non-English print (?lang= on the URL, or a pill click during this
+  // session via selectedId) while canonical/og:url/JSON-LD kept pointing at
+  // the bare slug URL — which getCardPageData resolves to the DEFAULT print
+  // (English when available) whenever no lang is passed. That told Google
+  // "index the other URL instead" on every non-default-language page reached
+  // via a real internal link (Set -> Card ?lang=), directly working against
+  // per-language indexability. activeVariant is the record actually on
+  // screen right now (selectedId after a pill click, otherwise the primary
+  // print resolved for this load) — its own lang is what the canonical must
+  // reflect, exactly like the ?lang= convention SetPage.jsx already uses.
+  const activeVariant = (variants || []).find(v => v.id === selectedId) || primary
+  const activeLangSuffix = (activeVariant.lang && activeVariant.lang !== 'en')
+    ? `?lang=${encodeURIComponent(activeVariant.lang)}` : ''
   const priceTxt = currentPrice?.price_market ? ` — ${formatPrice(currentPrice.price_market, currentPrice.currency)}` : ''
   // Block 4 - SEO Foundation: usare canonical.slug (dato DB, gia' risolto e
   // deterministico dopo il fix in cardPageData.js) invece del parametro slug
@@ -226,14 +240,14 @@ useEffect(() => {
   const canonicalSlug = (canonical && canonical.slug) || slug
   setRobotsMeta(null)
   setSeoMeta({
-    title: `${displayName} (${displaySetName} #${primary.card_number}) — DraGold${priceTxt}`,
-    description: `${displayName} — ${displaySetName} #${primary.card_number}, rarity ${primary.rarity || 'N/A'}. Card details, variants and price history on DraGold.`,
-    image: primary.image_url_hi || primary.image_url,
-    url: `https://dragold.org/carta/${canonicalSlug}`,
+    title: `${displayName} (${displaySetName} #${activeVariant.card_number || primary.card_number}) — DraGold${priceTxt}`,
+    description: `${displayName} — ${displaySetName} #${activeVariant.card_number || primary.card_number}, rarity ${primary.rarity || 'N/A'}. Card details, variants and price history on DraGold.`,
+    image: activeVariant.image_url_hi || activeVariant.image_url,
+    url: `https://dragold.org/carta/${canonicalSlug}${activeLangSuffix}`,
   })
 
-      const cardUrl = `https://dragold.org/carta/${canonicalSlug}`
-      const imageUrl = primary.image_url_hi || primary.image_url
+      const cardUrl = `https://dragold.org/carta/${canonicalSlug}${activeLangSuffix}`
+      const imageUrl = activeVariant.image_url_hi || activeVariant.image_url
       // Block 5 - SEO Foundation for Sets: ora che /set/{slug} esiste davvero,
       // il breadcrumb torna a 3 livelli con un URL reale (non piu' fittizio
       // come prima del fix di Block 4). setSlug e' deterministico da tcg+set_id,
@@ -260,8 +274,8 @@ useEffect(() => {
               '@type': 'Product',
               name: displayName,
               image: imageUrl ? [imageUrl] : undefined,
-              description: `${displayName} — ${displaySetName} #${primary.card_number}`,
-              sku: primary.card_number,
+              description: `${displayName} — ${displaySetName} #${activeVariant.card_number || primary.card_number}`,
+              sku: activeVariant.card_number || primary.card_number,
               brand: { '@type': 'Brand', name: primary.tcg },
               url: cardUrl,
       }
@@ -275,7 +289,7 @@ useEffect(() => {
       }
       graph.push(productNode)
       setJsonLd({ '@context': 'https://schema.org', '@graph': graph })
-}, [state.data])
+}, [state.data, selectedId])
 
 // Task 6 — record del canonical group attualmente mostrato (vedi commento su
 // selectedId sopra). Va calcolato prima degli early return sotto perche' gli
