@@ -1,10 +1,22 @@
 // DraGold - Public Card Page (Fase 2, V1)
 // Componente isolato: DraGold.jsx fa solo routing verso questa pagina.
+//
+// Task 6 (Card Detail UX/UI): la pagina diventa il nodo centrale del prodotto
+// (Search/Explorer -> Card -> Set/Collection/Academy -> Variants/Related).
+// Nessuna nuova query: le sezioni Variants/Multilingual riusano
+// state.data.variants (gia' caricato da cardPageData.js, scope
+// canonical_card_id) come stato di selezione client-side — tutte le righe di
+// quel gruppo condividono la STESSA slug/URL (vedi canonical_cards_group_uk =
+// tcg+set_id+card_number), quindi "aprire la carta in un'altra lingua/stampa"
+// e' letteralmente questa pagina che mostra un altro record reale, non una
+// nuova pagina. Related Cards usa invece sameSetCards (query gia' esistente),
+// che punta a canonical group DIVERSI (stesso set, altra card).
 import { getCardPageData } from './cardPageData.js'
-import { addOrIncrementCollection, addToWatchlist } from '../../supabase.js'
+import { addOrIncrementCollection, addToWatchlist, decrementOrRemoveCollection, supabase } from '../../supabase.js'
 import { buildSetSlug } from '../../lib/setSlug.js'
 import { getTcgHub } from '../../lib/tcgConfig.js'
 import { slugifyIllustrator } from '../../lib/illustratorSlug.js'
+import { useAuth } from '../../lib/auth.js'
 import { useEffect, useState, createElement as h, Fragment } from 'react'
 function formatPrice(value, currency) {
   if (value == null) return null
@@ -13,6 +25,18 @@ function formatPrice(value, currency) {
   } catch {
     return `${value} ${currency || ''}`
   }
+}
+
+// Etichette lingua leggibili per i pill di switch (Task 6, sez. 9). Piccola
+// mappa locale invece di importare CARD_LANGS da DraGold.jsx: quella e'
+// definita dentro il componente shell dell'intera SPA (bundle pesante), qui
+// serve solo un dizionario di 9 righe.
+const LANG_LABELS = {
+  en: 'English', ja: '日本語', it: 'Italiano', de: 'Deutsch', fr: 'Français',
+  es: 'Español', pt: 'Português', id: 'Indonesia', ko: '한국어',
+}
+function langLabel(code) {
+  return LANG_LABELS[code] || (code || '').toUpperCase()
 }
 
 function setSeoMeta({ title, description, image, url }) {
@@ -89,10 +113,21 @@ function setJsonLd(data) {
 export default function CardPage({ slug }) {
   const [state, setState] = useState({ loading: true, data: null, error: null })
   const [ctaMsg, setCtaMsg] = useState('')
+  // Task 6 — quale record del canonical group e' mostrato in questo momento
+  // (null = usa il primary curato). Cambia cliccando un pill lingua/variant,
+  // mai una navigazione: stessa URL, stesso slug, un altro record reale.
+  const [selectedId, setSelectedId] = useState(null)
+  const [myQty, setMyQty] = useState(0)
+  const [qtyLoading, setQtyLoading] = useState(false)
+  const [collectBusy, setCollectBusy] = useState(false)
+  const [decrementBusy, setDecrementBusy] = useState(false)
+  const { status: authStatus, isAuthed } = useAuth()
 
 useEffect(() => {
   let alive = true
   setState({ loading: true, data: null, error: null })
+  setSelectedId(null)
+  setCtaMsg('')
   getCardPageData(slug).then(data => {
     if (!alive) return
     if (!data) { setState({ loading: false, data: null, error: 'not_found' }); return }
@@ -169,6 +204,28 @@ useEffect(() => {
       setJsonLd({ '@context': 'https://schema.org', '@graph': graph })
 }, [state.data])
 
+// Task 6 — record del canonical group attualmente mostrato (vedi commento su
+// selectedId sopra). Va calcolato prima degli early return sotto perche' gli
+// hook successivi (quantita' collection) dipendono da selected.id.
+const selected = state.data
+  ? (state.data.variants.find(v => v.id === selectedId) || state.data.primary)
+  : null
+
+// Quantita' reale in Collection per il record mostrato — stessa RPC/tabella
+// gia' usata da AssetView/Portfolio (collection.quantity via RLS scoped a
+// auth.uid()), nessuna nuova logica server-side. Riparte da capo quando cambia
+// la card selezionata (lingua/variant diversi = card_api_id diverso).
+useEffect(() => {
+  if (!selected || !isAuthed) { setMyQty(0); return }
+  let cancelled = false
+  setQtyLoading(true)
+  supabase.from('collection').select('quantity').eq('card_api_id', selected.id).maybeSingle()
+    .then(({ data }) => { if (!cancelled) setMyQty(data?.quantity || 0) })
+    .catch(() => { if (!cancelled) setMyQty(0) })
+    .finally(() => { if (!cancelled) setQtyLoading(false) })
+  return () => { cancelled = true }
+}, [isAuthed, selected && selected.id])
+
 if (state.loading) {
   // Riusa il sistema skeleton globale (.skel-*, definito in styles.css e già
   // usato da SearchResults/HotPicks/Portfolio/Alerts) invece di un testo statico.
@@ -209,16 +266,36 @@ const primary = state.data.primary
   const sameSetCards = state.data.sameSetCards
 
 async function handleAddCollection() {
-  setCtaMsg('Adding...')
+  if (!isAuthed) { window.location.href = '/login'; return }
+  if (collectBusy) return
+  setCollectBusy(true)
   const res = await addOrIncrementCollection({
-    card_api_id: primary.id, tcg: primary.tcg, card_name: primary.name,
-    set_name: primary.set_name, image_url: primary.image_url,
-    card_number: primary.card_number || null, rarity: primary.rarity || null,
-    language: primary.lang || null,
+    card_api_id: selected.id, tcg: selected.tcg, card_name: selected.name,
+    set_name: selected.set_name, image_url: selected.image_url,
+    card_number: selected.card_number || null, rarity: selected.rarity || null,
+    language: selected.lang || null,
   })
+  setCollectBusy(false)
   if (res && res.error) { setCtaMsg('Error: ' + (res.error.message || res.error)); return }
   const row = res?.data
-  setCtaMsg(row?.out_inserted ? 'Added to portfolio!' : `Another copy added — you now have ${row?.quantity ?? 'multiple'}`)
+  if (row?.quantity != null) setMyQty(row.quantity)
+  setCtaMsg(row?.out_inserted ? 'Added to your collection!' : `Another copy added — you now have ${row?.quantity ?? 'multiple'}`)
+}
+
+// Rimuovi una copia — gemella simmetrica di handleAddCollection, stessa RPC
+// atomica decrement_or_remove_collection gia' usata da AssetView/Portfolio
+// (Task A). Nessuna seconda implementazione: stessa funzione supabase.js.
+async function handleDecrementCollection() {
+  if (!isAuthed) { window.location.href = '/login'; return }
+  if (decrementBusy || myQty <= 0) return
+  setDecrementBusy(true)
+  const res = await decrementOrRemoveCollection(selected.id)
+  setDecrementBusy(false)
+  if (res && res.error) { setCtaMsg('Error: ' + (res.error.message || res.error)); return }
+  const row = res?.data
+  if (!row) { setCtaMsg('Could not remove copy.'); return }
+  setMyQty(row.quantity)
+  setCtaMsg(row.out_deleted ? 'Removed from your collection' : `Copy removed — you now have ${row.quantity}`)
 }
 
 async function handleAddWatchlist() {
@@ -228,11 +305,75 @@ async function handleAddWatchlist() {
 }
 
 const setPageSlug = buildSetSlug(primary.tcg, primary.set_id)
-const heroImage = primary.image_url_hi || primary.image_url
-  const badgeEls = [
-    (rarity && rarity.label_en) ? h('span', { style: styles.badge, key: 'rarity' }, rarity.label_en) : (primary.rarity ? h('span', { style: styles.badge, key: 'rarity' }, primary.rarity) : null),
-    h('span', { style: styles.badge, key: 'tcg' }, (primary.tcg || '').toUpperCase())
-    ]
+const heroImage = selected.image_url_hi || selected.image_url
+
+// Identity row (sez. 1/10): Rarity / Language / Variant del record mostrato.
+// Il TCG non e' ripetuto qui: e' gia' visibile e cliccabile nel breadcrumb
+// sopra (evita di duplicare un'informazione gia' chiara, sez. 1).
+const selectedRarityLabel = (selected.id === primary.id && rarity && rarity.label_en) ? rarity.label_en : selected.rarity
+const identityBadges = [
+  selectedRarityLabel ? h('span', { style: styles.badge, key: 'rarity' }, selectedRarityLabel) : null,
+  selected.lang ? h('span', { style: styles.badge, key: 'lang' }, langLabel(selected.lang)) : null,
+  selected.print_variant ? h('span', { style: styles.badge, key: 'variant' }, selected.print_variant) : null,
+].filter(Boolean)
+
+// Multilingual switch (sez. 9): un pill per lingua reale disponibile in
+// questo canonical group, ognuno porta a un record vero (stesso vincolo di
+// print_variant quando possibile, altrimenti il primo trovato in quella
+// lingua) — mai una traduzione inventata.
+const languagePills = (languages && languages.length > 1)
+  ? h('div', { style: styles.pillRow, key: 'langpills' }, languages.map(code => {
+      const candidate = variants.find(v => v.lang === code && v.print_variant === selected.print_variant)
+        || variants.find(v => v.lang === code)
+      const active = selected.lang === code
+      return h('button', {
+        type: 'button', key: code,
+        style: active ? styles.pillActive : styles.pill,
+        onClick: () => candidate && setSelectedId(candidate.id),
+        disabled: !candidate,
+      }, langLabel(code))
+    }))
+  : null
+
+// Variants section (sez. 5): altre stampe reali nella STESSA lingua di quella
+// mostrata (holo/reverse/promo...). Cambio lingua sopra puo' spostare anche
+// questa lista, e' voluto: le stampe disponibili possono differire per lingua.
+const sameLangVariants = variants.filter(v => v.lang === selected.lang)
+const printVariantSection = (sameLangVariants.length > 1) ? h('section', { style: styles.section, key: 'variants' },
+  h('h2', { style: styles.h2 }, 'Variants'),
+  h('div', { style: styles.variantGrid }, sameLangVariants.map(v => h('button', {
+    type: 'button', key: v.id,
+    style: v.id === selected.id ? styles.variantCardActive : styles.variantCard,
+    onClick: () => setSelectedId(v.id),
+  },
+    v.image_url ? h('img', { src: v.image_url, alt: v.name, style: styles.variantImg }) : h('div', { style: styles.imgPlaceholderSmall }),
+    h('div', { style: styles.muted }, v.print_variant || 'Standard')
+  )))
+) : null
+
+// Card Information (sez. 6): solo campi realmente presenti sul record
+// mostrato/sul canonical group. Niente Type/HP/Stage: non sono colonne
+// caricate da cardPageData.js e aggiungerle richiederebbe una query in piu'
+// solo per popolare campi che potrebbero restare vuoti per molti tcg — non
+// inventato, semplicemente non mostrato finche' il dato non e' gia' in mano.
+const infoFacts = [
+  { k: 'Card number', v: primary.card_number },
+  { k: 'Rarity', v: selectedRarityLabel },
+  { k: 'Language', v: selected.lang ? langLabel(selected.lang) : null },
+  { k: 'Set', v: displaySetName, href: setPageSlug ? '/set/' + setPageSlug : null },
+  { k: 'Variant', v: selected.print_variant },
+  { k: 'Illustrator', v: primary.illustrator, href: primary.illustrator ? '/illustrator/' + slugifyIllustrator(primary.illustrator) : null },
+  { k: 'Series', v: primary.series_name },
+  { k: 'Evolves from', v: primary.evolves_from },
+].filter(f => f.v)
+
+const infoSection = infoFacts.length ? h('section', { style: styles.section, key: 'info' },
+  h('h2', { style: styles.h2 }, 'Card Information'),
+  h('div', { style: styles.factGrid }, infoFacts.map(f => h('div', { style: styles.fact, key: f.k },
+    h('span', { style: styles.factK }, f.k),
+    h('span', { style: styles.factV }, f.href ? h('a', { href: f.href, style: styles.link, className: 'dg-cp-link' }, f.v) : f.v)
+  )))
+) : null
 
 const priceBlock = (currentPrice && currentPrice.price_market != null)
   ? h(Fragment, null,
@@ -242,18 +383,7 @@ const priceBlock = (currentPrice && currentPrice.price_market != null)
       )
   : h('div', { style: styles.muted }, 'Price not yet available for this card.')
 
-const metaEls = []
-  if (primary.illustrator) metaEls.push(h('p', { style: styles.meta, key: 'ill' }, 'Illustrator: ',
-    h('a', { href: '/illustrator/' + slugifyIllustrator(primary.illustrator), style: styles.link }, h('strong', null, primary.illustrator))))
-  if (primary.evolves_from) metaEls.push(h('p', { style: styles.meta, key: 'evo' }, 'Evolves from: ', h('strong', null, primary.evolves_from)))
-  if (primary.series_name) metaEls.push(h('p', { style: styles.meta, key: 'series' }, 'Series: ', h('strong', null, primary.series_name)))
-  // FASE 5 internal linking (Task 5, SEO Foundation): one simple, generic
-  // link, not card-specific data — rarity/variant is the fact this page is
-  // most likely to raise a "what does that mean?" for.
-  metaEls.push(h('p', { style: styles.meta, key: 'academy' },
-    h('a', { href: '/academy/rarity-variants', style: styles.link, className: 'dg-cp-link' }, 'Learn about rarity & variants →')))
-
-const historySection = (priceHistory && priceHistory.length > 1) ? h('section', { style: styles.section },
+const historySection = (priceHistory && priceHistory.length > 1) ? h('section', { style: styles.section, key: 'history' },
                                                                      h('h2', { style: styles.h2 }, 'Price history'),
                                                                      h('div', { style: styles.historyList }, priceHistory.slice(0, 10).map((p, i) => h('div', { style: styles.historyRow, key: i },
                                                                                                                                                        h('span', null, p.captured_at ? new Date(p.captured_at).toLocaleDateString('en-US') : '—'),
@@ -261,32 +391,65 @@ const historySection = (priceHistory && priceHistory.length > 1) ? h('section', 
                                                                                                                                                        )))
                                                                      ) : null
 
-const langSection = (languages && languages.length > 1) ? h('section', { style: styles.section },
-                                                            h('h2', { style: styles.h2 }, 'Available languages'),
-                                                            h('div', { style: styles.badges }, languages.map(l => h('span', { style: l === primary.lang ? styles.badgeActive : styles.badge, key: l }, l.toUpperCase())))
-                                                            ) : null
+// Academy (sez. 7): stesso link gia' introdotto in Task 5, ora una sezione
+// dedicata invece di una riga persa tra i meta. Card Anatomy e' la seconda
+// lezione: relazione reale e semplice con "Card Information" appena sopra
+// (stessa materia: come leggere i campi di una carta), non una recommendation.
+const academySection = h('section', { style: styles.section, key: 'academy' },
+  h('h2', { style: styles.h2 }, 'Learn'),
+  h('div', { style: styles.academyLinks },
+    h('a', { href: '/academy/rarity-variants', style: styles.link, className: 'dg-cp-link' }, 'Rarity & Variants — what these labels mean →'),
+    h('a', { href: '/academy/card-anatomy', style: styles.link, className: 'dg-cp-link' }, 'Card Anatomy — how to read a card →')
+  )
+)
 
-const variantSection = (variants && variants.length > 1) ? h('section', { style: styles.section },
-                                                             h('h2', { style: styles.h2 }, 'Variants'),
-                                                             h('div', { style: styles.variantGrid }, variants.map(v => h('div', { style: styles.variantCard, key: v.id },
-                                                                                                                         v.image_url ? h('img', { src: v.image_url, alt: v.name, style: styles.variantImg }) : null,
-                                                                                                                         h('div', { style: styles.muted }, (v.print_variant || 'Standard') + ' · ' + (v.lang || '').toUpperCase())
-                                                                                                                         )))
-                                                             ) : null
-
-const relatedGrid = (sameSetCards && sameSetCards.length > 0)
-  ? h('div', { style: styles.relatedGrid }, sameSetCards.map(c => {
+// Related cards (sez. 8): priorita' 1/2 (stessa carta in altra lingua/stampa)
+// sono gia' coperte sopra dai pill lingua/variant — sono record dello STESSO
+// canonical group, quindi la STESSA pagina, non una lista "related" separata.
+// Qui resta la priorita' 3 (altre carte dello stesso set), gia' caricata da
+// cardPageData.js (sameSetCards) senza query aggiuntive.
+const relatedSection = (sameSetCards && sameSetCards.length > 0) ? h('section', { style: styles.section, key: 'related' },
+  h('h2', { style: styles.h2 }, 'Related cards'),
+  h('div', { style: styles.relatedGrid }, sameSetCards.map(c => {
     const slug2 = c.slug
     const tag = slug2 ? 'a' : 'div'
-    const props = { style: styles.relatedCard, key: c.id }
+    const props = { style: styles.relatedCard, key: c.id, className: slug2 ? 'dg-cp-link' : undefined }
     if (slug2) props.href = '/carta/' + slug2
     return h(tag, props,
              c.image_url ? h('img', { src: c.image_url, alt: c.name, style: styles.relatedImg }) : h('div', { style: styles.imgPlaceholderSmall }),
              h('div', { style: styles.relatedName }, c.name),
              h('div', { style: styles.muted }, '#' + c.card_number)
              )
-  }))
-  : h('p', { style: styles.muted }, 'No other cards from this set indexed yet.')
+  })),
+  setPageSlug ? h('a', { href: '/set/' + setPageSlug, style: styles.setLink, className: 'dg-cp-link' }, 'View full set →') : null
+) : null
+
+// Collection CTA (sez. 2/11): riusa add_or_increment_collection /
+// decrement_or_remove_collection (Task A), nessuna seconda implementazione
+// RPC. Copre esplicitamente logged-out / loading / not collected / N copie.
+const authLoading = authStatus === 'loading'
+let collectionCta
+if (authLoading) {
+  collectionCta = h('button', { style: styles.btnPrimary, disabled: true, key: 'cta' }, '…')
+} else if (!isAuthed) {
+  collectionCta = h('div', { key: 'cta' },
+    h('a', { href: '/login', style: styles.btnPrimaryLink, className: 'dg-cp-link' }, '+ Add to Collection'),
+    h('p', { style: styles.mutedSmall }, 'Sign in to track this card in your collection.')
+  )
+} else if (qtyLoading) {
+  collectionCta = h('button', { style: styles.btnPrimary, disabled: true, key: 'cta' }, 'Checking your collection…')
+} else if (myQty > 0) {
+  collectionCta = h('div', { style: styles.qtyBox, key: 'cta' },
+    h('span', { style: styles.collectionLabel }, `Collected ×${myQty}`),
+    h('div', { style: styles.qtyRow },
+      h('button', { type: 'button', style: styles.qtyBtn, onClick: handleDecrementCollection, disabled: decrementBusy, 'aria-label': 'Remove one copy from collection' }, decrementBusy ? '…' : '−'),
+      h('span', { style: styles.qtyValue }, myQty),
+      h('button', { type: 'button', style: styles.qtyBtn, onClick: handleAddCollection, disabled: collectBusy, 'aria-label': 'Add another copy to collection' }, collectBusy ? '…' : '+')
+    )
+  )
+} else {
+  collectionCta = h('button', { style: styles.btnPrimary, onClick: handleAddCollection, disabled: collectBusy, key: 'cta' }, collectBusy ? 'Adding…' : '+ Add to Collection')
+}
 
 const tcgHubInfo = getTcgHub(primary.tcg)
 return h('div', { style: styles.page },
@@ -308,31 +471,27 @@ return h('div', { style: styles.page },
            ),
            h('div', { style: styles.hero },
              h('div', { style: styles.imgWrap },
-               heroImage ? h('img', { src: heroImage, alt: primary.name, style: styles.img }) : h('div', { style: styles.imgPlaceholder }, 'Image not available')
+               heroImage ? h('img', { src: heroImage, alt: selected.name || primary.name, style: styles.img }) : h('div', { style: styles.imgPlaceholder }, 'Image not available')
                ),
              h('div', { style: styles.info },
                h('h1', { style: styles.h1 }, displayName),
-               h('p', { style: styles.subtitle }, displaySetName + ' · #' + primary.card_number + ' · ' + (primary.lang || '').toUpperCase()),
-               h('div', { style: styles.badges }, badgeEls),
-               h('div', { style: styles.priceBox }, priceBlock),
-               metaEls,
-               h('div', { style: styles.ctaRow },
-                 h('button', { style: styles.btnPrimary, onClick: handleAddCollection }, '+ Add to Portfolio'),
-                 h('button', { style: styles.btnSecondary, onClick: handleAddWatchlist }, '+ Add to Watchlist')
+               h('p', { style: styles.subtitle },
+                 setPageSlug ? h('a', { href: '/set/' + setPageSlug, style: styles.subtitleLink, className: 'dg-cp-link' }, displaySetName) : displaySetName,
+                 ' · #' + primary.card_number
                  ),
-               ctaMsg ? h('p', { style: styles.muted }, ctaMsg) : null
+               h('div', { style: styles.badges }, identityBadges),
+               languagePills,
+               h('div', { style: styles.collectionBox }, collectionCta),
+               ctaMsg ? h('p', { style: styles.muted }, ctaMsg) : null,
+               h('div', { style: styles.priceBox }, priceBlock),
+               h('button', { type: 'button', style: styles.btnGhostSmall, onClick: handleAddWatchlist }, '+ Add to Watchlist')
                )
              ),
+           infoSection,
+           printVariantSection,
            historySection,
-           langSection,
-           variantSection,
-           h('section', { style: styles.section },
-             h('h2', { style: styles.h2 },
-               'Set: ' + displaySetName,
-               setPageSlug ? h('a', { href: '/set/' + setPageSlug, style: styles.setLink, className: 'dg-cp-link' }, 'View full set →') : null
-               ),
-             relatedGrid
-             )
+           academySection,
+           relatedSection
            )
          )
 }
@@ -359,27 +518,44 @@ const styles = {
   h1: { fontSize: 28, margin: '0 0 6px', fontWeight: 700 },
   h2: { fontSize: 18, margin: '0 0 12px', fontWeight: 600 },
   subtitle: { color: '#a0a0b0', margin: '0 0 16px', fontSize: 15 },
-  badges: { display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 20 },
+  subtitleLink: { color: '#a0a0b0', textDecoration: 'underline', textDecorationColor: '#3a3a4a' },
+  badges: { display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 },
   badge: { background: '#1a1a28', border: '1px solid #2a2a3a', borderRadius: 20, padding: '4px 12px', fontSize: 12 },
   badgeActive: { background: '#4b3cff', border: '1px solid #4b3cff', borderRadius: 20, padding: '4px 12px', fontSize: 12 },
-  priceBox: { background: '#0f0f18', border: '1px solid #23233a', borderRadius: 12, padding: 16, marginBottom: 16 },
+  pillRow: { display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 },
+  pill: { background: 'transparent', color: '#c0c0d0', border: '1px solid #2a2a3a', borderRadius: 20, padding: '4px 12px', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' },
+  pillActive: { background: '#4b3cff', color: '#fff', border: '1px solid #4b3cff', borderRadius: 20, padding: '4px 12px', fontSize: 12, cursor: 'default', fontFamily: 'inherit' },
+  collectionBox: { marginBottom: 12 },
+  collectionLabel: { fontSize: 13, color: '#a0a0b0', fontWeight: 600 },
+  qtyBox: { background: '#0f0f18', border: '1px solid #23233a', borderRadius: 12, padding: '12px 16px', display: 'inline-flex', flexDirection: 'column', gap: 8 },
+  qtyRow: { display: 'flex', alignItems: 'center', gap: 14 },
+  qtyBtn: { width: 32, height: 32, borderRadius: 8, border: '1px solid #3a3a4a', background: 'transparent', color: '#f4f4f8', fontSize: 16, cursor: 'pointer', fontFamily: 'inherit' },
+  qtyValue: { fontSize: 18, fontWeight: 700, minWidth: 20, textAlign: 'center' },
+  priceBox: { background: '#0f0f18', border: '1px solid #23233a', borderRadius: 12, padding: 16, marginBottom: 16, marginTop: 4 },
   priceLabel: { fontSize: 12, color: '#888', marginBottom: 4 },
   priceValue: { fontSize: 28, fontWeight: 700 },
   meta: { fontSize: 14, color: '#c0c0d0', margin: '4px 0' },
   muted: { color: '#777', fontSize: 13 },
-  ctaRow: { display: 'flex', gap: 10, marginTop: 16 },
-  btnPrimary: { background: '#4b3cff', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 18px', fontSize: 14, cursor: 'pointer', fontWeight: 600 },
-  btnSecondary: { background: 'transparent', color: '#f4f4f8', border: '1px solid #3a3a4a', borderRadius: 8, padding: '10px 18px', fontSize: 14, cursor: 'pointer' },
+  mutedSmall: { color: '#777', fontSize: 12, margin: '6px 0 0' },
+  btnPrimary: { background: '#4b3cff', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 18px', fontSize: 14, cursor: 'pointer', fontWeight: 600, fontFamily: 'inherit' },
+  btnPrimaryLink: { display: 'inline-block', background: '#4b3cff', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 18px', fontSize: 14, fontWeight: 600, textDecoration: 'none' },
+  btnGhostSmall: { background: 'transparent', color: '#9aa0ff', border: 'none', fontSize: 13, cursor: 'pointer', padding: 0, marginTop: 4, fontFamily: 'inherit', textDecoration: 'underline' },
   section: { marginBottom: 36, borderTop: '1px solid #1a1a28', paddingTop: 24 },
   historyList: { display: 'flex', flexDirection: 'column', gap: 6 },
   historyRow: { display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #14141f', fontSize: 14 },
+  factGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 16 },
+  fact: { display: 'flex', flexDirection: 'column', gap: 2 },
+  factK: { fontSize: 11, color: '#777', textTransform: 'uppercase', letterSpacing: '0.03em' },
+  factV: { fontSize: 14, color: '#f4f4f8' },
   variantGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))', gap: 12 },
-  variantCard: { textAlign: 'center' },
+  variantCard: { textAlign: 'center', background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', color: 'inherit', fontFamily: 'inherit' },
+  variantCardActive: { textAlign: 'center', background: 'transparent', border: '2px solid #4b3cff', borderRadius: 8, padding: 4, cursor: 'default', color: 'inherit', fontFamily: 'inherit' },
   variantImg: { width: '100%', borderRadius: 8, marginBottom: 6 },
+  academyLinks: { display: 'flex', flexDirection: 'column', gap: 8 },
   relatedGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: 14 },
   relatedCard: { textDecoration: 'none', color: 'inherit', display: 'block' },
   relatedImg: { width: '100%', borderRadius: 8, marginBottom: 6 },
   relatedName: { fontSize: 13, fontWeight: 600, lineHeight: 1.3 },
   link: { color: '#9aa0ff' },
-  setLink: { color: '#9aa0ff', textDecoration: 'none', fontSize: 13, fontWeight: 500, marginLeft: 12 },
+  setLink: { color: '#9aa0ff', textDecoration: 'none', fontSize: 13, fontWeight: 500, marginLeft: 12, display: 'inline-block', marginTop: 12 },
 }
