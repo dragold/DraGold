@@ -119,7 +119,7 @@ useEffect(() => {
   setRobotsMeta(null)
   setSeoMeta({
     title: `${displayName} (${displaySetName} #${primary.card_number}) — DraGold${priceTxt}`,
-    description: `${displayName} — ${displaySetName} #${primary.card_number}, rarity: ${primary.rarity || 'N/A'}. Market price, price history and best offers on DraGold.`,
+    description: `${displayName} — ${displaySetName} #${primary.card_number}, rarity ${primary.rarity || 'N/A'}. Card details, variants and price history on DraGold.`,
     image: primary.image_url_hi || primary.image_url,
     url: `https://dragold.org/carta/${canonicalSlug}`,
   })
@@ -162,7 +162,6 @@ useEffect(() => {
                         '@type': 'Offer',
                         priceCurrency: currentPrice.currency || 'USD',
                         price: currentPrice.price_market,
-                        availability: 'https://schema.org/InStock',
                         url: cardUrl,
               }
       }
@@ -248,6 +247,11 @@ const metaEls = []
     h('a', { href: '/illustrator/' + slugifyIllustrator(primary.illustrator), style: styles.link }, h('strong', null, primary.illustrator))))
   if (primary.evolves_from) metaEls.push(h('p', { style: styles.meta, key: 'evo' }, 'Evolves from: ', h('strong', null, primary.evolves_from)))
   if (primary.series_name) metaEls.push(h('p', { style: styles.meta, key: 'series' }, 'Series: ', h('strong', null, primary.series_name)))
+  // FASE 5 internal linking (Task 5, SEO Foundation): one simple, generic
+  // link, not card-specific data — rarity/variant is the fact this page is
+  // most likely to raise a "what does that mean?" for.
+  metaEls.push(h('p', { style: styles.meta, key: 'academy' },
+    h('a', { href: '/academy/rarity-variants', style: styles.link, className: 'dg-cp-link' }, 'Learn about rarity & variants →')))
 
 const historySection = (priceHistory && priceHistory.length > 1) ? h('section', { style: styles.section },
                                                                      h('h2', { style: styles.h2 }, 'Price history'),

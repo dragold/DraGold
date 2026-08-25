@@ -2,7 +2,27 @@
 // (Auth/Profile/Username feature). Matches AuthModal's existing look
 // (DraGold.jsx) but as a full standalone page, same pattern as
 // pages/tcg/TcgPage.jsx etc. — main.jsx routes here directly.
+import { useEffect } from "react";
+
+// Task 5 (SEO Foundation), FASE 7: auth flows have no unique content to
+// index and are private-by-nature — noindex here covers all four pages that
+// use this shared shell in one place, same "index.html-default is
+// indexable, opt out explicitly" pattern CardPage.jsx/SetPage.jsx use for
+// their not_found state.
+function useNoindex() {
+  useEffect(() => {
+    let el = document.querySelector('meta[name="robots"]');
+    if (!el) {
+      el = document.createElement("meta");
+      el.setAttribute("name", "robots");
+      document.head.appendChild(el);
+    }
+    el.setAttribute("content", "noindex");
+  }, []);
+}
+
 export function AuthLayout({ children, backHref = "/" }) {
+  useNoindex();
   return (
     <div className="authpage">
       <div className="authpage-card">

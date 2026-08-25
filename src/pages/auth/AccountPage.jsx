@@ -19,6 +19,20 @@ export default function AccountPage() {
     if (status === "unauthenticated") window.location.replace("/login");
   }, [status]);
 
+  // Private, authenticated-only page — never indexable (Task 5, SEO Foundation,
+  // FASE 7). No canonical/OG here either: this route has nothing to offer a
+  // crawler, and robots.txt alone can't stop a linked URL from appearing bare
+  // in search results, so noindex meta is the correct mechanism.
+  useEffect(() => {
+    let el = document.querySelector('meta[name="robots"]');
+    if (!el) {
+      el = document.createElement("meta");
+      el.setAttribute("name", "robots");
+      document.head.appendChild(el);
+    }
+    el.setAttribute("content", "noindex");
+  }, []);
+
   if (status !== "authenticated") {
     return (
       <div className="authpage">
