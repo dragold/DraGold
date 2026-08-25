@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { supabase, supabaseReady, addToWatchlist, addOrIncrementCollection } from "../../supabase.js";
+import { supabase, supabaseReady, addToWatchlist, addOrIncrementCollection, decrementOrRemoveCollection } from "../../supabase.js";
 import { TCG_LIST, CARD_LANGS, ebayURL, ebayItemURL } from "../../DraGold.jsx";
 import { pickCardImage, getSetInfo } from "../shared/cardImage.js";
 import { Icon } from "../shared/Icon.jsx";
@@ -66,6 +66,7 @@ export function AssetView({ card, onBack, isAuthed, onLogin, country, cur, eurRa
   const [watchBusy, setWatchBusy] = useState(false);
   const [collected, setCollected] = useState(false);
   const [collectBusy, setCollectBusy] = useState(false);
+  const [decrementBusy, setDecrementBusy] = useState(false);
   // Real quantity already in the user's portfolio for this card — fetched on
   // mount so the CTA reflects reality on first paint ("In Portfolio · X
   // copies"), not only after a click during this session (Portfolio 2.0,
@@ -333,6 +334,28 @@ export function AssetView({ card, onBack, isAuthed, onLogin, country, cur, eurRa
     }
   };
 
+  // Rimuovi una copia — gemella simmetrica di addCollection, stessa RPC
+  // pattern (decrement_or_remove_collection): atomica, nessuna race. A
+  // quantity 1 la riga viene eliminata (myQty torna 0, CTA torna "Add to
+  // Portfolio"); a quantity>1 decrementa e basta.
+  const decrementCollection = async () => {
+    if (!isAuthed) { onLogin?.(); return; }
+    if (decrementBusy || myQty <= 0) return;
+    setDecrementBusy(true);
+    const res = await decrementOrRemoveCollection(toApiId(card));
+    setDecrementBusy(false);
+    if (res?.error) { flash(typeof res.error === "string" ? res.error : "Could not remove copy."); return; }
+    const row = res?.data;
+    if (!row) { flash("Could not remove copy."); return; }
+    setMyQty(row.quantity);
+    if (row.out_deleted) {
+      setCollected(false);
+      flash("Removed from your portfolio");
+    } else {
+      flash(`Copy removed — you now have ${row.quantity}`);
+    }
+  };
+
   const gateAuth = (m) => { if (!isAuthed) { onLogin?.(); } else { setModal(m); } };
 
   const ebayHref = ebayURL(card.name, card.set_name || "", country, card.tcg || "pokemon", cardNum);
@@ -503,6 +526,10 @@ export function AssetView({ card, onBack, isAuthed, onLogin, country, cur, eurRa
             </span>
             <button className="btn btn-ghost btn-sm" onClick={addCollection} disabled={collectBusy}>
               {collectBusy ? "…" : "+ Add another"}
+            </button>
+            <button className="btn btn-ghost btn-sm" onClick={decrementCollection} disabled={decrementBusy}
+              aria-label="Remove one copy from portfolio">
+              {decrementBusy ? "…" : "− Remove one"}
             </button>
           </div>
         ) : (
