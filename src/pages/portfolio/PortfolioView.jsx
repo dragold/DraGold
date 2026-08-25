@@ -274,7 +274,7 @@ function MiniPositionChart({ series, fmt }) {
 }
 
 /* ─── Grid card (default view, FASE 4) ─── */
-function PortfolioGridCard({ pos, priceInfo, series, fmt, onOpen }) {
+function PortfolioGridCard({ pos, priceInfo, series, fmt, onOpen, onDecrement, decrementBusy }) {
   const [imgFailed, setImgFailed] = useState(false);
   const imgUrl = pickCardImage(pos) || null;
   const tcgInfo = TCG_LIST.find(t => t.id === pos.tcg);
@@ -303,6 +303,11 @@ function PortfolioGridCard({ pos, priceInfo, series, fmt, onOpen }) {
           </div>
         )}
         <span className="pfg-qty-badge">×{qty}</span>
+        <button type="button" className="pfg-qty-decrement" disabled={decrementBusy}
+          onClick={(e) => { e.preventDefault(); e.stopPropagation(); onDecrement?.(); }}
+          aria-label={`Remove one copy of ${pos.card_name || "this card"}`}>
+          {decrementBusy ? "…" : "−"}
+        </button>
       </div>
       <div className="pfg-body">
         <div className="pfg-name">{pos.card_name || "—"}</div>
@@ -756,7 +761,9 @@ export function PortfolioView({ isAuthed, onLogin, onExplore, cur, eurRate, onOp
               priceInfo={priceMap[pos.card_api_id] || null}
               series={perPositionChange[pos.id].series}
               fmt={fmt}
-              onOpen={() => openPosition(pos)} />
+              onOpen={() => openPosition(pos)}
+              onDecrement={() => doDecrement(pos)}
+              decrementBusy={decrementBusyId === pos.id} />
           ))}
         </div>
       ) : (
