@@ -8,6 +8,25 @@
 // - set_logos per nome/logo/data quando disponibile (copre solo pokemon+
 //   onepiece: 153+31 righe verificate su Supabase — per mtg/ygo questi campi
 //   restano assenti, mai inventati)
+//
+// Explicit-language routing (task "risolvere il limite strutturale One Piece
+// Japanese", 2026-08-25): /set/:slug non incorpora la lingua nell'URL — lo
+// slug e' una normalizzazione lossy di cards.set_id, e per One Piece le
+// spelling EN ("OP01") e JA ("OP-01") normalizzano allo stesso set_id
+// "canonico" (vedi lib/setSlug.js normalizeSetKey), quindi la stessa slug
+// string non basta a distinguere le due edizioni. Soluzione scelta: query
+// param `?lang=`, letto da SetPage.jsx e passato qui come secondo argomento.
+// - lang assente (comportamento originale, invariato): prova 'en', poi
+//   qualunque lingua disponibile se 'en' non esiste per quel set (es. i set
+//   Pokemon JP-only, che vivono in un set_id namespace del tutto distinto —
+//   verificato, mai una collisione con EN — quindi questo fallback li
+//   mostrava gia' correttamente anche senza query param).
+// - lang esplicito (es. 'ja'): filtro rigido su quella lingua. Se non esiste
+//   nessuna riga per quella lingua sotto questo set_id, NON si fa fallback
+//   silenzioso a un'altra lingua (requisito esplicito del task) — si
+//   restituisce { langUnavailable: true, ... } cosi' la UI puo' mostrare uno
+//   stato coerente ("questo set non ha un'edizione X") invece di far
+//   apparire silenziosamente le carte sbagliate sotto l'etichetta richiesta.
 import { supabase } from '../../supabase.js'
 import { setIdCandidates, naturalCompare } from './SetDetailPage.jsx'
 import { groupByCanonical } from '../../lib/search.js'
@@ -27,7 +46,7 @@ function rawSetIdCandidates(setIdSlug) {
   return [...seed]
 }
 
-export async function getSetPageData(slug) {
+export async function getSetPageData(slug, lang) {
   if (!supabase || !slug) return null
   const parsed = parseSetSlug(slug)
   if (!parsed) return null
@@ -36,7 +55,11 @@ export async function getSetPageData(slug) {
   // Passo 1: trova il set_id reale (con la casing effettiva in `cards`) tra i candidati.
   // .order() rende deterministico quale spelling viene scelto quando piu' righe
   // con set_id diversi (es. "OP-01" e "op01") sono entrambe candidate per lo
-  // stesso slug — vedi normalizeSetKey in lib/setSlug.js.
+  // stesso slug — vedi normalizeSetKey in lib/setSlug.js. Questa scelta non
+  // dipende dalla lingua richiesta: setIdCandidates(realSetId) piu' sotto
+  // genera comunque entrambe le spelling (con/senza trattino, maiuscolo/
+  // minuscolo), quindi la query sulle carte funziona a prescindere da quale
+  // spelling e' stata scelta come realSetId.
   const { data: probeRows } = await supabase
     .from('cards')
     .select('set_id')
@@ -64,16 +87,31 @@ export async function getSetPageData(slug) {
   // quando realmente disponibile" richiesto dalla Card Grid.
   const FIELDS = 'id,name,name_en,set_name,set_id,card_number,image_url,image_url_hi,lang,tcg,canonical_card_id,series_name,rarity,print_variant'
 
-  const [{ data: enRows }, { data: logoRows }] = await Promise.all([
-    supabase.from('cards').select(FIELDS).eq('tcg', tcg).in('set_id', candidates).eq('lang', 'en').limit(LISTING_CAP),
+  const [{ data: primaryRows }, { data: logoRows }] = await Promise.all([
+    supabase.from('cards').select(FIELDS).eq('tcg', tcg).in('set_id', candidates).eq('lang', lang || 'en').limit(LISTING_CAP),
     supabase.from('set_logos').select('*').eq('tcg', tcg).in('set_code', candidates).limit(1),
   ])
 
-  let rows = enRows || []
-  let langUsed = 'en'
+  let rows = primaryRows || []
+  let langUsed = lang || 'en'
+  const logo = logoRows?.[0] || null
+
   if (!rows.length) {
-    // Set senza alcuna riga 'en' (es. set solo-JP): fallback a qualunque lingua,
-    // stesso pattern del fallback nome usato in SetDetailPage.jsx.
+    if (lang) {
+      // Lingua esplicitamente richiesta (?lang=ja) e genuinamente assente per
+      // questo set — il set stesso e' reale (realSetId risolto sopra), solo
+      // questa edizione non esiste. Nessun fallback silenzioso a un'altra
+      // lingua: la UI mostra uno stato dedicato, non le carte sbagliate.
+      return {
+        tcg, setId: realSetId, slug: `${tcg}-${setIdSlug}`,
+        setName: logo?.set_name || realSetId,
+        langUnavailable: true, langRequested: lang,
+      }
+    }
+    // Nessuna lingua esplicita (bare /set/:slug) — stesso fallback di sempre:
+    // qualunque lingua disponibile (es. set Pokemon JP-only, gia' funzionanti
+    // prima di questo task perche' vivono in un set_id namespace distinto da
+    // EN e non passano mai da questo branch se raggiunti con ?lang=ja).
     const { data: anyRows } = await supabase.from('cards').select(FIELDS).eq('tcg', tcg).in('set_id', candidates).limit(LISTING_CAP)
     rows = anyRows || []
     langUsed = null
@@ -93,10 +131,9 @@ export async function getSetPageData(slug) {
   }
   const cardsOut = deduped.map(c => ({ ...c, cardSlug: c.canonical_card_id ? slugMap.get(c.canonical_card_id) || null : null }))
 
-  const logo = logoRows?.[0] || null
-  const enSample = rows.find(c => c.lang === 'en') || rows[0]
-  const setName = logo?.set_name || enSample?.set_name || realSetId
-  const seriesName = enSample?.series_name || null
+  const sample = rows[0]
+  const setName = logo?.set_name || sample?.set_name || realSetId
+  const seriesName = sample?.series_name || null
 
   return {
     tcg,
@@ -107,6 +144,7 @@ export async function getSetPageData(slug) {
     logoUrl: logo?.logo_url || null,
     releaseDate: logo?.release_date || null,
     langUsed,
+    langRequested: lang || null,
     cardCount: cardsOut.length,
     hasMore,
     cards: cardsOut,

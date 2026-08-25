@@ -24,24 +24,19 @@
 // mescolati. Per mtg/ygo (nessun dato ja) il path resta quello originale,
 // invariato: zero rischio, zero query in piu'.
 //
-// Limite noto, non risolto qui (fuori scope — richiederebbe uno schema di slug
-// con lingua, tocca setPageData.js/SetPage.jsx): /set/:slug non incorpora la
-// lingua nell'URL e per One Piece lo slug EN e JA normalizzano allo stesso
-// set_id "canonico" (OP01/OP-01, vedi setSlug.js normalizeSetKey) — la query in
-// setPageData.js preferisce sempre 'en' quando esiste. Risultato verificato:
-// oggi NON esiste un modo, via /set/:slug, di aprire la lista carte JP di un
-// set One Piece — il link mostrerebbe silenziosamente le carte EN sotto
-// un'etichetta "Japanese", quindi qui quella tile non e' resa cliccabile
-// (nessuna identita'/relazione inventata). I set Pokemon JP invece vivono in un
-// namespace di set_id del tutto distinto da quello EN (verificato: CP1/E1/M1L/
-// PCG1.. vs base1/bw1/swshp — mai la stessa stringa candidata), quindi per loro
-// /set/:slug risolve gia' correttamente alla lista JP reale (zero righe 'en'
-// trovate per quell'id -> fallback "qualunque lingua" in setPageData.js) e la
-// tile resta un link normale.
+// Set Detail routing (follow-up task, 2026-08-25): /set/:slug previously had
+// no language dimension, and for One Piece the EN/JA slugs collide under
+// normalizeSetKey() (OP01/OP-01) — setPageData.js used to always resolve to
+// 'en', so a Japanese tile here used to render without a link (see git
+// history) rather than silently opening the English card list. SetPage.jsx/
+// setPageData.js now accept an explicit `?lang=` query param that scopes the
+// Set Detail to one language with no silent fallback, so every tile below
+// links normally again — Japanese tiles just carry `?lang=ja` (only added
+// when a set's `.lang` isn't the default 'en'; International tiles are
+// unaffected, same bare /set/:slug as before).
 import { getTcgPageData } from './tcgPageData.js'
 import { getTcgHub } from '../../lib/tcgConfig.js'
 import { loadLangSets, detectJapaneseSets } from '../../lib/tcgSets.js'
-import { normalizeSetKey } from '../../lib/setSlug.js'
 import { useEffect, useState, createElement as h } from 'react'
 
 function setSeoMeta({ title, description, image, url }) {
@@ -260,17 +255,7 @@ export default function TcgPage({ tcg }) {
     return groups
   }
 
-  // One Piece's ja slugs collide with their en counterpart under
-  // normalizeSetKey() (see file-header comment) — setPageData.js always
-  // resolves that collision to the 'en' card list, so linking a ja tile
-  // there would silently show English cards under a "Japanese" heading.
-  // Detected from the real data already on the page (no extra query, no
-  // hardcoding to onepiece specifically): a ja set is safe to link only when
-  // its normalized set_id doesn't collide with an International one.
-  const intlKeys = new Set(d.sets.map(s => normalizeSetKey(s.setId)))
-  const jaLinkable = (s) => !intlKeys.has(normalizeSetKey(s.setId))
-
-  function renderSetTile(s, { linkable = true } = {}) {
+  function renderSetTile(s) {
     const logo = s.logoUrl
       ? h('img', { src: s.logoUrl, alt: s.setName, style: styles.setLogo, loading: 'lazy', onError: e => { e.currentTarget.style.display = 'none'; e.currentTarget.nextSibling?.style && (e.currentTarget.nextSibling.style.display = 'flex') } })
       : null
@@ -283,22 +268,21 @@ export default function TcgPage({ tcg }) {
       `${s.cardCount} card${s.cardCount === 1 ? '' : 's'}`,
       s.releaseDate ? ` · ${formatReleaseDate(s.releaseDate)}` : ''
     )
-    const children = [logo, fallback, h('div', { style: styles.setName }, s.setName), meta]
-    if (linkable) {
-      return h('a', { href: '/set/' + s.slug, className: 'dg-tcg-tile', style: styles.setTile, key: s.slug }, ...children)
-    }
-    // Not linkable (see jaLinkable above): same tile, no href — still shows
-    // the set exists and its real data, doesn't pretend a working link.
-    return h('div', { style: { ...styles.setTile, cursor: 'default', opacity: .82 }, key: `${s.slug}-nolink` }, ...children)
+    // Japanese tiles carry ?lang=ja so Set Detail scopes to that edition
+    // explicitly (see file-header comment) — International tiles keep the
+    // bare slug, unchanged.
+    const href = '/set/' + s.slug + (s.lang && s.lang !== 'en' ? `?lang=${encodeURIComponent(s.lang)}` : '')
+    return h('a', { href, className: 'dg-tcg-tile', style: styles.setTile, key: href },
+      logo, fallback, h('div', { style: styles.setName }, s.setName), meta)
   }
 
-  function renderSetList(sets, { emptyLabel, linkable }) {
+  function renderSetList(sets, { emptyLabel }) {
     if (!sets.length) return h('p', { style: styles.muted }, emptyLabel)
     const groups = yearGroupsOf(sets)
     const showYearHeaders = groups.length > 1 || (groups[0] && groups[0].key !== 'unknown')
     return groups.map(g => h('div', { key: g.key, style: { marginBottom: 28 } },
       showYearHeaders ? h('div', { style: styles.yearHead }, g.label) : null,
-      h('div', { style: styles.grid }, g.items.map(s => renderSetTile(s, { linkable: linkable ? linkable(s) : true })))
+      h('div', { style: styles.grid }, g.items.map(renderSetTile))
     ))
   }
 
@@ -313,7 +297,7 @@ export default function TcgPage({ tcg }) {
       ? h('button', { type: 'button', style: styles.btnGhost, onClick: loadJapanese }, 'Show Japanese sets')
       : jaState === 'loading'
         ? h('p', { style: styles.muted }, 'Loading Japanese sets…')
-        : renderSetList(jaSets, { emptyLabel: 'No Japanese sets indexed yet.', linkable: jaLinkable })
+        : renderSetList(jaSets, { emptyLabel: 'No Japanese sets indexed yet.' })
   ) : null
 
   return h('div', { style: styles.page },

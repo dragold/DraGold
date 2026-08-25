@@ -7,12 +7,37 @@
 // indicatore collected/quantity per carta, filtro All/Collected/Missing e
 // set precedente/successivo — tutto sopra ai dati gia' caricati da
 // getSetPageData()/una singola query batched per la Collection, mai per-card.
+//
+// Explicit-language routing (task "risolvere il limite strutturale One Piece
+// Japanese", 2026-08-25): lo slug da solo non basta a distinguere le edizioni
+// EN/JA di uno stesso set quando collidono sotto normalizeSetKey (es. One
+// Piece "OP01"/"OP-01" — vedi lib/setSlug.js). Soluzione scelta, la piu'
+// minima compatibile con gli URL esistenti: un query param `?lang=`, letto
+// qui da window.location.search e passato a getSetPageData(). Assente ->
+// comportamento originale invariato (EN, poi qualunque lingua disponibile —
+// questo e' gia' cio' che rendeva i set Pokemon JP-only navigabili prima di
+// questo task, dato che il loro set_id namespace non collide mai con EN).
+// Esplicito (?lang=ja) -> filtro rigido: se quella lingua non esiste per
+// questo set, niente fallback silenzioso a un'altra (vedi ramo
+// langUnavailable sotto) — mai carte della lingua sbagliata sotto
+// un'etichetta che dice il contrario.
 import { getSetPageData, getAdjacentSets } from './setPageData.js'
 import { getTcgHub } from '../../lib/tcgConfig.js'
 import { buildSetSlug } from '../../lib/setSlug.js'
 import { useAuth } from '../../lib/auth.js'
 import { supabase } from '../../supabase.js'
 import { useEffect, useState, createElement as h } from 'react'
+
+// Solo un codice lingua plausibile (2-8 lettere/trattini, es. "ja", "zh-tw")
+// viene onorato — qualunque altra cosa nel query param e' ignorata invece di
+// essere passata a supabase come filtro .eq('lang', ...) as-is.
+function readRequestedLang() {
+  try {
+    const raw = new URLSearchParams(window.location.search).get('lang')
+    const v = (raw || '').trim().toLowerCase()
+    return /^[a-z]{2}(-[a-z]{2,4})?$/.test(v) ? v : null
+  } catch { return null }
+}
 
 function setSeoMeta({ title, description, image, url }) {
   if (title) document.title = title
@@ -90,13 +115,14 @@ export default function SetPage({ slug }) {
   const [filter, setFilter] = useState('all') // 'all' | 'collected' | 'missing'
   const [adjacent, setAdjacent] = useState(null)
   const { status: authStatus, isAuthed } = useAuth()
+  const lang = readRequestedLang()
 
   useEffect(() => {
     let alive = true
     setState({ loading: true, data: null, error: null })
     setFilter('all')
     setAdjacent(null)
-    getSetPageData(slug).then(data => {
+    getSetPageData(slug, lang).then(data => {
       if (!alive) return
       if (!data) { setState({ loading: false, data: null, error: 'not_found' }); return }
       setState({ loading: false, data, error: null })
@@ -105,19 +131,37 @@ export default function SetPage({ slug }) {
       setState({ loading: false, data: null, error: err.message || 'error' })
     })
     return () => { alive = false }
-  }, [slug])
+  }, [slug, lang])
 
   useEffect(() => {
     const d = state.data
     if (!d) return
     const hub = getTcgHub(d.tcg)
     const tcgLabel = hub?.label || d.tcg
-    const setUrl = `https://dragold.org/set/${d.slug}`
+    const langQuery = d.langRequested ? `?lang=${encodeURIComponent(d.langRequested)}` : ''
+    const setUrl = `https://dragold.org/set/${d.slug}${langQuery}`
+
+    // Lingua richiesta esplicitamente ma genuinamente assente per questo set
+    // (vedi setPageData.js) — non e' un 404 generico (il set esiste, questa
+    // edizione no), ma non e' nemmeno contenuto reale da indicizzare: noindex,
+    // canonical verso l'edizione di base (quella che esiste davvero).
+    if (d.langUnavailable) {
+      setRobotsMeta('noindex')
+      setSeoMeta({
+        title: `${d.setName} — DraGold`,
+        description: `This set doesn't have a ${d.langRequested.toUpperCase()} edition indexed on DraGold yet.`,
+        image: null,
+        url: `https://dragold.org/set/${d.slug}`,
+      })
+      return
+    }
+
     const countTxt = d.hasMore ? `${d.cardCount}+ cards` : `${d.cardCount} card${d.cardCount === 1 ? '' : 's'}`
+    const langNote = d.langUsed === 'ja' ? ' Japanese edition.' : ''
     setRobotsMeta(null)
     setSeoMeta({
-      title: `${d.setName} (${tcgLabel}) — Set Guide & Card List — DraGold`,
-      description: `${d.setName} is a ${tcgLabel} set${d.releaseDate ? ` released ${d.releaseDate}` : ''} with ${countTxt}. Browse every card, rarity and variant, and track this set in your collection on DraGold.`,
+      title: `${d.setName}${d.langUsed === 'ja' ? ' (Japanese)' : ''} (${tcgLabel}) — Set Guide & Card List — DraGold`,
+      description: `${d.setName} is a ${tcgLabel} set${d.releaseDate ? ` released ${d.releaseDate}` : ''} with ${countTxt}.${langNote} Browse every card, rarity and variant, and track this set in your collection on DraGold.`,
       image: d.logoUrl || null,
       url: setUrl,
     })
@@ -157,10 +201,11 @@ export default function SetPage({ slug }) {
   // sola query batched (card_api_id IN [...ids di questa pagina]), RLS scoped
   // ad auth.uid() come ovunque nell'app (nessun filtro utente esplicito
   // necessario). Se l'utente non e' autenticato, nessuna query e nessun
-  // progresso simulato: la mappa resta vuota.
+  // progresso simulato: la mappa resta vuota. Niente da fare per lo stato
+  // langUnavailable (d.cards non esiste in quel caso).
   useEffect(() => {
     const d = state.data
-    if (!d || !isAuthed) { setCollectionMap(new Map()); return }
+    if (!d || !d.cards || !isAuthed) { setCollectionMap(new Map()); return }
     let cancelled = false
     setCollectionLoading(true)
     const ids = d.cards.map(c => c.id)
@@ -209,11 +254,33 @@ export default function SetPage({ slug }) {
     ))
   }
 
+  // Lingua esplicitamente richiesta ma assente per questo set (vedi
+  // setPageData.js/langUnavailable) — il set e' reale, questa edizione no.
+  // Stato dedicato invece di un 404 generico o di mostrare silenziosamente
+  // le carte di un'altra lingua sotto questa etichetta.
+  if (state.data.langUnavailable) {
+    const ld = state.data
+    return h('div', { style: styles.page }, h('div', { style: styles.wrap },
+      h('a', { href: '/', style: styles.backLink }, '← DraGold'),
+      h('div', { style: styles.center },
+        h('h1', { style: styles.h1 }, ld.setName),
+        h('p', { style: styles.muted }, `This set doesn't have a ${ld.langRequested.toUpperCase()} edition indexed on DraGold yet.`),
+        h('a', { href: '/set/' + ld.slug, style: styles.link }, 'View the available edition')
+      )
+    ))
+  }
+
   const d = state.data
   const hub = getTcgHub(d.tcg)
   const tcgLabel = hub?.label || d.tcg
   const releaseYear = d.releaseDate ? new Date(d.releaseDate).getFullYear() : null
   const countTxt = d.hasMore ? `${d.cardCount}+ cards` : `${d.cardCount} card${d.cardCount === 1 ? '' : 's'}`
+  // Query string da propagare ai link "same series"/adjacenti quando questa
+  // pagina e' esplicitamente un'edizione non-EN — mai inventata per un
+  // vicino che potrebbe non averla (vedi adjacentSection sotto: se non ce
+  // l'ha, l'utente atterra sullo stato langUnavailable onesto, non su un
+  // fallback silenzioso a EN).
+  const langQuerySuffix = d.langUsed && d.langUsed !== 'en' ? `?lang=${encodeURIComponent(d.langUsed)}` : ''
 
   // Task 7 — completion metric: conteggio sulle carte realmente caricate in
   // questa pagina (d.cards, gia' deduplicate per canonical group). Quando
@@ -275,15 +342,22 @@ export default function SetPage({ slug }) {
         : 'No cards indexed for this set yet.')
 
   // Task 7 — set precedente/successivo, solo se davvero risolti (release_date
-  // reale su entrambi i lati, mai un ordine indovinato).
+  // reale su entrambi i lati, mai un ordine indovinato). set_logos non ha una
+  // dimensione lingua, quindi la sequenza prev/next resta quella "ufficiale"
+  // (International) per costruzione — non esiste un dato di adiacenza
+  // per-lingua da rispettare qui senza inventarlo. Quando questa pagina e'
+  // un'edizione non-EN, i link portano comunque alla STESSA lingua
+  // (langQuerySuffix): se il vicino non ha quell'edizione, l'utente atterra
+  // sullo stato langUnavailable onesto invece di essere riportato a EN senza
+  // preavviso.
   const adjacentSection = (adjacent && (adjacent.prev || adjacent.next)) ? h('section', { style: styles.section },
     h('h2', { style: styles.h2 }, 'More in this series'),
     h('div', { style: styles.adjacentRow },
-      adjacent.prev ? h('a', { href: '/set/' + buildSetSlug(d.tcg, adjacent.prev.set_code), style: styles.adjacentCard, className: 'dg-set-link' },
+      adjacent.prev ? h('a', { href: '/set/' + buildSetSlug(d.tcg, adjacent.prev.set_code) + langQuerySuffix, style: styles.adjacentCard, className: 'dg-set-link' },
         h('div', { style: styles.muted }, '← Previous'),
         h('div', null, adjacent.prev.set_name)
       ) : null,
-      adjacent.next ? h('a', { href: '/set/' + buildSetSlug(d.tcg, adjacent.next.set_code), style: styles.adjacentCard, className: 'dg-set-link' },
+      adjacent.next ? h('a', { href: '/set/' + buildSetSlug(d.tcg, adjacent.next.set_code) + langQuerySuffix, style: styles.adjacentCard, className: 'dg-set-link' },
         h('div', { style: styles.muted }, 'Next →'),
         h('div', null, adjacent.next.set_name)
       ) : null,
@@ -303,7 +377,7 @@ export default function SetPage({ slug }) {
         h('span', null, ' / '),
         h('a', { href: '/' + d.tcg, style: styles.breadcrumbLink, className: 'dg-set-link' }, tcgLabel),
         h('span', null, ' / '),
-        h('span', { style: styles.breadcrumbCurrent }, d.setName)
+        h('span', { style: styles.breadcrumbCurrent }, d.setName + (d.langUsed === 'ja' ? ' (Japanese)' : ''))
       ),
       h('div', { style: styles.head },
         d.logoUrl ? h('img', { src: d.logoUrl, alt: d.setName, style: styles.logo, onError: e => { e.currentTarget.style.display = 'none' } }) : null,
@@ -316,7 +390,7 @@ export default function SetPage({ slug }) {
             d.releaseDate ? ` · Released ${formatDate(d.releaseDate)}` : '',
             releaseYear ? ` (${releaseYear})` : '',
             d.seriesName ? ` · ${d.seriesName} series` : '',
-            d.langUsed === null ? ' · showing all available languages' : ''
+            d.langUsed === 'ja' ? ' · Japanese edition' : d.langUsed === null ? ' · showing all available languages' : ''
           )
         )
       ),
