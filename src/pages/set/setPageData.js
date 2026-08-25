@@ -59,7 +59,10 @@ export async function getSetPageData(slug) {
   if (normalizeSetKey(realSetId) !== normalizeSetKey(setIdSlug)) return null
 
   const candidates = setIdCandidates(realSetId)
-  const FIELDS = 'id,name,name_en,set_name,set_id,card_number,image_url,image_url_hi,lang,tcg,canonical_card_id,series_name'
+  // Task 7 (Set Page UX/Completion): rarity + print_variant aggiunti alla
+  // stessa query esistente (nessuna query in piu') per il tile "rarity/variant
+  // quando realmente disponibile" richiesto dalla Card Grid.
+  const FIELDS = 'id,name,name_en,set_name,set_id,card_number,image_url,image_url_hi,lang,tcg,canonical_card_id,series_name,rarity,print_variant'
 
   const [{ data: enRows }, { data: logoRows }] = await Promise.all([
     supabase.from('cards').select(FIELDS).eq('tcg', tcg).in('set_id', candidates).eq('lang', 'en').limit(LISTING_CAP),
@@ -107,5 +110,28 @@ export async function getSetPageData(slug) {
     cardCount: cardsOut.length,
     hasMore,
     cards: cardsOut,
+  }
+}
+
+// Task 7 (Set Page UX/Completion) — set precedente/successivo nella stessa
+// serie, SOLO quando set_logos ha davvero un release_date per il set corrente
+// (oggi verificato solo per pokemon+onepiece, vedi commento in cima al file):
+// senza una data reale non esiste un ordine da cui derivare "precedente" o
+// "successivo" senza inventarlo. Query separata e leggera (set_logos e' una
+// tabella piccola, un solo giro per tutti i set di un tcg, non per-card).
+export async function getAdjacentSets(tcg, setId) {
+  if (!supabase || !tcg || !setId) return null
+  const { data } = await supabase
+    .from('set_logos')
+    .select('set_code, set_name, logo_url, release_date')
+    .eq('tcg', tcg)
+    .not('release_date', 'is', null)
+    .order('release_date', { ascending: true })
+  if (!data || !data.length) return null
+  const idx = data.findIndex(s => normalizeSetKey(s.set_code) === normalizeSetKey(setId))
+  if (idx === -1) return null
+  return {
+    prev: idx > 0 ? data[idx - 1] : null,
+    next: idx < data.length - 1 ? data[idx + 1] : null,
   }
 }
