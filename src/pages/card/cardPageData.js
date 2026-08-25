@@ -2,31 +2,56 @@
 // Query isolate per la pagina pubblica /carta/{slug}. Nessuna logica UI qui.
 import { supabase } from '../../supabase.js'
 
-  export async function getCardPageData(slug) {
+  export async function getCardPageData(slug, lang) {
 if (!supabase || !slug) return null
 
   // NOTE (Block 4 - SEO Foundation, 18/08/2026): verificato su Supabase che
   // slug non e' garantito univoco (280 gruppi duplicati, 560 righe, es.
   // 'pokemon-sv10-074' causato da un mismatch di case su set_id 'sv10' vs
-  // 'SV10'). Senza un ORDER BY deterministico, .limit(1) puo' restituire una
-  // riga arbitraria ad ogni richiesta -> stessa URL che serve contenuti
+  // 'SV10'). Senza un ORDER BY deterministico, un .limit(1) puo' restituire
+  // una riga arbitraria ad ogni richiesta -> stessa URL che serve contenuti
   // diversi a run diversi (rischio SEO reale: Google indicizza uno snapshot
   // instabile). Verificato anche che created_at da solo NON basta come
   // tiebreaker: le righe duplicate condividono lo stesso created_at
-  // (inserite nello stesso batch), quindi ordino anche per id (stabile,
+  // (inserite nello stesso batch), quindi si ordina anche per id (stabile,
   // univoco) come secondo criterio, cosi' la riga scelta e' sempre la stessa
   // finche' il bug di dati a monte (slug duplicati) non viene risolto
-  // separatamente.
-  const { data: canonical, error: canonicalErr } = await supabase
+  // separatamente (nessuna modifica DB in questo task).
+  //
+  // E2E fix (preview 09585cc, bug #1/#2): tra le righe duplicate rientra un
+  // caso reale verificato su Supabase — due canonical_cards distinti con lo
+  // STESSO slug "pokemon-sv10-001": un gruppo EN/DE/ES/FR/IT/PT (card_number
+  // "001", fonte tcgdex) e un gruppo giapponese-only completamente diverso
+  // (stesso card_number, canonical_card_id diverso). L'ORDER BY sopra sceglie
+  // sempre la stessa riga, ma "sempre la stessa" non vuol dire "quella giusta"
+  // quando chi ha cliccato il link veniva da un contesto con lingua nota (es.
+  // Set Detail Giapponese ?lang=ja, o Set Detail EN). Quando il chiamante
+  // passa `lang` (letto da CardPage.jsx dal query param ?lang= sull'URL, se
+  // presente — stesso pattern gia' usato da SetPage.jsx), e la slug richiesta
+  // risulta ambigua (>1 canonical_cards match), si preferisce il gruppo che
+  // ha realmente una riga `cards` in quella lingua — dato reale, nessun
+  // matching euristico su nome/somiglianza. Se `lang` e' assente o nessuno
+  // dei gruppi ambigui ha quella lingua, il comportamento resta quello di
+  // sempre (primo per created_at/id).
+  const { data: matches, error: canonicalErr } = await supabase
 .from('canonical_cards')
   .select('*')
   .eq('slug', slug)
   .order('created_at', { ascending: true })
   .order('id', { ascending: true })
-  .limit(1)
-  .maybeSingle()
 
-  if (canonicalErr || !canonical) return null
+  if (canonicalErr || !matches || !matches.length) return null
+
+  let canonical = matches[0]
+  if (matches.length > 1 && lang) {
+    const { data: langRows } = await supabase
+      .from('cards')
+      .select('canonical_card_id')
+      .in('canonical_card_id', matches.map(m => m.id))
+      .eq('lang', lang)
+    const disambiguated = langRows?.length ? matches.find(m => langRows.some(r => r.canonical_card_id === m.id)) : null
+    if (disambiguated) canonical = disambiguated
+  }
 
   const { data: variants } = await supabase
 .from('cards')
@@ -36,7 +61,19 @@ if (!supabase || !slug) return null
   const allVariants = variants || []
   if (!allVariants.length) return null
 
-  const primary = allVariants.find(c => c.id === canonical.primary_image_card_id)
+  // E2E fix (bug #2): quando la richiesta porta un lang esplicito (Card
+  // aperta da un link Set Detail con ?lang=ja/altro), e quel gruppo canonico
+  // ha davvero una stampa in quella lingua, la card si apre direttamente su
+  // quella stampa invece di ripiegare sempre su English — la lingua da cui
+  // l'utente e' arrivato non deve sparire al primo render. curated
+  // (primary_image_card_id) resta la priorita' piu' alta quando esiste ed e'
+  // gia' nella lingua giusta; altrimenti si preferisce lang, poi English,
+  // poi la prima riga disponibile — comportamento originale invariato quando
+  // lang e' assente.
+  const curated = allVariants.find(c => c.id === canonical.primary_image_card_id)
+  const primary = (curated && (!lang || curated.lang === lang) ? curated : null)
+  || (lang && allVariants.find(c => c.lang === lang))
+  || curated
   || allVariants.find(c => c.lang === 'en')
   || allVariants[0]
 

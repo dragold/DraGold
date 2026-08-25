@@ -227,7 +227,11 @@ export function SetDetailPage({ setRef, setsMap, country, cur, eurRate, onOpen, 
             {cards.slice(0, 18).map(c => {
               const img = pickCardImage(c) || c.imgUrl || c.img;
               const owned = ownedIds?.has(c.id);
-              return img ? <div className={`set-preview-card${owned ? " owned" : ""}`} key={c.id}><img src={img} alt="" loading="lazy" /></div> : null;
+              // E2E fix (broken image icon in this rail): a stored image_url that
+              // fails to load falls back to the same "no image" outcome as an
+              // absent image_url — the whole tile is skipped, never the browser's
+              // native broken-image glyph.
+              return img ? <div className={`set-preview-card${owned ? " owned" : ""}`} key={c.id}><img src={img} alt="" loading="lazy" onError={e => { e.currentTarget.parentElement.style.display = "none"; }} /></div> : null;
             })}
           </div>
         )}
@@ -284,7 +288,12 @@ export function SetDetailPage({ setRef, setsMap, country, cur, eurRate, onOpen, 
                 const owned = ownedIds?.has(c.id);
                 return (
                   <button type="button" key={c.id} className={`constellation-satellite${owned ? " owned" : ""}`} onClick={() => onOpen?.(c)} title={c.name}>
-                    {img ? <img src={img} alt="" loading="lazy" /> : <span className="constellation-node-ph" />}
+                    {img
+                      ? <>
+                          <img src={img} alt="" loading="lazy" onError={e => { e.currentTarget.style.display = "none"; e.currentTarget.nextSibling.style.display = "block"; }} />
+                          <span className="constellation-node-ph" style={{ display: "none" }} />
+                        </>
+                      : <span className="constellation-node-ph" />}
                   </button>
                 );
               })}
