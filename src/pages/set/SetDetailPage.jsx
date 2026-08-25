@@ -89,6 +89,14 @@ export function SetDetailPage({ setRef, setsMap, country, cur, eurRate, onOpen, 
 
   const info = setsMap?.get(`${setRef.tcg}:${setRef.set_id}`) || null;
   const setName = setRef.set_name || info?.set_name || fallbackName || setRef.set_id;
+  // Explorer + Catalog Completeness (2026-08-25): setsMap is keyed by
+  // set_logos.set_code, which for a lazily-computed set (mtg/ygo, or a
+  // Japanese set reusing its International counterpart's logo — see
+  // lib/tcgSets.js computeLangSets) never matches setRef.set_id exactly, so
+  // `info` above is null even though Explore already resolved a real logo
+  // for this tile. setRef.logo_url carries that resolved logo through
+  // instead of silently dropping it here.
+  const logoUrl = setRef.logo_url || info?.logo_url || null;
   const gridReveal = useReveal();
   const constellationReveal = useReveal();
   const previewDrag = useDragScroll();
@@ -176,8 +184,8 @@ export function SetDetailPage({ setRef, setsMap, country, cur, eurRate, onOpen, 
           {cards[0]?.series_name && ` · ${cards[0].series_name} series`}
         </span>
         <div className="set-detail-row">
-          {info?.logo_url && (
-            <img src={info.logo_url} alt={setName} className="set-logo-img"
+          {logoUrl && (
+            <img src={logoUrl} alt={setName} className="set-logo-img"
               onError={e => { e.currentTarget.style.display = "none"; }} />
           )}
           <div className="view-h" style={{ margin: 0 }}>

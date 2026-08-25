@@ -689,6 +689,14 @@ input{font-family:inherit;font-size:16px;}
 .set-card-meta{font-family:'Space Mono',monospace;font-size:10px;color:var(--dim);letter-spacing:.02em;}
 .set-section-logo{height:20px;width:auto;object-fit:contain;opacity:.9;}
 .set-year-head{font-family:'Space Mono',monospace;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);margin:4px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--border);}
+/* Explorer + Catalog Completeness — International/Japanese subsections
+   within a TCG section (see pages/sets/SetsView.jsx). Lighter weight than
+   .set-year-head: this labels a language group, the year headers still do
+   the finer-grained grouping inside it. */
+.set-lang-group{margin-bottom:14px;}
+.set-lang-group:last-child{margin-bottom:0;}
+.set-lang-head{display:flex;align-items:center;gap:8px;font-family:'Space Mono',monospace;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;}
+.set-card-lang{font-family:'Space Mono',monospace;font-size:8.5px;font-weight:700;letter-spacing:.04em;color:var(--dim);background:var(--surface-3);border-radius:4px;padding:1px 4px;margin-left:4px;vertical-align:middle;}
 
 /* ─── Card Detail → Set link (Phase 1 post-P0) ─── */
 .set-logo-link{background:none;border:none;padding:0;cursor:pointer;display:inline-flex;opacity:.9;transition:.15s;}
