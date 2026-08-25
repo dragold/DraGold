@@ -360,6 +360,21 @@ export function AssetView({ card, onBack, isAuthed, onLogin, country, cur, eurRa
 
   const ebayHref = ebayURL(card.name, card.set_name || "", country, card.tcg || "pokemon", cardNum);
 
+  // Market/Purchase Discovery MVP (2026-08-25): quando la carta non ha un
+  // prezzo interno affidabile (fmvUSD == null, vedi blocco "PREZZO" sotto),
+  // invece di inventare un valore mostriamo dove l'utente può verificare/
+  // comprare la carta. eBay resta oggi l'unica integrazione reale con
+  // affiliate tracking effettivamente configurato (EBAY_CAMP/mkrid, vedi
+  // ebayURL in DraGold.jsx) — PRODUCT_SPEC.md §5: "eBay, se usato, resta un
+  // link/CTA esterno onesto, non una fonte su cui costruire logica di
+  // prodotto". Array (non un singolo link cablato) apposta per poter
+  // aggiungere in futuro TCGplayer/Cardmarket senza rifare questo blocco:
+  // richiedono una loro registrazione/approvazione affiliate separata, non
+  // ancora fatta — non inventata qui, vedi report del task per il dettaglio.
+  const marketLinks = [
+    { key: "ebay", label: "Find listings on eBay", href: ebayHref },
+  ].filter(l => l.href);
+
   return (
     <section className="view asset">
       <button className="back-btn" onClick={onBack}>
@@ -517,9 +532,11 @@ export function AssetView({ card, onBack, isAuthed, onLogin, country, cur, eurRa
           ) : (
             <div className="noprice-block">
               <div className="noprice-txt">No market price yet for this card.</div>
-              <a className="btn btn-primary btn-block" href={ebayHref} target="_blank" rel="noreferrer">
-                See price on eBay ↗
-              </a>
+              {marketLinks.map(l => (
+                <a key={l.key} className="btn btn-primary btn-block" href={l.href} target="_blank" rel="noreferrer">
+                  {l.label} ↗
+                </a>
+              ))}
               <button className="btn btn-ghost btn-block" onClick={track} disabled={watchBusy || watching}>
                 {watching ? "Tracking ✓" : watchBusy ? "…" : "Track this card"}
               </button>
