@@ -67,7 +67,11 @@ export const ACADEMY_LESSONS = [
       { type: "h3", text: "Variant" },
       { type: "p", text: "A different physical print of the same card and number — holo, reverse holo, or a special parallel treatment. Card Detail lists the other variants and languages available for a card so you can compare them side by side." },
     ],
-    links: [],
+    // Task 10 (Knowledge Graph) — was the only lesson with no outbound link.
+    // "/" is the same real, stable destination already used by tcg-basics
+    // and collection-basics; equally sensible here (this lesson is literally
+    // about reading a Card Detail page, which starts from the catalog).
+    links: [{ label: "Browse the catalog", href: "/" }],
   },
   {
     slug: "rarity-variants",
