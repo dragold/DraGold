@@ -160,6 +160,31 @@ export async function removeFromWatchlist(cardApiId) {
   return supabase.from('watchlist').delete().eq('user_id', userId).eq('card_api_id', cardApiId)
 }
 
+// ---- Academy progress (Academy MVP, Task 4) ----
+// Lesson *content* is static (src/pages/academy/academyContent.js) — only
+// per-user completion lives here, one row per (user, lesson_slug), owner-only
+// RLS (see supabase/migrations/20260825_academy_progress.sql).
+export async function listAcademyProgress() {
+  if (!supabase) return []
+  const { data: u } = await supabase.auth.getUser()
+  const userId = u?.user?.id
+  if (!userId) return []
+  const { data } = await supabase.from('academy_progress').select('lesson_slug,completed_at').eq('user_id', userId)
+  return data || []
+}
+export async function markLessonComplete(slug) {
+  if (!supabase) return { error: 'Backend not configured' }
+  const { data: u } = await supabase.auth.getUser()
+  const userId = u?.user?.id
+  if (!userId) return { error: 'Not signed in' }
+  // ignoreDuplicates: re-completing an already-completed lesson is a no-op
+  // (keeps the original completed_at instead of bumping it on every revisit).
+  return supabase.from('academy_progress').upsert(
+    { user_id: userId, lesson_slug: slug },
+    { onConflict: 'user_id,lesson_slug', ignoreDuplicates: true }
+  )
+}
+
 // ---- Newsletter ----
 export async function subscribeNewsletter(email) {
   if (!supabase) return

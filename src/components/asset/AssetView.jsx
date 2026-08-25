@@ -473,6 +473,12 @@ export function AssetView({ card, onBack, isAuthed, onLogin, country, cur, eurRa
                     </div>
                   )}
                 </div>
+                {/* Academy (Task 4, FASE 5) — one simple, generic link, not
+                    card-specific data: rarity/variant is the fact this page
+                    is most likely to raise a "what does that mean?" for. */}
+                <a className="asset-academy-link" href="/academy/rarity-variants">
+                  <Icon name="doc" size={14} /> Learn about rarity &amp; variants
+                </a>
               </>
             );
           })()}
