@@ -303,6 +303,9 @@ export default function DraGold() {
                 {t.label}
               </button>
             ))}
+            {/* Academy (Task 4) — standalone route (main.jsx), real full
+                navigation like /account below, not a goTab() shell tab. */}
+            <a className="topnav-i" href="/academy">Academy</a>
           </nav>
 
           <div className="hdr-right">
@@ -435,6 +438,10 @@ export default function DraGold() {
             <span>{t.label}</span>
           </button>
         ))}
+        <a className="tab-i" href="/academy">
+          <Icon name="spark" size={22} stroke={2} />
+          <span>Academy</span>
+        </a>
       </nav>
 
     </div>

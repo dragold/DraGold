@@ -815,3 +815,58 @@ input{font-family:inherit;font-size:16px;}
 .legal-page .legal-note{background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.25);color:var(--muted);font-size:13.5px;padding:12px 14px;border-radius:11px;margin:18px 0 26px;line-height:1.55;}
 .legal-page h2{font-size:17px;font-weight:800;margin:26px 0 8px;}
 .legal-page p{color:var(--muted);font-size:14.5px;line-height:1.7;margin-bottom:10px;}
+
+/* Academy MVP (Task 4) */
+.acad-hero{padding:28px 0 24px;border-bottom:1px solid var(--border);margin-bottom:24px;}
+.acad-hero-ic{display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:11px;background:rgba(251,191,36,.12);color:var(--gold);margin-bottom:12px;}
+.acad-hero-t{font-family:'Fraunces',serif;font-size:clamp(26px,5vw,36px);font-weight:800;letter-spacing:-.02em;margin-bottom:8px;}
+.acad-hero-sub{color:var(--muted);font-size:14.5px;line-height:1.65;max-width:640px;margin-bottom:16px;}
+.acad-progress{display:flex;align-items:center;gap:12px;max-width:420px;}
+.acad-progress-bar{flex:1;height:6px;border-radius:100px;background:var(--surface-2);overflow:hidden;}
+.acad-progress-fill{height:100%;background:linear-gradient(90deg,var(--gold-deep),var(--gold));border-radius:100px;transition:width .3s var(--ease-out);}
+.acad-progress-txt{font-size:12.5px;color:var(--muted);white-space:nowrap;flex-shrink:0;}
+.acad-progress-cta{color:var(--gold);font-weight:700;font-size:13.5px;text-decoration:none;}
+.acad-progress-cta:hover{text-decoration:underline;}
+
+.acad-cat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-bottom:8px;}
+.acad-cat-card{display:flex;flex-direction:column;align-items:flex-start;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px;text-decoration:none;color:inherit;transition:border-color .15s var(--ease-out),transform .15s var(--ease-out);}
+@media(hover:hover){.acad-cat-card:hover{border-color:var(--gold);transform:translateY(-2px);}}
+.acad-cat-ic{display:flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:9px;background:var(--surface-2);color:var(--gold);}
+.acad-cat-label{font-size:13.5px;font-weight:700;}
+.acad-cat-done{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;color:var(--gain);}
+
+.acad-lesson-list{display:flex;flex-direction:column;gap:8px;}
+.acad-lesson-row{display:flex;align-items:center;gap:14px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px 16px;text-decoration:none;color:inherit;transition:border-color .15s var(--ease-out);}
+@media(hover:hover){.acad-lesson-row:hover{border-color:var(--gold);}}
+.acad-lesson-status{display:flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;background:var(--surface-2);flex-shrink:0;color:var(--gain);}
+.acad-lesson-status.done{background:rgba(52,211,153,.12);}
+.acad-lesson-body{display:flex;flex-direction:column;gap:2px;flex:1;min-width:0;}
+.acad-lesson-cat{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--gold);}
+.acad-lesson-title{font-size:15px;font-weight:800;}
+.acad-lesson-summary{font-size:13px;color:var(--muted);line-height:1.5;}
+.acad-lesson-meta{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--dim);flex-shrink:0;}
+
+/* Lesson page */
+.acad-lesson-main{max-width:680px;}
+.acad-back{display:inline-flex;align-items:center;gap:6px;color:var(--muted);font-size:13px;font-weight:600;text-decoration:none;margin-bottom:18px;}
+.acad-back:hover{color:var(--text);}
+.acad-lesson-cat-pill{display:inline-block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--gold);margin-bottom:8px;}
+.acad-lesson-h1{font-family:'Fraunces',serif;font-size:clamp(24px,4.5vw,32px);font-weight:800;letter-spacing:-.02em;margin-bottom:20px;}
+.acad-lesson-content h3{font-size:16px;font-weight:800;margin:22px 0 8px;}
+.acad-lesson-content h3:first-child{margin-top:0;}
+.acad-lesson-content p{font-size:14.5px;line-height:1.75;color:var(--muted);margin-bottom:4px;}
+.acad-lesson-content ul{margin:6px 0 10px 20px;padding:0;}
+.acad-lesson-content li{font-size:14.5px;line-height:1.7;color:var(--muted);margin-bottom:6px;}
+.acad-lesson-links{display:flex;flex-wrap:wrap;gap:8px;margin-top:20px;}
+.acad-complete-row{display:flex;align-items:center;gap:12px;margin-top:26px;padding-top:22px;border-top:1px solid var(--border);flex-wrap:wrap;}
+.acad-complete-err{font-size:12.5px;color:var(--loss);}
+.acad-lesson-nav{display:flex;justify-content:space-between;gap:12px;margin-top:22px;}
+.acad-nav-btn{display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px 14px;text-decoration:none;color:inherit;max-width:48%;}
+.acad-nav-btn.next{margin-left:auto;text-align:right;flex-direction:row-reverse;}
+.acad-nav-txt{display:flex;flex-direction:column;gap:1px;min-width:0;}
+.acad-nav-lbl{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--dim);}
+.acad-nav-t{font-size:13px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+
+/* Card Detail -> Academy CTA (FASE 5) */
+.asset-academy-link{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;color:var(--muted);text-decoration:none;margin-top:10px;}
+.asset-academy-link:hover{color:var(--gold);}

@@ -6,6 +6,8 @@ import CardPage from './pages/card/CardPage.jsx'
 import SetPage from './pages/set/SetPage.jsx'
 import TcgPage from './pages/tcg/TcgPage.jsx'
 import IllustratorPage from './pages/illustrator/IllustratorPage.jsx'
+import AcademyPage from './pages/academy/AcademyPage.jsx'
+import AcademyLessonPage from './pages/academy/AcademyLessonPage.jsx'
 import LoginPage from './pages/auth/LoginPage.jsx'
 import RegisterPage from './pages/auth/RegisterPage.jsx'
 import ForgotPasswordPage from './pages/auth/ForgotPasswordPage.jsx'
@@ -25,6 +27,12 @@ const setMatch = window.location.pathname.match(/^\/set\/([^/]+)\/?$/)
 // Blocco "Illustrator Pages": stesso pattern, /illustrator/{slug} e' un'entita'
 // globale (non scoped a un singolo tcg, vedi src/lib/illustratorSlug.js).
 const illustratorMatch = window.location.pathname.match(/^\/illustrator\/([^/]+)\/?$/)
+
+// Academy MVP (Task 4) - same standalone-route pattern as /carta, /set,
+// /illustrator above: /academy is the list/hub, /academy/{slug} a single
+// lesson.
+const academyLessonMatch = window.location.pathname.match(/^\/academy\/([^/]+)\/?$/)
+const isAcademyRoot = (window.location.pathname.replace(/\/$/, '') || '/') === '/academy'
 // Block 6 — TCG Hub SEO Foundation: SOLO le 4 URL esatte /pokemon, /onepiece,
 // /mtg, /ygo sono TCG Hub validi (match esatto sull'elenco statico, non un
 // wildcard a singolo segmento — cosi' nessun'altra route top-level esistente o
@@ -46,6 +54,8 @@ const AUTH_ROUTES = {
 const authRouteComp = AUTH_ROUTES[pathNoSlash]
 
 const RootView = cardMatch ? h(CardPage, { slug: decodeURIComponent(cardMatch[1]) })
+  : academyLessonMatch ? h(AcademyLessonPage, { slug: decodeURIComponent(academyLessonMatch[1]) })
+  : isAcademyRoot ? h(AcademyPage, null)
   : setMatch ? h(SetPage, { slug: decodeURIComponent(setMatch[1]) })
   : illustratorMatch ? h(IllustratorPage, { slug: decodeURIComponent(illustratorMatch[1]) })
   : tcgMatch ? h(TcgPage, { tcg: tcgMatch.tcg })
