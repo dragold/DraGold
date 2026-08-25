@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase, supabaseReady, addToWatchlist, addOrIncrementCollection, decrementOrRemoveCollection } from "../../supabase.js";
-import { TCG_LIST, CARD_LANGS, ebayURL, ebayItemURL } from "../../DraGold.jsx";
+import { TCG_LIST, CARD_LANGS, ebayURL, ebayItemURL, EBAY_MARKETS } from "../../DraGold.jsx";
 import { pickCardImage, getSetInfo } from "../shared/cardImage.js";
 import { Icon } from "../shared/Icon.jsx";
 import { PortfolioModal } from "../shared/PortfolioModal.jsx";

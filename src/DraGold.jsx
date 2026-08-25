@@ -152,17 +152,39 @@ export default function DraGold() {
   // The DOM mutation must happen synchronously inside the transition callback
   // for the browser to capture correct before/after snapshots, hence flushSync;
   // on unsupported browsers this just runs the update directly, same as before.
+  //
+  // Alpha Core P1.2 fix (Preview E2E): 2-3 rapid clicks on Home hot-pick cards
+  // reproducibly froze the page — a semi-transparent overlay stayed on top of
+  // everything and NOTHING was clickable until a full reload. Root cause:
+  // each click called startViewTransition() again before the PREVIOUS
+  // transition had finished. The spec allows overlapping calls (the older
+  // one is supposed to be "skipped"), but Chrome's own view-transition
+  // pseudo-element tree (::view-transition, with pointer-events covering the
+  // whole viewport while active) does not always tear down cleanly when a
+  // transition is superseded rather than explicitly skipped — the stray
+  // pseudo-element is what was visually dimming the page AND eating clicks.
+  // activeTransitionRef tracks the in-flight transition and calls its own
+  // skipTransition() before starting a new one, so the browser always closes
+  // the previous transition's overlay through the API's own intended exit
+  // path instead of leaving it to be silently superseded.
+  const activeTransitionRef = useRef(null);
   const withViewTransition = useCallback((update) => {
     if (typeof document.startViewTransition === "function" &&
         !window.matchMedia("(prefers-reduced-motion: reduce)").matches &&
         !document.hidden) {
+      if (activeTransitionRef.current) {
+        try { activeTransitionRef.current.skipTransition(); } catch { /* already done */ }
+        activeTransitionRef.current = null;
+      }
       // The spec aborts a transition (rejecting .ready/.finished) if the
       // document loses visibility mid-flight (tab-switch, alt-tab) — the
       // state change itself already happened via flushSync regardless, so
       // this is purely cosmetic; swallow it instead of an unhandled
       // rejection in the console.
       const vt = document.startViewTransition(() => flushSync(update));
-      vt.finished?.catch(() => {});
+      activeTransitionRef.current = vt;
+      const clearIfCurrent = () => { if (activeTransitionRef.current === vt) activeTransitionRef.current = null; };
+      vt.finished?.then(clearIfCurrent, clearIfCurrent);
     } else {
       update();
     }
@@ -422,5 +444,10 @@ export default function DraGold() {
    ════════════════════════════════════════════════════════════════════════ */
 export const CONDITIONS = ["NM", "LP", "MP", "HP", "DMG"];
 
-// market code accettato da /api/ebay-search; fallback US
-const EBAY_MARKETS = ["US","GB","DE","IT","FR","ES","CA"];
+// market code accettato da /api/ebay-search; fallback US.
+// Alpha Core P0.2 fix: esportata perche' AssetView.jsx (estratto in un file
+// proprio) la referenzia senza importarla - ReferenceError silenziosamente
+// catturato dal try/catch di loadEbay(), quindi eBay Live non partiva mai
+// (nessuna richiesta di rete, nessun errore visibile). CardPage.jsx non e'
+// toccato dal bug perche' non usa questa costante (market fisso a 'US').
+export const EBAY_MARKETS = ["US","GB","DE","IT","FR","ES","CA"];
