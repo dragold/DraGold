@@ -237,7 +237,7 @@ function rawSetIdCandidates(setIdSlug) {
   return [...new Set([setIdSlug, setIdSlug.toUpperCase(), dotted, dotted.toUpperCase()])];
 }
 
-async function handleSetBot(slug) {
+async function handleSetBot(slug, lang) {
   const env = typeof process !== 'undefined' ? process.env : {};
   const parsed = parseSetSlug(slug);
   if (!parsed) {
@@ -254,9 +254,19 @@ async function handleSetBot(slug) {
     return new Response(notFoundHtml('set'), { status: 404, headers: { 'content-type': 'text/html; charset=utf-8' } });
   }
 
+  // Explicit-language routing (follow-up task, 2026-08-25): mirrors
+  // setPageData.js — lang absent keeps the original behaviour (try 'en',
+  // fall back to any available language, e.g. Pokemon JP-only sets whose
+  // set_id namespace never collides with 'en'); lang explicit is a strict
+  // filter with NO silent fallback to a different language — if this set
+  // genuinely has no such edition, a bot gets a real 404/noindex, never a
+  // 200 that quietly serves the wrong language under this URL.
   const FIELDS = 'id,name,card_number,image_url,image_url_hi,lang,set_name,canonical_card_id';
-  let rows = await supaRest(`cards?tcg=eq.${tcg}&set_id=eq.${encodeURIComponent(realSetId)}&lang=eq.en&select=${FIELDS}&limit=400`, env) || [];
+  let rows = await supaRest(`cards?tcg=eq.${tcg}&set_id=eq.${encodeURIComponent(realSetId)}&lang=eq.${encodeURIComponent(lang || 'en')}&select=${FIELDS}&limit=400`, env) || [];
   if (!rows.length) {
+    if (lang) {
+      return new Response(notFoundHtml('set'), { status: 404, headers: { 'content-type': 'text/html; charset=utf-8' } });
+    }
     rows = await supaRest(`cards?tcg=eq.${tcg}&set_id=eq.${encodeURIComponent(realSetId)}&select=${FIELDS}&limit=400`, env) || [];
   }
   if (!rows.length) {
@@ -275,10 +285,11 @@ async function handleSetBot(slug) {
 
   const tcgLabel = TCG_LABELS[tcg] || tcg;
   const setSlug = `${tcg}-${setIdSlug}`;
-  const setUrl = `https://dragold.org/set/${setSlug}`;
+  const langNote = lang === 'ja' ? ' (Japanese)' : '';
+  const setUrl = `https://dragold.org/set/${setSlug}${lang ? `?lang=${encodeURIComponent(lang)}` : ''}`;
   const countTxt = hasMore ? `${cardCount}+ cards` : `${cardCount} card${cardCount === 1 ? '' : 's'}`;
-  const title = `${setName} (${tcgLabel}) — Set Guide & Card List — DraGold`;
-  const description = `${setName} is a ${tcgLabel} set${logo?.release_date ? ` released ${logo.release_date}` : ''} with ${countTxt}. Browse every card, rarity and variant, and track this set in your collection on DraGold.`;
+  const title = `${setName}${langNote} (${tcgLabel}) — Set Guide & Card List — DraGold`;
+  const description = `${setName} is a ${tcgLabel} set${logo?.release_date ? ` released ${logo.release_date}` : ''} with ${countTxt}.${lang === 'ja' ? ' Japanese edition.' : ''} Browse every card, rarity and variant, and track this set in your collection on DraGold.`;
 
   // Block 6: nodo TCG reale (/{tcg}) prima del nodo Set — breadcrumb a 3 livelli.
   const hubUrl = `https://dragold.org/${tcg}`;
@@ -312,7 +323,7 @@ async function handleSetBot(slug) {
     return `<li><a href="https://dragold.org/carta/${escapeHtml(cSlug)}">${escapeHtml(c.name)} #${escapeHtml(c.card_number || '')}</a></li>`;
   }).filter(Boolean).join('');
 
-  const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">
+  const html = `<!DOCTYPE html><html lang="${lang === 'ja' ? 'ja' : 'en'}"><head><meta charset="UTF-8">
 <title>${escapeHtml(title)}</title>
 <meta name="description" content="${escapeHtml(description)}">
 <link rel="canonical" href="${setUrl}">
@@ -711,7 +722,13 @@ export default async function middleware(request) {
   if (url.pathname.startsWith('/set/')) {
     const slug = decodeURIComponent(url.pathname.replace(/^\/set\//, ''));
     if (!slug) return;
-    return handleSetBot(slug);
+    // Explicit-language routing: only a plausible short code is honored
+    // (mirrors SetPage.jsx's readRequestedLang), same reasoning — anything
+    // else in the query param is ignored rather than passed through as a
+    // raw filter value.
+    const rawLang = (url.searchParams.get('lang') || '').trim().toLowerCase();
+    const lang = /^[a-z]{2}(-[a-z]{2,4})?$/.test(rawLang) ? rawLang : null;
+    return handleSetBot(slug, lang);
   }
   if (url.pathname.startsWith('/illustrator/')) {
     const slug = decodeURIComponent(url.pathname.replace(/^\/illustrator\//, ''));
