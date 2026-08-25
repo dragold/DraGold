@@ -535,6 +535,12 @@ const academySection = h('section', { style: styles.section, key: 'academy' },
 // canonical group, quindi la STESSA pagina, non una lista "related" separata.
 // Qui resta la priorita' 3 (altre carte dello stesso set), gia' caricata da
 // cardPageData.js (sameSetCards) senza query aggiuntive.
+// Task 10 (Knowledge Graph) — when sameSetCards comes back empty (small set,
+// or this card is the only one indexed so far), the section used to render
+// null entirely: no visible gap, but also a dead end for a real, already-known
+// relation (this card's own set). setHref is the same link already used
+// elsewhere on this page (breadcrumb/info-fact/subtitle) — no new data, no
+// heuristic matching, just not hiding a real destination we already have.
 const relatedSection = (sameSetCards && sameSetCards.length > 0) ? h('section', { style: styles.section, key: 'related' },
   h('h2', { style: styles.h2 }, 'Related cards'),
   h('div', { style: styles.relatedGrid }, sameSetCards.map(c => {
@@ -549,7 +555,11 @@ const relatedSection = (sameSetCards && sameSetCards.length > 0) ? h('section', 
              )
   })),
   setHref ? h('a', { href: setHref, style: styles.setLink, className: 'dg-cp-link' }, 'View full set →') : null
-) : null
+) : (setHref ? h('section', { style: styles.section, key: 'related-fallback' },
+  h('h2', { style: styles.h2 }, 'Related cards'),
+  h('p', { style: styles.mutedSmall }, "We don't have other cards from this set indexed yet."),
+  h('a', { href: setHref, style: styles.setLink, className: 'dg-cp-link' }, 'View full set →')
+) : null)
 
 // Collection CTA (sez. 2/11): riusa add_or_increment_collection /
 // decrement_or_remove_collection (Task A), nessuna seconda implementazione

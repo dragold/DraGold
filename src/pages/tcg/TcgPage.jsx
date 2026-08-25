@@ -321,7 +321,14 @@ export default function TcgPage({ tcg }) {
           h('p', { style: styles.muted },
             h('a', { href: '/', style: styles.link }, 'Explore in DraGold'),
             ' · ',
-            h('a', { href: '/academy', style: styles.link }, 'New to TCGs? Visit the Academy')
+            // Task 10 (Knowledge Graph) — TCG-aware Academy link instead of the
+            // bare hub: Pokémon already has a dedicated EN/JP lesson in
+            // academyContent.js, so a Pokémon visitor lands there directly;
+            // every other TCG points at tcg-basics (real, generic, relevant to
+            // all four TCGs) rather than a one-size-fits-all /academy link.
+            d.tcg === 'pokemon'
+              ? h('a', { href: '/academy/pokemon-en-jp', style: styles.link }, 'New to Pokémon? Learn EN vs JP')
+              : h('a', { href: '/academy/tcg-basics', style: styles.link }, 'New to TCGs? Start here')
           )
         )
       ),
