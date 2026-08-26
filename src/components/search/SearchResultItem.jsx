@@ -56,12 +56,38 @@ export function SearchResultItem({ card, priceInfo, country = "IT", cur = "EUR",
           {card.card_number && <span className="card-item-num">#{card.card_number}</span>}
           {identifyMode && card.rarity && <span className="card-item-num">{card.rarity}</span>}
           {langInfo && <span className="card-item-lang">{langInfo.flag}</span>}
+          {/* Print variant badge (Alternate Art / Promo / Foil / Parallel, ecc.) --
+              stesso dato (cards.print_variant) gia' mostrato in CardPage.jsx come
+              pill "Variant"; qui e' un badge di sola lettura sul risultato di ricerca. */}
+          {card.print_variant && <span className="card-item-num card-item-variant">{card.print_variant}</span>}
           {card.variantCount > 0 && (
             <span className="card-item-num" title={`Also available in: ${card.variantLangs.join(', ').toUpperCase()}`}>
               +{card.variantCount} lang
             </span>
           )}
         </div>
+        {/* Suggerimento multilingua: link reali (non onOpen/SPA) a /carta/{slug},
+            uno per ogni stampa del gruppo canonico -- CardPage.jsx (rotta a parte,
+            risolta in main.jsx prima del mount, vedi commento li') legge ?lang= per
+            selezionare direttamente la tab/stampa giusta invece di ricadere sempre
+            sul primary EN. Ogni link ha il proprio href/testo -> niente instradamento
+            euristico lato Search, solo dati reali gia' presenti nel gruppo canonico
+            (search.js groupByCanonical -> variantEntries). stopPropagation cosi' il
+            click non apre anche onOpen (AssetView) sulla card sbagliata.*/}
+        {card.variantEntries && card.variantEntries.length > 1 && (
+          <div className="card-item-variants" onClick={e => e.stopPropagation()}>
+            {card.variantEntries.filter(v => v.slug).map(v => {
+              const vLangInfo = CARD_LANGS.find(l => l.c === v.lang);
+              const href = `/carta/${encodeURIComponent(v.slug)}${v.lang && v.lang !== 'en' ? `?lang=${encodeURIComponent(v.lang)}` : ''}`;
+              return (
+                <a key={v.id} className="card-item-variant-link" href={href}
+                  title={[vLangInfo?.flag || (v.lang || '').toUpperCase(), v.print_variant].filter(Boolean).join(' · ')}>
+                  {vLangInfo?.flag || (v.lang || '').toUpperCase()}
+                </a>
+              );
+            })}
+          </div>
+        )}
         {!discoveryMode && !identifyMode && (
           <div className="card-item-footer">
             {priceStr

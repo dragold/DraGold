@@ -29,7 +29,14 @@ export function groupByCanonical(cards) {
     // deciso a monte dalla query/expand, non da similarity).
     const primary = group.find(c => c.lang === 'en') || group[0];
     const langs = [...new Set(group.map(c => c.lang).filter(Boolean))];
-    return { ...primary, variantCount: group.length - 1, variantLangs: langs };
+    // variantEntries: id/lang/print_variant/slug per ogni riga del gruppo, cosi'
+    // la UI (SearchResultItem) puo' linkare direttamente a /carta/{slug}?lang=xx
+    // per la stampa esatta scelta, invece di aprire sempre il primary EN.
+    const variantEntries = group.map(c => ({
+      id: c.id, lang: c.lang, print_variant: c.print_variant || null,
+      slug: c.canonical_cards?.slug || null,
+    }));
+    return { ...primary, variantCount: group.length - 1, variantLangs: langs, variantEntries };
   });
 }
 
@@ -83,7 +90,7 @@ export async function searchCards(rawQuery) {
 
   let dbQuery = supabase
     .from('cards')
-    .select('id,name,name_en,set_name,set_id,card_number,image_url,lang,tcg,rarity,canonical_card_id,card_image_cache(cached_url,status)');
+    .select('id,name,name_en,set_name,set_id,card_number,image_url,lang,tcg,rarity,canonical_card_id,print_variant,card_image_cache(cached_url,status),canonical_cards(slug)');
 
   // Separa lang-token (es. "jp","ja","en") dai content-token (es. "charizard","op05").
   // I lang-token NON entrano nell'AND della query DB: le carte JP hanno nome giapponese,
@@ -167,7 +174,7 @@ export async function searchCards(rawQuery) {
       if (!safeNums.length) continue;
       let lq = supabase
         .from('cards')
-        .select('id,name,name_en,set_name,set_id,card_number,image_url,lang,tcg,rarity,canonical_card_id,card_image_cache(cached_url,status)')
+        .select('id,name,name_en,set_name,set_id,card_number,image_url,lang,tcg,rarity,canonical_card_id,print_variant,card_image_cache(cached_url,status),canonical_cards(slug)')
         .eq('tcg', tcgKey)
         .in('card_number', safeNums);
       if (langFilterCodes.length === 1) lq = lq.eq('lang', langFilterCodes[0]);
@@ -203,7 +210,7 @@ export async function searchCards(rawQuery) {
         if (!nums.length || nums.length > 400) continue;
         const { data: expanded } = await supabase
           .from('cards')
-          .select('id,name,name_en,set_name,set_id,card_number,image_url,lang,tcg,canonical_card_id,card_image_cache(cached_url,status)')
+          .select('id,name,name_en,set_name,set_id,card_number,image_url,lang,tcg,canonical_card_id,print_variant,card_image_cache(cached_url,status),canonical_cards(slug)')
           .eq('tcg', tcgKey)
           .in('card_number', nums)
           .limit(400);
@@ -235,7 +242,7 @@ export async function searchCards(rawQuery) {
         const knownIds = new Set(nameMatches.map(c => c.id));
         const { data: canonExpand } = await supabase
           .from('cards')
-          .select('id,name,name_en,set_name,set_id,card_number,image_url,lang,tcg,rarity,canonical_card_id,card_image_cache(cached_url,status)')
+          .select('id,name,name_en,set_name,set_id,card_number,image_url,lang,tcg,rarity,canonical_card_id,print_variant,card_image_cache(cached_url,status),canonical_cards(slug)')
           .in('canonical_card_id', canonIds)
           .limit(2000);
         const merged = [...nameMatches];
