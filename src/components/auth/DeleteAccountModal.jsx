@@ -1,15 +1,16 @@
 // Danger-zone confirmation for GDPR account deletion (Auth/Profile/Username
 // feature — profile management follow-up). Reuses the existing Sheet shell
 // (src/components/shared/Sheet.jsx), same pattern as PortfolioModal/AlertModal.
-// Requires the user to type ELIMINA (Italian, per spec) before the destructive
-// action becomes clickable — a plain "are you sure" confirm is too easy to
-// click through by habit for something this irreversible.
+// Requires the user to type DELETE before the destructive action becomes
+// clickable — a plain "are you sure" confirm is too easy to click through
+// by habit for something this irreversible. English to match the rest of
+// the app's UI copy (all other labels/buttons are English).
 import { useState } from "react";
 import { Sheet } from "../shared/Sheet.jsx";
 import { Icon } from "../shared/Icon.jsx";
 import { deleteAccount, normalizeAuthError } from "../../supabase.js";
 
-const CONFIRM_WORD = "ELIMINA";
+const CONFIRM_WORD = "DELETE";
 
 export function DeleteAccountModal({ onClose }) {
   const [typed, setTyped] = useState("");
