@@ -5,7 +5,7 @@
 // Profile management follow-up (2026-08-26): username change, avatar
 // upload/restore and GDPR account deletion replace the former "Coming
 // soon" placeholders below.
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useCallback, useRef, useState } from "react";
 import { Icon } from "../../components/shared/Icon.jsx";
 import { DeleteAccountModal } from "../../components/auth/DeleteAccountModal.jsx";
 import { ExportDataButton } from "../../components/auth/ExportDataButton.jsx";
@@ -24,6 +24,12 @@ function fmtDate(iso) {
 
 export default function AccountPage() {
   const { status, user, profile, signOut, refreshProfile } = useAuth();
+  const [toast, setToast] = useState("");
+  // Shared success feedback for the profile-management forms below (matches
+  // the .toast pattern already used in PortfolioView.jsx) — a save/restore
+  // that succeeds surfaces here instead of an inline "ok" line, so username
+  // and avatar changes get the same visible confirmation as the rest of the app.
+  const flash = useCallback((m) => { setToast(m); setTimeout(() => setToast(""), 2800); }, []);
 
   useEffect(() => {
     if (status === "unauthenticated") window.location.replace("/login");
@@ -70,7 +76,7 @@ export default function AccountPage() {
           </div>
         </div>
 
-        <AvatarSection profile={profile} hasGoogle={hasGoogle} onUpdated={refreshProfile} />
+        <AvatarSection profile={profile} hasGoogle={hasGoogle} onUpdated={refreshProfile} onToast={flash} />
 
         <div className="account-section">
           <div className="account-section-h">Account</div>
@@ -84,7 +90,7 @@ export default function AccountPage() {
           </div>
         </div>
 
-        <UsernameSection profile={profile} onUpdated={refreshProfile} />
+        <UsernameSection profile={profile} onUpdated={refreshProfile} onToast={flash} />
 
         <ExportDataButton />
 
@@ -96,12 +102,14 @@ export default function AccountPage() {
         <button className="btn btn-ghost btn-block" onClick={() => { signOut(); window.location.href = "/"; }}>
           <Icon name="logout" size={16} /> Sign out
         </button>
+
+        {toast && <div className="toast">{toast}</div>}
       </div>
     </div>
   );
 }
 
-function AvatarSection({ profile, hasGoogle, onUpdated }) {
+function AvatarSection({ profile, hasGoogle, onUpdated, onToast }) {
   const fileRef = useRef(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
@@ -117,6 +125,7 @@ function AvatarSection({ profile, hasGoogle, onUpdated }) {
     setBusy(false);
     if (error) { setErr(normalizeAuthError(error)); return; }
     onUpdated?.();
+    onToast?.("Profile picture updated.");
   };
 
   const restore = async () => {
@@ -126,6 +135,7 @@ function AvatarSection({ profile, hasGoogle, onUpdated }) {
     setBusy(false);
     if (error) { setErr(normalizeAuthError(error)); return; }
     onUpdated?.();
+    onToast?.("Restored your Google photo.");
   };
 
   return (
@@ -161,12 +171,11 @@ function AvatarSection({ profile, hasGoogle, onUpdated }) {
   );
 }
 
-function UsernameSection({ profile, onUpdated }) {
+function UsernameSection({ profile, onUpdated, onToast }) {
   const current = profile?.username || "";
   const [value, setValue] = useState(current);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
-  const [ok, setOk] = useState("");
   // 'idle' | 'checking' | 'available' | 'taken' | 'invalid' | 'same'
   const [status, setStatus] = useState("idle");
 
@@ -174,7 +183,6 @@ function UsernameSection({ profile, onUpdated }) {
 
   useEffect(() => {
     const v = value.trim();
-    setOk("");
     if (!v || v === current) { setStatus(v === current && v ? "same" : "idle"); return; }
     const vErr = validateUsername(v);
     if (vErr) { setStatus("invalid"); return; }
@@ -191,12 +199,12 @@ function UsernameSection({ profile, onUpdated }) {
     if (busy || status === "invalid" || status === "taken" || status === "checking") return;
     const v = value.trim();
     if (!v || v === current) return;
-    setBusy(true); setErr(""); setOk("");
+    setBusy(true); setErr("");
     const { error } = await updateUsername(v);
     setBusy(false);
     if (error) { setErr(normalizeAuthError(error)); return; }
-    setOk("Username updated.");
     onUpdated?.();
+    onToast?.("Username updated.");
   };
 
   const canSubmit = !busy && value.trim() && value.trim() !== current && (status === "available" || status === "same");
@@ -220,7 +228,6 @@ function UsernameSection({ profile, onUpdated }) {
         {status === "available" && <div className="field-status ok"><Icon name="check" size={13} /> Available</div>}
         {status === "taken" && <div className="field-status bad">This username is already taken.</div>}
         {status === "invalid" && <div className="field-status bad">3–20 characters: letters, numbers and underscore only.</div>}
-        {ok && <div className="field-status ok"><Icon name="check" size={13} /> {ok}</div>}
         <button type="submit" className="btn btn-primary btn-sm" disabled={!canSubmit}>
           {busy ? "Saving…" : "Save username"}
         </button>
