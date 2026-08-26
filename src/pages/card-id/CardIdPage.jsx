@@ -11,6 +11,7 @@ import { Icon } from "../../components/shared/Icon.jsx";
 import { SearchResults } from "../../components/search/SearchResults.jsx";
 import { Sheet } from "../../components/shared/Sheet.jsx";
 import { searchCards } from "../../lib/search.js";
+import { isOfficialImageUrl } from "../../lib/cardId.js";
 import { submitCardContribution, getMyContributorLevel } from "../../supabase.js";
 import { useAuth } from "../../lib/auth.js";
 import { TCG_LIST, CARD_LANGS } from "../../DraGold.jsx";
@@ -71,6 +72,10 @@ function MissingCardSheet({ initialName, onClose }) {
       setErr("Fill in card name, set, number and language.");
       return;
     }
+    if (imageUrl.trim() && !isOfficialImageUrl(imageUrl)) {
+      setErr("Please use an image URL from an approved official source.");
+      return;
+    }
     if (!isAuthed) { window.location.href = "/login"; return; }
     if (!dupChecked) { setErr(""); await checkDuplicates(); return; }
     setBusy(true); setErr("");
@@ -117,8 +122,11 @@ function MissingCardSheet({ initialName, onClose }) {
         <input className="input" value={rarity} onChange={e => setRarity(e.target.value)} placeholder="e.g. Illustration Rare" />
         <label className="field-lbl">Variant / finish (optional)</label>
         <input className="input" value={variant} onChange={e => setVariant(e.target.value)} placeholder="e.g. Reverse holo" />
-        <label className="field-lbl">Image URL (optional)</label>
-        <input className="input" value={imageUrl} onChange={e => setImageUrl(e.target.value)} placeholder="https://…" />
+        <label className="field-lbl">Card image (optional)</label>
+        <p className="auth-p" style={{ fontSize: 13, margin: "-2px 0 8px" }}>
+          Use an image URL from an official source only. Official sources: Pokémon, One Piece, or other approved official sources. Do not submit images from marketplaces, social media, Google Images, or other third-party websites.
+        </p>
+        <input className="input" value={imageUrl} onChange={e => { setImageUrl(e.target.value); if (err) setErr(""); }} placeholder="https://…" />
         <label className="field-lbl">Notes (optional)</label>
         <input className="input" value={notes} onChange={e => setNotes(e.target.value)} placeholder="Anything else that helps us verify it" />
         <label className="field-lbl">Source / reference (optional)</label>
