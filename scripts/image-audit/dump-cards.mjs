@@ -122,7 +122,7 @@ async function dumpAll({ tcg, langs, out }) {
   console.log(`\nOK: ${total} righe scritte in ${out} (tcg=${tcg}, langs=${langs.join(',')})`)
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (import.meta.url.endsWith(process.argv[1].split(/[\\/]/).pop())) {
   const config = parseDumpArgs(process.argv.slice(2))
   dumpAll(config).catch(err => {
     console.error('FATAL:', err)

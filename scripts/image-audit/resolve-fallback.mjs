@@ -177,6 +177,6 @@ async function main() {
   console.log(`\nOK: risultati in ${OUT}`)
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (import.meta.url.endsWith(process.argv[1].split(/[\\/]/).pop())) {
   main().catch(err => { console.error('FATAL:', err); process.exit(1) })
 }

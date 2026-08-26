@@ -825,6 +825,36 @@ input{font-family:inherit;font-size:16px;}
 .account-row-value{font-weight:600;text-align:right;word-break:break-word;}
 .badge-todo{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--dim);background:var(--surface-3);padding:3px 8px;border-radius:6px;flex-shrink:0;}
 
+/* Profile management: avatar upload, username form, danger zone
+   (Auth/Profile/Username feature - profile management follow-up). Reuses
+   .field/.input/.btn/.auth-err tokens already defined above. */
+.avatar-edit{display:flex;align-items:center;gap:16px;margin-bottom:22px;}
+.avatar-edit-pic{position:relative;width:64px;height:64px;flex-shrink:0;}
+.avatar-edit-pic img,.avatar-edit-pic .account-avatar{width:64px;height:64px;border-radius:50%;object-fit:cover;display:block;}
+.avatar-edit-actions{display:flex;flex-direction:column;gap:8px;flex:1;min-width:0;}
+.avatar-edit-row{display:flex;gap:8px;flex-wrap:wrap;}
+.avatar-edit-input{display:none;}
+.avatar-edit-hint{font-size:11.5px;color:var(--dim);}
+.avatar-edit-spinner{position:absolute;inset:0;border-radius:50%;background:rgba(2,2,8,.55);display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;}
+
+.field-status{font-size:12px;margin-top:-8px;margin-bottom:12px;display:flex;align-items:center;gap:5px;}
+.field-status.ok{color:var(--gain);}
+.field-status.bad{color:var(--loss);}
+.field-status.pending{color:var(--dim);}
+
+.danger-zone{background:rgba(248,113,113,.06);border:1px solid rgba(248,113,113,.25);border-radius:14px;padding:16px 18px;margin-bottom:14px;}
+.danger-zone .account-section-h{color:var(--loss);}
+.danger-zone-desc{font-size:12.5px;color:var(--muted);line-height:1.5;margin-bottom:12px;}
+.btn-danger{background:var(--loss);color:#fff;}
+.btn-danger:hover{filter:brightness(1.06);}
+.btn-danger:disabled{opacity:.6;cursor:default;}
+.btn-danger-outline{background:transparent;color:var(--loss);border:1px solid rgba(248,113,113,.4);}
+.btn-danger-outline:hover{background:rgba(248,113,113,.08);}
+
+.confirm-delete-warning{display:flex;gap:10px;background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.25);border-radius:12px;padding:12px 14px;margin-bottom:16px;color:var(--loss);font-size:13px;line-height:1.5;}
+.confirm-delete-warning svg{flex-shrink:0;margin-top:1px;}
+.confirm-delete-word{font-weight:800;letter-spacing:.02em;}
+
 /* Legal placeholder pages */
 .legal-page{max-width:720px;margin:0 auto;padding:40px var(--p) 80px;}
 .legal-page h1{font-family:'Fraunces',serif;font-size:clamp(26px,5vw,36px);font-weight:800;margin-bottom:8px;}
