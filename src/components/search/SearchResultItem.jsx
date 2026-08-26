@@ -30,10 +30,32 @@ export function SearchResultItem({ card, priceInfo, country = "IT", cur = "EUR",
   const initials = cardName.replace(/[^a-zA-Z ]/g, '').trim()
     .split(/\s+/).slice(0, 2).map(w => w[0] || '').join('').toUpperCase() || '?';
 
+  // Real <a href> to the canonical SEO page (/carta/{slug}) when the card's
+  // canonical group has resolved a slug, else the SPA deep-link (/card/{id}
+  // — still a real, crawlable URL, see DraGold.jsx's /card/{id} route) —
+  // so every card tile is a genuine link (curl/crawler/middle-click/open-in-
+  // new-tab all work), not just an onClick div. Client-side nav still goes
+  // through onOpen (same AssetView transition as before) via preventDefault,
+  // so behavior for a normal click is unchanged.
+  const cardHref = card.slug
+    ? `/carta/${encodeURIComponent(card.slug)}${card.lang && card.lang !== 'en' ? `?lang=${encodeURIComponent(card.lang)}` : ''}`
+    : card.id ? `/card/${encodeURIComponent(card.id)}` : undefined;
+
   return (
-    <div className="card-item" onClick={() => onOpen?.(card)}
-      role="button" tabIndex={0}
-      onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onOpen?.(card); } }}>
+    <div className="card-item" onClick={() => onOpen?.(card)}>
+      {/* Real, crawlable <a href> to the canonical card page — purely for
+          SEO/crawlers (Googlebot reads the href attribute regardless of CSS)
+          and keyboard users (Tab focuses it, Enter still fires a click event
+          even through pointer-events:none — only mouse hit-testing is
+          disabled). pointer-events:none keeps it fully out of the way of
+          mouse clicks/hover (the tilt effect on CardObject below needs real
+          pointermove/pointerleave) and of the real eBay/variant-language
+          <a> links further down (nesting a real <a> inside another <a> is
+          invalid HTML, so this can't just wrap everything) — the outer div's
+          onClick (unchanged from before) is what actually handles mouse
+          navigation, same AssetView transition as always via onOpen. */}
+      <a className="card-item-link" href={cardHref} aria-label={cardName}
+        onClick={e => { e.preventDefault(); e.stopPropagation(); onOpen?.(card); }} />
       <div className="card-item-img">
         <CardObject
           card={card}

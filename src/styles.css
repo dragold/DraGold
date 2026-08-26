@@ -166,12 +166,19 @@ input{font-family:inherit;font-size:16px;}
 .discover-rail:active,.rel-rail:active,.set-preview-strip:active,.constellation-rail:active{cursor:grabbing;}
 
 .discover-rail{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;padding:2px 2px 8px;margin:0 -2px;}
-.discover-tile{flex:0 0 128px;scroll-snap-align:start;display:flex;flex-direction:column;align-items:center;gap:10px;padding:20px 14px 14px;background:var(--surface);border:1px solid var(--border);border-radius:14px;transition:border-color var(--dur-fast) var(--ease-out),transform var(--dur-lift) var(--ease-out),box-shadow var(--dur-lift) var(--ease-out);}
+.discover-tile{position:relative;flex:0 0 128px;scroll-snap-align:start;display:flex;flex-direction:column;align-items:center;gap:10px;padding:20px 14px 14px;background:var(--surface);border:1px solid var(--border);border-radius:14px;text-decoration:none;color:inherit;transition:border-color var(--dur-fast) var(--ease-out),transform var(--dur-lift) var(--ease-out),box-shadow var(--dur-lift) var(--ease-out);}
 .discover-tile:active{transform:scale(.96);transition-duration:100ms;}
 .discover-tile img{max-height:34px;max-width:96px;object-fit:contain;}
 .discover-tile-name{font-size:12px;font-weight:700;text-align:center;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
 .discover-tile-tcg{font-family:'Space Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.12em;color:var(--tcg-color,var(--dim));}
 @media(hover:hover){.discover-tile:hover{border-color:var(--tcg-color,var(--gold));transform:translateY(-5px);box-shadow:0 18px 32px -20px rgba(0,0,0,.6);}}
+/* Collection & Set Completion Loop on the Discover-a-set rail (see
+   SearchView.jsx's ownedBySet) — a small real-data badge, not a fabricated
+   progress bar (we don't cheaply have each set's total card count here). */
+.discover-tile-owned{position:absolute;top:8px;right:8px;font-family:'Space Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.02em;color:var(--gold);background:rgba(251,191,36,.12);border:1px solid rgba(251,191,36,.3);border-radius:100px;padding:2px 7px;}
+.discover-rail-cta{margin:10px 2px 0;font-size:12.5px;color:var(--dim);}
+.discover-rail-cta a{color:var(--gold);text-decoration:none;font-weight:600;}
+.discover-rail-cta a:hover{text-decoration:underline;}
 
 /* search */
 .search{display:flex;align-items:center;gap:8px;margin:20px 0 14px;background:var(--surface-2);border:1px solid var(--border-2);border-radius:14px;padding:6px 6px 6px 14px;transition:.15s;}
@@ -188,6 +195,10 @@ input{font-family:inherit;font-size:16px;}
 .chip.sm{font-size:12px;padding:6px 11px;}
 .chip:hover{color:var(--text);}
 .chip.on{color:var(--text);background:var(--surface-3);border-color:var(--border-2);}
+.hero-cta-row{display:flex;flex-wrap:wrap;gap:8px;}
+.hero-cta-row .chip{display:inline-flex;align-items:center;gap:5px;text-decoration:none;}
+.chip-academy{color:var(--gold);border-color:rgba(251,191,36,.25);}
+.chip-academy:hover{color:var(--gold);border-color:rgba(251,191,36,.45);background:rgba(251,191,36,.08);}
 .tcg-chip{display:flex;align-items:center;gap:6px;}
 .tcg-chip-logo{height:15px;width:auto;object-fit:contain;filter:brightness(0) invert(1);opacity:.85;}
 .tcg-chip.on .tcg-chip-logo{filter:none;opacity:1;}
@@ -289,7 +300,13 @@ input{font-family:inherit;font-size:16px;}
 @media(min-width:640px){.card-grid,.skel-grid{grid-template-columns:repeat(3,1fr);}}
 @media(min-width:1024px){.card-grid,.skel-grid{grid-template-columns:repeat(4,1fr);}}
 @media(min-width:1400px){.card-grid,.skel-grid{grid-template-columns:repeat(5,1fr);}}
-.card-item{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;cursor:pointer;transform:translateY(0);box-shadow:0 8px 18px -14px rgba(0,0,0,.5);transition:border-color var(--dur-fast) var(--ease-out),background-color var(--dur-fast) var(--ease-out),transform var(--dur-lift) var(--ease-out),box-shadow var(--dur-lift) var(--ease-out);}
+.card-item{position:relative;background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;cursor:pointer;transform:translateY(0);box-shadow:0 8px 18px -14px rgba(0,0,0,.5);transition:border-color var(--dur-fast) var(--ease-out),background-color var(--dur-fast) var(--ease-out),transform var(--dur-lift) var(--ease-out),box-shadow var(--dur-lift) var(--ease-out);}
+/* SEO/keyboard-only overlay (see SearchResultItem.jsx) — real crawlable
+   <a href> to the card page. pointer-events:none so it never intercepts
+   mouse clicks/hover (the outer .card-item div's own onClick handles mouse
+   nav, tilt effect needs real pointer events on the image below); Tab/Enter
+   still reach it since keyboard activation isn't gated by pointer-events. */
+.card-item-link{position:absolute;inset:0;pointer-events:none;}
 @media (hover:hover){
   /* North Star card treatment: rest → hover-lift-6 (translateY -6px, gold-tinted
      border, deeper shadow) rather than a flat scale — the card reads as an
