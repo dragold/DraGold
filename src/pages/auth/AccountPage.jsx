@@ -8,6 +8,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Icon } from "../../components/shared/Icon.jsx";
 import { DeleteAccountModal } from "../../components/auth/DeleteAccountModal.jsx";
+import { ExportDataButton } from "../../components/auth/ExportDataButton.jsx";
 import { useAuth } from "../../lib/auth.js";
 import {
   updateUsername, uploadAvatar, restoreGoogleAvatar,
@@ -84,6 +85,8 @@ export default function AccountPage() {
         </div>
 
         <UsernameSection profile={profile} onUpdated={refreshProfile} />
+
+        <ExportDataButton />
 
         <DangerZone />
 
