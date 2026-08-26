@@ -93,6 +93,43 @@ return r.json()
 } catch { return null }
 }
 
+// ENRICHMENT STATUS (requisito task "Catalog Sync + Enrichment Fix"): vocabolario
+// minimo richiesto SUCCESS/PARTIAL/RETRYABLE_ERROR/PERMANENT_ERROR/DATA_CONFLICT.
+// Nessuna colonna nuova: riusa il pattern gia' in uso in questo script
+// (`metadata._enrichedAt`), estendendolo con un oggetto `metadata._enrich`
+// strutturato. DATA_CONFLICT e' definito qui per completare il vocabolario ma
+// non e' mai prodotto da QUESTO script: un update per id su un singolo campo
+// dettaglio TCGdex non ha ambiguita' di matching da segnalare (quella
+// competenza e' del livello di canonical matching, fuori dallo scope di un
+// enrichment per id gia' noto) -- lasciato riservato per non inventare un
+// caso che non si verifica qui.
+const ENRICH_STATUS = {
+SUCCESS: 'SUCCESS',
+PARTIAL: 'PARTIAL',
+RETRYABLE_ERROR: 'RETRYABLE_ERROR',
+PERMANENT_ERROR: 'PERMANENT_ERROR',
+DATA_CONFLICT: 'DATA_CONFLICT', // riservato, vedi commento sopra
+}
+// Un fetch 404 reale (risorsa nota assente su TCGdex per questo set/card_number)
+// dopo piu' tentativi non ha motivo di essere ritentato all'infinito: lo
+// distinguiamo da un errore di rete/timeout (transitorio, va ritentato). Prima
+// di questo fix `safeFetch` collassava entrambi i casi in `null`, indistinguibili.
+async function fetchDetail(url, timeout = 15000) {
+try {
+const r = await fetch(url, { signal: AbortSignal.timeout(timeout) })
+if (r.status === 404) return { ok: false, reason: 'not_found' }
+if (!r.ok) return { ok: false, reason: 'http_error' }
+return { ok: true, data: await r.json() }
+} catch (e) {
+return { ok: false, reason: e?.name === 'TimeoutError' ? 'timeout' : 'network' }
+}
+}
+// Soglia tentativi 'not_found' prima di classificare PERMANENT_ERROR e smettere di
+// ritentare (marcando _enrichedAt per farla uscire dalla coda): un singolo 404
+// puo' essere propagazione lato TCGdex non ancora completata, non necessariamente
+// assenza reale -- 3 tentativi falliti in run distinti sono un segnale piu' solido.
+const PERMANENT_ERROR_THRESHOLD = 3
+
 // Priorita' prodotto (CLAUDE.md §1): EN e JA vanno drenati prima delle altre lingue,
 // EN prima di JA. Ogni lingua qui elencata diventa una fase separata ed esclusiva.
 const PRIORITY_LANGS = ['en', 'ja']
@@ -165,12 +202,41 @@ return restPhase.length ? [...priorityPhases, restPhase] : priorityPhases
 
 async function enrichRow(row) {
 await sleep(DELAY_MS)
+<<<<<<< HEAD
 const detail = await safeFetch(`${TCGDEX_BASE}/${row.lang}/sets/${row.set_id}/${row.card_number}`)
 // Fetch fallito (rete/timeout/HTTP non-ok): NON scriviamo il marcatore
 // `_enrichedAt`, la riga resta eleggibile e viene ritentata a un run successivo.
 // Comportamento invariato rispetto a prima del fix — solo il caso "risposta
 // ricevuta ma campo assente" (sotto) e' cambiato.
 if (!detail) return 'notFound'
+=======
+const fetchResult = await fetchDetail(`${TCGDEX_BASE}/${row.lang}/sets/${row.set_id}/${row.card_number}`)
+
+const prevEnrich = (row.metadata && row.metadata._enrich) || null
+const prevAttempts = (prevEnrich && prevEnrich.attempts) || 0
+
+if (!fetchResult.ok) {
+// RETRYABLE_ERROR (rete/timeout/HTTP non-404): NON scriviamo `_enrichedAt`, la
+// riga resta eleggibile e viene ritentata a un run successivo -- comportamento
+// invariato rispetto a prima del fix. PERMANENT_ERROR (404 ripetuto) e' l'unica
+// eccezione: dopo PERMANENT_ERROR_THRESHOLD tentativi smettiamo di ritentare
+// (marcando _enrichedAt) per non interrogare per sempre una risorsa nota assente.
+const attempts = prevAttempts + 1
+const isPermanent = fetchResult.reason === 'not_found' && attempts >= PERMANENT_ERROR_THRESHOLD
+const status = fetchResult.reason === 'not_found'
+? (isPermanent ? ENRICH_STATUS.PERMANENT_ERROR : ENRICH_STATUS.RETRYABLE_ERROR)
+: ENRICH_STATUS.RETRYABLE_ERROR
+const metaPatch = {
+...(row.metadata || {}),
+_enrich: { status, attempts, lastAttempt: new Date().toISOString(), lastError: fetchResult.reason },
+}
+if (isPermanent) metaPatch._enrichedAt = new Date().toISOString()
+const { error: statusErr } = await supabase.from('cards').update({ metadata: metaPatch }).eq('id', row.id)
+if (statusErr) console.warn(`  status update error ${row.id}:`, statusErr.message)
+return isPermanent ? 'permanentError' : 'notFound'
+}
+const detail = fetchResult.data
+>>>>>>> feature/google-auth-profile-gdpr
 
 const patch = {
 illustrator: detail.illustrator || null,
@@ -196,11 +262,32 @@ if (detail.stage) extraMeta.stage = detail.stage
 // risposta — e' quello che garantisce che la riga esca dall'eleggibilita' anche
 // quando TCGdex non ha illustrator/dexId/category per questa carta specifica.
 extraMeta._enrichedAt = new Date().toISOString()
+<<<<<<< HEAD
+=======
+// SUCCESS/PARTIAL: SUCCESS quando TCGdex ha restituito i campi opzionali chiave
+// (illustrator o category, i due piu' usati a valle); PARTIAL quando la risposta
+// e' arrivata ok ma senza nessuno dei due -- non e' un errore (puo' essere reale,
+// vedi FIX CODA BLOCCATA sopra), ma va distinto da un arricchimento pieno nel
+// report strutturato.
+const hasCore = !!(detail.illustrator || detail.category)
+extraMeta._enrich = {
+status: hasCore ? ENRICH_STATUS.SUCCESS : ENRICH_STATUS.PARTIAL,
+attempts: prevAttempts + 1,
+lastAttempt: extraMeta._enrichedAt,
+lastError: null,
+}
+>>>>>>> feature/google-auth-profile-gdpr
 patch.metadata = { ...(row.metadata || {}), ...extraMeta }
 
 const { error: upErr } = await supabase.from('cards').update(patch).eq('id', row.id)
-if (upErr) { console.warn(` update error ${row.id}:`, upErr.message); return 'error' }
-return 'updated'
+if (upErr) {
+console.warn(` update error ${row.id}:`, upErr.message)
+// RETRYABLE_ERROR: lo scrivere e' fallito lato Supabase (infra transitoria),
+// non un problema del dato TCGdex -- _enrichedAt non e' stato scritto quindi
+// la riga resta comunque eleggibile al giro successivo, coerente col resto.
+return 'error'
+}
+return hasCore ? 'updated' : 'partial'
 }
 
 async function run() {
@@ -228,9 +315,11 @@ if (timeLeftMs() <= 0) { stopReason = 'time-budget'; break outer }
 
 const outcome = await enrichRow(row)
 totalProcessed++
-const s = (stats[row.lang] ??= { processed: 0, updated: 0, notFound: 0, error: 0 })
+const s = (stats[row.lang] ??= { processed: 0, updated: 0, partial: 0, notFound: 0, permanentError: 0, error: 0 })
 s.processed++
 if (outcome === 'updated') s.updated++
+else if (outcome === 'partial') s.partial++
+else if (outcome === 'permanentError') s.permanentError++
 else if (outcome === 'notFound') s.notFound++
 else s.error++
 }
@@ -241,8 +330,20 @@ if (totalProcessed === 0) { console.log('Nessuna carta da arricchire per questo 
 
 console.log(`Enrich cards - done (motivo stop: ${stopReason}). Totale processate: ${totalProcessed}`)
 for (const [lang, s] of Object.entries(stats)) {
-console.log(` ${lang}: processate ${s.processed}, aggiornate ${s.updated}, non trovate ${s.notFound}, errori ${s.error}`)
+console.log(` ${lang}: processate ${s.processed}, aggiornate(SUCCESS) ${s.updated}, PARTIAL ${s.partial}, RETRYABLE_ERROR ${s.notFound}, PERMANENT_ERROR ${s.permanentError}, errori-scrittura ${s.error}`)
 }
+// Report strutturato (requisito task: sync/enrichment report in JSON, nessuna UI).
+// Stampato su stdout come ultima riga JSON-parsabile: i job GitHub Actions possono
+// raccoglierlo da log senza bisogno di un file/endpoint dedicato.
+const report = {
+kind: 'enrich-cards-report',
+startedAt: new Date(START_TIME).toISOString(),
+finishedAt: new Date().toISOString(),
+stopReason,
+totalProcessed,
+byLang: stats,
+}
+console.log('ENRICH_REPORT_JSON=' + JSON.stringify(report))
 }
 
 // Dry-run: SOLA LETTURA. Nessuna chiamata a TCGDEX_BASE, nessun enrichRow, nessun

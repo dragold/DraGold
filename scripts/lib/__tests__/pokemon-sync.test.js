@@ -74,7 +74,7 @@ const CARD_FULL_NO_VARIANT_INFO = {
 
 const DB_ROW_COMPLETE = {
   id: 'pokemon:tcgdex:swsh3-136:en',
-  lang: 'en', tcg: 'pokemon',
+  lang: 'en', tcg: 'pokemon', source: 'tcgdex', source_id: 'swsh3-136',
   name: 'Furret', set_id: 'swsh3', set_name: 'Darkness Ablaze', card_number: '136',
   rarity: 'Uncommon', illustrator: 'tetsuya koizumi',
   image_url: 'https://assets.tcgdex.net/en/swsh/swsh3/136/high.webp',
@@ -86,7 +86,7 @@ const DB_ROW_COMPLETE = {
 
 const DB_ROW_NULL_METADATA = {
   id: 'pokemon:tcgdex:swsh3-136:en',
-  lang: 'en', tcg: 'pokemon',
+  lang: 'en', tcg: 'pokemon', source: 'tcgdex', source_id: 'swsh3-136',
   name: 'Furret', set_id: 'swsh3', set_name: 'Darkness Ablaze', card_number: '136',
   rarity: null, illustrator: null,
   image_url: null, image_url_hi: null,
@@ -166,7 +166,7 @@ test('assertNoCanonicalFields: qualsiasi campo canonical_* (non solo canonical_c
 
 test('mergeRow: carta nuova (existingRow null) -> usa i valori in arrivo, nessun errore', () => {
   const incoming = buildIncomingFromBrief(CARD_BRIEF, SET_META_BRIEF, SET_DATA_FULL);
-  const merged = mergeRow(null, incoming, { id: 'pokemon:tcgdex:swsh3-136:en', lang: 'en', tcg: 'pokemon' });
+  const merged = mergeRow(null, incoming, { id: 'pokemon:tcgdex:swsh3-136:en', lang: 'en', tcg: 'pokemon', source: 'tcgdex', source_id: 'swsh3-136' });
   assert.equal(merged.name, 'Furret');
   assert.equal(merged.series_id, 'swsh');
   assert.equal(merged.rarity, null); // non ancora fetchato il detail: legittimamente null
@@ -175,7 +175,7 @@ test('mergeRow: carta nuova (existingRow null) -> usa i valori in arrivo, nessun
 test('mergeRow: campo assente nel payload in arrivo NON cancella un valore già valido in DB (requisito 4)', () => {
   // Solo dati da discovery (stage 1): rarity/illustrator/print_variant assenti dall'incoming.
   const incoming = buildIncomingFromBrief(CARD_BRIEF, SET_META_BRIEF, SET_DATA_FULL);
-  const merged = mergeRow(DB_ROW_COMPLETE, incoming, { id: DB_ROW_COMPLETE.id, lang: 'en', tcg: 'pokemon' });
+  const merged = mergeRow(DB_ROW_COMPLETE, incoming, { id: DB_ROW_COMPLETE.id, lang: 'en', tcg: 'pokemon', source: 'tcgdex', source_id: 'swsh3-136' });
   assert.equal(merged.rarity, 'Uncommon', 'rarity esistente deve sopravvivere, non essere azzerata');
   assert.equal(merged.illustrator, 'tetsuya koizumi');
   assert.equal(merged.print_variant, 'reverse');
@@ -183,7 +183,7 @@ test('mergeRow: campo assente nel payload in arrivo NON cancella un valore già 
 
 test('mergeRow: campo remoto esplicitamente null (detail fetchato ma senza rarity) -> valore esistente protetto comunque (scelta conservativa)', () => {
   const incomingDetail = buildIncomingFromDetail({ id: 'x', rarity: null, illustrator: null, variants: undefined });
-  const merged = mergeRow(DB_ROW_COMPLETE, incomingDetail, { id: DB_ROW_COMPLETE.id, lang: 'en', tcg: 'pokemon' });
+  const merged = mergeRow(DB_ROW_COMPLETE, incomingDetail, { id: DB_ROW_COMPLETE.id, lang: 'en', tcg: 'pokemon', source: 'tcgdex', source_id: 'swsh3-136' });
   // mergeRow non distingue "null perché il detail non ha trovato nulla" da
   // "campo assente perché non abbiamo chiamato il detail": in entrambi i casi
   // un valore già valido in DB non viene mai cancellato da questo script.
@@ -194,37 +194,75 @@ test('mergeRow: campo remoto esplicitamente null (detail fetchato ma senza rarit
 
 test('mergeRow: campo remoto null e valore esistente GIA\' null -> resta null (nessun errore, nessuna scrittura fantasma)', () => {
   const incomingDetail = buildIncomingFromDetail({ id: 'x', rarity: null, illustrator: null, variants: undefined });
-  const merged = mergeRow(DB_ROW_NULL_METADATA, incomingDetail, { id: DB_ROW_NULL_METADATA.id, lang: 'en', tcg: 'pokemon' });
+  const merged = mergeRow(DB_ROW_NULL_METADATA, incomingDetail, { id: DB_ROW_NULL_METADATA.id, lang: 'en', tcg: 'pokemon', source: 'tcgdex', source_id: 'swsh3-136' });
   assert.equal(merged.rarity, null);
   assert.equal(merged.illustrator, null);
 });
 
 test('mergeRow: metadata già null in DB, incoming da detail li popola -> UPDATED atteso a valle', () => {
   const incoming = buildIncomingFromDetail(CARD_FULL_SINGLE_VARIANT);
-  const merged = mergeRow(DB_ROW_NULL_METADATA, incoming, { id: DB_ROW_NULL_METADATA.id, lang: 'en', tcg: 'pokemon' });
+  const merged = mergeRow(DB_ROW_NULL_METADATA, incoming, { id: DB_ROW_NULL_METADATA.id, lang: 'en', tcg: 'pokemon', source: 'tcgdex', source_id: 'swsh3-136' });
   assert.equal(merged.rarity, 'Uncommon');
   assert.equal(merged.print_variant, 'reverse');
 });
 
 test('mergeRow: non scrive MAI canonical_card_id anche se existingRow lo contiene', () => {
   const incoming = buildIncomingFromBrief(CARD_BRIEF, SET_META_BRIEF, SET_DATA_FULL);
-  const merged = mergeRow(DB_ROW_WITH_CANONICAL, incoming, { id: DB_ROW_WITH_CANONICAL.id, lang: 'en', tcg: 'pokemon' });
+  const merged = mergeRow(DB_ROW_WITH_CANONICAL, incoming, { id: DB_ROW_WITH_CANONICAL.id, lang: 'en', tcg: 'pokemon', source: 'tcgdex', source_id: 'swsh3-136' });
   assert.equal('canonical_card_id' in merged, false);
   assert.doesNotThrow(() => assertNoCanonicalFields(merged));
 });
 
-test('mergeRow: risultato contiene solo id/lang/tcg + MANAGED_FIELDS, nessun campo extra', () => {
+test('mergeRow: risultato contiene solo id/lang/tcg/source/source_id + MANAGED_FIELDS, nessun campo extra', () => {
   const incoming = buildIncomingFromBrief(CARD_BRIEF, SET_META_BRIEF, SET_DATA_FULL);
-  const merged = mergeRow(null, incoming, { id: 'x', lang: 'en', tcg: 'pokemon' });
-  const allowed = new Set(['id', 'lang', 'tcg', ...MANAGED_FIELDS]);
+  const merged = mergeRow(null, incoming, { id: 'x', lang: 'en', tcg: 'pokemon', source: 'tcgdex', source_id: 'swsh3-136' });
+  const allowed = new Set(['id', 'lang', 'tcg', 'source', 'source_id', ...MANAGED_FIELDS]);
   for (const k of Object.keys(merged)) assert.ok(allowed.has(k), `campo inatteso nel merge: ${k}`);
+});
+
+// ─── FIX bug strutturale: source/source_id NOT NULL senza default ─────────────
+// Regressione riprodotta prima del fix: un batch di upsert con almeno una
+// carta NEW falliva per intero (violazione vincolo NOT NULL su
+// `cards.source`/`cards.source_id`) perché mergeRow non li scriveva mai.
+// Questi test bloccano la regressione: un identity incompleta deve fallire
+// RUMOROSAMENTE qui, in memoria, mai silenziosamente arrivare a un upsert
+// Supabase con `source`/`source_id` assenti.
+
+test('mergeRow: identity senza source -> lancia (mai una riga upsert senza source)', () => {
+  const incoming = buildIncomingFromBrief(CARD_BRIEF, SET_META_BRIEF, SET_DATA_FULL);
+  assert.throws(
+    () => mergeRow(null, incoming, { id: 'x', lang: 'en', tcg: 'pokemon', source_id: 'swsh3-136' }),
+    /assertCompleteIdentity/,
+  );
+});
+
+test('mergeRow: identity senza source_id -> lancia (mai una riga upsert senza source_id)', () => {
+  const incoming = buildIncomingFromBrief(CARD_BRIEF, SET_META_BRIEF, SET_DATA_FULL);
+  assert.throws(
+    () => mergeRow(null, incoming, { id: 'x', lang: 'en', tcg: 'pokemon', source: 'tcgdex' }),
+    /assertCompleteIdentity/,
+  );
+});
+
+test('mergeRow: identity completa (source/source_id inclusi) -> merged.source e merged.source_id sempre valorizzati, per carta NEW', () => {
+  const incoming = buildIncomingFromBrief(CARD_BRIEF, SET_META_BRIEF, SET_DATA_FULL);
+  const merged = mergeRow(null, incoming, { id: 'pokemon:tcgdex:swsh3-136:en', lang: 'en', tcg: 'pokemon', source: 'tcgdex', source_id: 'swsh3-136' });
+  assert.equal(merged.source, 'tcgdex');
+  assert.equal(merged.source_id, 'swsh3-136');
+});
+
+test('mergeRow: identity completa -> merged.source/source_id valorizzati anche per carta esistente (UPDATE), coerenti con identity, non con existingRow', () => {
+  const incoming = buildIncomingFromBrief(CARD_BRIEF, SET_META_BRIEF, SET_DATA_FULL);
+  const merged = mergeRow(DB_ROW_COMPLETE, incoming, { id: DB_ROW_COMPLETE.id, lang: 'en', tcg: 'pokemon', source: 'tcgdex', source_id: 'swsh3-136' });
+  assert.equal(merged.source, 'tcgdex');
+  assert.equal(merged.source_id, 'swsh3-136');
 });
 
 // ─── classifyRow ────────────────────────────────────────────────────────────────
 
 test('classifyRow: nessuna riga esistente -> NEW, changes = tutti i campi non-null del merge', () => {
   const incoming = buildIncomingFromBrief(CARD_BRIEF, SET_META_BRIEF, SET_DATA_FULL);
-  const merged = mergeRow(null, incoming, { id: 'x', lang: 'en', tcg: 'pokemon' });
+  const merged = mergeRow(null, incoming, { id: 'x', lang: 'en', tcg: 'pokemon', source: 'tcgdex', source_id: 'swsh3-136' });
   const { classification, changes } = classifyRow(null, merged);
   assert.equal(classification, 'NEW');
   assert.ok(changes.some(c => c.field === 'name' && c.after === 'Furret'));
@@ -348,7 +386,7 @@ test('buildIncomingFromDetail: Card completo senza campo variants -> print_varia
 
 test('buildIncomingFromDetail: _printVariantInfo non è un managed field, mergeRow lo ignora senza errori', () => {
   const incoming = buildIncomingFromDetail(CARD_FULL_SINGLE_VARIANT);
-  const merged = mergeRow(DB_ROW_NULL_METADATA, incoming, { id: DB_ROW_NULL_METADATA.id, lang: 'en', tcg: 'pokemon' });
+  const merged = mergeRow(DB_ROW_NULL_METADATA, incoming, { id: DB_ROW_NULL_METADATA.id, lang: 'en', tcg: 'pokemon', source: 'tcgdex', source_id: 'swsh3-136' });
   assert.equal('_printVariantInfo' in merged, false);
 });
 
@@ -356,7 +394,7 @@ test('buildIncomingFromDetail: _printVariantInfo non è un managed field, mergeR
 
 test('buildDiffReportEntry: NEW espone id/classification/changes/warnings/detailFetched', () => {
   const incoming = buildIncomingFromBrief(CARD_BRIEF, SET_META_BRIEF, SET_DATA_FULL);
-  const merged = mergeRow(null, incoming, { id: 'x', lang: 'en', tcg: 'pokemon' });
+  const merged = mergeRow(null, incoming, { id: 'x', lang: 'en', tcg: 'pokemon', source: 'tcgdex', source_id: 'swsh3-136' });
   const entry = buildDiffReportEntry('x', null, merged);
   assert.equal(entry.classification, 'NEW');
   assert.equal(Array.isArray(entry.changes), true);
@@ -372,7 +410,7 @@ test('buildDiffReportEntry: UPDATED riporta before/after per il campo cambiato',
 
 test('buildDiffReportEntry: variant ambiguo produce un warning esplicito, print_variant resta invariato', () => {
   const incoming = buildIncomingFromDetail(CARD_FULL_MULTI_VARIANT);
-  const merged = mergeRow(DB_ROW_NULL_METADATA, incoming, { id: DB_ROW_NULL_METADATA.id, lang: 'en', tcg: 'pokemon' });
+  const merged = mergeRow(DB_ROW_NULL_METADATA, incoming, { id: DB_ROW_NULL_METADATA.id, lang: 'en', tcg: 'pokemon', source: 'tcgdex', source_id: 'swsh3-136' });
   const entry = buildDiffReportEntry(DB_ROW_NULL_METADATA.id, DB_ROW_NULL_METADATA, merged, {
     printVariantInfo: incoming._printVariantInfo,
     detailFetched: true,
@@ -437,7 +475,7 @@ test('[A] processSupabaseReadResult: data assente/null e nessun errore -> Map vu
 test('[B] needsDetailFetch + buildDiffReportEntry: carta nuova -> detailFetchRequired true, detailFetchSkipped false', () => {
   assert.equal(needsDetailFetch(null), true);
   const incoming = buildIncomingFromDetail(CARD_FULL_SINGLE_VARIANT);
-  const merged = mergeRow(null, incoming, { id: 'x', lang: 'en', tcg: 'pokemon' });
+  const merged = mergeRow(null, incoming, { id: 'x', lang: 'en', tcg: 'pokemon', source: 'tcgdex', source_id: 'swsh3-136' });
   const entry = buildDiffReportEntry('x', null, merged, {
     printVariantInfo: incoming._printVariantInfo, detailFetched: true, detailFetchRequired: true, existed: false,
   });
@@ -448,7 +486,7 @@ test('[B] needsDetailFetch + buildDiffReportEntry: carta nuova -> detailFetchReq
 test('[B] needsDetailFetch + buildDiffReportEntry: metadata mancanti in DB -> detailFetchRequired true', () => {
   assert.equal(needsDetailFetch(DB_ROW_NULL_METADATA), true);
   const incoming = buildIncomingFromDetail(CARD_FULL_SINGLE_VARIANT);
-  const merged = mergeRow(DB_ROW_NULL_METADATA, incoming, { id: DB_ROW_NULL_METADATA.id, lang: 'en', tcg: 'pokemon' });
+  const merged = mergeRow(DB_ROW_NULL_METADATA, incoming, { id: DB_ROW_NULL_METADATA.id, lang: 'en', tcg: 'pokemon', source: 'tcgdex', source_id: 'swsh3-136' });
   const entry = buildDiffReportEntry(DB_ROW_NULL_METADATA.id, DB_ROW_NULL_METADATA, merged, {
     printVariantInfo: incoming._printVariantInfo, detailFetched: true, detailFetchRequired: true, existed: true, incomplete: true,
   });
@@ -476,7 +514,7 @@ test('[C] needsDetailFetch + buildDiffReportEntry: record già completo -> detai
 
 test('[D] buildDiffReportEntry: più finish veri -> variantAmbiguous booleano esplicito true, print_variant resta null (mai concatenato)', () => {
   const incoming = buildIncomingFromDetail(CARD_FULL_MULTI_VARIANT);
-  const merged = mergeRow(DB_ROW_NULL_METADATA, incoming, { id: DB_ROW_NULL_METADATA.id, lang: 'en', tcg: 'pokemon' });
+  const merged = mergeRow(DB_ROW_NULL_METADATA, incoming, { id: DB_ROW_NULL_METADATA.id, lang: 'en', tcg: 'pokemon', source: 'tcgdex', source_id: 'swsh3-136' });
   const entry = buildDiffReportEntry(DB_ROW_NULL_METADATA.id, DB_ROW_NULL_METADATA, merged, {
     printVariantInfo: incoming._printVariantInfo, detailFetched: true, detailFetchRequired: true,
   });
@@ -488,7 +526,7 @@ test('[D] buildDiffReportEntry: più finish veri -> variantAmbiguous booleano es
 
 test('[D] buildDiffReportEntry: finish singolo -> variantPresent true, variantAmbiguous false', () => {
   const incoming = buildIncomingFromDetail(CARD_FULL_SINGLE_VARIANT);
-  const merged = mergeRow(null, incoming, { id: 'x', lang: 'en', tcg: 'pokemon' });
+  const merged = mergeRow(null, incoming, { id: 'x', lang: 'en', tcg: 'pokemon', source: 'tcgdex', source_id: 'swsh3-136' });
   const entry = buildDiffReportEntry('x', null, merged, { printVariantInfo: incoming._printVariantInfo, detailFetched: true });
   assert.equal(entry.variantPresent, true);
   assert.equal(entry.variantAmbiguous, false);
@@ -504,7 +542,7 @@ test('[E] canonical_card_id in DB -> canonicalProtected=true nel report, ma MAI 
   assert.equal(canonicalIds.has(DB_ROW_COMPLETE.id), true);
 
   const incoming = buildIncomingFromBrief(CARD_BRIEF, SET_META_BRIEF, SET_DATA_FULL);
-  const merged = mergeRow(existingRow, incoming, { id: DB_ROW_COMPLETE.id, lang: 'en', tcg: 'pokemon' });
+  const merged = mergeRow(existingRow, incoming, { id: DB_ROW_COMPLETE.id, lang: 'en', tcg: 'pokemon', source: 'tcgdex', source_id: 'swsh3-136' });
   assert.equal('canonical_card_id' in merged, false);
   assert.doesNotThrow(() => assertNoCanonicalFields(merged));
 
@@ -531,7 +569,7 @@ test('[F] computeNullProtection: incoming null su campo DB valido -> nullProtect
   assert.ok(fields.includes('rarity'));
 
   // E il merge deve davvero preservare il valore, non solo segnalarlo:
-  const merged = mergeRow(dbRow, incoming, { id: dbRow.id, lang: 'en', tcg: 'pokemon' });
+  const merged = mergeRow(dbRow, incoming, { id: dbRow.id, lang: 'en', tcg: 'pokemon', source: 'tcgdex', source_id: 'swsh3-136' });
   assert.equal(merged.illustrator, 'Ken Sugimori');
 });
 

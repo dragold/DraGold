@@ -27,7 +27,7 @@ export function loadSetsMap() {
     if (_setsMap) return Promise.resolve(_setsMap);
     if (!supabaseReady) return Promise.resolve((_setsMap = new Map()));
     if (!_setsLoadP) {
-          _setsLoadP = supabase.from('set_logos').select('set_code,tcg,set_name,logo_url,symbol_url')
+          _setsLoadP = supabase.from('set_logos').select('set_code,tcg,set_name,logo_url,symbol_url,release_date')
             .then(({ data }) => {
                       _setsMap = new Map();
                       for (const s of (data || [])) _setsMap.set(`${s.tcg}:${s.set_code}`, s);

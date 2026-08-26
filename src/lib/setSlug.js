@@ -11,6 +11,20 @@ export function slugifySetId(setId) {
   return String(setId || '').toLowerCase().replace(/[^a-z0-9]+/g, '-')
 }
 
+// Explorer/Set-Experience feature — collapses the last bit of variance that
+// slugifySetId() alone doesn't: the SAME real set sometimes exists in `cards`
+// under two id spellings that only differ by a hyphen between letters and
+// digits (e.g. One Piece "OP-01" vs "op01"). Verified live on Supabase
+// (2026-08-23, grouped every canonical_cards/cards set_id by this key across
+// all 4 TCGs): every collision found is genuinely the same set under two
+// source-id spellings, never two different sets — so merging on this key is
+// safe. Used to (a) merge duplicate "set" rows when counting/joining sets for
+// the Explorer/TCG hub, and (b) tolerate either spelling when resolving a
+// /set/:slug back to a real cards.set_id.
+export function normalizeSetKey(id) {
+  return slugifySetId(id).replace(/-/g, '')
+}
+
 export function buildSetSlug(tcg, setId) {
   if (!tcg || !setId) return null
   return `${tcg}-${slugifySetId(setId)}`

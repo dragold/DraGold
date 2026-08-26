@@ -74,6 +74,15 @@ export function SetDetailPage({ setRef, setsMap, country, cur, eurRate, onOpen, 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [visibleCount, setVisibleCount] = useState(60);
+  // Explorer/Set-Experience completeness (2026-08-25): some logo URLs "load"
+  // (onError never fires) but resolve to a 0x0 image — same hotlink-protection
+  // case already handled in Explore's SetTile (see SetsView.jsx comment,
+  // verified for One Piece official logos). Set Detail used to just hide the
+  // broken <img>, leaving blank space instead of the same elegant branded
+  // fallback Explore already shows for this exact case — inconsistent visual
+  // fallback between the two surfaces for the same set. Mirrors SetTile's
+  // imgOk/naturalWidth check so both surfaces resolve to the same outcome.
+  const [logoOk, setLogoOk] = useState(true);
   // Completion — which of this set's cards the signed-in user already owns.
   // RLS on `collection` scopes rows to auth.uid() automatically (same
   // pattern as supabase.js's listCollection()), so no user id needs to be
@@ -89,6 +98,17 @@ export function SetDetailPage({ setRef, setsMap, country, cur, eurRate, onOpen, 
 
   const info = setsMap?.get(`${setRef.tcg}:${setRef.set_id}`) || null;
   const setName = setRef.set_name || info?.set_name || fallbackName || setRef.set_id;
+  // Explorer + Catalog Completeness (2026-08-25): setsMap is keyed by
+  // set_logos.set_code, which for a lazily-computed set (mtg/ygo, or a
+  // Japanese set reusing its International counterpart's logo — see
+  // lib/tcgSets.js computeLangSets) never matches setRef.set_id exactly, so
+  // `info` above is null even though Explore already resolved a real logo
+  // for this tile. setRef.logo_url carries that resolved logo through
+  // instead of silently dropping it here.
+  const logoUrl = setRef.logo_url || info?.logo_url || null;
+  const tcgMeta = TCG_LIST.find(t => t.id === setRef.tcg);
+  useEffect(() => { setLogoOk(true); }, [logoUrl]);
+  const showLogo = !!logoUrl && logoOk;
   const gridReveal = useReveal();
   const constellationReveal = useReveal();
   const previewDrag = useDragScroll();
@@ -176,9 +196,14 @@ export function SetDetailPage({ setRef, setsMap, country, cur, eurRate, onOpen, 
           {cards[0]?.series_name && ` · ${cards[0].series_name} series`}
         </span>
         <div className="set-detail-row">
-          {info?.logo_url && (
-            <img src={info.logo_url} alt={setName} className="set-logo-img"
-              onError={e => { e.currentTarget.style.display = "none"; }} />
+          {showLogo ? (
+            <img src={logoUrl} alt={setName} className="set-logo-img"
+              onError={() => setLogoOk(false)}
+              onLoad={e => { if (e.currentTarget.naturalWidth === 0) setLogoOk(false); }} />
+          ) : (
+            <div className="set-detail-logo-fallback" style={{ color: tcgMeta?.color, borderColor: `${tcgMeta?.color}33` }}>
+              <span className="set-detail-logo-fallback-code">{setRef.set_id}</span>
+            </div>
           )}
           <div className="view-h" style={{ margin: 0 }}>
             <h2 className="view-t">{setName}</h2>
@@ -202,7 +227,11 @@ export function SetDetailPage({ setRef, setsMap, country, cur, eurRate, onOpen, 
             {cards.slice(0, 18).map(c => {
               const img = pickCardImage(c) || c.imgUrl || c.img;
               const owned = ownedIds?.has(c.id);
-              return img ? <div className={`set-preview-card${owned ? " owned" : ""}`} key={c.id}><img src={img} alt="" loading="lazy" /></div> : null;
+              // E2E fix (broken image icon in this rail): a stored image_url that
+              // fails to load falls back to the same "no image" outcome as an
+              // absent image_url — the whole tile is skipped, never the browser's
+              // native broken-image glyph.
+              return img ? <div className={`set-preview-card${owned ? " owned" : ""}`} key={c.id}><img src={img} alt="" loading="lazy" onError={e => { e.currentTarget.parentElement.style.display = "none"; }} /></div> : null;
             })}
           </div>
         )}
@@ -259,7 +288,12 @@ export function SetDetailPage({ setRef, setsMap, country, cur, eurRate, onOpen, 
                 const owned = ownedIds?.has(c.id);
                 return (
                   <button type="button" key={c.id} className={`constellation-satellite${owned ? " owned" : ""}`} onClick={() => onOpen?.(c)} title={c.name}>
-                    {img ? <img src={img} alt="" loading="lazy" /> : <span className="constellation-node-ph" />}
+                    {img
+                      ? <>
+                          <img src={img} alt="" loading="lazy" onError={e => { e.currentTarget.style.display = "none"; e.currentTarget.nextSibling.style.display = "block"; }} />
+                          <span className="constellation-node-ph" style={{ display: "none" }} />
+                        </>
+                      : <span className="constellation-node-ph" />}
                   </button>
                 );
               })}

@@ -17,6 +17,17 @@
  */
 
 import { createClient } from '@supabase/supabase-js'
+import { ONEPIECE_MANAGED_FIELDS, mergeOnePieceRow } from './lib/onepiece-sync.js'
+import { processSupabaseReadResult } from './lib/pokemon-sync.js'
+
+async function fetchExistingOnePieceRows(supabaseClient, setId, lang) {
+  const columns = ['id', ...ONEPIECE_MANAGED_FIELDS, 'updated_at', 'canonical_card_id'].join(',')
+  const { data, error } = await supabaseClient
+    .from('cards')
+    .select(columns)
+    .eq('tcg', 'onepiece').eq('set_id', setId).eq('lang', lang)
+  return processSupabaseReadResult(data, error, { setId, lang })
+}
 
 // âââ Config DB âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL
@@ -28,6 +39,10 @@ if (!SUPABASE_URL || !SUPABASE_KEY) {
 }
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY)
+
+// Report strutturato (requisito task): un contatore per funzione, stampato
+// come JSON a fine run -- nessuna UI richiesta, solo log leggibile da CI.
+const SYNC_STATS = {}
 
 // âââ Costanti âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 const BATCH_SIZE  = 100    // righe per upsert batch
@@ -148,6 +163,7 @@ async function syncPokemonEN() {
   }
 
   log(`\n  â Pokemon EN: ${inserted} carte (${emptyCount} set vuoti/saltati)`)
+  SYNC_STATS.pokemonEN = { cardsUpserted: inserted, emptySets: emptyCount }
 }
 
 // âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
@@ -212,6 +228,7 @@ async function syncPokemonJA() {
   }
 
   log(`\n  â Pokemon JA: ${inserted} carte (${emptyCount} set vuoti/saltati)`)
+  SYNC_STATS.pokemonJA = { cardsUpserted: inserted, emptySets: emptyCount }
 }
 
 // âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
@@ -243,31 +260,39 @@ async function syncOnePieceEN() {
     const raw = await safeFetch(`${OPTCG}/sets/${setId}/?format=json`)
     if (!Array.isArray(raw) || !raw.length) continue  // 404 o set non esistente
 
-    // Dedup: un record per card_set_id, versione BASE (escludi parallel _p1, _p2...)
-    const byCard = new Map()
-    for (const c of raw) {
-      if (!c.card_set_id) continue
-      // Skip parallel: card_image_id termina con _p1, _p2, ecc.
-      if (c.card_image_id && /_p\d+$/.test(c.card_image_id)) continue
-      if (!byCard.has(c.card_set_id)) byCard.set(c.card_set_id, c)
-    }
+    // FIX (audit + verifica in questo task): non deduplichiamo piu' per
+  // card_set_id scartando le varianti Parallel (bug noto e documentato:
+  // le Parallel sono stampe reali distinte, non duplicati). Ogni riga
+  // dell'API (base + ogni _p1, _p2...) diventa una riga propria; le
+  // Parallel sono taggate nel campo esistente print_variant (nessuna
+  // colonna nuova) e ricevono un id distinto includendo card_image_id.
+  // FIX set_id: prima veniva usato c.set_id (campo per-carta dell'API,
+  // non verificato) invece del setId gia' noto e corretto del ciclo, che
+  // e' esattamente il set appena richiesto a optcgapi. Stesso pattern gia'
+  // corretto in syncOnePieceJA (sotto), qui allineato per coerenza.
+    const rows = raw
+      .filter(c => c.card_set_id)
+      .map(c => {
+        const isParallel = !!(c.card_image_id && /_p\d+$/.test(c.card_image_id))
+        const cardId = isParallel ? `${c.card_set_id}:${c.card_image_id}` : c.card_set_id
+        return {
+          id:           `onepiece:optcg:${cardId}:en`,
+          source:       'optcg',
+          source_id:    cardId,
+          name:         c.card_name,
+          set_id:       setId.replace('-', '').toLowerCase(),
+          set_name:     c.set_name,
+          card_number:  c.card_set_id,
+          rarity:       c.rarity || null,
+          print_variant: isParallel ? 'parallel' : null,
+          image_url:    c.card_image || null,
+          image_url_hi: c.card_image || null,
+          lang:         'en',
+          tcg:          'onepiece',
+        }
+      })
 
-    if (!byCard.size) continue
-
-    const rows = [...byCard.values()].map(c => ({
-      id:           `onepiece:optcg:${c.card_set_id}:en`,
-      source:       'optcg',
-      source_id:    c.card_set_id,
-      name:         c.card_name,
-      set_id:       (c.set_id || '').replace('-', '').toLowerCase() || null,
-      set_name:     c.set_name,
-      card_number:  c.card_set_id,   // es. "OP01-001"
-      rarity:       c.rarity || null,
-      image_url:    c.card_image || null,
-      image_url_hi: c.card_image || null,
-      lang:         'en',
-      tcg:          'onepiece',
-    }))
+    if (!rows.length) continue
 
     for (let i = 0; i < rows.length; i += BATCH_SIZE) {
       await upsertBatch(rows.slice(i, i + BATCH_SIZE))
@@ -278,6 +303,7 @@ async function syncOnePieceEN() {
   }
 
   log(`  â One Piece EN: ${inserted} carte da ${setsFound} set`)
+  SYNC_STATS.onePieceEN = { cardsUpserted: inserted, setsFound }
 }
 
 // âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
@@ -315,30 +341,30 @@ async function syncOnePieceJA() {
     const raw = await safeFetch(`${OPTCG}/sets/${setId}/?format=json`)
     if (!Array.isArray(raw) || !raw.length) continue
 
-    // Dedup: un record per card_set_id, escludi parallel
-    const byCard = new Map()
-    for (const c of raw) {
-      if (!c.card_set_id) continue
-      if (c.card_image_id && /_p\d+$/.test(c.card_image_id)) continue
-      if (!byCard.has(c.card_set_id)) byCard.set(c.card_set_id, c)
-    }
-
-    if (!byCard.size) continue
+    // FIX (stesso motivo della versione EN sopra): niente piu' dedup che
+  // scarta le Parallel -- ogni riga (base + _p1, _p2...) e' processata,
+  // taggata via print_variant, id distinto. set_id gia' derivava
+  // correttamente da setId (non da c.set_id) -- invariato qui.
+    if (!raw.some(c => c.card_set_id)) continue
 
     const setCode = setId.replace('-', '').toLowerCase()   // "OP-01" â "op01"
 
-    const rows = [...byCard.values()].map(c => {
-      const cardId = c.card_set_id   // es. "OP01-001"
-      return {
-        id:           `onepiece:optcg:${cardId}:ja`,
-        source:       'optcg',
-        source_id:    cardId,
-        name:         c.card_name,   // nome EN â non sovrascrive se carta giÃ  presente
-        set_id:       setCode,
-        set_name:     setId,
-        card_number:  cardId,
-        rarity:       c.rarity || null,
-        image_url:    `${IMG_BASE}/${cardId}.png`,
+    const rows = raw
+      .filter(c => c.card_set_id)
+      .map(c => {
+        const isParallel = !!(c.card_image_id && /_p\d+$/.test(c.card_image_id))
+        const cardId = isParallel ? `${c.card_set_id}:${c.card_image_id}` : c.card_set_id
+        return {
+          id:           `onepiece:optcg:${cardId}:ja`,
+          source:       'optcg',
+          source_id:    cardId,
+          name:         c.card_name,   // nome EN â non sovrascrive se carta giÃ  presente
+          set_id:       setCode,
+          set_name:     setId,
+          card_number:  c.card_set_id,
+          rarity:       c.rarity || null,
+          print_variant: isParallel ? 'parallel' : null,
+          image_url:    `${IMG_BASE}/${cardId}.png`,
         image_url_hi: `${IMG_BASE}/${cardId}.png`,
         lang:         'ja',
         tcg:          'onepiece',
@@ -361,6 +387,7 @@ async function syncOnePieceJA() {
   }
 
   log(`  â One Piece JA: ${inserted} carte processate da ${setsFound} set`)
+  SYNC_STATS.onePieceJA = { cardsProcessed: inserted, setsFound }
   log(`    (carte con nomi JA giÃ  presenti nel DB sono state preservate)`)
 }
 
@@ -396,3 +423,4 @@ try {
 
 const elapsed = ((Date.now() - t0) / 1000).toFixed(1)
 log(`\nâ Sync completato in ${elapsed}s`)
+console.log('SYNC_REPORT_JSON=' + JSON.stringify({ kind: 'sync-full-report', tcg: TCG_FILTER, lang: LANG_FILTER, set: argSet || null, dryRun: DRY_RUN, elapsedSec: Number(elapsed), stats: SYNC_STATS }))

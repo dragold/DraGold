@@ -1,0 +1,1288 @@
+{
+  "mode": "RECOVERY_DRY_RUN_READ_ONLY",
+  "generated_at": "2026-08-17T20:15:56.701Z",
+  "scope": {
+    "tcg": "pokemon",
+    "lang": "ja",
+    "set_id": "web1",
+    "set_name": "ポケモンカード★web"
+  },
+  "summary": {
+    "missing_cards": 0,
+    "image_recovery": {
+      "UNRESOLVED": 47
+    }
+  },
+  "missing_card_candidates": [],
+  "image_recovery_candidates": [
+    {
+      "kind": "IMAGE_RECOVERY_CANDIDATE",
+      "card_id": "pokemon:tcgdex:web1-001:ja",
+      "tcg": "pokemon",
+      "lang": "ja",
+      "set_id": "web1",
+      "card_number": "001",
+      "name": "アイビサウルス",
+      "broken_image_url": null,
+      "broken_image_url_hi": null,
+      "status": "UNRESOLVED",
+      "candidate_url": null,
+      "candidate_source": null,
+      "confidence": "UNVERIFIED",
+      "confidence_note": "nessuna fonte ha restituito un candidato verificabile via HTTP",
+      "provenance": {
+        "mechanism": "RESOLVE_FALLBACK_CASCADE",
+        "attempts": [
+          "tryTcgdexRetry",
+          "tryScrydex",
+          "tryPokemonTcgIo",
+          "tryPokemonPriceTracker"
+        ],
+        "note": "Nessuna fonte della cascata esistente (TCGdex retry, Scrydex, pokemontcg.io, PokemonPriceTracker) ha prodotto un candidato verificabile via HTTP."
+      },
+      "verification": null
+    },
+    {
+      "kind": "IMAGE_RECOVERY_CANDIDATE",
+      "card_id": "pokemon:tcgdex:web1-002:ja",
+      "tcg": "pokemon",
+      "lang": "ja",
+      "set_id": "web1",
+      "card_number": "002",
+      "name": "ニドラン",
+      "broken_image_url": null,
+      "broken_image_url_hi": null,
+      "status": "UNRESOLVED",
+      "candidate_url": null,
+      "candidate_source": null,
+      "confidence": "UNVERIFIED",
+      "confidence_note": "nessuna fonte ha restituito un candidato verificabile via HTTP",
+      "provenance": {
+        "mechanism": "RESOLVE_FALLBACK_CASCADE",
+        "attempts": [
+          "tryTcgdexRetry",
+          "tryScrydex",
+          "tryPokemonTcgIo",
+          "tryPokemonPriceTracker"
+        ],
+        "note": "Nessuna fonte della cascata esistente (TCGdex retry, Scrydex, pokemontcg.io, PokemonPriceTracker) ha prodotto un candidato verificabile via HTTP."
+      },
+      "verification": null
+    },
+    {
+      "kind": "IMAGE_RECOVERY_CANDIDATE",
+      "card_id": "pokemon:tcgdex:web1-003:ja",
+      "tcg": "pokemon",
+      "lang": "ja",
+      "set_id": "web1",
+      "card_number": "003",
+      "name": "ヴェノナト",
+      "broken_image_url": null,
+      "broken_image_url_hi": null,
+      "status": "UNRESOLVED",
+      "candidate_url": null,
+      "candidate_source": null,
+      "confidence": "UNVERIFIED",
+      "confidence_note": "nessuna fonte ha restituito un candidato verificabile via HTTP",
+      "provenance": {
+        "mechanism": "RESOLVE_FALLBACK_CASCADE",
+        "attempts": [
+          "tryTcgdexRetry",
+          "tryScrydex",
+          "tryPokemonTcgIo",
+          "tryPokemonPriceTracker"
+        ],
+        "note": "Nessuna fonte della cascata esistente (TCGdex retry, Scrydex, pokemontcg.io, PokemonPriceTracker) ha prodotto un candidato verificabile via HTTP."
+      },
+      "verification": null
+    },
+    {
+      "kind": "IMAGE_RECOVERY_CANDIDATE",
+      "card_id": "pokemon:tcgdex:web1-004:ja",
+      "tcg": "pokemon",
+      "lang": "ja",
+      "set_id": "web1",
+      "card_number": "004",
+      "name": "exeggcute",
+      "broken_image_url": null,
+      "broken_image_url_hi": null,
+      "status": "UNRESOLVED",
+      "candidate_url": null,
+      "candidate_source": null,
+      "confidence": "UNVERIFIED",
+      "confidence_note": "nessuna fonte ha restituito un candidato verificabile via HTTP",
+      "provenance": {
+        "mechanism": "RESOLVE_FALLBACK_CASCADE",
+        "attempts": [
+          "tryTcgdexRetry",
+          "tryScrydex",
+          "tryPokemonTcgIo",
+          "tryPokemonPriceTracker"
+        ],
+        "note": "Nessuna fonte della cascata esistente (TCGdex retry, Scrydex, pokemontcg.io, PokemonPriceTracker) ha prodotto un candidato verificabile via HTTP."
+      },
+      "verification": null
+    },
+    {
+      "kind": "IMAGE_RECOVERY_CANDIDATE",
+      "card_id": "pokemon:tcgdex:web1-005:ja",
+      "tcg": "pokemon",
+      "lang": "ja",
+      "set_id": "web1",
+      "card_number": "005",
+      "name": "タンゲラ",
+      "broken_image_url": null,
+      "broken_image_url_hi": null,
+      "status": "UNRESOLVED",
+      "candidate_url": null,
+      "candidate_source": null,
+      "confidence": "UNVERIFIED",
+      "confidence_note": "nessuna fonte ha restituito un candidato verificabile via HTTP",
+      "provenance": {
+        "mechanism": "RESOLVE_FALLBACK_CASCADE",
+        "attempts": [
+          "tryTcgdexRetry",
+          "tryScrydex",
+          "tryPokemonTcgIo",
+          "tryPokemonPriceTracker"
+        ],
+        "note": "Nessuna fonte della cascata esistente (TCGdex retry, Scrydex, pokemontcg.io, PokemonPriceTracker) ha prodotto un candidato verificabile via HTTP."
+      },
+      "verification": null
+    },
+    {
+      "kind": "IMAGE_RECOVERY_CANDIDATE",
+      "card_id": "pokemon:tcgdex:web1-006:ja",
+      "tcg": "pokemon",
+      "lang": "ja",
+      "set_id": "web1",
+      "card_number": "006",
+      "name": "うなり声",
+      "broken_image_url": null,
+      "broken_image_url_hi": null,
+      "status": "UNRESOLVED",
+      "candidate_url": null,
+      "candidate_source": null,
+      "confidence": "UNVERIFIED",
+      "confidence_note": "nessuna fonte ha restituito un candidato verificabile via HTTP",
+      "provenance": {
+        "mechanism": "RESOLVE_FALLBACK_CASCADE",
+        "attempts": [
+          "tryTcgdexRetry",
+          "tryScrydex",
+          "tryPokemonTcgIo",
+          "tryPokemonPriceTracker"
+        ],
+        "note": "Nessuna fonte della cascata esistente (TCGdex retry, Scrydex, pokemontcg.io, PokemonPriceTracker) ha prodotto un candidato verificabile via HTTP."
+      },
+      "verification": null
+    },
+    {
+      "kind": "IMAGE_RECOVERY_CANDIDATE",
+      "card_id": "pokemon:tcgdex:web1-007:ja",
+      "tcg": "pokemon",
+      "lang": "ja",
+      "set_id": "web1",
+      "card_number": "007",
+      "name": "チャームレオン",
+      "broken_image_url": null,
+      "broken_image_url_hi": null,
+      "status": "UNRESOLVED",
+      "candidate_url": null,
+      "candidate_source": null,
+      "confidence": "UNVERIFIED",
+      "confidence_note": "nessuna fonte ha restituito un candidato verificabile via HTTP",
+      "provenance": {
+        "mechanism": "RESOLVE_FALLBACK_CASCADE",
+        "attempts": [
+          "tryTcgdexRetry",
+          "tryScrydex",
+          "tryPokemonTcgIo",
+          "tryPokemonPriceTracker"
+        ],
+        "note": "Nessuna fonte della cascata esistente (TCGdex retry, Scrydex, pokemontcg.io, PokemonPriceTracker) ha prodotto un candidato verificabile via HTTP."
+      },
+      "verification": null
+    },
+    {
+      "kind": "IMAGE_RECOVERY_CANDIDATE",
+      "card_id": "pokemon:tcgdex:web1-008:ja",
+      "tcg": "pokemon",
+      "lang": "ja",
+      "set_id": "web1",
+      "card_number": "008",
+      "name": "Vulpix",
+      "broken_image_url": null,
+      "broken_image_url_hi": null,
+      "status": "UNRESOLVED",
+      "candidate_url": null,
+      "candidate_source": null,
+      "confidence": "UNVERIFIED",
+      "confidence_note": "nessuna fonte ha restituito un candidato verificabile via HTTP",
+      "provenance": {
+        "mechanism": "RESOLVE_FALLBACK_CASCADE",
+        "attempts": [
+          "tryTcgdexRetry",
+          "tryScrydex",
+          "tryPokemonTcgIo",
+          "tryPokemonPriceTracker"
+        ],
+        "note": "Nessuna fonte della cascata esistente (TCGdex retry, Scrydex, pokemontcg.io, PokemonPriceTracker) ha prodotto un candidato verificabile via HTTP."
+      },
+      "verification": null
+    },
+    {
+      "kind": "IMAGE_RECOVERY_CANDIDATE",
+      "card_id": "pokemon:tcgdex:web1-009:ja",
+      "tcg": "pokemon",
+      "lang": "ja",
+      "set_id": "web1",
+      "card_number": "009",
+      "name": "wartortle",
+      "broken_image_url": null,
+      "broken_image_url_hi": null,
+      "status": "UNRESOLVED",
+      "candidate_url": null,
+      "candidate_source": null,
+      "confidence": "UNVERIFIED",
+      "confidence_note": "nessuna fonte ha restituito un candidato verificabile via HTTP",
+      "provenance": {
+        "mechanism": "RESOLVE_FALLBACK_CASCADE",
+        "attempts": [
+          "tryTcgdexRetry",
+          "tryScrydex",
+          "tryPokemonTcgIo",
+          "tryPokemonPriceTracker"
+        ],
+        "note": "Nessuna fonte della cascata esistente (TCGdex retry, Scrydex, pokemontcg.io, PokemonPriceTracker) ha prodotto un candidato verificabile via HTTP."
+      },
+      "verification": null
+    },
+    {
+      "kind": "IMAGE_RECOVERY_CANDIDATE",
+      "card_id": "pokemon:tcgdex:web1-010:ja",
+      "tcg": "pokemon",
+      "lang": "ja",
+      "set_id": "web1",
+      "card_number": "010",
+      "name": "マリル",
+      "broken_image_url": null,
+      "broken_image_url_hi": null,
+      "status": "UNRESOLVED",
+      "candidate_url": null,
+      "candidate_source": null,
+      "confidence": "UNVERIFIED",
+      "confidence_note": "nessuna fonte ha restituito un candidato verificabile via HTTP",
+      "provenance": {
+        "mechanism": "RESOLVE_FALLBACK_CASCADE",
+        "attempts": [
+          "tryTcgdexRetry",
+          "tryScrydex",
+          "tryPokemonTcgIo",
+          "tryPokemonPriceTracker"
+        ],
+        "note": "Nessuna fonte della cascata esistente (TCGdex retry, Scrydex, pokemontcg.io, PokemonPriceTracker) ha prodotto un candidato verificabile via HTTP."
+      },
+      "verification": null
+    },
+    {
+      "kind": "IMAGE_RECOVERY_CANDIDATE",
+      "card_id": "pokemon:tcgdex:web1-011:ja",
+      "tcg": "pokemon",
+      "lang": "ja",
+      "set_id": "web1",
+      "card_number": "011",
+      "name": "Voltorb",
+      "broken_image_url": null,
+      "broken_image_url_hi": null,
+      "status": "UNRESOLVED",
+      "candidate_url": null,
+      "candidate_source": null,
+      "confidence": "UNVERIFIED",
+      "confidence_note": "nessuna fonte ha restituito un candidato verificabile via HTTP",
+      "provenance": {
+        "mechanism": "RESOLVE_FALLBACK_CASCADE",
+        "attempts": [
+          "tryTcgdexRetry",
+          "tryScrydex",
+          "tryPokemonTcgIo",
+          "tryPokemonPriceTracker"
+        ],
+        "note": "Nessuna fonte della cascata esistente (TCGdex retry, Scrydex, pokemontcg.io, PokemonPriceTracker) ha prodotto un candidato verificabile via HTTP."
+      },
+      "verification": null
+    },
+    {
+      "kind": "IMAGE_RECOVERY_CANDIDATE",
+      "card_id": "pokemon:tcgdex:web1-012:ja",
+      "tcg": "pokemon",
+      "lang": "ja",
+      "set_id": "web1",
+      "card_number": "012",
+      "name": "slowpoke",
+      "broken_image_url": null,
+      "broken_image_url_hi": null,
+      "status": "UNRESOLVED",
+      "candidate_url": null,
+      "candidate_source": null,
+      "confidence": "UNVERIFIED",
+      "confidence_note": "nessuna fonte ha restituito un candidato verificabile via HTTP",
+      "provenance": {
+        "mechanism": "RESOLVE_FALLBACK_CASCADE",
+        "attempts": [
+          "tryTcgdexRetry",
+          "tryScrydex",
+          "tryPokemonTcgIo",
+          "tryPokemonPriceTracker"
+        ],
+        "note": "Nessuna fonte della cascata esistente (TCGdex retry, Scrydex, pokemontcg.io, PokemonPriceTracker) ha prodotto un candidato verificabile via HTTP."
+      },
+      "verification": null
+    },
+    {
+      "kind": "IMAGE_RECOVERY_CANDIDATE",
+      "card_id": "pokemon:tcgdex:web1-013:ja",
+      "tcg": "pokemon",
+      "lang": "ja",
+      "set_id": "web1",
+      "card_number": "013",
+      "name": "ディグレット",
+      "broken_image_url": null,
+      "broken_image_url_hi": null,
+      "status": "UNRESOLVED",
+      "candidate_url": null,
+      "candidate_source": null,
+      "confidence": "UNVERIFIED",
+      "confidence_note": "nessuna fonte ha restituito un candidato verificabile via HTTP",
+      "provenance": {
+        "mechanism": "RESOLVE_FALLBACK_CASCADE",
+        "attempts": [
+          "tryTcgdexRetry",
+          "tryScrydex",
+          "tryPokemonTcgIo",
+          "tryPokemonPriceTracker"
+        ],
+        "note": "Nessuna fonte della cascata esistente (TCGdex retry, Scrydex, pokemontcg.io, PokemonPriceTracker) ha prodotto un candidato verificabile via HTTP."
+      },
+      "verification": null
+    },
+    {
+      "kind": "IMAGE_RECOVERY_CANDIDATE",
+      "card_id": "pokemon:tcgdex:web1-014:ja",
+      "tcg": "pokemon",
+      "lang": "ja",
+      "set_id": "web1",
+      "card_number": "014",
+      "name": "Hitmonlee",
+      "broken_image_url": null,
+      "broken_image_url_hi": null,
+      "status": "UNRESOLVED",
+      "candidate_url": null,
+      "candidate_source": null,
+      "confidence": "UNVERIFIED",
+      "confidence_note": "nessuna fonte ha restituito un candidato verificabile via HTTP",
+      "provenance": {
+        "mechanism": "RESOLVE_FALLBACK_CASCADE",
+        "attempts": [
+          "tryTcgdexRetry",
+          "tryScrydex",
+          "tryPokemonTcgIo",
+          "tryPokemonPriceTracker"
+        ],
+        "note": "Nessuna fonte della cascata esistente (TCGdex retry, Scrydex, pokemontcg.io, PokemonPriceTracker) ha prodotto un candidato verificabile via HTTP."
+      },
+      "verification": null
+    },
+    {
+      "kind": "IMAGE_RECOVERY_CANDIDATE",
+      "card_id": "pokemon:tcgdex:web1-015:ja",
+      "tcg": "pokemon",
+      "lang": "ja",
+      "set_id": "web1",
+      "card_number": "015",
+      "name": "ビルのテレポーター",
+      "broken_image_url": null,
+      "broken_image_url_hi": null,
+      "status": "UNRESOLVED",
+      "candidate_url": null,
+      "candidate_source": null,
+      "confidence": "UNVERIFIED",
+      "confidence_note": "nessuna fonte ha restituito un candidato verificabile via HTTP",
+      "provenance": {
+        "mechanism": "RESOLVE_FALLBACK_CASCADE",
+        "attempts": [
+          "tryTcgdexRetry",
+          "tryScrydex",
+          "tryPokemonTcgIo",
+          "tryPokemonPriceTracker"
+        ],
+        "note": "Nessuna fonte della cascata esistente (TCGdex retry, Scrydex, pokemontcg.io, PokemonPriceTracker) ha prodotto un candidato verificabile via HTTP."
+      },
+      "verification": null
+    },
+    {
+      "kind": "IMAGE_RECOVERY_CANDIDATE",
+      "card_id": "pokemon:tcgdex:web1-016:ja",
+      "tcg": "pokemon",
+      "lang": "ja",
+      "set_id": "web1",
+      "card_number": "016",
+      "name": "新しいpokedex",
+      "broken_image_url": null,
+      "broken_image_url_hi": null,
+      "status": "UNRESOLVED",
+      "candidate_url": null,
+      "candidate_source": null,
+      "confidence": "UNVERIFIED",
+      "confidence_note": "nessuna fonte ha restituito un candidato verificabile via HTTP",
+      "provenance": {
+        "mechanism": "RESOLVE_FALLBACK_CASCADE",
+        "attempts": [
+          "tryTcgdexRetry",
+          "tryScrydex",
+          "tryPokemonTcgIo",
+          "tryPokemonPriceTracker"
+        ],
+        "note": "Nessuna fonte della cascata esistente (TCGdex retry, Scrydex, pokemontcg.io, PokemonPriceTracker) ha prodotto un candidato verificabile via HTTP."
+      },
+      "verification": null
+    },
+    {
+      "kind": "IMAGE_RECOVERY_CANDIDATE",
+      "card_id": "pokemon:tcgdex:web1-017:ja",
+      "tcg": "pokemon",
+      "lang": "ja",
+      "set_id": "web1",
+      "card_number": "017",
+      "name": "暗いアイビサウルス",
+      "broken_image_url": null,
+      "broken_image_url_hi": null,
+      "status": "UNRESOLVED",
+      "candidate_url": null,
+      "candidate_source": null,
+      "confidence": "UNVERIFIED",
+      "confidence_note": "nessuna fonte ha restituito un candidato verificabile via HTTP",
+      "provenance": {
+        "mechanism": "RESOLVE_FALLBACK_CASCADE",
+        "attempts": [
+          "tryTcgdexRetry",
+          "tryScrydex",
+          "tryPokemonTcgIo",
+          "tryPokemonPriceTracker"
+        ],
+        "note": "Nessuna fonte della cascata esistente (TCGdex retry, Scrydex, pokemontcg.io, PokemonPriceTracker) ha prodotto un candidato verificabile via HTTP."
+      },
+      "verification": null
+    },
+    {
+      "kind": "IMAGE_RECOVERY_CANDIDATE",
+      "card_id": "pokemon:tcgdex:web1-018:ja",
+      "tcg": "pokemon",
+      "lang": "ja",
+      "set_id": "web1",
+      "card_number": "018",
+      "name": "ニドリーノ",
+      "broken_image_url": null,
+      "broken_image_url_hi": null,
+      "status": "UNRESOLVED",
+      "candidate_url": null,
+      "candidate_source": null,
+      "confidence": "UNVERIFIED",
+      "confidence_note": "nessuna fonte ha restituito un candidato verificabile via HTTP",
+      "provenance": {
+        "mechanism": "RESOLVE_FALLBACK_CASCADE",
+        "attempts": [
+          "tryTcgdexRetry",
+          "tryScrydex",
+          "tryPokemonTcgIo",
+          "tryPokemonPriceTracker"
+        ],
+        "note": "Nessuna fonte della cascata esistente (TCGdex retry, Scrydex, pokemontcg.io, PokemonPriceTracker) ha prodotto un candidato verificabile via HTTP."
+      },
+      "verification": null
+    },
+    {
+      "kind": "IMAGE_RECOVERY_CANDIDATE",
+      "card_id": "pokemon:tcgdex:web1-019:ja",
+      "tcg": "pokemon",
+      "lang": "ja",
+      "set_id": "web1",
+      "card_number": "019",
+      "name": "venomoth",
+      "broken_image_url": null,
+      "broken_image_url_hi": null,
+      "status": "UNRESOLVED",
+      "candidate_url": null,
+      "candidate_source": null,
+      "confidence": "UNVERIFIED",
+      "confidence_note": "nessuna fonte ha restituito un candidato verificabile via HTTP",
+      "provenance": {
+        "mechanism": "RESOLVE_FALLBACK_CASCADE",
+        "attempts": [
+          "tryTcgdexRetry",
+          "tryScrydex",
+          "tryPokemonTcgIo",
+          "tryPokemonPriceTracker"
+        ],
+        "note": "Nessuna fonte della cascata esistente (TCGdex retry, Scrydex, pokemontcg.io, PokemonPriceTracker) ha prodotto un candidato verificabile via HTTP."
+      },
+      "verification": null
+    },
+    {
+      "kind": "IMAGE_RECOVERY_CANDIDATE",
+      "card_id": "pokemon:tcgdex:web1-020:ja",
+      "tcg": "pokemon",
+      "lang": "ja",
+      "set_id": "web1",
+      "card_number": "020",
+      "name": "exeggutor",
+      "broken_image_url": null,
+      "broken_image_url_hi": null,
+      "status": "UNRESOLVED",
+      "candidate_url": null,
+      "candidate_source": null,
+      "confidence": "UNVERIFIED",
+      "confidence_note": "nessuna fonte ha restituito un candidato verificabile via HTTP",
+      "provenance": {
+        "mechanism": "RESOLVE_FALLBACK_CASCADE",
+        "attempts": [
+          "tryTcgdexRetry",
+          "tryScrydex",
+          "tryPokemonTcgIo",
+          "tryPokemonPriceTracker"
+        ],
+        "note": "Nessuna fonte della cascata esistente (TCGdex retry, Scrydex, pokemontcg.io, PokemonPriceTracker) ha prodotto un candidato verificabile via HTTP."
+      },
+      "verification": null
+    },
+    {
+      "kind": "IMAGE_RECOVERY_CANDIDATE",
+      "card_id": "pokemon:tcgdex:web1-021:ja",
+      "tcg": "pokemon",
+      "lang": "ja",
+      "set_id": "web1",
+      "card_number": "021",
+      "name": "暗いweezing",
+      "broken_image_url": null,
+      "broken_image_url_hi": null,
+      "status": "UNRESOLVED",
+      "candidate_url": null,
+      "candidate_source": null,
+      "confidence": "UNVERIFIED",
+      "confidence_note": "nessuna fonte ha restituito un candidato verificabile via HTTP",
+      "provenance": {
+        "mechanism": "RESOLVE_FALLBACK_CASCADE",
+        "attempts": [
+          "tryTcgdexRetry",
+          "tryScrydex",
+          "tryPokemonTcgIo",
+          "tryPokemonPriceTracker"
+        ],
+        "note": "Nessuna fonte della cascata esistente (TCGdex retry, Scrydex, pokemontcg.io, PokemonPriceTracker) ha prodotto un candidato verificabile via HTTP."
+      },
+      "verification": null
+    },
+    {
+      "kind": "IMAGE_RECOVERY_CANDIDATE",
+      "card_id": "pokemon:tcgdex:web1-022:ja",
+      "tcg": "pokemon",
+      "lang": "ja",
+      "set_id": "web1",
+      "card_number": "022",
+      "name": "ダークチャームレオン",
+      "broken_image_url": null,
+      "broken_image_url_hi": null,
+      "status": "UNRESOLVED",
+      "candidate_url": null,
+      "candidate_source": null,
+      "confidence": "UNVERIFIED",
+      "confidence_note": "nessuna fonte ha restituito un candidato verificabile via HTTP",
+      "provenance": {
+        "mechanism": "RESOLVE_FALLBACK_CASCADE",
+        "attempts": [
+          "tryTcgdexRetry",
+          "tryScrydex",
+          "tryPokemonTcgIo",
+          "tryPokemonPriceTracker"
+        ],
+        "note": "Nessuna fonte della cascata esistente (TCGdex retry, Scrydex, pokemontcg.io, PokemonPriceTracker) ha prodotto un candidato verificabile via HTTP."
+      },
+      "verification": null
+    },
+    {
+      "kind": "IMAGE_RECOVERY_CANDIDATE",
+      "card_id": "pokemon:tcgdex:web1-023:ja",
+      "tcg": "pokemon",
+      "lang": "ja",
+      "set_id": "web1",
+      "card_number": "023",
+      "name": "アルカニン",
+      "broken_image_url": null,
+      "broken_image_url_hi": null,
+      "status": "UNRESOLVED",
+      "candidate_url": null,
+      "candidate_source": null,
+      "confidence": "UNVERIFIED",
+      "confidence_note": "nessuna fonte ha restituito un candidato verificabile via HTTP",
+      "provenance": {
+        "mechanism": "RESOLVE_FALLBACK_CASCADE",
+        "attempts": [
+          "tryTcgdexRetry",
+          "tryScrydex",
+          "tryPokemonTcgIo",
+          "tryPokemonPriceTracker"
+        ],
+        "note": "Nessuna fonte della cascata esistente (TCGdex retry, Scrydex, pokemontcg.io, PokemonPriceTracker) ha prodotto un candidato verificabile via HTTP."
+      },
+      "verification": null
+    },
+    {
+      "kind": "IMAGE_RECOVERY_CANDIDATE",
+      "card_id": "pokemon:tcgdex:web1-024:ja",
+      "tcg": "pokemon",
+      "lang": "ja",
+      "set_id": "web1",
+      "card_number": "024",
+      "name": "暗いwartortle",
+      "broken_image_url": null,
+      "broken_image_url_hi": null,
+      "status": "UNRESOLVED",
+      "candidate_url": null,
+      "candidate_source": null,
+      "confidence": "UNVERIFIED",
+      "confidence_note": "nessuna fonte ha restituito un candidato verificabile via HTTP",
+      "provenance": {
+        "mechanism": "RESOLVE_FALLBACK_CASCADE",
+        "attempts": [
+          "tryTcgdexRetry",
+          "tryScrydex",
+          "tryPokemonTcgIo",
+          "tryPokemonPriceTracker"
+        ],
+        "note": "Nessuna fonte della cascata esistente (TCGdex retry, Scrydex, pokemontcg.io, PokemonPriceTracker) ha prodotto un candidato verificabile via HTTP."
+      },
+      "verification": null
+    },
+    {
+      "kind": "IMAGE_RECOVERY_CANDIDATE",
+      "card_id": "pokemon:tcgdex:web1-025:ja",
+      "tcg": "pokemon",
+      "lang": "ja",
+      "set_id": "web1",
+      "card_number": "025",
+      "name": "サーフィンピカチュ",
+      "broken_image_url": null,
+      "broken_image_url_hi": null,
+      "status": "UNRESOLVED",
+      "candidate_url": null,
+      "candidate_source": null,
+      "confidence": "UNVERIFIED",
+      "confidence_note": "nessuna fonte ha restituito un candidato verificabile via HTTP",
+      "provenance": {
+        "mechanism": "RESOLVE_FALLBACK_CASCADE",
+        "attempts": [
+          "tryTcgdexRetry",
+          "tryScrydex",
+          "tryPokemonTcgIo",
+          "tryPokemonPriceTracker"
+        ],
+        "note": "Nessuna fonte della cascata esistente (TCGdex retry, Scrydex, pokemontcg.io, PokemonPriceTracker) ha prodotto un candidato verificabile via HTTP."
+      },
+      "verification": null
+    },
+    {
+      "kind": "IMAGE_RECOVERY_CANDIDATE",
+      "card_id": "pokemon:tcgdex:web1-026:ja",
+      "tcg": "pokemon",
+      "lang": "ja",
+      "set_id": "web1",
+      "card_number": "026",
+      "name": "電極",
+      "broken_image_url": null,
+      "broken_image_url_hi": null,
+      "status": "UNRESOLVED",
+      "candidate_url": null,
+      "candidate_source": null,
+      "confidence": "UNVERIFIED",
+      "confidence_note": "nessuna fonte ha restituito un candidato verificabile via HTTP",
+      "provenance": {
+        "mechanism": "RESOLVE_FALLBACK_CASCADE",
+        "attempts": [
+          "tryTcgdexRetry",
+          "tryScrydex",
+          "tryPokemonTcgIo",
+          "tryPokemonPriceTracker"
+        ],
+        "note": "Nessuna fonte della cascata esistente (TCGdex retry, Scrydex, pokemontcg.io, PokemonPriceTracker) ha prodotto un candidato verificabile via HTTP."
+      },
+      "verification": null
+    },
+    {
+      "kind": "IMAGE_RECOVERY_CANDIDATE",
+      "card_id": "pokemon:tcgdex:web1-027:ja",
+      "tcg": "pokemon",
+      "lang": "ja",
+      "set_id": "web1",
+      "card_number": "027",
+      "name": "暗いカダブラ",
+      "broken_image_url": null,
+      "broken_image_url_hi": null,
+      "status": "UNRESOLVED",
+      "candidate_url": null,
+      "candidate_source": null,
+      "confidence": "UNVERIFIED",
+      "confidence_note": "nessuna fonte ha restituito un candidato verificabile via HTTP",
+      "provenance": {
+        "mechanism": "RESOLVE_FALLBACK_CASCADE",
+        "attempts": [
+          "tryTcgdexRetry",
+          "tryScrydex",
+          "tryPokemonTcgIo",
+          "tryPokemonPriceTracker"
+        ],
+        "note": "Nessuna fonte della cascata esistente (TCGdex retry, Scrydex, pokemontcg.io, PokemonPriceTracker) ha prodotto un candidato verificabile via HTTP."
+      },
+      "verification": null
+    },
+    {
+      "kind": "IMAGE_RECOVERY_CANDIDATE",
+      "card_id": "pokemon:tcgdex:web1-028:ja",
+      "tcg": "pokemon",
+      "lang": "ja",
+      "set_id": "web1",
+      "card_number": "028",
+      "name": "暗いスローブロ",
+      "broken_image_url": null,
+      "broken_image_url_hi": null,
+      "status": "UNRESOLVED",
+      "candidate_url": null,
+      "candidate_source": null,
+      "confidence": "UNVERIFIED",
+      "confidence_note": "nessuna fonte ha restituito un candidato verificabile via HTTP",
+      "provenance": {
+        "mechanism": "RESOLVE_FALLBACK_CASCADE",
+        "attempts": [
+          "tryTcgdexRetry",
+          "tryScrydex",
+          "tryPokemonTcgIo",
+          "tryPokemonPriceTracker"
+        ],
+        "note": "Nessuna fonte della cascata esistente (TCGdex retry, Scrydex, pokemontcg.io, PokemonPriceTracker) ha prodotto un candidato verificabile via HTTP."
+      },
+      "verification": null
+    },
+    {
+      "kind": "IMAGE_RECOVERY_CANDIDATE",
+      "card_id": "pokemon:tcgdex:web1-029:ja",
+      "tcg": "pokemon",
+      "lang": "ja",
+      "set_id": "web1",
+      "card_number": "029",
+      "name": "Dugtrio",
+      "broken_image_url": null,
+      "broken_image_url_hi": null,
+      "status": "UNRESOLVED",
+      "candidate_url": null,
+      "candidate_source": null,
+      "confidence": "UNVERIFIED",
+      "confidence_note": "nessuna fonte ha restituito un candidato verificabile via HTTP",
+      "provenance": {
+        "mechanism": "RESOLVE_FALLBACK_CASCADE",
+        "attempts": [
+          "tryTcgdexRetry",
+          "tryScrydex",
+          "tryPokemonTcgIo",
+          "tryPokemonPriceTracker"
+        ],
+        "note": "Nessuna fonte della cascata esistente (TCGdex retry, Scrydex, pokemontcg.io, PokemonPriceTracker) ha prodotto un candidato verificabile via HTTP."
+      },
+      "verification": null
+    },
+    {
+      "kind": "IMAGE_RECOVERY_CANDIDATE",
+      "card_id": "pokemon:tcgdex:web1-030:ja",
+      "tcg": "pokemon",
+      "lang": "ja",
+      "set_id": "web1",
+      "card_number": "030",
+      "name": "Max Revive",
+      "broken_image_url": null,
+      "broken_image_url_hi": null,
+      "status": "UNRESOLVED",
+      "candidate_url": null,
+      "candidate_source": null,
+      "confidence": "UNVERIFIED",
+      "confidence_note": "nessuna fonte ha restituito un candidato verificabile via HTTP",
+      "provenance": {
+        "mechanism": "RESOLVE_FALLBACK_CASCADE",
+        "attempts": [
+          "tryTcgdexRetry",
+          "tryScrydex",
+          "tryPokemonTcgIo",
+          "tryPokemonPriceTracker"
+        ],
+        "note": "Nessuna fonte della cascata esistente (TCGdex retry, Scrydex, pokemontcg.io, PokemonPriceTracker) ha prodotto un candidato verificabile via HTTP."
+      },
+      "verification": null
+    },
+    {
+      "kind": "IMAGE_RECOVERY_CANDIDATE",
+      "card_id": "pokemon:tcgdex:web1-031:ja",
+      "tcg": "pokemon",
+      "lang": "ja",
+      "set_id": "web1",
+      "card_number": "031",
+      "name": "ハイパーデボルブスプレー",
+      "broken_image_url": null,
+      "broken_image_url_hi": null,
+      "status": "UNRESOLVED",
+      "candidate_url": null,
+      "candidate_source": null,
+      "confidence": "UNVERIFIED",
+      "confidence_note": "nessuna fonte ha restituito un candidato verificabile via HTTP",
+      "provenance": {
+        "mechanism": "RESOLVE_FALLBACK_CASCADE",
+        "attempts": [
+          "tryTcgdexRetry",
+          "tryScrydex",
+          "tryPokemonTcgIo",
+          "tryPokemonPriceTracker"
+        ],
+        "note": "Nessuna fonte della cascata esistente (TCGdex retry, Scrydex, pokemontcg.io, PokemonPriceTracker) ha prodotto un candidato verificabile via HTTP."
+      },
+      "verification": null
+    },
+    {
+      "kind": "IMAGE_RECOVERY_CANDIDATE",
+      "card_id": "pokemon:tcgdex:web1-032:ja",
+      "tcg": "pokemon",
+      "lang": "ja",
+      "set_id": "web1",
+      "card_number": "032",
+      "name": "ポケモン再送信",
+      "broken_image_url": null,
+      "broken_image_url_hi": null,
+      "status": "UNRESOLVED",
+      "candidate_url": null,
+      "candidate_source": null,
+      "confidence": "UNVERIFIED",
+      "confidence_note": "nessuna fonte ha restituito un candidato verificabile via HTTP",
+      "provenance": {
+        "mechanism": "RESOLVE_FALLBACK_CASCADE",
+        "attempts": [
+          "tryTcgdexRetry",
+          "tryScrydex",
+          "tryPokemonTcgIo",
+          "tryPokemonPriceTracker"
+        ],
+        "note": "Nessuna fonte della cascata esistente (TCGdex retry, Scrydex, pokemontcg.io, PokemonPriceTracker) ha prodotto un candidato verificabile via HTTP."
+      },
+      "verification": null
+    },
+    {
+      "kind": "IMAGE_RECOVERY_CANDIDATE",
+      "card_id": "pokemon:tcgdex:web1-033:ja",
+      "tcg": "pokemon",
+      "lang": "ja",
+      "set_id": "web1",
+      "card_number": "033",
+      "name": "ニドキング",
+      "broken_image_url": null,
+      "broken_image_url_hi": null,
+      "status": "UNRESOLVED",
+      "candidate_url": null,
+      "candidate_source": null,
+      "confidence": "UNVERIFIED",
+      "confidence_note": "nessuna fonte ha restituito un candidato verificabile via HTTP",
+      "provenance": {
+        "mechanism": "RESOLVE_FALLBACK_CASCADE",
+        "attempts": [
+          "tryTcgdexRetry",
+          "tryScrydex",
+          "tryPokemonTcgIo",
+          "tryPokemonPriceTracker"
+        ],
+        "note": "Nessuna fonte della cascata esistente (TCGdex retry, Scrydex, pokemontcg.io, PokemonPriceTracker) ha prodotto un candidato verificabile via HTTP."
+      },
+      "verification": null
+    },
+    {
+      "kind": "IMAGE_RECOVERY_CANDIDATE",
+      "card_id": "pokemon:tcgdex:web1-034:ja",
+      "tcg": "pokemon",
+      "lang": "ja",
+      "set_id": "web1",
+      "card_number": "034",
+      "name": "ニネタール",
+      "broken_image_url": null,
+      "broken_image_url_hi": null,
+      "status": "UNRESOLVED",
+      "candidate_url": null,
+      "candidate_source": null,
+      "confidence": "UNVERIFIED",
+      "confidence_note": "nessuna fonte ha restituito un candidato verificabile via HTTP",
+      "provenance": {
+        "mechanism": "RESOLVE_FALLBACK_CASCADE",
+        "attempts": [
+          "tryTcgdexRetry",
+          "tryScrydex",
+          "tryPokemonTcgIo",
+          "tryPokemonPriceTracker"
+        ],
+        "note": "Nessuna fonte della cascata esistente (TCGdex retry, Scrydex, pokemontcg.io, PokemonPriceTracker) ha prodotto un candidato verificabile via HTTP."
+      },
+      "verification": null
+    },
+    {
+      "kind": "IMAGE_RECOVERY_CANDIDATE",
+      "card_id": "pokemon:tcgdex:web1-035:ja",
+      "tcg": "pokemon",
+      "lang": "ja",
+      "set_id": "web1",
+      "card_number": "035",
+      "name": "Magikarp",
+      "broken_image_url": null,
+      "broken_image_url_hi": null,
+      "status": "UNRESOLVED",
+      "candidate_url": null,
+      "candidate_source": null,
+      "confidence": "UNVERIFIED",
+      "confidence_note": "nessuna fonte ha restituito un candidato verificabile via HTTP",
+      "provenance": {
+        "mechanism": "RESOLVE_FALLBACK_CASCADE",
+        "attempts": [
+          "tryTcgdexRetry",
+          "tryScrydex",
+          "tryPokemonTcgIo",
+          "tryPokemonPriceTracker"
+        ],
+        "note": "Nessuna fonte della cascata esistente (TCGdex retry, Scrydex, pokemontcg.io, PokemonPriceTracker) ha prodotto un candidato verificabile via HTTP."
+      },
+      "verification": null
+    },
+    {
+      "kind": "IMAGE_RECOVERY_CANDIDATE",
+      "card_id": "pokemon:tcgdex:web1-036:ja",
+      "tcg": "pokemon",
+      "lang": "ja",
+      "set_id": "web1",
+      "card_number": "036",
+      "name": "ライチュ",
+      "broken_image_url": null,
+      "broken_image_url_hi": null,
+      "status": "UNRESOLVED",
+      "candidate_url": null,
+      "candidate_source": null,
+      "confidence": "UNVERIFIED",
+      "confidence_note": "nessuna fonte ha restituito un candidato verificabile via HTTP",
+      "provenance": {
+        "mechanism": "RESOLVE_FALLBACK_CASCADE",
+        "attempts": [
+          "tryTcgdexRetry",
+          "tryScrydex",
+          "tryPokemonTcgIo",
+          "tryPokemonPriceTracker"
+        ],
+        "note": "Nessuna fonte della cascata esistente (TCGdex retry, Scrydex, pokemontcg.io, PokemonPriceTracker) ha prodotto un candidato verificabile via HTTP."
+      },
+      "verification": null
+    },
+    {
+      "kind": "IMAGE_RECOVERY_CANDIDATE",
+      "card_id": "pokemon:tcgdex:web1-037:ja",
+      "tcg": "pokemon",
+      "lang": "ja",
+      "set_id": "web1",
+      "card_number": "037",
+      "name": "ダークアラカザム",
+      "broken_image_url": null,
+      "broken_image_url_hi": null,
+      "status": "UNRESOLVED",
+      "candidate_url": null,
+      "candidate_source": null,
+      "confidence": "UNVERIFIED",
+      "confidence_note": "nessuna fonte ha restituito un candidato verificabile via HTTP",
+      "provenance": {
+        "mechanism": "RESOLVE_FALLBACK_CASCADE",
+        "attempts": [
+          "tryTcgdexRetry",
+          "tryScrydex",
+          "tryPokemonTcgIo",
+          "tryPokemonPriceTracker"
+        ],
+        "note": "Nessuna fonte della cascata esistente (TCGdex retry, Scrydex, pokemontcg.io, PokemonPriceTracker) ha prodotto un candidato verificabile via HTTP."
+      },
+      "verification": null
+    },
+    {
+      "kind": "IMAGE_RECOVERY_CANDIDATE",
+      "card_id": "pokemon:tcgdex:web1-038:ja",
+      "tcg": "pokemon",
+      "lang": "ja",
+      "set_id": "web1",
+      "card_number": "038",
+      "name": "ドラゴナイト",
+      "broken_image_url": null,
+      "broken_image_url_hi": null,
+      "status": "UNRESOLVED",
+      "candidate_url": null,
+      "candidate_source": null,
+      "confidence": "UNVERIFIED",
+      "confidence_note": "nessuna fonte ha restituito un candidato verificabile via HTTP",
+      "provenance": {
+        "mechanism": "RESOLVE_FALLBACK_CASCADE",
+        "attempts": [
+          "tryTcgdexRetry",
+          "tryScrydex",
+          "tryPokemonTcgIo",
+          "tryPokemonPriceTracker"
+        ],
+        "note": "Nessuna fonte della cascata esistente (TCGdex retry, Scrydex, pokemontcg.io, PokemonPriceTracker) ha prodotto un candidato verificabile via HTTP."
+      },
+      "verification": null
+    },
+    {
+      "kind": "IMAGE_RECOVERY_CANDIDATE",
+      "card_id": "pokemon:tcgdex:web1-040:ja",
+      "tcg": "pokemon",
+      "lang": "ja",
+      "set_id": "web1",
+      "card_number": "040",
+      "name": "ロケットのスニーク攻撃",
+      "broken_image_url": null,
+      "broken_image_url_hi": null,
+      "status": "UNRESOLVED",
+      "candidate_url": null,
+      "candidate_source": null,
+      "confidence": "UNVERIFIED",
+      "confidence_note": "nessuna fonte ha restituito un candidato verificabile via HTTP",
+      "provenance": {
+        "mechanism": "RESOLVE_FALLBACK_CASCADE",
+        "attempts": [
+          "tryTcgdexRetry",
+          "tryScrydex",
+          "tryPokemonTcgIo",
+          "tryPokemonPriceTracker"
+        ],
+        "note": "Nessuna fonte della cascata esistente (TCGdex retry, Scrydex, pokemontcg.io, PokemonPriceTracker) ha prodotto un candidato verificabile via HTTP."
+      },
+      "verification": null
+    },
+    {
+      "kind": "IMAGE_RECOVERY_CANDIDATE",
+      "card_id": "pokemon:tcgdex:web1-041:ja",
+      "tcg": "pokemon",
+      "lang": "ja",
+      "set_id": "web1",
+      "card_number": "041",
+      "name": "暗い金星",
+      "broken_image_url": null,
+      "broken_image_url_hi": null,
+      "status": "UNRESOLVED",
+      "candidate_url": null,
+      "candidate_source": null,
+      "confidence": "UNVERIFIED",
+      "confidence_note": "nessuna fonte ha restituito un candidato verificabile via HTTP",
+      "provenance": {
+        "mechanism": "RESOLVE_FALLBACK_CASCADE",
+        "attempts": [
+          "tryTcgdexRetry",
+          "tryScrydex",
+          "tryPokemonTcgIo",
+          "tryPokemonPriceTracker"
+        ],
+        "note": "Nessuna fonte della cascata esistente (TCGdex retry, Scrydex, pokemontcg.io, PokemonPriceTracker) ha prodotto un candidato verificabile via HTTP."
+      },
+      "verification": null
+    },
+    {
+      "kind": "IMAGE_RECOVERY_CANDIDATE",
+      "card_id": "pokemon:tcgdex:web1-042:ja",
+      "tcg": "pokemon",
+      "lang": "ja",
+      "set_id": "web1",
+      "card_number": "042",
+      "name": "暗いカリザード",
+      "broken_image_url": null,
+      "broken_image_url_hi": null,
+      "status": "UNRESOLVED",
+      "candidate_url": null,
+      "candidate_source": null,
+      "confidence": "UNVERIFIED",
+      "confidence_note": "nessuna fonte ha restituito un candidato verificabile via HTTP",
+      "provenance": {
+        "mechanism": "RESOLVE_FALLBACK_CASCADE",
+        "attempts": [
+          "tryTcgdexRetry",
+          "tryScrydex",
+          "tryPokemonTcgIo",
+          "tryPokemonPriceTracker"
+        ],
+        "note": "Nessuna fonte della cascata esistente (TCGdex retry, Scrydex, pokemontcg.io, PokemonPriceTracker) ha prodotto un candidato verificabile via HTTP."
+      },
+      "verification": null
+    },
+    {
+      "kind": "IMAGE_RECOVERY_CANDIDATE",
+      "card_id": "pokemon:tcgdex:web1-043:ja",
+      "tcg": "pokemon",
+      "lang": "ja",
+      "set_id": "web1",
+      "card_number": "043",
+      "name": "モルトレス",
+      "broken_image_url": null,
+      "broken_image_url_hi": null,
+      "status": "UNRESOLVED",
+      "candidate_url": null,
+      "candidate_source": null,
+      "confidence": "UNVERIFIED",
+      "confidence_note": "nessuna fonte ha restituito un candidato verificabile via HTTP",
+      "provenance": {
+        "mechanism": "RESOLVE_FALLBACK_CASCADE",
+        "attempts": [
+          "tryTcgdexRetry",
+          "tryScrydex",
+          "tryPokemonTcgIo",
+          "tryPokemonPriceTracker"
+        ],
+        "note": "Nessuna fonte della cascata esistente (TCGdex retry, Scrydex, pokemontcg.io, PokemonPriceTracker) ha prodotto un candidato verificabile via HTTP."
+      },
+      "verification": null
+    },
+    {
+      "kind": "IMAGE_RECOVERY_CANDIDATE",
+      "card_id": "pokemon:tcgdex:web1-044:ja",
+      "tcg": "pokemon",
+      "lang": "ja",
+      "set_id": "web1",
+      "card_number": "044",
+      "name": "ダークブラストワイズ",
+      "broken_image_url": null,
+      "broken_image_url_hi": null,
+      "status": "UNRESOLVED",
+      "candidate_url": null,
+      "candidate_source": null,
+      "confidence": "UNVERIFIED",
+      "confidence_note": "nessuna fonte ha restituito un candidato verificabile via HTTP",
+      "provenance": {
+        "mechanism": "RESOLVE_FALLBACK_CASCADE",
+        "attempts": [
+          "tryTcgdexRetry",
+          "tryScrydex",
+          "tryPokemonTcgIo",
+          "tryPokemonPriceTracker"
+        ],
+        "note": "Nessuna fonte della cascata esistente (TCGdex retry, Scrydex, pokemontcg.io, PokemonPriceTracker) ha prodotto un candidato verificabile via HTTP."
+      },
+      "verification": null
+    },
+    {
+      "kind": "IMAGE_RECOVERY_CANDIDATE",
+      "card_id": "pokemon:tcgdex:web1-045:ja",
+      "tcg": "pokemon",
+      "lang": "ja",
+      "set_id": "web1",
+      "card_number": "045",
+      "name": "articuno",
+      "broken_image_url": null,
+      "broken_image_url_hi": null,
+      "status": "UNRESOLVED",
+      "candidate_url": null,
+      "candidate_source": null,
+      "confidence": "UNVERIFIED",
+      "confidence_note": "nessuna fonte ha restituito un candidato verificabile via HTTP",
+      "provenance": {
+        "mechanism": "RESOLVE_FALLBACK_CASCADE",
+        "attempts": [
+          "tryTcgdexRetry",
+          "tryScrydex",
+          "tryPokemonTcgIo",
+          "tryPokemonPriceTracker"
+        ],
+        "note": "Nessuna fonte della cascata esistente (TCGdex retry, Scrydex, pokemontcg.io, PokemonPriceTracker) ha prodotto un candidato verificabile via HTTP."
+      },
+      "verification": null
+    },
+    {
+      "kind": "IMAGE_RECOVERY_CANDIDATE",
+      "card_id": "pokemon:tcgdex:web1-046:ja",
+      "tcg": "pokemon",
+      "lang": "ja",
+      "set_id": "web1",
+      "card_number": "046",
+      "name": "ザプドス",
+      "broken_image_url": null,
+      "broken_image_url_hi": null,
+      "status": "UNRESOLVED",
+      "candidate_url": null,
+      "candidate_source": null,
+      "confidence": "UNVERIFIED",
+      "confidence_note": "nessuna fonte ha restituito un candidato verificabile via HTTP",
+      "provenance": {
+        "mechanism": "RESOLVE_FALLBACK_CASCADE",
+        "attempts": [
+          "tryTcgdexRetry",
+          "tryScrydex",
+          "tryPokemonTcgIo",
+          "tryPokemonPriceTracker"
+        ],
+        "note": "Nessuna fonte della cascata esistente (TCGdex retry, Scrydex, pokemontcg.io, PokemonPriceTracker) ha prodotto un candidato verificabile via HTTP."
+      },
+      "verification": null
+    },
+    {
+      "kind": "IMAGE_RECOVERY_CANDIDATE",
+      "card_id": "pokemon:tcgdex:web1-047:ja",
+      "tcg": "pokemon",
+      "lang": "ja",
+      "set_id": "web1",
+      "card_number": "047",
+      "name": "ジェンガー",
+      "broken_image_url": null,
+      "broken_image_url_hi": null,
+      "status": "UNRESOLVED",
+      "candidate_url": null,
+      "candidate_source": null,
+      "confidence": "UNVERIFIED",
+      "confidence_note": "nessuna fonte ha restituito un candidato verificabile via HTTP",
+      "provenance": {
+        "mechanism": "RESOLVE_FALLBACK_CASCADE",
+        "attempts": [
+          "tryTcgdexRetry",
+          "tryScrydex",
+          "tryPokemonTcgIo",
+          "tryPokemonPriceTracker"
+        ],
+        "note": "Nessuna fonte della cascata esistente (TCGdex retry, Scrydex, pokemontcg.io, PokemonPriceTracker) ha prodotto un candidato verificabile via HTTP."
+      },
+      "verification": null
+    },
+    {
+      "kind": "IMAGE_RECOVERY_CANDIDATE",
+      "card_id": "pokemon:tcgdex:web1-048:ja",
+      "tcg": "pokemon",
+      "lang": "ja",
+      "set_id": "web1",
+      "card_number": "048",
+      "name": "マチャンプ",
+      "broken_image_url": null,
+      "broken_image_url_hi": null,
+      "status": "UNRESOLVED",
+      "candidate_url": null,
+      "candidate_source": null,
+      "confidence": "UNVERIFIED",
+      "confidence_note": "nessuna fonte ha restituito un candidato verificabile via HTTP",
+      "provenance": {
+        "mechanism": "RESOLVE_FALLBACK_CASCADE",
+        "attempts": [
+          "tryTcgdexRetry",
+          "tryScrydex",
+          "tryPokemonTcgIo",
+          "tryPokemonPriceTracker"
+        ],
+        "note": "Nessuna fonte della cascata esistente (TCGdex retry, Scrydex, pokemontcg.io, PokemonPriceTracker) ha prodotto un candidato verificabile via HTTP."
+      },
+      "verification": null
+    }
+  ]
+}

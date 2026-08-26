@@ -1,16 +1,30 @@
+<<<<<<< HEAD
 ﻿name: Image Audit (Pok├®mon EN/JA + One Piece EN/JA)
 
 # Esegue scripts/image-audit/{dump-cards,crawl-images,resolve-fallback,summarize}.mjs.
 # Richiede egress di rete reale verso gli host immagine (assets.tcgdex.net,
 # images.pokemontcg.io, optcgapi.com, onepiece-cardgame.com, ...) ÔÇö per questo gira qui e
+=======
+name: Image Audit (Pokémon EN/JA + One Piece EN/JA)
+
+# Esegue scripts/image-audit/{dump-cards,crawl-images,resolve-fallback,summarize}.mjs.
+# Richiede egress di rete reale verso gli host immagine (assets.tcgdex.net,
+# images.pokemontcg.io, optcgapi.com, onepiece-cardgame.com, ...) — per questo gira qui e
+>>>>>>> feature/google-auth-profile-gdpr
 # non nella sandbox Cowork usata per sviluppare questi script, che ha un proxy egress
 # allowlist-only e non raggiunge quegli host (vedi commento in crawl-images.mjs).
 #
 # SOLA LETTURA: nessuno di questi script scrive su Supabase (vedi header dei singoli file).
 # resolve-fallback.mjs (cascata di recovery multi-fonte: TCGdex retry, Scrydex,
+<<<<<<< HEAD
 # pokemontcg.io, PokemonPriceTracker) copre solo Pok├®mon per ora ÔÇö per One Piece questo
 # workflow produce comunque il crawl+summarize (classificazione VALID/BROKEN/MISSING/...),
 # che ├¿ quanto richiesto per la verifica delle 4 combinazioni; l'estensione della cascata di
+=======
+# pokemontcg.io, PokemonPriceTracker) copre solo Pokémon per ora — per One Piece questo
+# workflow produce comunque il crawl+summarize (classificazione VALID/BROKEN/MISSING/...),
+# che è quanto richiesto per la verifica delle 4 combinazioni; l'estensione della cascata di
+>>>>>>> feature/google-auth-profile-gdpr
 # recovery a One Piece (fonti: optcgapi.com, onepiece-cardgame.com) resta un task successivo
 # esplicito, non implicito in questo workflow.
 
@@ -30,7 +44,11 @@ on:
         required: false
         default: ''
       run_resolve:
+<<<<<<< HEAD
         description: 'Esegui anche resolve-fallback.mjs per Pok├®mon (richiede eventuali API key opzionali in secrets)'
+=======
+        description: 'Esegui anche resolve-fallback.mjs per Pokémon (richiede eventuali API key opzionali in secrets)'
+>>>>>>> feature/google-auth-profile-gdpr
         required: false
         default: 'true'
 
@@ -64,7 +82,11 @@ jobs:
           ARGS=""
           if [ -n "${{ github.event.inputs.limit }}" ]; then ARGS="$ARGS --limit=${{ github.event.inputs.limit }}"; fi
           node scripts/image-audit/crawl-images.mjs --in="$IN" --out="$OUT" $ARGS
+<<<<<<< HEAD
       - name: Resolve fallback (solo Pok├®mon)
+=======
+      - name: Resolve fallback (solo Pokémon)
+>>>>>>> feature/google-auth-profile-gdpr
         if: matrix.tcg == 'pokemon' && github.event.inputs.run_resolve == 'true'
         run: |
           node scripts/image-audit/resolve-fallback.mjs \
