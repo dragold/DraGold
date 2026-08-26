@@ -115,9 +115,18 @@ export function SearchView({ country, cur, eurRate, onOpenAsset, setsMap, onOpen
           <h1 className="hero-t">Find a card.<br/>Explore the <span className="hero-accent">catalog</span>.</h1>
           <p className="hero-s">Pokémon, One Piece, Magic and Yu-Gi-Oh! — search any card, browse sets, and build your collection.</p>
           {onOpenExplore && (
-            <button type="button" className="chip" style={{ marginTop: 12 }} onClick={onOpenExplore}>
-              Browse sets →
-            </button>
+            <div className="hero-cta-row" style={{ marginTop: 12 }}>
+              <button type="button" className="chip" onClick={onOpenExplore}>
+                Browse sets →
+              </button>
+              {/* Card ID entry point (2026-08-26 nav-discoverability fix) —
+                  the /card-id microproduct existed with no link anywhere in
+                  the app; this surfaces it from the home hero. Real
+                  existing route, no new logic. */}
+              <a className="chip chip-cardid" href="/card-id" style={{ display: "inline-flex", alignItems: "center", gap: 5, textDecoration: "none" }}>
+                <Icon name="camera" size={13}/> Identify a card →
+              </a>
+            </div>
           )}
         </div>
         {heroCards.length > 0 && (
