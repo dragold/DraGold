@@ -89,7 +89,7 @@ function notFoundHtml(kind) {
 </body></html>`;
 }
 
-async function handleCardBot(slug) {
+async function handleCardBot(slug, lang) {
   const env = typeof process !== 'undefined' ? process.env : {};
 
   const canonicalRows = await supaRest(
@@ -109,9 +109,19 @@ async function handleCardBot(slug) {
     return new Response(notFoundHtml('card'), { status: 404, headers: { 'content-type': 'text/html; charset=utf-8' } });
   }
 
-  const primary = variants.find(c => c.id === canonical.primary_image_card_id)
+  // Objective 2 (KG EN<->JA): same disambiguation rule as
+  // src/pages/card/cardPageData.js -- when the request carries a real ?lang=
+  // (e.g. a JA-specific hreflang/sitemap URL) and this canonical group truly
+  // has a print in that language, show that print; the curated
+  // primary_image_card_id still wins when it already matches, English is the
+  // fallback default, same as before when no lang is given.
+  const curated = variants.find(c => c.id === canonical.primary_image_card_id);
+  const primary = (curated && (!lang || curated.lang === lang) ? curated : null)
+    || (lang && variants.find(c => c.lang === lang))
+    || curated
     || variants.find(c => c.lang === 'en')
     || variants[0];
+  const languages = [...new Set(variants.map(c => c.lang))].sort();
   const enVariant = variants.find(c => c.lang === 'en');
   const langLabels = { ja: 'Japanese', en: 'English', fr: 'French', de: 'German', es: 'Spanish', it: 'Italian', pt: 'Portuguese', ko: 'Korean', zh: 'Chinese' };
   const displayName = (enVariant && enVariant.name) || `${langLabels[primary.lang] || (primary.lang || '').toUpperCase()} ${TCG_LABELS[primary.tcg] || primary.tcg} Card ${primary.card_number || ''}`.trim();
@@ -135,7 +145,23 @@ async function handleCardBot(slug) {
   }
 
   const canonicalSlug = canonical.slug || slug;
-  const cardUrl = `https://dragold.org/carta/${canonicalSlug}`;
+  // Self-referencing per print (mirrors CardPage.jsx's activeLangSuffix):
+  // the EN print's canonical is the bare slug, every other real language gets
+  // its own ?lang= URL -- "distinct but linked" indexing instead of every
+  // language collapsing onto one canonical.
+  const langSuffix = (primary.lang && primary.lang !== 'en') ? `?lang=${encodeURIComponent(primary.lang)}` : '';
+  const cardUrl = `https://dragold.org/carta/${canonicalSlug}${langSuffix}`;
+  const hreflangLinks = languages.map(code => {
+    const href = `https://dragold.org/carta/${canonicalSlug}${code !== 'en' ? `?lang=${encodeURIComponent(code)}` : ''}`;
+    return `<link rel="alternate" hreflang="${code}" href="${href}">`;
+  }).join('') + (languages.length ? `<link rel="alternate" hreflang="x-default" href="https://dragold.org/carta/${canonicalSlug}">` : '');
+  const BOT_CROSSLANG_LABELS = { en: 'English', ja: 'Japanese' };
+  const crossLangLinksHtml = ['en', 'ja']
+    .filter(code => code !== primary.lang && languages.includes(code))
+    .map(code => {
+      const href = `https://dragold.org/carta/${canonicalSlug}${code !== 'en' ? `?lang=${encodeURIComponent(code)}` : ''}`;
+      return `<a href="${href}">${BOT_CROSSLANG_LABELS[code]} Edition (${code.toUpperCase()})</a>`;
+    }).join(' · ');
   // Block 5: link reale Card -> Set (stessa regola di slug deterministico
   // usata in src/lib/setSlug.js: tcg + set_id normalizzato).
   const setSlug = primary.set_id ? `${primary.tcg}-${slugifySetId(primary.set_id)}` : null;
@@ -188,6 +214,7 @@ async function handleCardBot(slug) {
 <title>${escapeHtml(title)}</title>
 <meta name="description" content="${escapeHtml(description)}">
 <link rel="canonical" href="${cardUrl}">
+${hreflangLinks}
 <meta name="robots" content="index,follow">
 <meta property="og:type" content="product">
 <meta property="og:title" content="${escapeHtml(title)}">
@@ -206,6 +233,7 @@ ${imageUrl ? `<meta name="twitter:image" content="${escapeHtml(imageUrl)}">` : '
 ${imageUrl ? `<img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(displayName)}">` : ''}
 ${priceLine}
 ${primary.illustrator ? `<p>Illustrator: <a href="https://dragold.org/illustrator/${escapeHtml(slugifyIllustrator(primary.illustrator))}">${escapeHtml(primary.illustrator)}</a></p>` : ''}
+${crossLangLinksHtml ? `<p>Also available in: ${crossLangLinksHtml}</p>` : ''}
 <p><a href="https://dragold.org/academy/rarity-variants">Learn about rarity &amp; variants</a></p>
 <h2>More from ${escapeHtml(displaySetName)}${setUrl ? ` — <a href="${setUrl}">View full set</a>` : ''}</h2>
 ${links || '<p>No other cards from this set indexed yet.</p>'}
@@ -717,7 +745,14 @@ export default async function middleware(request) {
   if (url.pathname.startsWith('/carta/')) {
     const slug = decodeURIComponent(url.pathname.replace(/^\/carta\//, ''));
     if (!slug) return;
-    return handleCardBot(slug);
+    // Objective 2 (KG EN<->JA): mirrors the /set/ branch below -- a bot
+    // crawling the JA-specific URL (/carta/:slug?lang=ja, the same URL the
+    // front-end's own canonical/hreflang tags point at) must get JA content
+    // and a JA-self-referencing canonical, not always the group's default
+    // print. Only a plausible short code is honored, same reasoning as SetPage.
+    const rawLang = (url.searchParams.get('lang') || '').trim().toLowerCase();
+    const lang = /^[a-z]{2}(-[a-z]{2,4})?$/.test(rawLang) ? rawLang : null;
+    return handleCardBot(slug, lang);
   }
   if (url.pathname.startsWith('/set/')) {
     const slug = decodeURIComponent(url.pathname.replace(/^\/set\//, ''));

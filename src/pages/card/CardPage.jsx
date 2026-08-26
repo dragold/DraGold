@@ -107,7 +107,7 @@ function langLabel(code) {
   return LANG_LABELS[code] || (code || '').toUpperCase()
 }
 
-function setSeoMeta({ title, description, image, url }) {
+function setSeoMeta({ title, description, image, url, alternates }) {
   if (title) document.title = title
   const setMeta = (selector, attr, isProperty, content) => {
     let el = document.querySelector(selector)
@@ -128,6 +128,24 @@ function setSeoMeta({ title, description, image, url }) {
     }
     el.setAttribute('href', href)
   }
+  // Objective 2 (KG EN<->JA / multilingual discovery): rel="alternate"
+  // hreflang tags are the standard signal for "same content, other language,
+  // separate indexable URL" -- the "indicizzazione distinta ma collegata"
+  // this task asks for, without inventing a new physical slug per language
+  // (every print in this canonical group already shares one slug + a
+  // self-referencing ?lang= query, see canonicalSlug/activeLangSuffix below).
+  const setAlternates = (alternates) => {
+    document.querySelectorAll('link[rel="alternate"][data-dg-hreflang]').forEach(el => el.remove())
+    if (!alternates || !alternates.length) return
+    for (const { lang, href } of alternates) {
+      const el = document.createElement('link')
+      el.setAttribute('rel', 'alternate')
+      el.setAttribute('hreflang', lang)
+      el.setAttribute('href', href)
+      el.setAttribute('data-dg-hreflang', '1')
+      document.head.appendChild(el)
+    }
+  }
   if (description) {
     setMeta('meta[name="description"]', 'description', false, description)
     setMeta('meta[property="og:description"]', 'og:description', true, description)
@@ -147,6 +165,7 @@ function setSeoMeta({ title, description, image, url }) {
   }
   setMeta('meta[property="og:type"]', 'og:type', true, 'product')
   setMeta('meta[name="twitter:card"]', 'twitter:card', false, 'summary_large_image')
+  setAlternates(alternates)
 }
 
 // Block 4 - SEO Foundation: nessuna gestione robots/noindex esisteva prima.
@@ -219,7 +238,7 @@ useEffect(() => {
 useEffect(() => {
   const d = state.data
   if (!d) return
-  const { primary, currentPrice, displayName, displaySetName, canonical, variants } = d
+  const { primary, currentPrice, displayName, displaySetName, canonical, variants, languages } = d
   // Alpha Core P0.3 fix (Preview E2E): the page actually displayed here can be
   // a non-English print (?lang= on the URL, or a pill click during this
   // session via selectedId) while canonical/og:url/JSON-LD kept pointing at
@@ -242,12 +261,26 @@ useEffect(() => {
   // digitato dall'utente, il canonical deve sempre puntare alla versione
   // canonica reale, non a qualunque stringa sia finita nella barra indirizzi.
   const canonicalSlug = (canonical && canonical.slug) || slug
+  // hreflang alternates: one per real language in this canonical group, each
+  // pointing at its own indexable URL (bare slug for 'en', ?lang=xx for the
+  // rest -- same convention as canonicalSlug/activeLangSuffix above), plus an
+  // x-default pointing at the bare slug (whatever print resolves with no
+  // ?lang= at all).
+  const hreflangAlternates = (languages || []).map(code => ({
+    lang: code,
+    href: `https://dragold.org/carta/${canonicalSlug}${code !== 'en' ? `?lang=${encodeURIComponent(code)}` : ''}`,
+  }))
+  if (hreflangAlternates.length) {
+    hreflangAlternates.push({ lang: 'x-default', href: `https://dragold.org/carta/${canonicalSlug}` })
+  }
+
   setRobotsMeta(null)
   setSeoMeta({
     title: `${displayName} (${displaySetName} #${activeVariant.card_number || primary.card_number}) — DraGold${priceTxt}`,
     description: `${displayName} — ${displaySetName} #${activeVariant.card_number || primary.card_number}, rarity ${primary.rarity || 'N/A'}. Card details, variants and price history on DraGold.`,
     image: activeVariant.image_url_hi || activeVariant.image_url,
     url: `https://dragold.org/carta/${canonicalSlug}${activeLangSuffix}`,
+    alternates: hreflangAlternates,
   })
 
       const cardUrl = `https://dragold.org/carta/${canonicalSlug}${activeLangSuffix}`
@@ -504,6 +537,26 @@ const languagePills = (languages && languages.length > 1)
     }))
   : null
 
+// Objective 2 (KG EN<->JA cross-language discovery): a dedicated, more
+// prominent control than the generic language pill row above -- same real
+// data (languages/variants) and the same click-to-switch mechanism (candidate
+// lookup + setSelectedId + syncLangInUrl), surfaced as its own labeled element
+// so EN<->JA (the product's declared language priority, see CLAUDE.md sez. 1)
+// is a one-click, hard-to-miss action instead of one pill among nine.
+const crossLangTarget = selected.lang === 'ja'
+  ? ((languages || []).includes('en') ? 'en' : null)
+  : ((languages || []).includes('ja') ? 'ja' : null)
+const crossLangCandidate = crossLangTarget
+  ? (variants.find(v => v.lang === crossLangTarget && v.print_variant === selected.print_variant)
+      || variants.find(v => v.lang === crossLangTarget))
+  : null
+const crossLangBadge = crossLangCandidate
+  ? h('button', {
+      type: 'button', key: 'crosslang', style: styles.crossLangBadge,
+      onClick: () => { setSelectedId(crossLangCandidate.id); syncLangInUrl(crossLangTarget) },
+    }, crossLangTarget === 'ja' ? '🇯🇵 Japanese Edition (JA) →' : '🇬🇧 English Edition (EN) →')
+  : null
+
 // Variants section (sez. 5): altre stampe reali nella STESSA lingua di quella
 // mostrata (holo/reverse/promo...). Cambio lingua sopra puo' spostare anche
 // questa lista, e' voluto: le stampe disponibili possono differire per lingua.
@@ -730,6 +783,7 @@ return h('div', { style: styles.page },
                  ' · #' + primary.card_number
                  ),
                h('div', { style: styles.badges }, identityBadges),
+               crossLangBadge,
                h('div', { style: styles.copyListingRow, key: 'copy-listing' },
                  h('button', { type: 'button', style: styles.btnGhostSmall, onClick: handleCopyListing }, 'Copy listing info'),
                  copyMsg ? h('span', { style: styles.mutedSmall }, copyMsg) : null
@@ -781,6 +835,7 @@ const styles = {
   pillRow: { display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 },
   pill: { background: 'transparent', color: '#c0c0d0', border: '1px solid #2a2a3a', borderRadius: 20, padding: '4px 12px', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' },
   pillActive: { background: '#4b3cff', color: '#fff', border: '1px solid #4b3cff', borderRadius: 20, padding: '4px 12px', fontSize: 12, cursor: 'default', fontFamily: 'inherit' },
+  crossLangBadge: { display: 'inline-flex', alignItems: 'center', gap: 6, background: 'linear-gradient(90deg,#4b3cff,#7a5cff)', color: '#fff', border: 'none', borderRadius: 10, padding: '8px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', marginBottom: 14 },
   collectionBox: { marginBottom: 12 },
   copyListingRow: { display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 },
   collectionLabel: { fontSize: 13, color: '#a0a0b0', fontWeight: 600 },
