@@ -458,6 +458,13 @@ export async function deleteAccount() {
     })
     const json = await res.json().catch(() => ({}))
     if (!res.ok) return { error: { message: json?.error || 'Failed to delete account. Please try again.' } }
+    // Clear the local session immediately: the server-side account is gone,
+    // but the JWT in localStorage stays cryptographically valid (unexpired)
+    // until it's explicitly cleared, so without this the UI can briefly keep
+    // rendering the deleted account's data on the next navigation. Best-
+    // effort: the account is already deleted either way, so a signOut()
+    // hiccup here shouldn't surface as an error to the user.
+    try { await supabase.auth.signOut() } catch (e) { /* account is already deleted; ignore */ }
     return { data: json }
   } catch (e) {
     return { error: { message: 'Network error — check your connection and try again.' } }
