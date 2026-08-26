@@ -74,6 +74,12 @@ export function AssetView({ card, onBack, isAuthed, onLogin, country, cur, eurRa
   // quantity must always be represented).
   const [myQty, setMyQty] = useState(0);
   const [toast, setToast] = useState("");
+  // Copy Listing Info (Card ID microproduct, 2026-08-26): stesso CTA gia'
+  // aggiunto a CardPage.jsx (/carta/{slug}) -- serve anche qui perche' il
+  // deep link /card/{id} usato da Card ID (e dal resto della SPA) apre
+  // QUESTO componente, non CardPage.jsx. Stesso pattern di feedback locale
+  // di quel componente (nessun toast globale nuovo).
+  const [copyMsg, setCopyMsg] = useState("");
   // eBay sold timeframes (Finding API) — {'7d': {avg, median, count, currency}, ...}
   const [soldData, setSoldData] = useState({});
   // User plan tier: 'free' | 'collector' | 'pro'
@@ -360,6 +366,40 @@ export function AssetView({ card, onBack, isAuthed, onLogin, country, cur, eurRa
 
   const ebayHref = ebayURL(card.name, card.set_name || "", country, card.tcg || "pokemon", cardNum);
 
+  // Copy Listing Info -- stringa SOLO da campi reali gia' caricati per questa
+  // carta (nessun campo inventato quando manca, stesso comportamento di
+  // CardPage.jsx handleCopyListing).
+  async function handleCopyListing() {
+    const lines = [
+      card.name,
+      card.set_name || null,
+      cardNum ? "#" + cardNum : null,
+      cardExtra?.rarity || null,
+      langInfo?.label || null,
+      cardExtra?.print_variant || null,
+    ].filter(Boolean);
+    const text = lines.join("\n");
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopyMsg("Copied!");
+    } catch {
+      try {
+        const ta = document.createElement("textarea");
+        ta.value = text;
+        ta.style.position = "fixed";
+        ta.style.opacity = "0";
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand("copy");
+        document.body.removeChild(ta);
+        setCopyMsg("Copied!");
+      } catch {
+        setCopyMsg("Could not copy - select and copy manually.");
+      }
+    }
+    setTimeout(() => setCopyMsg(""), 2500);
+  }
+
   // Market/Purchase Discovery MVP (2026-08-25): quando la carta non ha un
   // prezzo interno affidabile (fmvUSD == null, vedi blocco "PREZZO" sotto),
   // invece di inventare un valore mostriamo dove l'utente può verificare/
@@ -502,6 +542,12 @@ export function AssetView({ card, onBack, isAuthed, onLogin, country, cur, eurRa
                 <a className="asset-academy-link" href="/academy/rarity-variants">
                   <Icon name="doc" size={14} /> Learn about rarity &amp; variants
                 </a>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 10 }}>
+                  <button type="button" className="btn btn-ghost btn-sm" onClick={handleCopyListing}>
+                    Copy listing info
+                  </button>
+                  {copyMsg && <span className="muted" style={{ fontSize: 13 }}>{copyMsg}</span>}
+                </div>
               </>
             );
           })()}
