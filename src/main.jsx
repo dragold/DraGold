@@ -8,6 +8,7 @@ import TcgPage from './pages/tcg/TcgPage.jsx'
 import IllustratorPage from './pages/illustrator/IllustratorPage.jsx'
 import AcademyPage from './pages/academy/AcademyPage.jsx'
 import AcademyLessonPage from './pages/academy/AcademyLessonPage.jsx'
+import CardIdPage from './pages/card-id/CardIdPage.jsx'
 import LoginPage from './pages/auth/LoginPage.jsx'
 import RegisterPage from './pages/auth/RegisterPage.jsx'
 import ForgotPasswordPage from './pages/auth/ForgotPasswordPage.jsx'
@@ -42,7 +43,11 @@ const tcgMatch = TCG_HUBS.find(hub => `/${hub.tcg}` === pathNoSlash)
 
 // Auth/Profile/Username feature — standalone routes, same pattern as the
 // blocks above (exact-match on pathNoSlash, mounted before the SPA shell).
+// Card ID microproduct (2026-08-26) reuses this same exact-match map for
+// /card-id: it's a single static page, same shape as /account etc., not
+// worth a dedicated match variable for one more route.
 const AUTH_ROUTES = {
+  '/card-id': CardIdPage,
   '/login': LoginPage,
   '/register': RegisterPage,
   '/forgot-password': ForgotPasswordPage,

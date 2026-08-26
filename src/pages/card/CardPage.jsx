@@ -181,6 +181,10 @@ function setJsonLd(data) {
 export default function CardPage({ slug }) {
   const [state, setState] = useState({ loading: true, data: null, error: null })
   const [ctaMsg, setCtaMsg] = useState('')
+  // Copy Listing Info (Card ID microproduct, 2026-08-26): feedback locale
+  // ('Copied!'), stesso pattern leggero di ctaMsg qui sopra -- nessun toast
+  // globale nuovo.
+  const [copyMsg, setCopyMsg] = useState('')
   // Task 6 — quale record del canonical group e' mostrato in questo momento
   // (null = usa il primary curato). Cambia cliccando un pill lingua/variant,
   // mai una navigazione: stessa URL, stesso slug, un altro record reale.
@@ -416,6 +420,47 @@ async function handleAddWatchlist() {
   setCtaMsg('Adding...')
   const res = await addToWatchlist({ tcg: primary.tcg, cardApiId: primary.id, cardName: primary.name, setName: primary.set_name, imageUrl: primary.image_url })
   setCtaMsg(res && res.error ? ('Error: ' + (res.error.message || res.error)) : 'Added to watchlist!')
+}
+
+// Copy Listing Info (Card ID microproduct, sez. 6 del task): stringa
+// generata SOLO da campi reali gia' caricati per la stampa mostrata
+// (`selected`) -- nessuna chiamata AI, nessun backend, nessun campo inventato
+// quando manca (viene semplicemente omesso, come richiesto dalla spec). Usa
+// selectedRarityLabel (stessa etichetta leggibile gia' mostrata nel badge
+// rarity sopra, non il raw value) cosi' il testo copiato combacia con quanto
+// l'utente vede in pagina.
+async function handleCopyListing() {
+  const lines = [
+    selected.name || displayName,
+    displaySetName || null,
+    selected.card_number ? '#' + selected.card_number : null,
+    selectedRarityLabel || null,
+    selected.lang ? langLabel(selected.lang) : null,
+    selected.print_variant || null,
+  ].filter(Boolean)
+  const text = lines.join('\n')
+  try {
+    await navigator.clipboard.writeText(text)
+    setCopyMsg('Copied!')
+  } catch {
+    // Clipboard API non disponibile/negata (es. contesto non sicuro, permesso
+    // negato): fallback minimo via textarea nascosta + execCommand, stesso
+    // testo, nessuna dipendenza nuova.
+    try {
+      const ta = document.createElement('textarea')
+      ta.value = text
+      ta.style.position = 'fixed'
+      ta.style.opacity = '0'
+      document.body.appendChild(ta)
+      ta.select()
+      document.execCommand('copy')
+      document.body.removeChild(ta)
+      setCopyMsg('Copied!')
+    } catch {
+      setCopyMsg('Could not copy — select and copy manually.')
+    }
+  }
+  setTimeout(() => setCopyMsg(''), 2500)
 }
 
 const setPageSlug = buildSetSlug(primary.tcg, primary.set_id)
@@ -685,6 +730,10 @@ return h('div', { style: styles.page },
                  ' · #' + primary.card_number
                  ),
                h('div', { style: styles.badges }, identityBadges),
+               h('div', { style: styles.copyListingRow, key: 'copy-listing' },
+                 h('button', { type: 'button', style: styles.btnGhostSmall, onClick: handleCopyListing }, 'Copy listing info'),
+                 copyMsg ? h('span', { style: styles.mutedSmall }, copyMsg) : null
+               ),
                languagePills,
                h('div', { style: styles.collectionBox }, collectionCta),
                ctaMsg ? h('p', { style: styles.muted }, ctaMsg) : null,
@@ -733,6 +782,7 @@ const styles = {
   pill: { background: 'transparent', color: '#c0c0d0', border: '1px solid #2a2a3a', borderRadius: 20, padding: '4px 12px', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' },
   pillActive: { background: '#4b3cff', color: '#fff', border: '1px solid #4b3cff', borderRadius: 20, padding: '4px 12px', fontSize: 12, cursor: 'default', fontFamily: 'inherit' },
   collectionBox: { marginBottom: 12 },
+  copyListingRow: { display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 },
   collectionLabel: { fontSize: 13, color: '#a0a0b0', fontWeight: 600 },
   qtyBox: { background: '#0f0f18', border: '1px solid #23233a', borderRadius: 12, padding: '12px 16px', display: 'inline-flex', flexDirection: 'column', gap: 8 },
   qtyRow: { display: 'flex', alignItems: 'center', gap: 14 },

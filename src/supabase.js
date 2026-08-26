@@ -310,3 +310,47 @@ export function normalizeAuthError(error) {
     return 'Your session has expired — please sign in again.'
   return raw
 }
+
+// ---- Card ID: missing-card contribution (Card ID microproduct, 2026-08-26) ----
+// Insert-only dal punto di vista del client: RLS (card_submissions_owner_insert)
+// impone auth.uid() = user_id, quindi una submission richiede sempre un utente
+// autenticato — stesso pattern di addToCollection/createAlert sopra.
+export async function submitCardContribution({
+  game, name, setName, cardNumber, language,
+  rarity = null, variant = null, imageUrl = null, notes = null, sourceUrl = null,
+}) {
+  if (!supabase) return { error: { message: 'Backend not configured' } }
+  const { data: u } = await supabase.auth.getUser()
+  const userId = u?.user?.id
+  if (!userId) return { error: { message: 'Not signed in' } }
+  return supabase.from('card_submissions').insert({
+    user_id: userId,
+    game, name, set_name: setName, card_number: cardNumber, language,
+    rarity, variant, image_url: imageUrl, notes, source_url: sourceUrl,
+  }).select().single()
+}
+
+// Le proprie submission (qualunque stato) — RLS card_submissions_owner_read
+// limita comunque il risultato alle righe dell'utente corrente anche se questa
+// funzione venisse chiamata senza filtro esplicito.
+export async function listMyCardContributions() {
+  if (!supabase) return []
+  const { data: u } = await supabase.auth.getUser()
+  const userId = u?.user?.id
+  if (!userId) return []
+  const { data } = await supabase.from('card_submissions')
+    .select('*').eq('user_id', userId).order('created_at', { ascending: false })
+  return data || []
+}
+
+// Livello contributor derivato (view contributor_levels, solo status='approved').
+// Nessuna riga per l'utente = 0 contributi approvati = "Explorer" (stesso default
+// della view lato SQL, replicato qui per il caso "utente senza alcuna riga").
+export async function getMyContributorLevel() {
+  if (!supabase) return { level: 'Explorer', approved_count: 0 }
+  const { data: u } = await supabase.auth.getUser()
+  const userId = u?.user?.id
+  if (!userId) return { level: 'Explorer', approved_count: 0 }
+  const { data } = await supabase.from('contributor_levels').select('*').eq('user_id', userId).maybeSingle()
+  return data || { level: 'Explorer', approved_count: 0 }
+}
