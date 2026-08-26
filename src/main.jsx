@@ -16,6 +16,7 @@ import ResetPasswordPage from './pages/auth/ResetPasswordPage.jsx'
 import AccountPage from './pages/auth/AccountPage.jsx'
 import TermsPage from './pages/legal/TermsPage.jsx'
 import PrivacyPage from './pages/legal/PrivacyPage.jsx'
+import CookiePolicyPage from './pages/legal/CookiePolicyPage.jsx'
 import { AuthProvider } from './lib/auth.js'
 import { TCG_HUBS } from './lib/tcgConfig.js'
 import './styles.css'
@@ -55,6 +56,7 @@ const AUTH_ROUTES = {
   '/account': AccountPage,
   '/terms': TermsPage,
   '/privacy': PrivacyPage,
+  '/cookie-policy': CookiePolicyPage,
 }
 const authRouteComp = AUTH_ROUTES[pathNoSlash]
 

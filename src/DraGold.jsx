@@ -411,6 +411,16 @@ export default function DraGold() {
             <span>·</span>
             <a href="https://buymeacoffee.com/dragold" target="_blank" rel="noreferrer">Buy us a coffee</a>
           </div>
+          {/* GDPR / Privacy & Compliance feature — discreet legal links,
+              present on every page via the shared footer (DraGold.jsx is the
+              main SPA shell all tab views render through). */}
+          <div className="foot-links foot-legal">
+            <a href="/privacy">Privacy Policy</a>
+            <span>·</span>
+            <a href="/cookie-policy">Cookie Policy</a>
+            <span>·</span>
+            <a href="/cookie-policy">Cookie Preferences</a>
+          </div>
         </footer>
         </>
         )}
