@@ -228,6 +228,7 @@ export default function CardIdPage() {
               onRetry={() => runSearch(term)} onOpen={onOpen} setsMap={null}
               hasMore={false} totalCount={results.length}
               onMissingCard={openMissing}
+              identifyMode
             />
           )}
 
