@@ -67,15 +67,30 @@ export function SearchView({ country, cur, eurRate, onOpenAsset, setsMap, onOpen
 
   // Home Discovery — Collection & Set Completion Loop (PRODUCT_SPEC.md §4):
   // real per-set "owned" count for signed-in users on the same Discover-a-set
-  // rail, anonymous users get a sign-in CTA instead. Reuses collection's own
-  // denormalized card_set/tcg columns (migrations/006_collection_denormalized.sql
-  // — no join needed) grouped client-side; one query total, not one per set.
+  // rail, anonymous users get a sign-in CTA instead. Grouped client-side from
+  // listCollection() (one query total, not one per set).
+  //
+  // BUGFIX (verified live on Supabase 2026-08-26): the live `collection`
+  // table's real column is `set_name`, NOT `card_set` — migrations/
+  // 006_collection_denormalized.sql (which this comment originally cited) is
+  // stale versus the actual schema (confirmed via information_schema.columns:
+  // collection has id/user_id/binder_id/tcg/card_api_id/card_name/set_name/
+  // card_number/rarity/image_url/language/condition/is_graded/grade_company/
+  // grade_value/purchase_price/purchase_date/fmv_snapshot/fmv_currency/notes/
+  // added_at/quantity — no card_set/card_id/card_img/card_lang at all). Using
+  // card_set meant `r?.card_set` was always undefined, so ownedBySet stayed
+  // effectively empty for every signed-in user, every set, silently (no
+  // error — the badge just never appeared). Per CLAUDE.md §9, flagging this
+  // here rather than trusting migrations/ as source of truth: someone should
+  // reconcile the versioned migration with the real schema in a dedicated
+  // task, this fix only unblocks the feature that depends on it.
+  //
   // No fabricated "X/Y complete" percentage here: getting a real total-cards-
   // per-set count for every rail tile would mean a query per set (or a new
   // aggregate RPC) — out of scope for this pass, flagged as a gap in the report
   // rather than invented. SetDetailPage.jsx/SetPage.jsx already show the real
   // X/Y % once a user opens a specific set.
-  const [ownedBySet, setOwnedBySet] = useState(null); // Map<"tcg:card_set", count> | null (not loaded / anon)
+  const [ownedBySet, setOwnedBySet] = useState(null); // Map<"tcg:set_name", count> | null (not loaded / anon)
   useEffect(() => {
     if (!isAuthed) { setOwnedBySet(null); return; }
     let cancelled = false;
@@ -83,9 +98,11 @@ export function SearchView({ country, cur, eurRate, onOpenAsset, setsMap, onOpen
       if (cancelled) return;
       const m = new Map();
       for (const r of (rows || [])) {
-        if (!r?.tcg || !r?.card_set) continue;
-        const key = `${r.tcg}:${r.card_set}`;
-        m.set(key, (m.get(key) || 0) + 1);
+        if (!r?.tcg || !r?.set_name) continue;
+        const key = `${r.tcg}:${r.set_name}`;
+        // quantity, not row count — a row is one unique card, quantity is
+        // how many physical copies (same field Portfolio's "×N" uses).
+        m.set(key, (m.get(key) || 0) + (r.quantity || 1));
       }
       setOwnedBySet(m);
     }).catch(() => { if (!cancelled) setOwnedBySet(null); });
