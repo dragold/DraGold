@@ -365,6 +365,7 @@ export default function DraGold() {
             onSearchStateChange={setSavedSearch}
             onSearchStateClear={clearSavedSearch}
             onOpenExplore={()=>goTab("explore")}
+            isAuthed={isAuthed}
           />
         )}
         {tab==="explore" && (

@@ -54,14 +54,14 @@ export function HotPicksSection({ country = "IT", cur = "EUR", eurRate = 0.92, o
         if (neededIds.length) {
           const { data: cardsRows } = await supabase
             .from('cards')
-            .select('id,name,set_name,set_id,card_number,tcg,lang,canonical_card_id,image_url,image_url_hi,card_image_cache(cached_url,status)')
+            .select('id,name,set_name,set_id,card_number,tcg,lang,canonical_card_id,image_url,image_url_hi,card_image_cache(cached_url,status),canonical_cards!cards_canonical_card_id_fkey(slug)')
             .in('id', neededIds);
           for (const c of (cardsRows || [])) cardsById[c.id] = c;
         }
 
         const fromHotPicks = hpRows
           .filter(r => cardsById[r.card_id])
-          .map(r => ({ ...cardsById[r.card_id], avgPrice: r.current_price }));
+          .map(r => ({ ...cardsById[r.card_id], slug: cardsById[r.card_id]?.canonical_cards?.slug || null, avgPrice: r.current_price }));
 
         let fromFallback = [];
         if (fillIds.length) {
@@ -74,7 +74,7 @@ export function HotPicksSection({ country = "IT", cur = "EUR", eurRate = 0.92, o
           for (const p of (priceRows || [])) { if (!(p.card_id in latestPrice)) latestPrice[p.card_id] = p.price_market; }
           fromFallback = fillIds
             .filter(id => cardsById[id])
-            .map(id => ({ ...cardsById[id], avgPrice: latestPrice[id] ?? null }));
+            .map(id => ({ ...cardsById[id], slug: cardsById[id]?.canonical_cards?.slug || null, avgPrice: latestPrice[id] ?? null }));
         }
 
         const combined = [...fromHotPicks, ...fromFallback].slice(0, 12);
