@@ -176,6 +176,14 @@ input{font-family:inherit;font-size:16px;}
    SearchView.jsx's ownedBySet) — a small real-data badge, not a fabricated
    progress bar (we don't cheaply have each set's total card count here). */
 .discover-tile-owned{position:absolute;top:8px;right:8px;font-family:'Space Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.02em;color:var(--gold);background:rgba(251,191,36,.12);border:1px solid rgba(251,191,36,.3);border-radius:100px;padding:2px 7px;}
+/* Collection Progress mini ring on Discover-a-set tiles -- same conic-gradient
+   mechanic as .set-completion-ring (SetDetailPage.jsx), scaled down to fit a
+   128px rail tile's corner instead of the full set-detail hero. */
+.discover-tile-ring{position:absolute;top:6px;right:6px;width:34px;height:34px;border-radius:50%;background:conic-gradient(var(--gold) var(--pct,0%),var(--surface-3) var(--pct,0%));}
+.discover-tile-ring-inner{position:absolute;inset:3px;border-radius:50%;background:var(--bg);display:flex;align-items:center;justify-content:center;}
+.discover-tile-ring-n{font-family:'Space Mono',monospace;font-size:8px;font-weight:700;color:var(--text);line-height:1;}
+.discover-tile-ring-n small{font-size:6px;color:var(--dim);font-weight:400;}
+
 .discover-rail-cta{margin:10px 2px 0;font-size:12.5px;color:var(--dim);}
 .discover-rail-cta a{color:var(--gold);text-decoration:none;font-weight:600;}
 .discover-rail-cta a:hover{text-decoration:underline;}
@@ -243,13 +251,13 @@ input{font-family:inherit;font-size:16px;}
 
 /* upcoming */
 .upcoming{margin-top:14px;}
-.up-grid{display:grid;grid-template-columns:1fr;gap:12px;}
-.up-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:16px;opacity:.65;cursor:default;pointer-events:none;user-select:none;}
-.up-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
-.up-ic{width:38px;height:38px;border-radius:11px;background:var(--surface-2);display:flex;align-items:center;justify-content:center;color:var(--muted);}
+.up-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;}
+.up-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:12px;opacity:.65;cursor:default;pointer-events:none;user-select:none;}
+.up-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+.up-ic{width:30px;height:30px;border-radius:9px;background:var(--surface-2);display:flex;align-items:center;justify-content:center;color:var(--muted);}
 .badge-soon{font-size:10px;font-weight:700;font-family:'Space Mono',monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--gold);background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.25);padding:3px 8px;border-radius:100px;}
-.up-label{font-size:16px;font-weight:700;margin-bottom:4px;}
-.up-desc{font-size:13px;color:var(--muted);line-height:1.45;}
+.up-label{font-size:14px;font-weight:700;margin-bottom:2px;}
+.up-desc{font-size:12px;color:var(--muted);line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
 
 /* onboarding */
 .onboard{background:var(--surface);border:1px solid var(--border-2);border-radius:18px;padding:18px;margin-bottom:22px;}

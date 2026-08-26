@@ -12,6 +12,7 @@ import { norm, rankSearchResults, groupByCanonical, searchCards } from "../../li
 import { LANG_ALIASES, RARITY_TOKENS, JP_NAME_ALIASES } from "../../lib/searchData.js";
 import { TCG_LIST } from "../../DraGold.jsx";
 import { buildSetSlug } from "../../lib/setSlug.js";
+import { setIdCandidates } from "../../pages/set/SetDetailPage.jsx";
 
 export function SearchView({ country, cur, eurRate, onOpenAsset, setsMap, onOpenSet, initialSearchState, onSearchStateChange, onSearchStateClear, onOpenExplore, isAuthed = false }) {
   const [q, setQ] = useState(() => initialSearchState?.q || "");
@@ -108,6 +109,50 @@ export function SearchView({ country, cur, eurRate, onOpenAsset, setsMap, onOpen
     }).catch(() => { if (!cancelled) setOwnedBySet(null); });
     return () => { cancelled = true; };
   }, [isAuthed]);
+
+  // Collection Progress ring on the Discover-a-set rail: the real per-set
+  // total this file's own earlier comment flagged as a gap ("no fabricated
+  // X/Y here... out of scope for this pass"). Closes it the same way
+  // SetDetailPage.jsx already gets its real total for one open set --
+  // same setIdCandidates() variant-matching, same groupByCanonical() dedup
+  // (both already exported from there, reused verbatim here) -- just batched
+  // across every tile currently on the rail instead of one query per set:
+  // one query per TCG present (today: pokemon + onepiece, 2 total), not one
+  // per tile. Public data (total card count of a set), so this runs for
+  // every visitor, not gated on isAuthed like ownedBySet above.
+  const [totalBySet, setTotalBySet] = useState(new Map()); // Map<"tcg:set_name", total>
+  useEffect(() => {
+    if (!discoverSets.length) return;
+    let cancelled = false;
+    const byTcg = new Map();
+    for (const s of discoverSets) {
+      if (!s.set_name) continue;
+      if (!byTcg.has(s.tcg)) byTcg.set(s.tcg, []);
+      byTcg.get(s.tcg).push(s);
+    }
+    (async () => {
+      const next = new Map();
+      for (const [tcg, tiles] of byTcg) {
+        const candidatesByTile = tiles.map(s => ({ s, candidates: setIdCandidates(s.set_code) }));
+        const allCandidates = [...new Set(candidatesByTile.flatMap(t => t.candidates))];
+        if (!allCandidates.length) continue;
+        const { data, error } = await supabase
+          .from("cards")
+          .select("id,set_id,canonical_card_id")
+          .eq("tcg", tcg).eq("lang", "en")
+          .in("set_id", allCandidates)
+          .limit(4000);
+        if (error || !data) continue;
+        for (const { s, candidates } of candidatesByTile) {
+          const rows = data.filter(r => candidates.includes(r.set_id));
+          if (!rows.length) continue;
+          next.set(`${tcg}:${s.set_name}`, groupByCanonical(rows).length);
+        }
+      }
+      if (!cancelled) setTotalBySet(next);
+    })();
+    return () => { cancelled = true; };
+  }, [discoverSets]);
 
   const runSearch = useCallback(async (query) => {
     const trimmed = query.trim();
@@ -255,9 +300,23 @@ export function SearchView({ country, cur, eurRate, onOpenAsset, setsMap, onOpen
                       cards from this set (ownedBySet, computed above from
                       the user's real collection rows — no invented total/%
                       here, see the useEffect's comment for why). */}
-                  {owned > 0 && (
-                    <span className="discover-tile-owned">{owned} owned</span>
-                  )}
+                  {owned > 0 && (() => {
+                    const total = totalBySet.get(`${s.tcg}:${s.set_name}`) || 0;
+                    if (total > 0) {
+                      const pct = Math.min(100, Math.round((owned / total) * 100));
+                      return (
+                        <span className="discover-tile-ring" style={{ '--pct': `${pct}%` }} title={`${owned} of ${total} collected`}>
+                          <span className="discover-tile-ring-inner">
+                            <span className="discover-tile-ring-n">{owned}<small>/{total}</small></span>
+                          </span>
+                        </span>
+                      );
+                    }
+                    // Total not resolved yet (still loading, or this set's
+                    // cards.set_id didn't match any candidate) -- same
+                    // graceful fallback as before, real data only.
+                    return <span className="discover-tile-owned">{owned} owned</span>;
+                  })()}
                 </a>
               );
             })}

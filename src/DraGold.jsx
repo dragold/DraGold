@@ -22,6 +22,7 @@ import { PortfolioView } from "./pages/portfolio/PortfolioView.jsx";
 import { AlertsView } from "./pages/alerts/AlertsView.jsx";
 import { SetsView } from "./pages/sets/SetsView.jsx";
 import { SetDetailPage } from "./pages/set/SetDetailPage.jsx";
+import { ComingSoon } from "./components/shared/ComingSoon.jsx";
 
 /* ════════════════════════════════════════════════════════════════════════
    DraGold — SHELL (TASK 2)
@@ -61,11 +62,6 @@ const PRIMARY_TABS = [
 const ACCOUNT_LINKS = [
   { id:"portfolio", label:"Portfolio", icon:"wallet" },
   { id:"alerts",    label:"Alerts",    icon:"bell" },
-];
-const UPCOMING = [
-  { id:"binder",    label:"Binder",    icon:"grid",    desc:"Browse your collection in virtual binders." },
-  { id:"blog",      label:"Blog",      icon:"doc",     desc:"Guides, market analysis, news." },
-  { id:"community", label:"Community", icon:"users",   desc:"Share and compare your cards." },
 ];
 
 /* ─── Placeholder immagine carta (Fix #4) — mai immagine rotta ─── */
@@ -379,25 +375,10 @@ export default function DraGold() {
             cur={cur} eurRate={eurRate} country={country} />
         )}
 
-        {/* Upcoming — solo badge, zero logica */}
-        <section className="upcoming">
-          <div className="sec-h">
-            <span className="sec-h-t">Coming soon</span>
-            <span className="sec-h-line" />
-          </div>
-          <div className="up-grid">
-            {UPCOMING.map(u => (
-              <div key={u.id} className="up-card" aria-disabled="true">
-                <div className="up-top">
-                  <span className="up-ic"><Icon name={u.icon} size={18}/></span>
-                  <span className="badge-soon">Soon</span>
-                </div>
-                <div className="up-label">{u.label}</div>
-                <div className="up-desc">{u.desc}</div>
-              </div>
-            ))}
-          </div>
-        </section>
+        {/* Upcoming -- extracted to components/shared/ComingSoon.jsx (Home
+            visual pass): same content, compact multi-column layout instead of
+            3 full-width stacked cards. */}
+        <ComingSoon />
 
         <footer className="foot">
           <img src="/logo192.png" alt="DraGold" style={{width:40,height:40,borderRadius:10,marginBottom:6}}/>
