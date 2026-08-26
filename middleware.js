@@ -30,20 +30,22 @@
 // bot-detection, helper), nessun secondo middleware creato.
 // Blocco "Illustrator Pages": quarto riuso dello stesso sistema, /illustrator/:slug.
 export const config = {
-  matcher: ['/carta/:slug', '/set/:slug', '/illustrator/:slug', '/pokemon', '/onepiece', '/mtg', '/ygo'],
+  matcher: ['/carta/:slug', '/set/:slug', '/illustrator/:slug', '/pokemon', '/onepiece', '/mtg', '/ygo', '/academy', '/academy/:slug'],
 };
 
 const BOT_UA = /googlebot|bingbot|yandexbot|duckduckbot|baiduspider|slurp|facebookexternalhit|twitterbot|linkedinbot|discordbot|telegrambot|whatsapp|slackbot|redditbot|pinterest|applebot|semrushbot|ahrefsbot|mj12bot|dotbot|petalbot|bytespider|w3c_validator/i;
+
+import { ACADEMY_LESSONS, getLesson, getAdjacentLessons, getCategory } from './src/pages/academy/academyContent.js';
 
 const TCG_LABELS = { pokemon: 'Pokémon', mtg: 'Magic: The Gathering', ygo: 'Yu-Gi-Oh!', onepiece: 'One Piece' };
 const TCGS = Object.keys(TCG_LABELS);
 // Stessa descrizione statica di src/lib/tcgConfig.js — duplicata qui per lo
 // stesso motivo gia' documentato per la risoluzione set (bundle Edge separato).
 const TCG_DESCRIPTIONS = {
-  pokemon: 'Pokémon Trading Card Game — every set from the original Base Set to the latest release, with real market prices and rarities.',
-  onepiece: 'One Piece Card Game — every set, every card, with real market prices tracked in real time.',
-  mtg: 'Magic: The Gathering — decades of sets, from vintage to the latest release, with real market prices.',
-  ygo: 'Yu-Gi-Oh! Trading Card Game — every set, every card, with real market prices in one place.',
+  pokemon: 'Pokémon Trading Card Game — every set from the original Base Set to the latest release. Browse cards, sets and rarities, and track your own collection.',
+  onepiece: 'One Piece Card Game — every set, every card. Browse the full catalog and track your own collection.',
+  mtg: 'Magic: The Gathering — decades of sets, from vintage to the latest release. Browse cards, sets and rarities, and track your own collection.',
+  ygo: 'Yu-Gi-Oh! Trading Card Game — every set, every card. Browse the full catalog and track your own collection.',
 };
 
 function escapeHtml(s) {
@@ -71,9 +73,10 @@ async function supaRest(path, env) {
 }
 
 function notFoundHtml(kind) {
-  const label = kind === 'set' ? 'Set' : kind === 'illustrator' ? 'Illustrator' : 'Card';
+  const label = kind === 'set' ? 'Set' : kind === 'illustrator' ? 'Illustrator' : kind === 'academy' ? 'Lesson' : 'Card';
   const msg = kind === 'set' ? 'This set is not yet available on DraGold.'
     : kind === 'illustrator' ? 'This illustrator is not yet available on DraGold.'
+    : kind === 'academy' ? "This Academy lesson doesn't exist, or has moved."
     : 'This card is not yet available on DraGold.';
   return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">
 <title>${label} not found — DraGold</title>
@@ -140,7 +143,7 @@ async function handleCardBot(slug) {
   const imageUrl = primary.image_url_hi || primary.image_url || null;
   const priceTxt = currentPrice?.price_market != null ? ` — ${formatPrice(currentPrice.price_market, currentPrice.currency)}` : '';
   const title = `${displayName} (${displaySetName} #${primary.card_number}) — DraGold${priceTxt}`;
-  const description = `${displayName} — ${displaySetName} #${primary.card_number}, rarity: ${primary.rarity || 'N/A'}. Market price, price history and best offers on DraGold.`;
+  const description = `${displayName} — ${displaySetName} #${primary.card_number}, rarity ${primary.rarity || 'N/A'}. Card details, variants and price history on DraGold.`;
 
   // Block 6: nodo TCG reale (/{tcg}) prima del nodo Set.
   const hubUrl = TCGS.includes(primary.tcg) ? `https://dragold.org/${primary.tcg}` : null;
@@ -167,7 +170,6 @@ async function handleCardBot(slug) {
       '@type': 'Offer',
       priceCurrency: currentPrice.currency || 'USD',
       price: currentPrice.price_market,
-      availability: 'https://schema.org/InStock',
       url: cardUrl,
     };
   }
@@ -204,6 +206,7 @@ ${imageUrl ? `<meta name="twitter:image" content="${escapeHtml(imageUrl)}">` : '
 ${imageUrl ? `<img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(displayName)}">` : ''}
 ${priceLine}
 ${primary.illustrator ? `<p>Illustrator: <a href="https://dragold.org/illustrator/${escapeHtml(slugifyIllustrator(primary.illustrator))}">${escapeHtml(primary.illustrator)}</a></p>` : ''}
+<p><a href="https://dragold.org/academy/rarity-variants">Learn about rarity &amp; variants</a></p>
 <h2>More from ${escapeHtml(displaySetName)}${setUrl ? ` — <a href="${setUrl}">View full set</a>` : ''}</h2>
 ${links || '<p>No other cards from this set indexed yet.</p>'}
 </body></html>`;
@@ -234,7 +237,7 @@ function rawSetIdCandidates(setIdSlug) {
   return [...new Set([setIdSlug, setIdSlug.toUpperCase(), dotted, dotted.toUpperCase()])];
 }
 
-async function handleSetBot(slug) {
+async function handleSetBot(slug, lang) {
   const env = typeof process !== 'undefined' ? process.env : {};
   const parsed = parseSetSlug(slug);
   if (!parsed) {
@@ -251,9 +254,19 @@ async function handleSetBot(slug) {
     return new Response(notFoundHtml('set'), { status: 404, headers: { 'content-type': 'text/html; charset=utf-8' } });
   }
 
+  // Explicit-language routing (follow-up task, 2026-08-25): mirrors
+  // setPageData.js — lang absent keeps the original behaviour (try 'en',
+  // fall back to any available language, e.g. Pokemon JP-only sets whose
+  // set_id namespace never collides with 'en'); lang explicit is a strict
+  // filter with NO silent fallback to a different language — if this set
+  // genuinely has no such edition, a bot gets a real 404/noindex, never a
+  // 200 that quietly serves the wrong language under this URL.
   const FIELDS = 'id,name,card_number,image_url,image_url_hi,lang,set_name,canonical_card_id';
-  let rows = await supaRest(`cards?tcg=eq.${tcg}&set_id=eq.${encodeURIComponent(realSetId)}&lang=eq.en&select=${FIELDS}&limit=400`, env) || [];
+  let rows = await supaRest(`cards?tcg=eq.${tcg}&set_id=eq.${encodeURIComponent(realSetId)}&lang=eq.${encodeURIComponent(lang || 'en')}&select=${FIELDS}&limit=400`, env) || [];
   if (!rows.length) {
+    if (lang) {
+      return new Response(notFoundHtml('set'), { status: 404, headers: { 'content-type': 'text/html; charset=utf-8' } });
+    }
     rows = await supaRest(`cards?tcg=eq.${tcg}&set_id=eq.${encodeURIComponent(realSetId)}&select=${FIELDS}&limit=400`, env) || [];
   }
   if (!rows.length) {
@@ -272,10 +285,11 @@ async function handleSetBot(slug) {
 
   const tcgLabel = TCG_LABELS[tcg] || tcg;
   const setSlug = `${tcg}-${setIdSlug}`;
-  const setUrl = `https://dragold.org/set/${setSlug}`;
+  const langNote = lang === 'ja' ? ' (Japanese)' : '';
+  const setUrl = `https://dragold.org/set/${setSlug}${lang ? `?lang=${encodeURIComponent(lang)}` : ''}`;
   const countTxt = hasMore ? `${cardCount}+ cards` : `${cardCount} card${cardCount === 1 ? '' : 's'}`;
-  const title = `${setName} (${tcgLabel}) — Set Guide & Card List — DraGold`;
-  const description = `${setName} is a ${tcgLabel} set${logo?.release_date ? ` released ${logo.release_date}` : ''} with ${countTxt}. Browse every card, price and rarity on DraGold.`;
+  const title = `${setName}${langNote} (${tcgLabel}) — Set Guide & Card List — DraGold`;
+  const description = `${setName} is a ${tcgLabel} set${logo?.release_date ? ` released ${logo.release_date}` : ''} with ${countTxt}.${lang === 'ja' ? ' Japanese edition.' : ''} Browse every card, rarity and variant, and track this set in your collection on DraGold.`;
 
   // Block 6: nodo TCG reale (/{tcg}) prima del nodo Set — breadcrumb a 3 livelli.
   const hubUrl = `https://dragold.org/${tcg}`;
@@ -309,7 +323,7 @@ async function handleSetBot(slug) {
     return `<li><a href="https://dragold.org/carta/${escapeHtml(cSlug)}">${escapeHtml(c.name)} #${escapeHtml(c.card_number || '')}</a></li>`;
   }).filter(Boolean).join('');
 
-  const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">
+  const html = `<!DOCTYPE html><html lang="${lang === 'ja' ? 'ja' : 'en'}"><head><meta charset="UTF-8">
 <title>${escapeHtml(title)}</title>
 <meta name="description" content="${escapeHtml(description)}">
 <link rel="canonical" href="${setUrl}">
@@ -328,6 +342,7 @@ ${logo?.logo_url ? `<meta name="twitter:image" content="${escapeHtml(logo.logo_u
 <a href="https://dragold.org/">← DraGold</a> · <a href="${hubUrl}">${escapeHtml(tcgLabel)}</a>
 <h1>${escapeHtml(setName)}</h1>
 <p>${escapeHtml(tcgLabel)} · ${escapeHtml(realSetId)}${logo?.release_date ? ` · Released ${escapeHtml(logo.release_date)}` : ''} · ${escapeHtml(countTxt)}</p>
+<p><a href="https://dragold.org/">Track this set in your Collection</a> · <a href="https://dragold.org/academy/tcg-basics">Learn: Card, Set, Release &amp; Variant</a></p>
 ${logo?.logo_url ? `<img src="${escapeHtml(logo.logo_url)}" alt="${escapeHtml(setName)}">` : ''}
 <h2>Cards in this set</h2>
 <ul>${cardLinksHtml}</ul>
@@ -377,7 +392,7 @@ async function handleTcgBot(tcg) {
 
   const hubUrl = `https://dragold.org/${tcg}`;
   const description = `${TCG_DESCRIPTIONS[tcg]} ${sets.length} sets indexed.`;
-  const title = `${label} — Sets, Cards & Market Prices — DraGold`;
+  const title = `${label} — Sets, Cards & Collector's Guide — DraGold`;
   const firstLogo = sets.find(s => s.logoUrl)?.logoUrl || null;
 
   const graph = [{
@@ -419,6 +434,7 @@ ${firstLogo ? `<meta name="twitter:image" content="${escapeHtml(firstLogo)}">` :
 </head><body>
 <a href="https://dragold.org/">← DraGold</a>
 <h1>${escapeHtml(label)}</h1>
+<p><a href="https://dragold.org/">Explore in DraGold</a> · <a href="https://dragold.org/academy">New to TCGs? Visit the Academy</a></p>
 <p>${escapeHtml(TCG_DESCRIPTIONS[tcg])}</p>
 <p>${sets.length} set${sets.length === 1 ? '' : 's'} indexed</p>
 <h2>Sets</h2>
@@ -569,11 +585,135 @@ async function handleIllustratorBot(slug) {
   return new Response(html, { status: 200, headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'public, max-age=3600, s-maxage=3600' } });
 }
 
+// Academy bot rendering (Task 5, SEO Foundation). Content is fully static
+// (academyContent.js, imported above) — no Supabase call needed here at
+// all, cheaper than every other handler in this file.
+const ACADEMY_HUB_URL = 'https://dragold.org/academy';
+const ACADEMY_DESCRIPTION = 'Short, focused lessons on how TCG collecting works: reading a card, telling rarities and variants apart, and building a collection. Free to read, no sign-up required.';
+
+async function handleAcademyBot() {
+  const graph = [{
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'DraGold', item: 'https://dragold.org/' },
+      { '@type': 'ListItem', position: 2, name: 'Academy', item: ACADEMY_HUB_URL },
+    ],
+  }, {
+    '@type': 'CollectionPage',
+    name: 'DraGold Academy',
+    description: ACADEMY_DESCRIPTION,
+    url: ACADEMY_HUB_URL,
+    mainEntity: {
+      '@type': 'ItemList',
+      numberOfItems: ACADEMY_LESSONS.length,
+      itemListElement: ACADEMY_LESSONS.map((l, i) => ({
+        '@type': 'ListItem', position: i + 1, name: l.title, url: `https://dragold.org/academy/${l.slug}`,
+      })),
+    },
+  }];
+  const jsonLd = JSON.stringify({ '@context': 'https://schema.org', '@graph': graph });
+  const lessonLinksHtml = ACADEMY_LESSONS.map(l => `<li><a href="https://dragold.org/academy/${escapeHtml(l.slug)}">${escapeHtml(l.title)}</a> — ${escapeHtml(l.summary)}</li>`).join('');
+
+  const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">
+<title>DraGold Academy — Learn TCG Collecting</title>
+<meta name="description" content="${escapeHtml(ACADEMY_DESCRIPTION)}">
+<link rel="canonical" href="${ACADEMY_HUB_URL}">
+<meta name="robots" content="index,follow">
+<meta property="og:type" content="website">
+<meta property="og:title" content="DraGold Academy — Learn TCG Collecting">
+<meta property="og:description" content="${escapeHtml(ACADEMY_DESCRIPTION)}">
+<meta property="og:url" content="${ACADEMY_HUB_URL}">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="DraGold Academy — Learn TCG Collecting">
+<meta name="twitter:description" content="${escapeHtml(ACADEMY_DESCRIPTION)}">
+<script type="application/ld+json">${jsonLd}</script>
+</head><body>
+<a href="https://dragold.org/">← DraGold</a>
+<h1>DraGold Academy</h1>
+<p>${escapeHtml(ACADEMY_DESCRIPTION)}</p>
+<h2>Lessons</h2>
+<ul>${lessonLinksHtml}</ul>
+</body></html>`;
+
+  return new Response(html, { status: 200, headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'public, max-age=3600, s-maxage=3600' } });
+}
+
+async function handleAcademyLessonBot(slug) {
+  const lesson = getLesson(slug);
+  if (!lesson) return new Response(notFoundHtml('academy'), { status: 404, headers: { 'content-type': 'text/html; charset=utf-8' } });
+  const category = getCategory(lesson.category);
+  const { prev, next } = getAdjacentLessons(slug);
+  const lessonUrl = `https://dragold.org/academy/${lesson.slug}`;
+  const title = `${lesson.title} — DraGold Academy`;
+  const description = lesson.summary;
+
+  const bodyHtml = lesson.body.map(b => {
+    if (b.type === 'h3') return `<h3>${escapeHtml(b.text)}</h3>`;
+    if (b.type === 'ul') return `<ul>${b.items.map(it => `<li>${escapeHtml(it)}</li>`).join('')}</ul>`;
+    return `<p>${escapeHtml(b.text)}</p>`;
+  }).join('');
+  const linksHtml = (lesson.links || []).map(l => `<a href="https://dragold.org${l.href}">${escapeHtml(l.label)}</a>`).join(' · ');
+  const prevNextHtml = [
+    prev ? `<a href="https://dragold.org/academy/${escapeHtml(prev.slug)}">← ${escapeHtml(prev.title)}</a>` : '',
+    next ? `<a href="https://dragold.org/academy/${escapeHtml(next.slug)}">${escapeHtml(next.title)} →</a>` : '',
+  ].filter(Boolean).join(' · ');
+
+  const graph = [{
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'DraGold', item: 'https://dragold.org/' },
+      { '@type': 'ListItem', position: 2, name: 'Academy', item: ACADEMY_HUB_URL },
+      { '@type': 'ListItem', position: 3, name: lesson.title, item: lessonUrl },
+    ],
+  }, {
+    '@type': 'LearningResource',
+    name: lesson.title,
+    description,
+    url: lessonUrl,
+    learningResourceType: 'Lesson',
+    isPartOf: { '@type': 'CollectionPage', name: 'DraGold Academy', url: ACADEMY_HUB_URL },
+    ...(category ? { about: category.label } : {}),
+  }];
+  const jsonLd = JSON.stringify({ '@context': 'https://schema.org', '@graph': graph });
+
+  const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">
+<title>${escapeHtml(title)}</title>
+<meta name="description" content="${escapeHtml(description)}">
+<link rel="canonical" href="${lessonUrl}">
+<meta name="robots" content="index,follow">
+<meta property="og:type" content="article">
+<meta property="og:title" content="${escapeHtml(title)}">
+<meta property="og:description" content="${escapeHtml(description)}">
+<meta property="og:url" content="${lessonUrl}">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="${escapeHtml(title)}">
+<meta name="twitter:description" content="${escapeHtml(description)}">
+<script type="application/ld+json">${jsonLd}</script>
+</head><body>
+<a href="https://dragold.org/academy">← Academy</a>
+${category ? `<p>${escapeHtml(category.label)}</p>` : ''}
+<h1>${escapeHtml(lesson.title)}</h1>
+${bodyHtml}
+${linksHtml ? `<p>${linksHtml}</p>` : ''}
+${prevNextHtml ? `<p>${prevNextHtml}</p>` : ''}
+</body></html>`;
+
+  return new Response(html, { status: 200, headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'public, max-age=3600, s-maxage=3600' } });
+}
+
 export default async function middleware(request) {
   const ua = request.headers.get('user-agent') || '';
   if (!BOT_UA.test(ua)) return; // utenti reali: nessun intervento, passa alla SPA normale
 
   const url = new URL(request.url);
+  if (url.pathname === '/academy' || url.pathname === '/academy/') {
+    return handleAcademyBot();
+  }
+  if (url.pathname.startsWith('/academy/')) {
+    const slug = decodeURIComponent(url.pathname.replace(/^\/academy\//, ''));
+    if (!slug) return handleAcademyBot();
+    return handleAcademyLessonBot(slug);
+  }
   if (url.pathname.startsWith('/carta/')) {
     const slug = decodeURIComponent(url.pathname.replace(/^\/carta\//, ''));
     if (!slug) return;
@@ -582,7 +722,13 @@ export default async function middleware(request) {
   if (url.pathname.startsWith('/set/')) {
     const slug = decodeURIComponent(url.pathname.replace(/^\/set\//, ''));
     if (!slug) return;
-    return handleSetBot(slug);
+    // Explicit-language routing: only a plausible short code is honored
+    // (mirrors SetPage.jsx's readRequestedLang), same reasoning — anything
+    // else in the query param is ignored rather than passed through as a
+    // raw filter value.
+    const rawLang = (url.searchParams.get('lang') || '').trim().toLowerCase();
+    const lang = /^[a-z]{2}(-[a-z]{2,4})?$/.test(rawLang) ? rawLang : null;
+    return handleSetBot(slug, lang);
   }
   if (url.pathname.startsWith('/illustrator/')) {
     const slug = decodeURIComponent(url.pathname.replace(/^\/illustrator\//, ''));

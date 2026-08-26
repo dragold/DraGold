@@ -261,6 +261,7 @@ input{font-family:inherit;font-size:16px;}
 .foot-sub{font-size:13px;color:var(--muted);}
 .foot-links{margin-top:12px;display:flex;gap:8px;justify-content:center;font-size:13px;color:var(--dim);}
 .foot-links a:hover,.foot-links button:hover{color:var(--text);}
+.foot-legal{margin-top:6px;font-size:11.5px;opacity:.75;}
 
 /* bottom tab (mobile) */
 .tabbar{position:fixed;bottom:0;left:0;right:0;z-index:40;display:flex;background:rgba(11,11,24,.92);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border-top:1px solid var(--border);padding-bottom:env(safe-area-inset-bottom);}
@@ -313,6 +314,12 @@ input{font-family:inherit;font-size:16px;}
 .card-item-sym{height:14px;width:14px;object-fit:contain;opacity:.75;vertical-align:middle;flex-shrink:0;}
 .set-logo-img{max-height:28px;max-width:130px;object-fit:contain;opacity:.85;display:block;margin:4px 0 2px;}
 .card-item-lang{font-size:12px;}
+/* Print variant badge (Alternate Art/Promo/Foil/Parallel), FASE 4 search suggestions -- stesso token .card-item-num, leggermente evidenziato per distinguerlo dal numero carta. */
+.card-item-variant{color:var(--gold);border:1px solid rgba(251,191,36,.25);border-radius:5px;padding:1px 5px;}
+/* Link reali (non SPA) a /carta/{slug}?lang=xx per ogni stampa del gruppo canonico -- vedi commento in SearchResultItem.jsx. */
+.card-item-variants{display:flex;flex-wrap:wrap;gap:4px;padding:0 10px 10px;margin-top:-4px;}
+.card-item-variant-link{font-size:11px;text-decoration:none;color:var(--muted);background:var(--surface-2);border:1px solid var(--border);border-radius:5px;padding:2px 6px;line-height:1.4;}
+.card-item-variant-link:hover{color:var(--gold);border-color:rgba(251,191,36,.3);}
 /* House rule: no red/green price signal on catalog/browsing surfaces — a
    price is a fact (mono), not a trading cue. Matches .fmv-val/.sold-avg,
    which already use gold rather than gain/loss. Portfolio/Alerts keep
@@ -591,6 +598,9 @@ input{font-family:inherit;font-size:16px;}
 .pfg-img{width:100%;aspect-ratio:5/7;background:var(--surface-2);overflow:hidden;position:relative;flex-shrink:0;}
 .pfg-img img{width:100%;height:100%;object-fit:cover;display:block;}
 .pfg-qty-badge{position:absolute;top:8px;right:8px;background:rgba(8,8,14,.8);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);color:#fff;font-family:'Space Mono',monospace;font-size:11px;font-weight:700;padding:2px 9px;border-radius:100px;border:1px solid rgba(255,255,255,.15);}
+.pfg-qty-decrement{position:absolute;top:8px;left:8px;width:22px;height:22px;display:flex;align-items:center;justify-content:center;background:rgba(8,8,14,.8);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);color:#fff;font-family:'Space Mono',monospace;font-size:14px;font-weight:700;line-height:1;padding:0;border-radius:100px;border:1px solid rgba(255,255,255,.15);cursor:pointer;transition:background .15s var(--ease-out);}
+.pfg-qty-decrement:hover{background:rgba(255,80,80,.35);}
+.pfg-qty-decrement:disabled{opacity:.6;cursor:default;}
 .pfg-body{padding:11px 12px 12px;display:flex;flex-direction:column;gap:3px;flex:1;}
 .pfg-name{font-size:13px;font-weight:700;line-height:1.32;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;}
 .pfg-set{font-size:11px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
@@ -683,10 +693,22 @@ input{font-family:inherit;font-size:16px;}
 .set-card-fallback-code{font-family:'Space Mono',monospace;font-size:13px;font-weight:700;letter-spacing:.03em;line-height:1;}
 .set-card-fallback-tcg{font-size:9px;font-weight:700;letter-spacing:.08em;opacity:.65;line-height:1;}
 .set-card-name{font-size:12px;font-weight:600;line-height:1.3;color:var(--text);overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;}
+.set-card-meta{font-family:'Space Mono',monospace;font-size:10px;color:var(--dim);letter-spacing:.02em;}
+.set-section-logo{height:20px;width:auto;object-fit:contain;opacity:.9;}
+.set-year-head{font-family:'Space Mono',monospace;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);margin:4px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--border);}
+/* Explorer + Catalog Completeness — International/Japanese subsections
+   within a TCG section (see pages/sets/SetsView.jsx). Lighter weight than
+   .set-year-head: this labels a language group, the year headers still do
+   the finer-grained grouping inside it. */
+.set-lang-group{margin-bottom:14px;}
+.set-lang-group:last-child{margin-bottom:0;}
+.set-lang-head{display:flex;align-items:center;gap:8px;font-family:'Space Mono',monospace;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;}
+.set-card-lang{font-family:'Space Mono',monospace;font-size:8.5px;font-weight:700;letter-spacing:.04em;color:var(--dim);background:var(--surface-3);border-radius:4px;padding:1px 4px;margin-left:4px;vertical-align:middle;}
 
 /* ─── Card Detail → Set link (Phase 1 post-P0) ─── */
 .set-logo-link{background:none;border:none;padding:0;cursor:pointer;display:inline-flex;opacity:.9;transition:.15s;}
 .set-logo-link:hover{opacity:1;}
+.set-logo-link:focus-visible{outline:2px solid var(--gold);outline-offset:3px;border-radius:4px;}
 /* Affordance visibile anche senza hover (icona chevron sempre presente, non solo
    sottolineatura al passaggio del mouse) — resta elegante/secondario: stesso colore
    muted del testo circostante, solo l'icona segnala "questo porta altrove". */
@@ -694,6 +716,7 @@ input{font-family:inherit;font-size:16px;}
 .asset-meta-link svg{opacity:.6;transition:.15s;}
 .asset-meta-link:hover{color:var(--text);}
 .asset-meta-link:hover svg{opacity:1;transform:translateX(1px);}
+.asset-meta-link:focus-visible{outline:2px solid var(--gold);outline-offset:2px;border-radius:4px;}
 
 /* ─── "See full set" — text-link leggero, non un chip/bottone pieno ─── */
 .rail-more-link{background:none;border:none;padding:0;margin:0;font-size:11px;font-weight:700;letter-spacing:.04em;
@@ -726,6 +749,8 @@ input{font-family:inherit;font-size:16px;}
 .set-detail-eyebrow{position:relative;font-family:'Space Mono',monospace;font-size:10.5px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--relation);}
 .set-detail-row{position:relative;display:flex;align-items:center;gap:18px;}
 .set-detail-head .set-logo-img{height:52px;max-width:220px;object-fit:contain;}
+.set-detail-logo-fallback{height:52px;min-width:110px;padding:0 16px;border-radius:8px;border:1px solid;display:inline-flex;align-items:center;justify-content:center;background:color-mix(in srgb, currentColor 8%, transparent);}
+.set-detail-logo-fallback-code{font-family:'Space Mono',monospace;font-size:15px;font-weight:700;letter-spacing:.03em;}
 .set-detail-head .view-t{font-family:'Fraunces',serif;font-weight:800;font-size:clamp(34px,6.5vw,58px);letter-spacing:-.02em;line-height:.98;}
 .set-preview-strip{position:relative;display:flex;gap:10px;overflow-x:auto;margin-top:20px;padding-top:16px;border-top:1px solid rgba(255,255,255,.08);}
 .set-preview-card{flex:0 0 56px;aspect-ratio:63/88;border-radius:7px;overflow:hidden;border:1px solid var(--border-2);box-shadow:0 10px 20px -12px rgba(0,0,0,.6);}
@@ -762,3 +787,133 @@ input{font-family:inherit;font-size:16px;}
   .constellation-rail:has(.constellation-satellite:hover) .constellation-satellite:not(:hover){opacity:.4;filter:saturate(.7);}
 }
 
+
+/* ════════════════════════════════════════════════════════════════════════
+   AUTH PAGES — /login /register /forgot-password /reset-password /account
+   (Auth/Profile/Username feature) — reuses .btn/.input/.auth-* tokens above.
+   ════════════════════════════════════════════════════════════════════════ */
+.authpage{min-height:100svh;display:flex;align-items:center;justify-content:center;padding:32px var(--p);background:var(--bg);}
+.authpage-card{width:100%;max-width:420px;background:var(--surface);border:1px solid var(--border-2);border-radius:22px;padding:32px 26px;box-shadow:0 30px 80px rgba(0,0,0,.5);}
+.authpage-back{color:var(--muted);font-size:13px;margin-bottom:18px;display:inline-block;transition:.15s;}
+.authpage-back:hover{color:var(--text);}
+.authpage-sep{display:flex;align-items:center;gap:10px;color:var(--dim);font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;margin:16px 0;}
+.authpage-sep::before,.authpage-sep::after{content:'';flex:1;height:1px;background:var(--border);}
+.authpage-foot{text-align:center;margin-top:20px;font-size:13.5px;color:var(--muted);}
+.authpage-foot a{color:var(--gold);font-weight:700;}
+.authpage-link{color:var(--gold);font-weight:700;font-size:13.5px;}
+.authpage-links-row{display:flex;justify-content:space-between;align-items:center;margin:-4px 0 14px;font-size:13px;}
+.btn-google{background:#fff;color:#1f1f1f;border:1px solid var(--border-2);}
+.btn-google:hover{filter:brightness(.97);}
+.btn-google svg{flex-shrink:0;}
+.field{margin-bottom:14px;}
+.field-label{display:block;font-size:12.5px;font-weight:700;color:var(--muted);margin-bottom:6px;letter-spacing:.02em;}
+.field-hint{font-size:12px;color:var(--dim);margin-top:-8px;margin-bottom:12px;}
+.checkbox-row{display:flex;align-items:flex-start;gap:10px;margin:6px 0 16px;font-size:13px;color:var(--muted);line-height:1.5;}
+.checkbox-row a{color:var(--gold);font-weight:600;}
+.checkbox-row input{margin-top:3px;width:16px;height:16px;accent-color:var(--gold);flex-shrink:0;}
+.auth-ok{background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.3);color:var(--gain);font-size:13px;padding:9px 12px;border-radius:9px;margin-bottom:12px;}
+
+/* Account page */
+.account-hero{display:flex;align-items:center;gap:14px;margin-bottom:22px;}
+.account-avatar{width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,var(--gold),var(--gold-deep));color:#1a1200;font-weight:800;font-size:22px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.account-name{font-size:19px;font-weight:800;letter-spacing:-.01em;}
+.account-email{color:var(--muted);font-size:13.5px;margin-top:2px;}
+.account-section{background:var(--surface-2);border:1px solid var(--border);border-radius:14px;padding:16px 18px;margin-bottom:14px;}
+.account-section-h{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--dim);margin-bottom:10px;}
+.account-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border);font-size:14px;gap:12px;}
+.account-row:last-child{border-bottom:none;}
+.account-row-label{color:var(--muted);flex-shrink:0;}
+.account-row-value{font-weight:600;text-align:right;word-break:break-word;}
+.badge-todo{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--dim);background:var(--surface-3);padding:3px 8px;border-radius:6px;flex-shrink:0;}
+
+/* Profile management: avatar upload, username form, danger zone
+   (Auth/Profile/Username feature - profile management follow-up). Reuses
+   .field/.input/.btn/.auth-err tokens already defined above. */
+.avatar-edit{display:flex;align-items:center;gap:16px;margin-bottom:22px;}
+.avatar-edit-pic{position:relative;width:64px;height:64px;flex-shrink:0;}
+.avatar-edit-pic img,.avatar-edit-pic .account-avatar{width:64px;height:64px;border-radius:50%;object-fit:cover;display:block;}
+.avatar-edit-actions{display:flex;flex-direction:column;gap:8px;flex:1;min-width:0;}
+.avatar-edit-row{display:flex;gap:8px;flex-wrap:wrap;}
+.avatar-edit-input{display:none;}
+.avatar-edit-hint{font-size:11.5px;color:var(--dim);}
+.avatar-edit-spinner{position:absolute;inset:0;border-radius:50%;background:rgba(2,2,8,.55);display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;}
+
+.field-status{font-size:12px;margin-top:-8px;margin-bottom:12px;display:flex;align-items:center;gap:5px;}
+.field-status.ok{color:var(--gain);}
+.field-status.bad{color:var(--loss);}
+.field-status.pending{color:var(--dim);}
+
+.danger-zone{background:rgba(248,113,113,.06);border:1px solid rgba(248,113,113,.25);border-radius:14px;padding:16px 18px;margin-bottom:14px;}
+.danger-zone .account-section-h{color:var(--loss);}
+.danger-zone-desc{font-size:12.5px;color:var(--muted);line-height:1.5;margin-bottom:12px;}
+.btn-danger{background:var(--loss);color:#fff;}
+.btn-danger:hover{filter:brightness(1.06);}
+.btn-danger:disabled{opacity:.6;cursor:default;}
+.btn-danger-outline{background:transparent;color:var(--loss);border:1px solid rgba(248,113,113,.4);}
+.btn-danger-outline:hover{background:rgba(248,113,113,.08);}
+
+.confirm-delete-warning{display:flex;gap:10px;background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.25);border-radius:12px;padding:12px 14px;margin-bottom:16px;color:var(--loss);font-size:13px;line-height:1.5;}
+.confirm-delete-warning svg{flex-shrink:0;margin-top:1px;}
+.confirm-delete-word{font-weight:800;letter-spacing:.02em;}
+
+/* Legal placeholder pages */
+.legal-page{max-width:720px;margin:0 auto;padding:40px var(--p) 80px;}
+.legal-page h1{font-family:'Fraunces',serif;font-size:clamp(26px,5vw,36px);font-weight:800;margin-bottom:8px;}
+.legal-page .legal-note{background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.25);color:var(--muted);font-size:13.5px;padding:12px 14px;border-radius:11px;margin:18px 0 26px;line-height:1.55;}
+.legal-page h2{font-size:17px;font-weight:800;margin:26px 0 8px;}
+.legal-page p{color:var(--muted);font-size:14.5px;line-height:1.7;margin-bottom:10px;}
+
+/* Academy MVP (Task 4) */
+.acad-hero{padding:28px 0 24px;border-bottom:1px solid var(--border);margin-bottom:24px;}
+.acad-hero-ic{display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:11px;background:rgba(251,191,36,.12);color:var(--gold);margin-bottom:12px;}
+.acad-hero-t{font-family:'Fraunces',serif;font-size:clamp(26px,5vw,36px);font-weight:800;letter-spacing:-.02em;margin-bottom:8px;}
+.acad-hero-sub{color:var(--muted);font-size:14.5px;line-height:1.65;max-width:640px;margin-bottom:16px;}
+.acad-progress{display:flex;align-items:center;gap:12px;max-width:420px;}
+.acad-progress-bar{flex:1;height:6px;border-radius:100px;background:var(--surface-2);overflow:hidden;}
+.acad-progress-fill{height:100%;background:linear-gradient(90deg,var(--gold-deep),var(--gold));border-radius:100px;transition:width .3s var(--ease-out);}
+.acad-progress-txt{font-size:12.5px;color:var(--muted);white-space:nowrap;flex-shrink:0;}
+.acad-progress-cta{color:var(--gold);font-weight:700;font-size:13.5px;text-decoration:none;}
+.acad-progress-cta:hover{text-decoration:underline;}
+
+.acad-cat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-bottom:8px;}
+.acad-cat-card{display:flex;flex-direction:column;align-items:flex-start;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px;text-decoration:none;color:inherit;transition:border-color .15s var(--ease-out),transform .15s var(--ease-out);}
+@media(hover:hover){.acad-cat-card:hover{border-color:var(--gold);transform:translateY(-2px);}}
+.acad-cat-ic{display:flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:9px;background:var(--surface-2);color:var(--gold);}
+.acad-cat-label{font-size:13.5px;font-weight:700;}
+.acad-cat-done{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;color:var(--gain);}
+
+.acad-lesson-list{display:flex;flex-direction:column;gap:8px;}
+.acad-lesson-row{display:flex;align-items:center;gap:14px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px 16px;text-decoration:none;color:inherit;transition:border-color .15s var(--ease-out);}
+@media(hover:hover){.acad-lesson-row:hover{border-color:var(--gold);}}
+.acad-lesson-status{display:flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;background:var(--surface-2);flex-shrink:0;color:var(--gain);}
+.acad-lesson-status.done{background:rgba(52,211,153,.12);}
+.acad-lesson-body{display:flex;flex-direction:column;gap:2px;flex:1;min-width:0;}
+.acad-lesson-cat{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--gold);}
+.acad-lesson-title{font-size:15px;font-weight:800;}
+.acad-lesson-summary{font-size:13px;color:var(--muted);line-height:1.5;}
+.acad-lesson-meta{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--dim);flex-shrink:0;}
+
+/* Lesson page */
+.acad-lesson-main{max-width:680px;}
+.acad-back{display:inline-flex;align-items:center;gap:6px;color:var(--muted);font-size:13px;font-weight:600;text-decoration:none;margin-bottom:18px;}
+.acad-back:hover{color:var(--text);}
+.acad-lesson-cat-pill{display:inline-block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--gold);margin-bottom:8px;}
+.acad-lesson-h1{font-family:'Fraunces',serif;font-size:clamp(24px,4.5vw,32px);font-weight:800;letter-spacing:-.02em;margin-bottom:20px;}
+.acad-lesson-content h3{font-size:16px;font-weight:800;margin:22px 0 8px;}
+.acad-lesson-content h3:first-child{margin-top:0;}
+.acad-lesson-content p{font-size:14.5px;line-height:1.75;color:var(--muted);margin-bottom:4px;}
+.acad-lesson-content ul{margin:6px 0 10px 20px;padding:0;}
+.acad-lesson-content li{font-size:14.5px;line-height:1.7;color:var(--muted);margin-bottom:6px;}
+.acad-lesson-links{display:flex;flex-wrap:wrap;gap:8px;margin-top:20px;}
+.acad-complete-row{display:flex;align-items:center;gap:12px;margin-top:26px;padding-top:22px;border-top:1px solid var(--border);flex-wrap:wrap;}
+.acad-complete-err{font-size:12.5px;color:var(--loss);}
+.acad-lesson-nav{display:flex;justify-content:space-between;gap:12px;margin-top:22px;}
+.acad-nav-btn{display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px 14px;text-decoration:none;color:inherit;max-width:48%;}
+.acad-nav-btn.next{margin-left:auto;text-align:right;flex-direction:row-reverse;}
+.acad-nav-txt{display:flex;flex-direction:column;gap:1px;min-width:0;}
+.acad-nav-lbl{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--dim);}
+.acad-nav-t{font-size:13px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+
+/* Card Detail -> Academy CTA (FASE 5) */
+.asset-academy-link{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;color:var(--muted);text-decoration:none;margin-top:10px;}
+.asset-academy-link:hover{color:var(--gold);}

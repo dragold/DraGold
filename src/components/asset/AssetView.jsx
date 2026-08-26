@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
-import { supabase, supabaseReady, addToWatchlist, addOrIncrementCollection } from "../../supabase.js";
-import { TCG_LIST, CARD_LANGS, ebayURL, ebayItemURL } from "../../DraGold.jsx";
+import { supabase, supabaseReady, addToWatchlist, addOrIncrementCollection, decrementOrRemoveCollection } from "../../supabase.js";
+import { TCG_LIST, CARD_LANGS, ebayURL, ebayItemURL, EBAY_MARKETS } from "../../DraGold.jsx";
 import { pickCardImage, getSetInfo } from "../shared/cardImage.js";
 import { Icon } from "../shared/Icon.jsx";
 import { PortfolioModal } from "../shared/PortfolioModal.jsx";
@@ -66,6 +66,7 @@ export function AssetView({ card, onBack, isAuthed, onLogin, country, cur, eurRa
   const [watchBusy, setWatchBusy] = useState(false);
   const [collected, setCollected] = useState(false);
   const [collectBusy, setCollectBusy] = useState(false);
+  const [decrementBusy, setDecrementBusy] = useState(false);
   // Real quantity already in the user's portfolio for this card — fetched on
   // mount so the CTA reflects reality on first paint ("In Portfolio · X
   // copies"), not only after a click during this session (Portfolio 2.0,
@@ -73,6 +74,12 @@ export function AssetView({ card, onBack, isAuthed, onLogin, country, cur, eurRa
   // quantity must always be represented).
   const [myQty, setMyQty] = useState(0);
   const [toast, setToast] = useState("");
+  // Copy Listing Info (Card ID microproduct, 2026-08-26): stesso CTA gia'
+  // aggiunto a CardPage.jsx (/carta/{slug}) -- serve anche qui perche' il
+  // deep link /card/{id} usato da Card ID (e dal resto della SPA) apre
+  // QUESTO componente, non CardPage.jsx. Stesso pattern di feedback locale
+  // di quel componente (nessun toast globale nuovo).
+  const [copyMsg, setCopyMsg] = useState("");
   // eBay sold timeframes (Finding API) — {'7d': {avg, median, count, currency}, ...}
   const [soldData, setSoldData] = useState({});
   // User plan tier: 'free' | 'collector' | 'pro'
@@ -333,9 +340,80 @@ export function AssetView({ card, onBack, isAuthed, onLogin, country, cur, eurRa
     }
   };
 
+  // Rimuovi una copia — gemella simmetrica di addCollection, stessa RPC
+  // pattern (decrement_or_remove_collection): atomica, nessuna race. A
+  // quantity 1 la riga viene eliminata (myQty torna 0, CTA torna "Add to
+  // Portfolio"); a quantity>1 decrementa e basta.
+  const decrementCollection = async () => {
+    if (!isAuthed) { onLogin?.(); return; }
+    if (decrementBusy || myQty <= 0) return;
+    setDecrementBusy(true);
+    const res = await decrementOrRemoveCollection(toApiId(card));
+    setDecrementBusy(false);
+    if (res?.error) { flash(typeof res.error === "string" ? res.error : "Could not remove copy."); return; }
+    const row = res?.data;
+    if (!row) { flash("Could not remove copy."); return; }
+    setMyQty(row.quantity);
+    if (row.out_deleted) {
+      setCollected(false);
+      flash("Removed from your portfolio");
+    } else {
+      flash(`Copy removed — you now have ${row.quantity}`);
+    }
+  };
+
   const gateAuth = (m) => { if (!isAuthed) { onLogin?.(); } else { setModal(m); } };
 
   const ebayHref = ebayURL(card.name, card.set_name || "", country, card.tcg || "pokemon", cardNum);
+
+  // Copy Listing Info -- stringa SOLO da campi reali gia' caricati per questa
+  // carta (nessun campo inventato quando manca, stesso comportamento di
+  // CardPage.jsx handleCopyListing).
+  async function handleCopyListing() {
+    const lines = [
+      card.name,
+      card.set_name || null,
+      cardNum ? "#" + cardNum : null,
+      cardExtra?.rarity || null,
+      langInfo?.label || null,
+      cardExtra?.print_variant || null,
+    ].filter(Boolean);
+    const text = lines.join("\n");
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopyMsg("Copied!");
+    } catch {
+      try {
+        const ta = document.createElement("textarea");
+        ta.value = text;
+        ta.style.position = "fixed";
+        ta.style.opacity = "0";
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand("copy");
+        document.body.removeChild(ta);
+        setCopyMsg("Copied!");
+      } catch {
+        setCopyMsg("Could not copy - select and copy manually.");
+      }
+    }
+    setTimeout(() => setCopyMsg(""), 2500);
+  }
+
+  // Market/Purchase Discovery MVP (2026-08-25): quando la carta non ha un
+  // prezzo interno affidabile (fmvUSD == null, vedi blocco "PREZZO" sotto),
+  // invece di inventare un valore mostriamo dove l'utente può verificare/
+  // comprare la carta. eBay resta oggi l'unica integrazione reale con
+  // affiliate tracking effettivamente configurato (EBAY_CAMP/mkrid, vedi
+  // ebayURL in DraGold.jsx) — PRODUCT_SPEC.md §5: "eBay, se usato, resta un
+  // link/CTA esterno onesto, non una fonte su cui costruire logica di
+  // prodotto". Array (non un singolo link cablato) apposta per poter
+  // aggiungere in futuro TCGplayer/Cardmarket senza rifare questo blocco:
+  // richiedono una loro registrazione/approvazione affiliate separata, non
+  // ancora fatta — non inventata qui, vedi report del task per il dettaglio.
+  const marketLinks = [
+    { key: "ebay", label: "Find listings on eBay", href: ebayHref },
+  ].filter(l => l.href);
 
   return (
     <section className="view asset">
@@ -394,7 +472,15 @@ export function AssetView({ card, onBack, isAuthed, onLogin, country, cur, eurRa
 
           {(() => {
             const canOpenSet = !!(onOpenSet && card.set_id);
-            const openThisSet = () => onOpenSet({ tcg: card.tcg, set_id: card.set_id, lang: card.lang, set_name: setInfo?.set_name || card.set_name });
+            // Explorer/Set-Experience completeness (2026-08-25): setInfo.logo_url
+            // is already resolved above (getSetInfo) and used to render this very
+            // logo a few lines below — it just wasn't threaded into the ref passed
+            // to onOpenSet, so Set Detail had to re-resolve it from its own
+            // (eager, International-only) setsMap cache and silently lost the logo
+            // for any set only resolved lazily (e.g. Japanese sets) when reached
+            // via Card Detail's "view set" link. Same fix already applied to
+            // Explore's SetTile in the earlier Explorer/Catalog Completeness task.
+            const openThisSet = () => onOpenSet({ tcg: card.tcg, set_id: card.set_id, lang: card.lang, set_name: setInfo?.set_name || card.set_name, logo_url: setInfo?.logo_url || null });
             return (
               <>
                 {setInfo?.logo_url && (
@@ -450,6 +536,18 @@ export function AssetView({ card, onBack, isAuthed, onLogin, country, cur, eurRa
                     </div>
                   )}
                 </div>
+                {/* Academy (Task 4, FASE 5) — one simple, generic link, not
+                    card-specific data: rarity/variant is the fact this page
+                    is most likely to raise a "what does that mean?" for. */}
+                <a className="asset-academy-link" href="/academy/rarity-variants">
+                  <Icon name="doc" size={14} /> Learn about rarity &amp; variants
+                </a>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 10 }}>
+                  <button type="button" className="btn btn-ghost btn-sm" onClick={handleCopyListing}>
+                    Copy listing info
+                  </button>
+                  {copyMsg && <span className="muted" style={{ fontSize: 13 }}>{copyMsg}</span>}
+                </div>
               </>
             );
           })()}
@@ -480,9 +578,11 @@ export function AssetView({ card, onBack, isAuthed, onLogin, country, cur, eurRa
           ) : (
             <div className="noprice-block">
               <div className="noprice-txt">No market price yet for this card.</div>
-              <a className="btn btn-primary btn-block" href={ebayHref} target="_blank" rel="noreferrer">
-                See price on eBay ↗
-              </a>
+              {marketLinks.map(l => (
+                <a key={l.key} className="btn btn-primary btn-block" href={l.href} target="_blank" rel="noreferrer">
+                  {l.label} ↗
+                </a>
+              ))}
               <button className="btn btn-ghost btn-block" onClick={track} disabled={watchBusy || watching}>
                 {watching ? "Tracking ✓" : watchBusy ? "…" : "Track this card"}
               </button>
@@ -503,6 +603,10 @@ export function AssetView({ card, onBack, isAuthed, onLogin, country, cur, eurRa
             </span>
             <button className="btn btn-ghost btn-sm" onClick={addCollection} disabled={collectBusy}>
               {collectBusy ? "…" : "+ Add another"}
+            </button>
+            <button className="btn btn-ghost btn-sm" onClick={decrementCollection} disabled={decrementBusy}
+              aria-label="Remove one copy from portfolio">
+              {decrementBusy ? "…" : "− Remove one"}
             </button>
           </div>
         ) : (
@@ -654,7 +758,7 @@ export function AssetView({ card, onBack, isAuthed, onLogin, country, cur, eurRa
             <span className="sec-h-line" />
             {onOpenSet && card.set_id && (
               <button type="button" className="rail-more-link"
-                onClick={() => onOpenSet({ tcg: card.tcg, set_id: card.set_id, lang: card.lang, set_name: setInfo?.set_name || card.set_name })}>
+                onClick={() => onOpenSet({ tcg: card.tcg, set_id: card.set_id, lang: card.lang, set_name: setInfo?.set_name || card.set_name, logo_url: setInfo?.logo_url || null })}>
                 See full set <Icon name="chevron" size={11} stroke={2.5} />
               </button>
             )}

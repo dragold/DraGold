@@ -1,0 +1,705 @@
+{
+  "mode": "SMOKE_TEST_READ_ONLY",
+  "generated_at": "2026-08-17T18:50:42.453Z",
+  "scope": {
+    "tcg": "pokemon",
+    "lang": "ja",
+    "set_id": "SVLN",
+    "set_name": "スターターセット テラスタイプ：ステラ ニンフィアex"
+  },
+  "db_total": 22,
+  "source": "tcgdex",
+  "image_url_present": 22,
+  "image_url_missing": 0,
+  "images": {
+    "IMAGE_OK": 22,
+    "IMAGE_MISSING": 0,
+    "IMAGE_BROKEN": 0,
+    "IMAGE_INVALID": 0,
+    "IMAGE_FETCH_ERROR": 0
+  },
+  "cards": [
+    {
+      "id": "pokemon:tcgdex:SVLN-001:ja",
+      "source": "tcgdex",
+      "source_id": "SVLN-001",
+      "set_id": "SVLN",
+      "card_number": "001",
+      "name": "マンタイン",
+      "image_url": "https://assets.tcgdex.net/ja/SV/SVLN/001/high.webp",
+      "image_url_hi": "https://assets.tcgdex.net/ja/SV/SVLN/001/high.webp",
+      "image_status": "IMAGE_OK",
+      "http_status": 200,
+      "content_type": "image/webp",
+      "image_url_audit": {
+        "status": "IMAGE_OK",
+        "url": "https://assets.tcgdex.net/ja/SV/SVLN/001/high.webp",
+        "httpStatus": 200,
+        "contentType": "image/webp",
+        "bytesSampled": 0,
+        "errorCode": null,
+        "source": "existing"
+      },
+      "image_url_hi_audit": {
+        "status": "IMAGE_OK",
+        "url": "https://assets.tcgdex.net/ja/SV/SVLN/001/high.webp",
+        "httpStatus": 200,
+        "contentType": "image/webp",
+        "bytesSampled": 0,
+        "errorCode": null,
+        "source": "existing"
+      }
+    },
+    {
+      "id": "pokemon:tcgdex:SVLN-002:ja",
+      "source": "tcgdex",
+      "source_id": "SVLN-002",
+      "set_id": "SVLN",
+      "card_number": "002",
+      "name": "サンダー",
+      "image_url": "https://assets.tcgdex.net/ja/SV/SVLN/002/high.webp",
+      "image_url_hi": "https://assets.tcgdex.net/ja/SV/SVLN/002/high.webp",
+      "image_status": "IMAGE_OK",
+      "http_status": 200,
+      "content_type": "image/webp",
+      "image_url_audit": {
+        "status": "IMAGE_OK",
+        "url": "https://assets.tcgdex.net/ja/SV/SVLN/002/high.webp",
+        "httpStatus": 200,
+        "contentType": "image/webp",
+        "bytesSampled": 0,
+        "errorCode": null,
+        "source": "existing"
+      },
+      "image_url_hi_audit": {
+        "status": "IMAGE_OK",
+        "url": "https://assets.tcgdex.net/ja/SV/SVLN/002/high.webp",
+        "httpStatus": 200,
+        "contentType": "image/webp",
+        "bytesSampled": 0,
+        "errorCode": null,
+        "source": "existing"
+      }
+    },
+    {
+      "id": "pokemon:tcgdex:SVLN-003:ja",
+      "source": "tcgdex",
+      "source_id": "SVLN-003",
+      "set_id": "SVLN",
+      "card_number": "003",
+      "name": "マリル",
+      "image_url": "https://assets.tcgdex.net/ja/SV/SVLN/003/high.webp",
+      "image_url_hi": "https://assets.tcgdex.net/ja/SV/SVLN/003/high.webp",
+      "image_status": "IMAGE_OK",
+      "http_status": 200,
+      "content_type": "image/webp",
+      "image_url_audit": {
+        "status": "IMAGE_OK",
+        "url": "https://assets.tcgdex.net/ja/SV/SVLN/003/high.webp",
+        "httpStatus": 200,
+        "contentType": "image/webp",
+        "bytesSampled": 0,
+        "errorCode": null,
+        "source": "existing"
+      },
+      "image_url_hi_audit": {
+        "status": "IMAGE_OK",
+        "url": "https://assets.tcgdex.net/ja/SV/SVLN/003/high.webp",
+        "httpStatus": 200,
+        "contentType": "image/webp",
+        "bytesSampled": 0,
+        "errorCode": null,
+        "source": "existing"
+      }
+    },
+    {
+      "id": "pokemon:tcgdex:SVLN-004:ja",
+      "source": "tcgdex",
+      "source_id": "SVLN-004",
+      "set_id": "SVLN",
+      "card_number": "004",
+      "name": "マリルリ",
+      "image_url": "https://assets.tcgdex.net/ja/SV/SVLN/004/high.webp",
+      "image_url_hi": "https://assets.tcgdex.net/ja/SV/SVLN/004/high.webp",
+      "image_status": "IMAGE_OK",
+      "http_status": 200,
+      "content_type": "image/webp",
+      "image_url_audit": {
+        "status": "IMAGE_OK",
+        "url": "https://assets.tcgdex.net/ja/SV/SVLN/004/high.webp",
+        "httpStatus": 200,
+        "contentType": "image/webp",
+        "bytesSampled": 0,
+        "errorCode": null,
+        "source": "existing"
+      },
+      "image_url_hi_audit": {
+        "status": "IMAGE_OK",
+        "url": "https://assets.tcgdex.net/ja/SV/SVLN/004/high.webp",
+        "httpStatus": 200,
+        "contentType": "image/webp",
+        "bytesSampled": 0,
+        "errorCode": null,
+        "source": "existing"
+      }
+    },
+    {
+      "id": "pokemon:tcgdex:SVLN-005:ja",
+      "source": "tcgdex",
+      "source_id": "SVLN-005",
+      "set_id": "SVLN",
+      "card_number": "005",
+      "name": "ニンフィアex",
+      "image_url": "https://assets.tcgdex.net/ja/SV/SVLN/005/high.webp",
+      "image_url_hi": "https://assets.tcgdex.net/ja/SV/SVLN/005/high.webp",
+      "image_status": "IMAGE_OK",
+      "http_status": 200,
+      "content_type": "image/webp",
+      "image_url_audit": {
+        "status": "IMAGE_OK",
+        "url": "https://assets.tcgdex.net/ja/SV/SVLN/005/high.webp",
+        "httpStatus": 200,
+        "contentType": "image/webp",
+        "bytesSampled": 0,
+        "errorCode": null,
+        "source": "existing"
+      },
+      "image_url_hi_audit": {
+        "status": "IMAGE_OK",
+        "url": "https://assets.tcgdex.net/ja/SV/SVLN/005/high.webp",
+        "httpStatus": 200,
+        "contentType": "image/webp",
+        "bytesSampled": 0,
+        "errorCode": null,
+        "source": "existing"
+      }
+    },
+    {
+      "id": "pokemon:tcgdex:SVLN-006:ja",
+      "source": "tcgdex",
+      "source_id": "SVLN-006",
+      "set_id": "SVLN",
+      "card_number": "006",
+      "name": "ゼルネアス",
+      "image_url": "https://assets.tcgdex.net/ja/SV/SVLN/006/high.webp",
+      "image_url_hi": "https://assets.tcgdex.net/ja/SV/SVLN/006/high.webp",
+      "image_status": "IMAGE_OK",
+      "http_status": 200,
+      "content_type": "image/webp",
+      "image_url_audit": {
+        "status": "IMAGE_OK",
+        "url": "https://assets.tcgdex.net/ja/SV/SVLN/006/high.webp",
+        "httpStatus": 200,
+        "contentType": "image/webp",
+        "bytesSampled": 0,
+        "errorCode": null,
+        "source": "existing"
+      },
+      "image_url_hi_audit": {
+        "status": "IMAGE_OK",
+        "url": "https://assets.tcgdex.net/ja/SV/SVLN/006/high.webp",
+        "httpStatus": 200,
+        "contentType": "image/webp",
+        "bytesSampled": 0,
+        "errorCode": null,
+        "source": "existing"
+      }
+    },
+    {
+      "id": "pokemon:tcgdex:SVLN-007:ja",
+      "source": "tcgdex",
+      "source_id": "SVLN-007",
+      "set_id": "SVLN",
+      "card_number": "007",
+      "name": "オドリドリ",
+      "image_url": "https://assets.tcgdex.net/ja/SV/SVLN/007/high.webp",
+      "image_url_hi": "https://assets.tcgdex.net/ja/SV/SVLN/007/high.webp",
+      "image_status": "IMAGE_OK",
+      "http_status": 200,
+      "content_type": "image/webp",
+      "image_url_audit": {
+        "status": "IMAGE_OK",
+        "url": "https://assets.tcgdex.net/ja/SV/SVLN/007/high.webp",
+        "httpStatus": 200,
+        "contentType": "image/webp",
+        "bytesSampled": 0,
+        "errorCode": null,
+        "source": "existing"
+      },
+      "image_url_hi_audit": {
+        "status": "IMAGE_OK",
+        "url": "https://assets.tcgdex.net/ja/SV/SVLN/007/high.webp",
+        "httpStatus": 200,
+        "contentType": "image/webp",
+        "bytesSampled": 0,
+        "errorCode": null,
+        "source": "existing"
+      }
+    },
+    {
+      "id": "pokemon:tcgdex:SVLN-008:ja",
+      "source": "tcgdex",
+      "source_id": "SVLN-008",
+      "set_id": "SVLN",
+      "card_number": "008",
+      "name": "ミミッキュ",
+      "image_url": "https://assets.tcgdex.net/ja/SV/SVLN/008/high.webp",
+      "image_url_hi": "https://assets.tcgdex.net/ja/SV/SVLN/008/high.webp",
+      "image_status": "IMAGE_OK",
+      "http_status": 200,
+      "content_type": "image/webp",
+      "image_url_audit": {
+        "status": "IMAGE_OK",
+        "url": "https://assets.tcgdex.net/ja/SV/SVLN/008/high.webp",
+        "httpStatus": 200,
+        "contentType": "image/webp",
+        "bytesSampled": 0,
+        "errorCode": null,
+        "source": "existing"
+      },
+      "image_url_hi_audit": {
+        "status": "IMAGE_OK",
+        "url": "https://assets.tcgdex.net/ja/SV/SVLN/008/high.webp",
+        "httpStatus": 200,
+        "contentType": "image/webp",
+        "bytesSampled": 0,
+        "errorCode": null,
+        "source": "existing"
+      }
+    },
+    {
+      "id": "pokemon:tcgdex:SVLN-009:ja",
+      "source": "tcgdex",
+      "source_id": "SVLN-009",
+      "set_id": "SVLN",
+      "card_number": "009",
+      "name": "イーブイ",
+      "image_url": "https://assets.tcgdex.net/ja/SV/SVLN/009/high.webp",
+      "image_url_hi": "https://assets.tcgdex.net/ja/SV/SVLN/009/high.webp",
+      "image_status": "IMAGE_OK",
+      "http_status": 200,
+      "content_type": "image/webp",
+      "image_url_audit": {
+        "status": "IMAGE_OK",
+        "url": "https://assets.tcgdex.net/ja/SV/SVLN/009/high.webp",
+        "httpStatus": 200,
+        "contentType": "image/webp",
+        "bytesSampled": 0,
+        "errorCode": null,
+        "source": "existing"
+      },
+      "image_url_hi_audit": {
+        "status": "IMAGE_OK",
+        "url": "https://assets.tcgdex.net/ja/SV/SVLN/009/high.webp",
+        "httpStatus": 200,
+        "contentType": "image/webp",
+        "bytesSampled": 0,
+        "errorCode": null,
+        "source": "existing"
+      }
+    },
+    {
+      "id": "pokemon:tcgdex:SVLN-010:ja",
+      "source": "tcgdex",
+      "source_id": "SVLN-010",
+      "set_id": "SVLN",
+      "card_number": "010",
+      "name": "カビゴン",
+      "image_url": "https://assets.tcgdex.net/ja/SV/SVLN/010/high.webp",
+      "image_url_hi": "https://assets.tcgdex.net/ja/SV/SVLN/010/high.webp",
+      "image_status": "IMAGE_OK",
+      "http_status": 200,
+      "content_type": "image/webp",
+      "image_url_audit": {
+        "status": "IMAGE_OK",
+        "url": "https://assets.tcgdex.net/ja/SV/SVLN/010/high.webp",
+        "httpStatus": 200,
+        "contentType": "image/webp",
+        "bytesSampled": 0,
+        "errorCode": null,
+        "source": "existing"
+      },
+      "image_url_hi_audit": {
+        "status": "IMAGE_OK",
+        "url": "https://assets.tcgdex.net/ja/SV/SVLN/010/high.webp",
+        "httpStatus": 200,
+        "contentType": "image/webp",
+        "bytesSampled": 0,
+        "errorCode": null,
+        "source": "existing"
+      }
+    },
+    {
+      "id": "pokemon:tcgdex:SVLN-011:ja",
+      "source": "tcgdex",
+      "source_id": "SVLN-011",
+      "set_id": "SVLN",
+      "card_number": "011",
+      "name": "すごいつりざお",
+      "image_url": "https://assets.tcgdex.net/ja/SV/SVLN/011/high.webp",
+      "image_url_hi": "https://assets.tcgdex.net/ja/SV/SVLN/011/high.webp",
+      "image_status": "IMAGE_OK",
+      "http_status": 200,
+      "content_type": "image/webp",
+      "image_url_audit": {
+        "status": "IMAGE_OK",
+        "url": "https://assets.tcgdex.net/ja/SV/SVLN/011/high.webp",
+        "httpStatus": 200,
+        "contentType": "image/webp",
+        "bytesSampled": 0,
+        "errorCode": null,
+        "source": "existing"
+      },
+      "image_url_hi_audit": {
+        "status": "IMAGE_OK",
+        "url": "https://assets.tcgdex.net/ja/SV/SVLN/011/high.webp",
+        "httpStatus": 200,
+        "contentType": "image/webp",
+        "bytesSampled": 0,
+        "errorCode": null,
+        "source": "existing"
+      }
+    },
+    {
+      "id": "pokemon:tcgdex:SVLN-012:ja",
+      "source": "tcgdex",
+      "source_id": "SVLN-012",
+      "set_id": "SVLN",
+      "card_number": "012",
+      "name": "テラスタルオーブ",
+      "image_url": "https://assets.tcgdex.net/ja/SV/SVLN/012/high.webp",
+      "image_url_hi": "https://assets.tcgdex.net/ja/SV/SVLN/012/high.webp",
+      "image_status": "IMAGE_OK",
+      "http_status": 200,
+      "content_type": "image/webp",
+      "image_url_audit": {
+        "status": "IMAGE_OK",
+        "url": "https://assets.tcgdex.net/ja/SV/SVLN/012/high.webp",
+        "httpStatus": 200,
+        "contentType": "image/webp",
+        "bytesSampled": 0,
+        "errorCode": null,
+        "source": "existing"
+      },
+      "image_url_hi_audit": {
+        "status": "IMAGE_OK",
+        "url": "https://assets.tcgdex.net/ja/SV/SVLN/012/high.webp",
+        "httpStatus": 200,
+        "contentType": "image/webp",
+        "bytesSampled": 0,
+        "errorCode": null,
+        "source": "existing"
+      }
+    },
+    {
+      "id": "pokemon:tcgdex:SVLN-013:ja",
+      "source": "tcgdex",
+      "source_id": "SVLN-013",
+      "set_id": "SVLN",
+      "card_number": "013",
+      "name": "ネストボール",
+      "image_url": "https://assets.tcgdex.net/ja/SV/SVLN/013/high.webp",
+      "image_url_hi": "https://assets.tcgdex.net/ja/SV/SVLN/013/high.webp",
+      "image_status": "IMAGE_OK",
+      "http_status": 200,
+      "content_type": "image/webp",
+      "image_url_audit": {
+        "status": "IMAGE_OK",
+        "url": "https://assets.tcgdex.net/ja/SV/SVLN/013/high.webp",
+        "httpStatus": 200,
+        "contentType": "image/webp",
+        "bytesSampled": 0,
+        "errorCode": null,
+        "source": "existing"
+      },
+      "image_url_hi_audit": {
+        "status": "IMAGE_OK",
+        "url": "https://assets.tcgdex.net/ja/SV/SVLN/013/high.webp",
+        "httpStatus": 200,
+        "contentType": "image/webp",
+        "bytesSampled": 0,
+        "errorCode": null,
+        "source": "existing"
+      }
+    },
+    {
+      "id": "pokemon:tcgdex:SVLN-014:ja",
+      "source": "tcgdex",
+      "source_id": "SVLN-014",
+      "set_id": "SVLN",
+      "card_number": "014",
+      "name": "ハイパーボール",
+      "image_url": "https://assets.tcgdex.net/ja/SV/SVLN/014/high.webp",
+      "image_url_hi": "https://assets.tcgdex.net/ja/SV/SVLN/014/high.webp",
+      "image_status": "IMAGE_OK",
+      "http_status": 200,
+      "content_type": "image/webp",
+      "image_url_audit": {
+        "status": "IMAGE_OK",
+        "url": "https://assets.tcgdex.net/ja/SV/SVLN/014/high.webp",
+        "httpStatus": 200,
+        "contentType": "image/webp",
+        "bytesSampled": 0,
+        "errorCode": null,
+        "source": "existing"
+      },
+      "image_url_hi_audit": {
+        "status": "IMAGE_OK",
+        "url": "https://assets.tcgdex.net/ja/SV/SVLN/014/high.webp",
+        "httpStatus": 200,
+        "contentType": "image/webp",
+        "bytesSampled": 0,
+        "errorCode": null,
+        "source": "existing"
+      }
+    },
+    {
+      "id": "pokemon:tcgdex:SVLN-015:ja",
+      "source": "tcgdex",
+      "source_id": "SVLN-015",
+      "set_id": "SVLN",
+      "card_number": "015",
+      "name": "プレシャスキャリー",
+      "image_url": "https://assets.tcgdex.net/ja/SV/SVLN/015/high.webp",
+      "image_url_hi": "https://assets.tcgdex.net/ja/SV/SVLN/015/high.webp",
+      "image_status": "IMAGE_OK",
+      "http_status": 200,
+      "content_type": "image/webp",
+      "image_url_audit": {
+        "status": "IMAGE_OK",
+        "url": "https://assets.tcgdex.net/ja/SV/SVLN/015/high.webp",
+        "httpStatus": 200,
+        "contentType": "image/webp",
+        "bytesSampled": 0,
+        "errorCode": null,
+        "source": "existing"
+      },
+      "image_url_hi_audit": {
+        "status": "IMAGE_OK",
+        "url": "https://assets.tcgdex.net/ja/SV/SVLN/015/high.webp",
+        "httpStatus": 200,
+        "contentType": "image/webp",
+        "bytesSampled": 0,
+        "errorCode": null,
+        "source": "existing"
+      }
+    },
+    {
+      "id": "pokemon:tcgdex:SVLN-016:ja",
+      "source": "tcgdex",
+      "source_id": "SVLN-016",
+      "set_id": "SVLN",
+      "card_number": "016",
+      "name": "ポケギア3.0",
+      "image_url": "https://assets.tcgdex.net/ja/SV/SVLN/016/high.webp",
+      "image_url_hi": "https://assets.tcgdex.net/ja/SV/SVLN/016/high.webp",
+      "image_status": "IMAGE_OK",
+      "http_status": 200,
+      "content_type": "image/webp",
+      "image_url_audit": {
+        "status": "IMAGE_OK",
+        "url": "https://assets.tcgdex.net/ja/SV/SVLN/016/high.webp",
+        "httpStatus": 200,
+        "contentType": "image/webp",
+        "bytesSampled": 0,
+        "errorCode": null,
+        "source": "existing"
+      },
+      "image_url_hi_audit": {
+        "status": "IMAGE_OK",
+        "url": "https://assets.tcgdex.net/ja/SV/SVLN/016/high.webp",
+        "httpStatus": 200,
+        "contentType": "image/webp",
+        "bytesSampled": 0,
+        "errorCode": null,
+        "source": "existing"
+      }
+    },
+    {
+      "id": "pokemon:tcgdex:SVLN-017:ja",
+      "source": "tcgdex",
+      "source_id": "SVLN-017",
+      "set_id": "SVLN",
+      "card_number": "017",
+      "name": "ポケモンいれかえ",
+      "image_url": "https://assets.tcgdex.net/ja/SV/SVLN/017/high.webp",
+      "image_url_hi": "https://assets.tcgdex.net/ja/SV/SVLN/017/high.webp",
+      "image_status": "IMAGE_OK",
+      "http_status": 200,
+      "content_type": "image/webp",
+      "image_url_audit": {
+        "status": "IMAGE_OK",
+        "url": "https://assets.tcgdex.net/ja/SV/SVLN/017/high.webp",
+        "httpStatus": 200,
+        "contentType": "image/webp",
+        "bytesSampled": 0,
+        "errorCode": null,
+        "source": "existing"
+      },
+      "image_url_hi_audit": {
+        "status": "IMAGE_OK",
+        "url": "https://assets.tcgdex.net/ja/SV/SVLN/017/high.webp",
+        "httpStatus": 200,
+        "contentType": "image/webp",
+        "bytesSampled": 0,
+        "errorCode": null,
+        "source": "existing"
+      }
+    },
+    {
+      "id": "pokemon:tcgdex:SVLN-018:ja",
+      "source": "tcgdex",
+      "source_id": "SVLN-018",
+      "set_id": "SVLN",
+      "card_number": "018",
+      "name": "アカマツ",
+      "image_url": "https://assets.tcgdex.net/ja/SV/SVLN/018/high.webp",
+      "image_url_hi": "https://assets.tcgdex.net/ja/SV/SVLN/018/high.webp",
+      "image_status": "IMAGE_OK",
+      "http_status": 200,
+      "content_type": "image/webp",
+      "image_url_audit": {
+        "status": "IMAGE_OK",
+        "url": "https://assets.tcgdex.net/ja/SV/SVLN/018/high.webp",
+        "httpStatus": 200,
+        "contentType": "image/webp",
+        "bytesSampled": 0,
+        "errorCode": null,
+        "source": "existing"
+      },
+      "image_url_hi_audit": {
+        "status": "IMAGE_OK",
+        "url": "https://assets.tcgdex.net/ja/SV/SVLN/018/high.webp",
+        "httpStatus": 200,
+        "contentType": "image/webp",
+        "bytesSampled": 0,
+        "errorCode": null,
+        "source": "existing"
+      }
+    },
+    {
+      "id": "pokemon:tcgdex:SVLN-019:ja",
+      "source": "tcgdex",
+      "source_id": "SVLN-019",
+      "set_id": "SVLN",
+      "card_number": "019",
+      "name": "ナンジャモ",
+      "image_url": "https://assets.tcgdex.net/ja/SV/SVLN/019/high.webp",
+      "image_url_hi": "https://assets.tcgdex.net/ja/SV/SVLN/019/high.webp",
+      "image_status": "IMAGE_OK",
+      "http_status": 200,
+      "content_type": "image/webp",
+      "image_url_audit": {
+        "status": "IMAGE_OK",
+        "url": "https://assets.tcgdex.net/ja/SV/SVLN/019/high.webp",
+        "httpStatus": 200,
+        "contentType": "image/webp",
+        "bytesSampled": 0,
+        "errorCode": null,
+        "source": "existing"
+      },
+      "image_url_hi_audit": {
+        "status": "IMAGE_OK",
+        "url": "https://assets.tcgdex.net/ja/SV/SVLN/019/high.webp",
+        "httpStatus": 200,
+        "contentType": "image/webp",
+        "bytesSampled": 0,
+        "errorCode": null,
+        "source": "existing"
+      }
+    },
+    {
+      "id": "pokemon:tcgdex:SVLN-020:ja",
+      "source": "tcgdex",
+      "source_id": "SVLN-020",
+      "set_id": "SVLN",
+      "card_number": "020",
+      "name": "ネモ",
+      "image_url": "https://assets.tcgdex.net/ja/SV/SVLN/020/high.webp",
+      "image_url_hi": "https://assets.tcgdex.net/ja/SV/SVLN/020/high.webp",
+      "image_status": "IMAGE_OK",
+      "http_status": 200,
+      "content_type": "image/webp",
+      "image_url_audit": {
+        "status": "IMAGE_OK",
+        "url": "https://assets.tcgdex.net/ja/SV/SVLN/020/high.webp",
+        "httpStatus": 200,
+        "contentType": "image/webp",
+        "bytesSampled": 0,
+        "errorCode": null,
+        "source": "existing"
+      },
+      "image_url_hi_audit": {
+        "status": "IMAGE_OK",
+        "url": "https://assets.tcgdex.net/ja/SV/SVLN/020/high.webp",
+        "httpStatus": 200,
+        "contentType": "image/webp",
+        "bytesSampled": 0,
+        "errorCode": null,
+        "source": "existing"
+      }
+    },
+    {
+      "id": "pokemon:tcgdex:SVLN-021:ja",
+      "source": "tcgdex",
+      "source_id": "SVLN-021",
+      "set_id": "SVLN",
+      "card_number": "021",
+      "name": "博士の研究",
+      "image_url": "https://assets.tcgdex.net/ja/SV/SVLN/021/high.webp",
+      "image_url_hi": "https://assets.tcgdex.net/ja/SV/SVLN/021/high.webp",
+      "image_status": "IMAGE_OK",
+      "http_status": 200,
+      "content_type": "image/webp",
+      "image_url_audit": {
+        "status": "IMAGE_OK",
+        "url": "https://assets.tcgdex.net/ja/SV/SVLN/021/high.webp",
+        "httpStatus": 200,
+        "contentType": "image/webp",
+        "bytesSampled": 0,
+        "errorCode": null,
+        "source": "existing"
+      },
+      "image_url_hi_audit": {
+        "status": "IMAGE_OK",
+        "url": "https://assets.tcgdex.net/ja/SV/SVLN/021/high.webp",
+        "httpStatus": 200,
+        "contentType": "image/webp",
+        "bytesSampled": 0,
+        "errorCode": null,
+        "source": "existing"
+      }
+    },
+    {
+      "id": "pokemon:tcgdex:SVLN-022:ja",
+      "source": "tcgdex",
+      "source_id": "SVLN-022",
+      "set_id": "SVLN",
+      "card_number": "022",
+      "name": "ボスの指令",
+      "image_url": "https://assets.tcgdex.net/ja/SV/SVLN/022/high.webp",
+      "image_url_hi": "https://assets.tcgdex.net/ja/SV/SVLN/022/high.webp",
+      "image_status": "IMAGE_OK",
+      "http_status": 200,
+      "content_type": "image/webp",
+      "image_url_audit": {
+        "status": "IMAGE_OK",
+        "url": "https://assets.tcgdex.net/ja/SV/SVLN/022/high.webp",
+        "httpStatus": 200,
+        "contentType": "image/webp",
+        "bytesSampled": 0,
+        "errorCode": null,
+        "source": "existing"
+      },
+      "image_url_hi_audit": {
+        "status": "IMAGE_OK",
+        "url": "https://assets.tcgdex.net/ja/SV/SVLN/022/high.webp",
+        "httpStatus": 200,
+        "contentType": "image/webp",
+        "bytesSampled": 0,
+        "errorCode": null,
+        "source": "existing"
+      }
+    }
+  ]
+}

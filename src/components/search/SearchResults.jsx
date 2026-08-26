@@ -2,7 +2,7 @@ import { Icon } from "../shared/Icon.jsx";
 import { ebaySearchURL } from "../../DraGold.jsx";
 import { SearchResultItem } from "./SearchResultItem.jsx";
 
-export function SearchResults({ loading, results, priceMap, error, term, country, cur, eurRate, onRetry, onOpen, setsMap, hasMore = false, totalCount = null, discoveryMode = false }) {
+export function SearchResults({ loading, results, priceMap, error, term, country, cur, eurRate, onRetry, onOpen, setsMap, hasMore = false, totalCount = null, discoveryMode = false, onMissingCard = null, identifyMode = false }) {
   if (loading) return (
     <div className="card-grid">
       {Array.from({ length: 6 }).map((_, i) => (
@@ -19,7 +19,22 @@ export function SearchResults({ loading, results, priceMap, error, term, country
       <button className="btn btn-ghost btn-sm" style={{ marginLeft: 'auto' }} onClick={onRetry}>Retry</button>
     </div>
   );
-  if (!results.length) return (
+  if (!results.length) return discoveryMode ? (
+    // Data Completeness / UX Holes (2026-08-25): this same component renders
+    // Set Detail's card grid (SetsView -> SetDetailPage, discoveryMode=true,
+    // term=setName) — a real set can genuinely have zero cards indexed yet
+    // (e.g. a set_logos row without matching cards rows, or a language edge
+    // case). The search-tuned copy below ("No results for 'x'", "try fewer
+    // words", eBay-search-by-term, "missing card?" mailto) is actively
+    // misleading here: the user didn't type a query, they clicked a set tile,
+    // and none of those actions fix a catalog gap. Honest, set-specific
+    // empty state instead — no invented reason, no CTA that doesn't apply
+    // (the page's own Back button above already covers "what can I do next").
+    <div className="zero-state">
+      <div className="zero-title">No cards indexed yet for {term}</div>
+      <div className="zero-sub">This set is in our catalog, but we don't have its cards yet.</div>
+    </div>
+  ) : (
     <div className="zero-state">
       <div className="zero-title">No results for "{term}"</div>
       <div className="zero-sub">Try fewer words or the card number.</div>
@@ -34,10 +49,23 @@ export function SearchResults({ loading, results, priceMap, error, term, country
           signal to enrich later. See PRODUCT_SPEC.md §1: Core Data Layer is
           still being built out; a report queue is a natural next step once
           this signal proves out, not before. */}
-      <a className="btn btn-ghost btn-sm" style={{ marginTop: 8 }}
-        href={`mailto:hello@dragold.org?subject=${encodeURIComponent(`Missing card: ${term}`)}&body=${encodeURIComponent(`I searched for "${term}" and couldn't find it on DraGold.\n\nCard name / set / language:\n`)}`}>
-        Can't find your card? Tell us →
-      </a>
+      {onMissingCard ? (
+        // Card ID microproduct (2026-08-26): quando il chiamante passa
+        // onMissingCard, questo diventa un flusso reale (form + submission
+        // salvata, vedi CardIdPage.jsx) invece del mailto qui sotto — che
+        // resta il comportamento di default per il resto dell'app (ricerca
+        // principale, Set Detail) dove non e' stato costruito nessun backend
+        // per raccogliere le submission.
+        <button type="button" className="btn btn-ghost btn-sm" style={{ marginTop: 8 }}
+          onClick={() => onMissingCard(term)}>
+          Can't find your card? Add it to DraGold →
+        </button>
+      ) : (
+        <a className="btn btn-ghost btn-sm" style={{ marginTop: 8 }}
+          href={`mailto:hello@dragold.org?subject=${encodeURIComponent(`Missing card: ${term}`)}&body=${encodeURIComponent(`I searched for "${term}" and couldn't find it on DraGold.\n\nCard name / set / language:\n`)}`}>
+          Can't find your card? Tell us →
+        </a>
+      )}
     </div>
   );
   return (
@@ -46,7 +74,7 @@ export function SearchResults({ loading, results, priceMap, error, term, country
         {results.map(card => (
           <SearchResultItem key={card.id} card={card} priceInfo={priceMap[card.id] || null}
             country={country} cur={cur} eurRate={eurRate} onOpen={onOpen} setsMap={setsMap}
-            discoveryMode={discoveryMode} />
+            discoveryMode={discoveryMode} identifyMode={identifyMode} />
         ))}
       </div>
       {!hasMore && (
