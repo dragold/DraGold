@@ -294,6 +294,12 @@ export function normalizeAuthError(error) {
       (msg.includes('username') && msg.includes('duplicate')) ||
       (msg.includes('username') && msg.includes('already')))
     return 'This username is already taken.'
+  if (msg.includes('username_rate_limited'))
+    return 'You can only change your username once every 24 hours.'
+  if (msg.includes('profiles_username_taken'))
+    return 'This username is already taken.'
+  if (msg.includes('not_authenticated'))
+    return 'Your session has expired — please sign in again.'
   if (msg.includes('profiles_username_format'))
     return 'Username must be 3–20 characters: letters, numbers and underscore only.'
   if (msg.includes('password') && (msg.includes('at least') || msg.includes('should be') || msg.includes('weak') || msg.includes('short')))
@@ -353,4 +359,107 @@ export async function getMyContributorLevel() {
   if (!userId) return { level: 'Explorer', approved_count: 0 }
   const { data } = await supabase.from('contributor_levels').select('*').eq('user_id', userId).maybeSingle()
   return data || { level: 'Explorer', approved_count: 0 }
+}
+
+// ════════════════════════════════════════════════════════════════════════
+// PROFILE MANAGEMENT — username change (rate-limited RPC), avatar upload/
+// restore, GDPR account deletion. Extends the Auth/Profile/Username feature
+// above (Google OAuth signInWithGoogle already existed; this section is the
+// rest of the profile-management surface: change username, custom avatar,
+// delete account).
+// ════════════════════════════════════════════════════════════════════════
+
+// Calls the update_username(new_username) RPC (see
+// supabase/migrations/20260826150000_google_oauth_profile_management.sql) —
+// server-side format/uniqueness validation + a 24h rate-limit per user, so
+// this is the single source of truth for a username change (client-side
+// validateUsername()/isUsernameAvailable() above are UX-only prechecks).
+export async function updateUsername(newUsername) {
+  if (!supabase) return { error: { message: 'Backend not configured' } }
+  const clean = (newUsername || '').trim()
+  const vErr = validateUsername(clean)
+  if (vErr) return { error: { message: vErr } }
+  const { data, error } = await supabase.rpc('update_username', { new_username: clean })
+  if (error) return { error }
+  return { data }
+}
+
+const AVATAR_BUCKET = 'avatars'
+const AVATAR_MAX_BYTES = 2 * 1024 * 1024 // 2MB, matches the bucket's file_size_limit
+const AVATAR_ALLOWED_TYPES = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp' }
+
+// Uploads a custom avatar to Storage (avatars/{user_id}/avatar.{ext}, one
+// file per user — upsert overwrites any previous upload) and points
+// profiles.avatar_url at its public URL. Client-side size/type checks here
+// are defense in depth on top of the bucket's own file_size_limit/
+// allowed_mime_types (enforced server-side regardless of what the client
+// sends).
+export async function uploadAvatar(file) {
+  if (!supabase) return { error: { message: 'Backend not configured' } }
+  if (!file) return { error: { message: 'No file selected.' } }
+  const ext = AVATAR_ALLOWED_TYPES[file.type]
+  if (!ext) return { error: { message: 'Only PNG, JPG or WebP images are allowed.' } }
+  if (file.size > AVATAR_MAX_BYTES) return { error: { message: 'Image must be 2MB or smaller.' } }
+
+  const { data: u } = await supabase.auth.getUser()
+  const userId = u?.user?.id
+  if (!userId) return { error: { message: 'Not signed in' } }
+
+  const path = `${userId}/avatar.${ext}`
+  const { error: upErr } = await supabase.storage.from(AVATAR_BUCKET).upload(path, file, {
+    upsert: true, contentType: file.type, cacheControl: '3600',
+  })
+  if (upErr) return { error: upErr }
+
+  const { data: pub } = supabase.storage.from(AVATAR_BUCKET).getPublicUrl(path)
+  // Cache-bust: same path every time (upsert), so without this the browser
+  // (and any CDN in front of Storage) would keep showing the old image.
+  const avatar_url = `${pub.publicUrl}?v=${Date.now()}`
+
+  const { error: updErr } = await supabase.from('profiles').update({ avatar_url }).eq('id', userId)
+  if (updErr) return { error: updErr }
+  return { data: { avatar_url } }
+}
+
+// Restores the Google profile photo captured at signup/last sign-in,
+// overwriting any custom upload. Reads from the live Google identity
+// (identities[].identity_data) when present, falling back to
+// user_metadata for accounts where that shape differs.
+export async function restoreGoogleAvatar() {
+  if (!supabase) return { error: { message: 'Backend not configured' } }
+  const { data: u } = await supabase.auth.getUser()
+  const user = u?.user
+  if (!user) return { error: { message: 'Not signed in' } }
+  const googleIdentity = (user.identities || []).find(i => i.provider === 'google')
+  const meta = googleIdentity?.identity_data || user.user_metadata || {}
+  const avatar_url = meta.avatar_url || meta.picture || null
+  if (!avatar_url) return { error: { message: 'No Google photo available for this account.' } }
+
+  const { error } = await supabase.from('profiles').update({ avatar_url }).eq('id', user.id)
+  if (error) return { error }
+  return { data: { avatar_url } }
+}
+
+// GDPR account deletion. Runs server-side (api/delete-account.js) because
+// deleting the auth.users row requires the service-role Admin API — the
+// browser only ever holds the anon/authenticated key. Everything owned by
+// the user cascade-deletes from that one Admin API call (see migration
+// comment section 8); this just authenticates the request with the user's
+// own access token so the endpoint can't be called on someone else's behalf.
+export async function deleteAccount() {
+  if (!supabase) return { error: { message: 'Backend not configured' } }
+  const { data: s } = await supabase.auth.getSession()
+  const token = s?.session?.access_token
+  if (!token) return { error: { message: 'Not signed in' } }
+  try {
+    const res = await fetch('/api/delete-account', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    const json = await res.json().catch(() => ({}))
+    if (!res.ok) return { error: { message: json?.error || 'Failed to delete account. Please try again.' } }
+    return { data: json }
+  } catch (e) {
+    return { error: { message: 'Network error — check your connection and try again.' } }
+  }
 }

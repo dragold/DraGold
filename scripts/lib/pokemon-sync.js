@@ -177,6 +177,35 @@ export function assertNoCanonicalFields(row) {
 }
 
 /**
+ * Verifica che `identity` contenga tutti i campi non-derivabili che
+ * `public.cards` richiede NOT NULL senza default: `id`, `lang`, `tcg`,
+ * `source`, `source_id`.
+ *
+ * FIX (bug strutturale trovato in audit — vedi IMAGE_AUDIT_REPORT):
+ * prima di questo fix, `mergeRow` scriveva `source`/`source_id` SOLO se
+ * presenti nella riga esistente (`existingRow`), perché non facevano parte
+ * di `MANAGED_FIELDS` e non venivano mai presi da `identity`. Per una carta
+ * NEW (nessuna riga esistente) questo produceva una riga upsert priva di
+ * `source`/`source_id` — colonne `NOT NULL` senza default in produzione —
+ * causando un fallimento del vincolo NOT NULL sull'intero batch di upsert
+ * (fino a 100 righe, comprese le UPDATED legittime nello stesso batch).
+ *
+ * Stessa filosofia di `assertNoCanonicalFields`: fallire rumorosamente qui,
+ * non scrivere silenziosamente una riga incompleta e scoprirlo solo
+ * dall'errore Postgres a valle.
+ *
+ * @param {{id?: string, lang?: string, tcg?: string, source?: string, source_id?: string}} identity
+ * @throws {Error} se un campo identity obbligatorio manca/è vuoto
+ */
+export function assertCompleteIdentity(identity) {
+  const required = ['id', 'lang', 'tcg', 'source', 'source_id']
+  const missing = required.filter(f => identity == null || identity[f] == null || identity[f] === '')
+  if (missing.length) {
+    throw new Error(`assertCompleteIdentity: campo(i) identity mancante(i)/vuoto(i), upsert bloccato prima della scrittura: ${missing.join(', ')}`)
+  }
+}
+
+/**
  * Unisce la riga esistente in DB (può essere `null`/`undefined` se la carta è
  * nuova) con i valori "in arrivo" da TCGdex per questa passata, applicando la
  * regola non negoziabile del requisito 4: un campo assente/null/undefined nel
@@ -188,13 +217,29 @@ export function assertNoCanonicalFields(row) {
  * risultato — vedi anche assertNoCanonicalFields, chiamato qui come rete di
  * sicurezza aggiuntiva prima del return.
  *
+ * `identity` deve includere anche `source`/`source_id` (FIX bug strutturale,
+ * vedi `assertCompleteIdentity`): sono, come `id`/`lang`/`tcg`, campi di
+ * identità deterministici per questa pipeline (sempre `'tcgdex'` + l'id
+ * carta lato TCGdex), MAI derivati da `existingRow`/`incoming` — un valore
+ * `source` esistente in DB non viene mai "mergiato", viene sempre
+ * sovrascritto con quello deciso da chi orchestra il fetch (idempotente:
+ * per questa pipeline è sempre `'tcgdex'`, non introduce drift).
+ *
  * @param {object|null|undefined} existingRow - riga letta da `cards` (o null se nuova)
  * @param {object} incoming - valori calcolati in questa passata, alcuni possono essere null/undefined
- * @param {{id: string, lang: string, tcg: string}} identity
+ * @param {{id: string, lang: string, tcg: string, source: string, source_id: string}} identity
  * @returns {object} riga finale pronta per upsert (mai contiene canonical_*)
+ * @throws {Error} se identity è incompleta (vedi assertCompleteIdentity) — mai un upsert silenziosamente incompleto
  */
 export function mergeRow(existingRow, incoming, identity) {
-  const merged = { id: identity.id, lang: identity.lang, tcg: identity.tcg }
+  assertCompleteIdentity(identity)
+  const merged = {
+    id: identity.id,
+    lang: identity.lang,
+    tcg: identity.tcg,
+    source: identity.source,
+    source_id: identity.source_id,
+  }
   for (const field of MANAGED_FIELDS) {
     const incomingVal = incoming ? incoming[field] : undefined
     if (incomingVal !== null && incomingVal !== undefined) {
