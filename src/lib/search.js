@@ -90,7 +90,7 @@ export async function searchCards(rawQuery) {
 
   let dbQuery = supabase
     .from('cards')
-    .select('id,name,name_en,set_name,set_id,card_number,image_url,lang,tcg,rarity,canonical_card_id,print_variant,card_image_cache(cached_url,status),canonical_cards(slug)');
+    .select('id,name,name_en,set_name,set_id,card_number,image_url,lang,tcg,rarity,canonical_card_id,print_variant,card_image_cache(cached_url,status),canonical_cards!cards_canonical_card_id_fkey(slug)');
 
   // Separa lang-token (es. "jp","ja","en") dai content-token (es. "charizard","op05").
   // I lang-token NON entrano nell'AND della query DB: le carte JP hanno nome giapponese,
@@ -174,7 +174,7 @@ export async function searchCards(rawQuery) {
       if (!safeNums.length) continue;
       let lq = supabase
         .from('cards')
-        .select('id,name,name_en,set_name,set_id,card_number,image_url,lang,tcg,rarity,canonical_card_id,print_variant,card_image_cache(cached_url,status),canonical_cards(slug)')
+        .select('id,name,name_en,set_name,set_id,card_number,image_url,lang,tcg,rarity,canonical_card_id,print_variant,card_image_cache(cached_url,status),canonical_cards!cards_canonical_card_id_fkey(slug)')
         .eq('tcg', tcgKey)
         .in('card_number', safeNums);
       if (langFilterCodes.length === 1) lq = lq.eq('lang', langFilterCodes[0]);
@@ -210,7 +210,7 @@ export async function searchCards(rawQuery) {
         if (!nums.length || nums.length > 400) continue;
         const { data: expanded } = await supabase
           .from('cards')
-          .select('id,name,name_en,set_name,set_id,card_number,image_url,lang,tcg,canonical_card_id,print_variant,card_image_cache(cached_url,status),canonical_cards(slug)')
+          .select('id,name,name_en,set_name,set_id,card_number,image_url,lang,tcg,canonical_card_id,print_variant,card_image_cache(cached_url,status),canonical_cards!cards_canonical_card_id_fkey(slug)')
           .eq('tcg', tcgKey)
           .in('card_number', nums)
           .limit(400);
@@ -242,7 +242,7 @@ export async function searchCards(rawQuery) {
         const knownIds = new Set(nameMatches.map(c => c.id));
         const { data: canonExpand } = await supabase
           .from('cards')
-          .select('id,name,name_en,set_name,set_id,card_number,image_url,lang,tcg,rarity,canonical_card_id,print_variant,card_image_cache(cached_url,status),canonical_cards(slug)')
+          .select('id,name,name_en,set_name,set_id,card_number,image_url,lang,tcg,rarity,canonical_card_id,print_variant,card_image_cache(cached_url,status),canonical_cards!cards_canonical_card_id_fkey(slug)')
           .in('canonical_card_id', canonIds)
           .limit(2000);
         const merged = [...nameMatches];
