@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { supabase, supabaseReady } from "../../supabase.js";
+import { supabase, supabaseReady, listCollection } from "../../supabase.js";
 import { Icon } from "../shared/Icon.jsx";
 import { Onboarding, ONBOARD_KEY } from "../shared/Onboarding.jsx";
 import { SearchResults } from "./SearchResults.jsx";
@@ -11,8 +11,9 @@ import { useDragScroll } from "../../lib/useDragScroll.js";
 import { norm, rankSearchResults, groupByCanonical, searchCards } from "../../lib/search.js";
 import { LANG_ALIASES, RARITY_TOKENS, JP_NAME_ALIASES } from "../../lib/searchData.js";
 import { TCG_LIST } from "../../DraGold.jsx";
+import { buildSetSlug } from "../../lib/setSlug.js";
 
-export function SearchView({ country, cur, eurRate, onOpenAsset, setsMap, onOpenSet, initialSearchState, onSearchStateChange, onSearchStateClear, onOpenExplore }) {
+export function SearchView({ country, cur, eurRate, onOpenAsset, setsMap, onOpenSet, initialSearchState, onSearchStateChange, onSearchStateClear, onOpenExplore, isAuthed = false }) {
   const [q, setQ] = useState(() => initialSearchState?.q || "");
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState(() => initialSearchState?.results || []);
@@ -64,6 +65,33 @@ export function SearchView({ country, cur, eurRate, onOpenAsset, setsMap, onOpen
     return ordered.slice(0, 14);
   }, [setsMap]);
 
+  // Home Discovery — Collection & Set Completion Loop (PRODUCT_SPEC.md §4):
+  // real per-set "owned" count for signed-in users on the same Discover-a-set
+  // rail, anonymous users get a sign-in CTA instead. Reuses collection's own
+  // denormalized card_set/tcg columns (migrations/006_collection_denormalized.sql
+  // — no join needed) grouped client-side; one query total, not one per set.
+  // No fabricated "X/Y complete" percentage here: getting a real total-cards-
+  // per-set count for every rail tile would mean a query per set (or a new
+  // aggregate RPC) — out of scope for this pass, flagged as a gap in the report
+  // rather than invented. SetDetailPage.jsx/SetPage.jsx already show the real
+  // X/Y % once a user opens a specific set.
+  const [ownedBySet, setOwnedBySet] = useState(null); // Map<"tcg:card_set", count> | null (not loaded / anon)
+  useEffect(() => {
+    if (!isAuthed) { setOwnedBySet(null); return; }
+    let cancelled = false;
+    listCollection().then(rows => {
+      if (cancelled) return;
+      const m = new Map();
+      for (const r of (rows || [])) {
+        if (!r?.tcg || !r?.card_set) continue;
+        const key = `${r.tcg}:${r.card_set}`;
+        m.set(key, (m.get(key) || 0) + 1);
+      }
+      setOwnedBySet(m);
+    }).catch(() => { if (!cancelled) setOwnedBySet(null); });
+    return () => { cancelled = true; };
+  }, [isAuthed]);
+
   const runSearch = useCallback(async (query) => {
     const trimmed = query.trim();
     if (!trimmed) return;
@@ -114,11 +142,20 @@ export function SearchView({ country, cur, eurRate, onOpenAsset, setsMap, onOpen
         <div>
           <h1 className="hero-t">Find a card.<br/>Explore the <span className="hero-accent">catalog</span>.</h1>
           <p className="hero-s">Pokémon, One Piece, Magic and Yu-Gi-Oh! — search any card, browse sets, and build your collection.</p>
-          {onOpenExplore && (
-            <button type="button" className="chip" style={{ marginTop: 12 }} onClick={onOpenExplore}>
-              Browse sets →
-            </button>
-          )}
+          <div className="hero-cta-row" style={{ marginTop: 12 }}>
+            {onOpenExplore && (
+              <button type="button" className="chip" onClick={onOpenExplore}>
+                Browse sets →
+              </button>
+            )}
+            {/* Academy entry point (PRODUCT_SPEC.md §3) — discreet, not a
+                primary CTA: the nav bar/tabbar already link to /academy
+                (DraGold.jsx), this just surfaces it once more where
+                discovery actually starts, same real route, no new logic. */}
+            <a className="chip chip-academy" href="/academy">
+              <Icon name="spark" size={13}/> Learn in the Academy →
+            </a>
+          </div>
         </div>
         {heroCards.length > 0 && (
           <div className="hero-stack" aria-hidden="true">
@@ -182,19 +219,37 @@ export function SearchView({ country, cur, eurRate, onOpenAsset, setsMap, onOpen
             onPointerDown={discoverDrag.onPointerDown} onPointerMove={discoverDrag.onPointerMove}
             onPointerUp={discoverDrag.onPointerUp} onPointerLeave={discoverDrag.onPointerLeave}
             onClickCapture={discoverDrag.onClickCapture}>
-            {discoverSets.map(s => (
-              <button type="button" key={`${s.tcg}:${s.set_code}`} className="discover-tile"
-                onClick={() => onOpenSet?.({ tcg: s.tcg, set_id: s.set_code, lang: "en", set_name: s.set_name })}
-                style={{ '--tcg-color': s._tcgInfo?.color }}>
-                {(s.logo_url || s.symbol_url) && (
-                  <img src={s.logo_url || s.symbol_url} alt="" loading="lazy"
-                    onError={e => { e.currentTarget.style.display = 'none'; }} />
-                )}
-                <span className="discover-tile-name">{s.set_name || s.set_code}</span>
-                <span className="discover-tile-tcg">{s._tcgInfo?.short}</span>
-              </button>
-            ))}
+            {discoverSets.map(s => {
+              const owned = ownedBySet?.get(`${s.tcg}:${s.set_name}`) || 0;
+              const setSlug = buildSetSlug(s.tcg, s.set_code);
+              return (
+                <a key={`${s.tcg}:${s.set_code}`} className="discover-tile"
+                  href={setSlug ? `/set/${setSlug}` : undefined}
+                  onClick={e => { e.preventDefault(); onOpenSet?.({ tcg: s.tcg, set_id: s.set_code, lang: "en", set_name: s.set_name }); }}
+                  style={{ '--tcg-color': s._tcgInfo?.color }}>
+                  {(s.logo_url || s.symbol_url) && (
+                    <img src={s.logo_url || s.symbol_url} alt="" loading="lazy"
+                      onError={e => { e.currentTarget.style.display = 'none'; }} />
+                  )}
+                  <span className="discover-tile-name">{s.set_name || s.set_code}</span>
+                  <span className="discover-tile-tcg">{s._tcgInfo?.short}</span>
+                  {/* Collection & Set Completion Loop (PRODUCT_SPEC.md §4) —
+                      real "owned" count for signed-in users who already have
+                      cards from this set (ownedBySet, computed above from
+                      the user's real collection rows — no invented total/%
+                      here, see the useEffect's comment for why). */}
+                  {owned > 0 && (
+                    <span className="discover-tile-owned">{owned} owned</span>
+                  )}
+                </a>
+              );
+            })}
           </div>
+          {!isAuthed && (
+            <p className="discover-rail-cta">
+              <a href="/register">Create a free account</a> to track which cards you own in each set.
+            </p>
+          )}
         </div>
       )}
     </section>
