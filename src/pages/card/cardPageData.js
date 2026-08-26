@@ -43,13 +43,31 @@ if (!supabase || !slug) return null
   if (canonicalErr || !matches || !matches.length) return null
 
   let canonical = matches[0]
-  if (matches.length > 1 && lang) {
+  if (matches.length > 1) {
+    // E2E fix (verification gate, commit 9d393a8 follow-up): il ramo sopra
+    // disambiguava SOLO quando l'URL portava ?lang= esplicito. Senza lang,
+    // si cadeva sempre su matches[0] (ordinato per created_at/id) — per
+    // ~280 slug duplicati questo sceglie in modo arbitrario e non
+    // deterministico-per-l'utente quale dei due gruppi (es. EN/DE/ES/FR/IT/PT
+    // vs JA-only) mostrare, perche' l'ordinamento e' sull'id (stringa) e non
+    // ha alcuna relazione con quale gruppo sia "quello di default" per un
+    // utente che apre lo slug nudo. Fix generico (nessuno slug hardcoded):
+    // 1) se e' presente ?lang= ed esiste un gruppo con quella lingua, vince
+    //    quel gruppo (comportamento invariato);
+    // 2) altrimenti, regola di default deterministica per tutto il catalogo:
+    //    preferisci il gruppo che ha davvero una riga in lingua 'en' — e' la
+    //    lingua di riferimento del catalogo (fallback gia' usato altrove in
+    //    questo stesso file per displayName/primary);
+    // 3) se nessun gruppo ha 'en' (es. duplicati veri, stesso lang su righe
+    //    diverse), si ricade sul comportamento originale (matches[0]).
     const { data: langRows } = await supabase
       .from('cards')
-      .select('canonical_card_id')
+      .select('canonical_card_id, lang')
       .in('canonical_card_id', matches.map(m => m.id))
-      .eq('lang', lang)
-    const disambiguated = langRows?.length ? matches.find(m => langRows.some(r => r.canonical_card_id === m.id)) : null
+    const byLang = (l) => langRows?.length
+      ? matches.find(m => langRows.some(r => r.canonical_card_id === m.id && r.lang === l))
+      : null
+    const disambiguated = (lang && byLang(lang)) || byLang('en')
     if (disambiguated) canonical = disambiguated
   }
 
