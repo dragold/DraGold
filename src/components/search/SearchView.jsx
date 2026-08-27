@@ -210,6 +210,13 @@ export function SearchView({ country, cur, eurRate, onOpenAsset, setsMap, onOpen
                 Browse sets →
               </button>
             )}
+            {/* Card ID entry point (2026-08-26 nav-discoverability fix) —
+                the /card-id microproduct existed with no link anywhere in
+                the app; this surfaces it from the home hero. Real
+                existing route, no new logic. */}
+            <a className="chip chip-cardid" href="/card-id">
+              <Icon name="camera" size={13}/> Identify a card →
+            </a>
             {/* Academy entry point (PRODUCT_SPEC.md §3) — discreet, not a
                 primary CTA: the nav bar/tabbar already link to /academy
                 (DraGold.jsx), this just surfaces it once more where
