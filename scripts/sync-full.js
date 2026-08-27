@@ -244,7 +244,6 @@ async function syncOnePieceEN() {
     ...Array.from({ length: 25 }, (_, i) => `OP-${String(i + 1).padStart(2, '0')}`),
     ...Array.from({ length: 30 }, (_, i) => `ST-${String(i + 1).padStart(2, '0')}`),
           ...Array.from({ length: 5 }, (_, i) => `EB-${String(i + 1).padStart(2, '0')}`),
-    'PR-01',
   ]
 
   const toProcess = argSet
@@ -326,7 +325,6 @@ async function syncOnePieceJA() {
     ...Array.from({ length: 25 }, (_, i) => `OP-${String(i + 1).padStart(2, '0')}`),
     ...Array.from({ length: 30 }, (_, i) => `ST-${String(i + 1).padStart(2, '0')}`),
       ...Array.from({ length: 5 }, (_, i) => `EB-${String(i + 1).padStart(2, '0')}`),
-    'PR-01',
   ]
 
   const toProcess = argSet
