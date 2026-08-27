@@ -6,9 +6,9 @@ on:
   workflow_dispatch:
     inputs:
       tcg:
-        description: 'TCG (pokemon, mtg, ygo, op)'
+        description: 'TCG (pokemon, mtg, ygo, onepiece)'
         required: false
-        default: 'pokemon,mtg,ygo,op'
+        default: 'pokemon,mtg,ygo,onepiece'
       lang:
         description: 'Lingue (en,ja,it,fr,de,es,pt,id)'
         required: false
@@ -38,7 +38,7 @@ jobs:
 
       - name: Run sync (scheduled)
         if: github.event_name == 'schedule'
-        run: node scripts/sync-cards.js --tcg=pokemon,mtg,ygo,op --lang=en,ja,it,fr,de,es,pt,id
+        run: node scripts/sync-cards.js --tcg=pokemon,mtg,ygo,onepiece --lang=en,ja,it,fr,de,es,pt,id
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
