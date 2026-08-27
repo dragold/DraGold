@@ -85,14 +85,6 @@ const DRY_RUN = args.includes('--dry-run')
 const sleep = ms => new Promise(r => setTimeout(r, ms))
 const timeLeftMs = () => TIME_BUDGET_MS - (Date.now() - START_TIME)
 
-async function safeFetch(url, timeout = 15000) {
-try {
-const r = await fetch(url, { signal: AbortSignal.timeout(timeout) })
-if (!r.ok) return null
-return r.json()
-} catch { return null }
-}
-
 // ENRICHMENT STATUS (requisito task "Catalog Sync + Enrichment Fix"): vocabolario
 // minimo richiesto SUCCESS/PARTIAL/RETRYABLE_ERROR/PERMANENT_ERROR/DATA_CONFLICT.
 // Nessuna colonna nuova: riusa il pattern gia' in uso in questo script
@@ -202,14 +194,6 @@ return restPhase.length ? [...priorityPhases, restPhase] : priorityPhases
 
 async function enrichRow(row) {
 await sleep(DELAY_MS)
-<<<<<<< HEAD
-const detail = await safeFetch(`${TCGDEX_BASE}/${row.lang}/sets/${row.set_id}/${row.card_number}`)
-// Fetch fallito (rete/timeout/HTTP non-ok): NON scriviamo il marcatore
-// `_enrichedAt`, la riga resta eleggibile e viene ritentata a un run successivo.
-// Comportamento invariato rispetto a prima del fix — solo il caso "risposta
-// ricevuta ma campo assente" (sotto) e' cambiato.
-if (!detail) return 'notFound'
-=======
 const fetchResult = await fetchDetail(`${TCGDEX_BASE}/${row.lang}/sets/${row.set_id}/${row.card_number}`)
 
 const prevEnrich = (row.metadata && row.metadata._enrich) || null
@@ -236,7 +220,6 @@ if (statusErr) console.warn(`  status update error ${row.id}:`, statusErr.messag
 return isPermanent ? 'permanentError' : 'notFound'
 }
 const detail = fetchResult.data
->>>>>>> feature/google-auth-profile-gdpr
 
 const patch = {
 illustrator: detail.illustrator || null,
@@ -262,8 +245,6 @@ if (detail.stage) extraMeta.stage = detail.stage
 // risposta — e' quello che garantisce che la riga esca dall'eleggibilita' anche
 // quando TCGdex non ha illustrator/dexId/category per questa carta specifica.
 extraMeta._enrichedAt = new Date().toISOString()
-<<<<<<< HEAD
-=======
 // SUCCESS/PARTIAL: SUCCESS quando TCGdex ha restituito i campi opzionali chiave
 // (illustrator o category, i due piu' usati a valle); PARTIAL quando la risposta
 // e' arrivata ok ma senza nessuno dei due -- non e' un errore (puo' essere reale,
@@ -276,7 +257,6 @@ attempts: prevAttempts + 1,
 lastAttempt: extraMeta._enrichedAt,
 lastError: null,
 }
->>>>>>> feature/google-auth-profile-gdpr
 patch.metadata = { ...(row.metadata || {}), ...extraMeta }
 
 const { error: upErr } = await supabase.from('cards').update(patch).eq('id', row.id)
