@@ -730,6 +730,22 @@ input{font-family:inherit;font-size:16px;}
 .set-lang-head{display:flex;align-items:center;gap:8px;font-family:'Space Mono',monospace;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;}
 .set-card-lang{font-family:'Space Mono',monospace;font-size:8.5px;font-weight:700;letter-spacing:.04em;color:var(--dim);background:var(--surface-3);border-radius:4px;padding:1px 4px;margin-left:4px;vertical-align:middle;}
 
+/* Phase 3 — Fase 2 (Ordinamento e filtri Explore, 26/08/2026): barra
+   controlli sopra le sezioni TCG (quick-jump + ordinamento) e chip filtro
+   tipologia prodotto dentro ciascuna sezione. Stesso linguaggio visivo dei
+   chip/pill gia' in uso altrove (.asset-lang-pill) invece di introdurre un
+   componente nuovo. */
+.explore-controls{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;margin:14px 0 22px;}
+.explore-jump{display:flex;flex-wrap:wrap;gap:6px;}
+.explore-jump-chip{font-family:'Space Mono',monospace;font-size:10.5px;font-weight:700;letter-spacing:.06em;color:var(--jc,var(--muted));border:1px solid var(--border);border-radius:999px;padding:5px 11px;text-decoration:none;transition:border-color var(--dur-fast) var(--ease-out),background-color var(--dur-fast) var(--ease-out);}
+.explore-jump-chip:hover{border-color:var(--jc,var(--border-2));background:var(--surface-2);}
+.explore-sort{display:flex;flex-wrap:wrap;gap:6px;}
+.set-type-filter{display:flex;flex-wrap:wrap;gap:6px;margin:2px 0 14px;}
+.set-type-chip{font-family:'Space Mono',monospace;font-size:10.5px;font-weight:700;letter-spacing:.05em;color:var(--muted);background:none;border:1px solid var(--border);border-radius:999px;padding:6px 13px;cursor:pointer;transition:border-color var(--dur-fast) var(--ease-out),color var(--dur-fast) var(--ease-out);}
+.set-type-chip:hover{border-color:var(--border-2);color:var(--text);}
+.set-type-chip.on{color:var(--text);border-color:var(--gold);cursor:default;}
+
+
 /* ─── Card Detail → Set link (Phase 1 post-P0) ─── */
 .set-logo-link{background:none;border:none;padding:0;cursor:pointer;display:inline-flex;opacity:.9;transition:.15s;}
 .set-logo-link:hover{opacity:1;}

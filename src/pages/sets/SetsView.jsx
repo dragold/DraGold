@@ -38,12 +38,43 @@
 // tile brandizzata con codice set ben leggibile. Stesso fallback riusato ora
 // per qualunque set senza logo (mtg/ygo compresi, e ora i set JP di Pokémon),
 // non solo One Piece.
-import { useState, useEffect } from "react";
+//
+// Phase 3 — Fase 2 (Ordinamento e filtri Explore, 26/08/2026): aggiunge un
+// controllo di ordinamento esplicito (Novità / Alfabetico / Per era) e un
+// filtro per tipologia prodotto, sopra i dati già presenti — nessuna nuova
+// query, riusa src/lib/setEras.js (era Pokémon verificata 153/153 contro
+// set_logos, tipologia prodotto Pokémon/One Piece). "Per era" è significativo
+// solo per Pokémon (unico TCG con un vero concetto di blocco/era nei dati
+// oggi disponibili — vedi commento in setEras.js): per gli altri TCG il
+// controllo resta selezionabile ma la lista non si spezza in sotto-gruppi
+// finti, mostra solo l'elenco alfabetico. Il filtro tipologia prodotto è
+// per-sezione TCG (le etichette non sono le stesse tra Pokémon e One Piece) e
+// appare solo quando quel TCG ha davvero dati di tipologia (mai un filtro
+// finto su dati assenti, coerente con CLAUDE.md §9).
+import { useState, useEffect, useMemo } from "react";
 import { TCG_LIST } from "../../DraGold.jsx";
 import { useReveal } from "../../lib/useReveal.js";
 import { loadTcgSets, loadLangSets, detectJapaneseSets } from "../../lib/tcgSets.js";
+import { getSetEra, getProductType, PRODUCT_TYPE_LABELS } from "../../lib/setEras.js";
 
 const LANG_LABEL = { ja: "JP" };
+const SORT_MODES = [
+  { id: "date", label: "Novità" },
+  { id: "alpha", label: "Alfabetico" },
+  { id: "era", label: "Per era" },
+];
+
+// Arricchisce un set grezzo con era/eraOrder (solo Pokémon, altrimenti null —
+// mai inventata) e productType (Pokémon + One Piece, altrimenti null).
+function withClassification(s) {
+  const eraInfo = getSetEra(s.tcg, s.setId);
+  return {
+    ...s,
+    era: eraInfo?.era || null,
+    eraOrder: eraInfo?.eraOrder ?? null,
+    productType: getProductType(s.tcg, s.setId, s.setName),
+  };
+}
 
 function SetTile({ s, tcg, onOpenSet }) {
   const [imgOk, setImgOk] = useState(true);
@@ -86,10 +117,31 @@ function SetTile({ s, tcg, onOpenSet }) {
   );
 }
 
-// Groups an already release-date-sorted list into year buckets (newest
-// first). Sets with no known release date land in one trailing "unknown"
-// bucket instead of a fabricated year — never invented.
-function groupByYear(sets) {
+// Groups an already-sorted list into buckets depending on sortMode. 'date' ->
+// year buckets (newest first, unknown-date sets in one trailing bucket,
+// unchanged behaviour). 'era' -> era buckets for Pokémon (newest era first,
+// same convention as year buckets); any set without an assigned era (every
+// non-Pokémon set today, plus Pokémon JA) falls into a single trailing
+// "Altri set" bucket instead of a fabricated era. 'alpha' -> no sub-grouping,
+// a single flat bucket (LangGroup already hides headers when there's only one).
+function groupSets(sets, sortMode) {
+  if (sortMode === "alpha") {
+    return sets.length ? [{ key: "all", label: null, items: sets }] : [];
+  }
+  if (sortMode === "era") {
+    const groups = [];
+    for (const s of sets) {
+      const key = s.era || "unknown";
+      let g = groups[groups.length - 1];
+      if (!g || g.key !== key) {
+        g = { key, label: s.era || "Altri set", items: [] };
+        groups.push(g);
+      }
+      g.items.push(s);
+    }
+    return groups;
+  }
+  // 'date' (default)
   const groups = [];
   for (const s of sets) {
     const key = s.releaseYear != null ? String(s.releaseYear) : "unknown";
@@ -103,8 +155,28 @@ function groupByYear(sets) {
   return groups;
 }
 
-function sortSets(sets) {
-  return sets.slice().sort((a, b) => {
+function sortSets(sets, sortMode) {
+  const arr = sets.slice();
+  if (sortMode === "alpha") {
+    return arr.sort((a, b) => (a.setName || "").localeCompare(b.setName || ""));
+  }
+  if (sortMode === "era") {
+    return arr.sort((a, b) => {
+      const ea = a.eraOrder, eb = b.eraOrder;
+      if (ea != null && eb != null && ea !== eb) return eb - ea; // era più recente prima
+      if (ea != null && eb == null) return -1;
+      if (ea == null && eb != null) return 1;
+      // stessa era (o nessuna): stesso criterio del sort 'date' come tie-break
+      const da = a.releaseDate ? new Date(a.releaseDate) : null;
+      const db = b.releaseDate ? new Date(b.releaseDate) : null;
+      if (da && db) return db - da;
+      if (da && !db) return -1;
+      if (!da && db) return 1;
+      return (a.setName || "").localeCompare(b.setName || "");
+    });
+  }
+  // 'date' (default)
+  return arr.sort((a, b) => {
     const da = a.releaseDate ? new Date(a.releaseDate) : null;
     const db = b.releaseDate ? new Date(b.releaseDate) : null;
     if (da && db) return db - da;
@@ -119,9 +191,9 @@ function sortSets(sets) {
 // it's the cheap/instant setsMap path (no button needed); it's a real
 // idle/loading/done state for anything lazily fetched (mtg/ygo's only group,
 // and every TCG's Japanese group).
-function LangGroup({ label, sets, loadState, onLoad, tcg, onOpenSet, emptyLabel }) {
-  const groups = groupByYear(sets);
-  const showYearHeaders = sets.length > 0 && groups.length > 1;
+function LangGroup({ label, sets, loadState, onLoad, tcg, onOpenSet, emptyLabel, sortMode }) {
+  const groups = groupSets(sets, sortMode);
+  const showGroupHeaders = sets.length > 0 && groups.length > 1;
 
   return (
     <div className="set-lang-group">
@@ -146,7 +218,7 @@ function LangGroup({ label, sets, loadState, onLoad, tcg, onOpenSet, emptyLabel 
       ) : (
         groups.map(g => (
           <div key={g.key} style={{ marginBottom: 18 }}>
-            {showYearHeaders && <div className="set-year-head">{g.label}</div>}
+            {showGroupHeaders && g.label && <div className="set-year-head">{g.label}</div>}
             <div className="set-grid">
               {g.items.map(s => (
                 <SetTile key={`${s.tcg}:${s.lang || "en"}:${s.setId}`} s={s} tcg={tcg} onOpenSet={onOpenSet} />
@@ -159,8 +231,27 @@ function LangGroup({ label, sets, loadState, onLoad, tcg, onOpenSet, emptyLabel 
   );
 }
 
-function TcgSection({ tcg, sets, loadState, onLoad, onOpenSet, index, jaAvailable, jaSets, jaLoadState, onLoadJa }) {
+function TcgSection({
+  tcg, sets, loadState, onLoad, onOpenSet, index, jaAvailable, jaSets, jaLoadState, onLoadJa,
+  sortMode, productTypeFilter, onProductTypeChange,
+}) {
   const reveal = useReveal(index);
+
+  // Tipologie prodotto realmente presenti in questa sezione (International +
+  // Japanese insieme) — il filtro appare solo se ce n'è più di una, altrimenti
+  // sarebbe un controllo senza scelta reale.
+  const availableTypes = useMemo(() => {
+    const found = new Set();
+    for (const s of [...sets, ...(jaSets || [])]) if (s.productType) found.add(s.productType);
+    return [...found];
+  }, [sets, jaSets]);
+
+  const applyFilter = (list) => productTypeFilter === "all"
+    ? list
+    : list.filter(s => s.productType === productTypeFilter);
+
+  const filteredSets = applyFilter(sets);
+  const filteredJaSets = applyFilter(jaSets || []);
 
   return (
     <div ref={reveal.ref} className={reveal.className} style={reveal.style}>
@@ -172,19 +263,34 @@ function TcgSection({ tcg, sets, loadState, onLoad, onOpenSet, index, jaAvailabl
           {sets.length > 0 && <span className="explore-count">{sets.length + (jaSets?.length || 0)}</span>}
         </div>
 
+        {availableTypes.length > 1 && (
+          <div className="set-type-filter" role="group" aria-label={`Tipologia prodotto ${tcg.label}`}>
+            <button type="button"
+              className={`set-type-chip ${productTypeFilter === "all" ? "on" : ""}`}
+              onClick={() => onProductTypeChange("all")}>Tutti</button>
+            {availableTypes.map(t => (
+              <button key={t} type="button"
+                className={`set-type-chip ${productTypeFilter === t ? "on" : ""}`}
+                onClick={() => onProductTypeChange(t)}>
+                {PRODUCT_TYPE_LABELS[t] || t}
+              </button>
+            ))}
+          </div>
+        )}
+
         {/* International — always the first group. Unlabeled when this TCG
             has no Japanese group at all (mtg/ygo today): a lone
             "International" header would just be noise when there's nothing
             to distinguish it from. */}
-        <LangGroup label={jaAvailable ? "International" : null} sets={sets} loadState={loadState}
-          onLoad={onLoad} tcg={tcg} onOpenSet={onOpenSet} />
+        <LangGroup label={jaAvailable ? "International" : null} sets={filteredSets} loadState={loadState}
+          onLoad={onLoad} tcg={tcg} onOpenSet={onOpenSet} sortMode={sortMode} />
 
         {/* Japanese — only rendered once detectJapaneseSets() has confirmed
             real ja rows exist for this tcg. jaAvailable is undefined while
             that check is still in flight, so nothing flashes in/out. */}
         {jaAvailable && (
-          <LangGroup label="Japanese" sets={jaSets} loadState={jaLoadState}
-            onLoad={onLoadJa} tcg={tcg} onOpenSet={onOpenSet}
+          <LangGroup label="Japanese" sets={filteredJaSets} loadState={jaLoadState}
+            onLoad={onLoadJa} tcg={tcg} onOpenSet={onOpenSet} sortMode={sortMode}
             emptyLabel={`No Japanese sets indexed yet for ${tcg.label}.`} />
         )}
       </div>
@@ -196,18 +302,23 @@ export function SetsView({ setsMap, onOpenSet }) {
   const loading = setsMap == null;
   const allSets = loading ? [] : [...setsMap.values()];
 
+  const [sortMode, setSortMode] = useState("date");
+  // Filtro tipologia prodotto, per tcg (le etichette non sono condivise tra
+  // Pokémon e One Piece, quindi non ha senso un unico filtro globale).
+  const [productTypeByTcg, setProductTypeByTcg] = useState({}); // tcg -> 'all' | type
+
   // Pokémon + One Piece: instant, from the already-cached setsMap.
   const cheapByTcg = {};
   for (const s of allSets) {
     if (!cheapByTcg[s.tcg]) cheapByTcg[s.tcg] = [];
-    cheapByTcg[s.tcg].push({
+    cheapByTcg[s.tcg].push(withClassification({
       tcg: s.tcg, setId: s.set_code, setName: s.set_name || s.set_code,
       logoUrl: s.logo_url || s.symbol_url || null,
       releaseDate: s.release_date || null,
       releaseYear: s.release_date ? new Date(s.release_date).getFullYear() : null,
       cardCount: null,
       lang: "en",
-    });
+    }));
   }
 
   // MTG + Yu-Gi-Oh! (and any future TCG absent from set_logos): lazy, via
@@ -218,7 +329,7 @@ export function SetsView({ setsMap, onOpenSet }) {
   const loadLazy = (tcgId) => {
     setLazyState(prev => ({ ...prev, [tcgId]: "loading" }));
     loadTcgSets(tcgId).then(({ sets }) => {
-      setLazySets(prev => ({ ...prev, [tcgId]: sets.map(s => ({ ...s, tcg: tcgId, lang: "en" })) }));
+      setLazySets(prev => ({ ...prev, [tcgId]: sets.map(s => withClassification({ ...s, tcg: tcgId, lang: "en" })) }));
       setLazyState(prev => ({ ...prev, [tcgId]: "done" }));
     });
   };
@@ -243,7 +354,7 @@ export function SetsView({ setsMap, onOpenSet }) {
   const loadJa = (tcgId) => {
     setJaState(prev => ({ ...prev, [tcgId]: "loading" }));
     loadLangSets(tcgId, "ja").then(({ sets }) => {
-      setJaSets(prev => ({ ...prev, [tcgId]: sets.map(s => ({ ...s, tcg: tcgId })) }));
+      setJaSets(prev => ({ ...prev, [tcgId]: sets.map(s => withClassification({ ...s, tcg: tcgId })) }));
       setJaState(prev => ({ ...prev, [tcgId]: "done" }));
     });
   };
@@ -261,6 +372,27 @@ export function SetsView({ setsMap, onOpenSet }) {
         )}
       </div>
 
+      {!loading && (
+        <div className="explore-controls">
+          <div className="explore-jump" role="group" aria-label="Vai a">
+            {orderedTcgs.map(tcg => (
+              <a key={tcg.id} href={`#explore-${tcg.id}`} className="explore-jump-chip" style={{ "--jc": tcg.color }}>
+                {tcg.short}
+              </a>
+            ))}
+          </div>
+          <div className="explore-sort" role="group" aria-label="Ordina per">
+            {SORT_MODES.map(m => (
+              <button key={m.id} type="button"
+                className={`set-type-chip ${sortMode === m.id ? "on" : ""}`}
+                onClick={() => setSortMode(m.id)}>
+                {m.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {loading ? (
         <div className="set-grid">
           {Array.from({ length: 8 }).map((_, i) => (
@@ -275,16 +407,21 @@ export function SetsView({ setsMap, onOpenSet }) {
           const cheap = cheapByTcg[tcg.id];
           const hasCheap = cheap && cheap.length > 0;
           const state = hasCheap ? "done" : (lazyState[tcg.id] || "idle");
-          const sets = hasCheap ? sortSets(cheap) : sortSets(lazySets[tcg.id] || []);
+          const sets = hasCheap ? sortSets(cheap, sortMode) : sortSets(lazySets[tcg.id] || [], sortMode);
           const jaAvailable = jaAvail[tcg.id] === true;
           return (
-            <TcgSection key={tcg.id} tcg={tcg} sets={sets} loadState={state}
-              onLoad={() => loadLazy(tcg.id)} onOpenSet={onOpenSet} index={i}
-              jaAvailable={jaAvailable}
-              jaSets={sortSets(jaSets[tcg.id] || [])}
-              jaLoadState={jaState[tcg.id] || "idle"}
-              onLoadJa={() => loadJa(tcg.id)}
-            />
+            <div key={tcg.id} id={`explore-${tcg.id}`}>
+              <TcgSection tcg={tcg} sets={sets} loadState={state}
+                onLoad={() => loadLazy(tcg.id)} onOpenSet={onOpenSet} index={i}
+                jaAvailable={jaAvailable}
+                jaSets={sortSets(jaSets[tcg.id] || [], sortMode)}
+                jaLoadState={jaState[tcg.id] || "idle"}
+                onLoadJa={() => loadJa(tcg.id)}
+                sortMode={sortMode}
+                productTypeFilter={productTypeByTcg[tcg.id] || "all"}
+                onProductTypeChange={(t) => setProductTypeByTcg(prev => ({ ...prev, [tcg.id]: t }))}
+              />
+            </div>
           );
         })
       )}
