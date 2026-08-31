@@ -202,8 +202,8 @@ export function SearchView({ country, cur, eurRate, onOpenAsset, setsMap, onOpen
       {showOnboard && <Onboarding onDismiss={dismissOnboard} />}
       <div className="hero hero-grid">
         <div>
-          <h1 className="hero-t">Find a card.<br/>Explore the <span className="hero-accent">catalog</span>.</h1>
-          <p className="hero-s">Pokémon, One Piece, Magic and Yu-Gi-Oh! — search any card, browse sets, and build your collection.</p>
+          <h1 className="hero-t">Search any card.<br/>Learn it. <span className="hero-accent">Collect it.</span></h1>
+          <p className="hero-s">Pokémon, One Piece, Magic and Yu-Gi-Oh! — every card, set and artist has a page that teaches you something. Track what you own, see what's missing.</p>
           <div className="hero-cta-row" style={{ marginTop: 12 }}>
             {onOpenExplore && (
               <button type="button" className="chip" onClick={onOpenExplore}>

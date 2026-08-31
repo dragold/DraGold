@@ -56,7 +56,7 @@ export const CARD_LANGS = [
    catalogo/discovery/collection, PRODUCT_SPEC.md 2026-08-06): restano raggiungibili
    dal menu account (vedi PRIMARY_TABS + ACCOUNT_LINKS più sotto), non eliminate. */
 const PRIMARY_TABS = [
-  { id:"markets", label:"Search", icon:"search" },
+  { id:"search", label:"Search", icon:"search" },
   { id:"explore", label:"Explore", icon:"grid" },
 ];
 const ACCOUNT_LINKS = [
@@ -98,7 +98,7 @@ export default function DraGold() {
   const authReady = authStatus !== "loading";
   const [menuOpen, setMenuOpen] = useState(false);
 
-  const [tab, setTab]   = useState("markets");
+  const [tab, setTab]   = useState("search");
   const [asset, setAsset] = useState(null);      // carta aperta (Asset page) o null
   const [viewSet, setViewSet] = useState(null);  // {tcg,set_id,lang,set_name} aperto da Card Detail, o null
   const [cur, setCur]   = useState("EUR");       // EUR | USD
@@ -271,7 +271,7 @@ export default function DraGold() {
             {/* ░░ HEADER ░░ */}
       <header className="hdr">
         <div className="hdr-in">
-          <button className="brand" onClick={()=>goTab("markets")}>
+          <button className="brand" onClick={()=>goTab("search")}>
             <img src="/logo192.png" alt="DraGold" style={{height:30,width:30,borderRadius:7,flexShrink:0}}/>
             <span className="logo-txt font-syne">DraGold</span>
           </button>
@@ -353,7 +353,7 @@ export default function DraGold() {
           />
         ) : (
         <>
-        {tab==="markets" && (
+        {tab==="search" && (
           <SearchView
             country={country} cur={cur} eurRate={eurRate}
             onOpenAsset={openAsset} setsMap={setsMap} onOpenSet={openSet}
@@ -368,10 +368,10 @@ export default function DraGold() {
           <SetsView setsMap={setsMap} onOpenSet={openSet} />
         )}
         {tab==="portfolio" && (
-          <PortfolioView isAuthed={isAuthed} onLogin={()=>{ window.location.href="/login"; }} onExplore={()=>setTab("markets")} cur={cur} eurRate={eurRate} onOpenCard={openAsset} />
+          <PortfolioView isAuthed={isAuthed} onLogin={()=>{ window.location.href="/login"; }} onExplore={()=>setTab("search")} cur={cur} eurRate={eurRate} onOpenCard={openAsset} />
         )}
         {tab==="alerts" && (
-          <AlertsView isAuthed={isAuthed} onLogin={()=>{ window.location.href="/login"; }} onExplore={()=>setTab("markets")}
+          <AlertsView isAuthed={isAuthed} onLogin={()=>{ window.location.href="/login"; }} onExplore={()=>setTab("search")}
             cur={cur} eurRate={eurRate} country={country} />
         )}
 

@@ -4,11 +4,16 @@ import { Icon } from "./Icon.jsx";
 /* ════════════════════════════════════════════════════════════════════════
    ONBOARDING — 3 step inline, dismissibile (primo accesso)
    ════════════════════════════════════════════════════════════════════════ */
+// 2026-08 pivot realignment: the three steps now describe the actual product
+// — discover the catalog, learn in the Academy, track a collection by
+// completion — instead of the pre-pivot search-price / portfolio-P&L / price-
+// alert loop. Storage key left as dg_ob_v1 on purpose: users who already
+// dismissed onboarding are not re-interrupted; only new visitors see this.
 export const ONBOARD_KEY = 'dg_ob_v1';
 const ONBOARD_STEPS = [
-  { icon:"search", label:"Search", title:"Search a card", desc:"Find any Pokémon, One Piece, Magic or Yu-Gi-Oh! card and see its real market price." },
-  { icon:"wallet", label:"Portfolio", title:"Add to Portfolio", desc:"Log cards you own and track their value vs what you paid — your TCG P&L." },
-  { icon:"bell", label:"Alert", title:"Set a price alert", desc:"Get an email when any card crosses your threshold. Never miss a move." },
+  { icon:"search", label:"Discover", title:"Explore the catalog", desc:"Search any Pokémon, One Piece, Magic or Yu-Gi-Oh! card — or browse by set. Every card, set and artist has its own page." },
+  { icon:"spark", label:"Learn", title:"Learn how it works", desc:"The Academy breaks down rarities, variants and how to read a card — short lessons, free, no sign-up." },
+  { icon:"trophy", label:"Collect", title:"Track your collection", desc:"Mark the cards you own and watch each set fill up. It's about progress, not a price tag." },
 ];
 export function Onboarding({ onDismiss }) {
   const [step, setStep] = useState(0);
