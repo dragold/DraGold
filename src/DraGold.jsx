@@ -291,6 +291,7 @@ export default function DraGold() {
 
   return (
     <div className="app">
+      <a className="skip-link" href="#main-content">Skip to content</a>
       <Preloader />
       <CommandSearch
         open={searchOpen}
@@ -323,7 +324,7 @@ export default function DraGold() {
 
       {/* ░░ MAIN ░░ */}
       {asset ? (
-        <main className="main">
+        <main id="main-content" tabIndex={-1} className="main">
           <AssetView
             card={asset} onBack={closeAsset}
             isAuthed={isAuthed} onLogin={()=>{ window.location.href="/login"; }}
@@ -332,7 +333,7 @@ export default function DraGold() {
           />
         </main>
       ) : viewSet ? (
-        <main className="main">
+        <main id="main-content" tabIndex={-1} className="main">
           <SetDetailPage
             setRef={viewSet} setsMap={setsMap}
             country={country} cur={cur} eurRate={eurRate}
@@ -341,7 +342,7 @@ export default function DraGold() {
           />
         </main>
       ) : tab==="search" && homeView==="atlas" ? (
-        <main className="main-wide">
+        <main id="main-content" tabIndex={-1} className="main-wide">
           <HomePage
             home={home}
             onOpenSearch={openSearch}
@@ -351,7 +352,7 @@ export default function DraGold() {
           />
         </main>
       ) : (
-        <main className="main">
+        <main id="main-content" tabIndex={-1} className="main">
           {tab==="search" && homeView==="results" && (
             <SearchView
               chromeless

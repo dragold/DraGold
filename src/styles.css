@@ -134,6 +134,9 @@ input{font-family:inherit;font-size:16px;}
 .font-mono{font-family:'Space Mono',monospace;}
 
 .app{min-height:100vh;min-height:100svh;display:flex;flex-direction:column;}
+.skip-link{position:fixed;top:8px;left:8px;z-index:200;background:var(--gold);color:#1a1200;font-weight:700;font-size:14px;padding:10px 16px;border-radius:8px;transform:translateY(-160%);transition:transform .15s var(--ease-out);}
+.skip-link:focus{transform:translateY(0);outline:2px solid #1a1200;outline-offset:2px;}
+[id="main-content"]:focus{outline:none;}
 
 /* header */
 .hdr{position:sticky;top:0;z-index:40;background:rgba(2,2,8,.82);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-bottom:1px solid var(--border);padding-top:env(safe-area-inset-top,0px);}
