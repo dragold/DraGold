@@ -430,19 +430,77 @@ input{font-family:inherit;font-size:16px;}
 .asset-img::after{content:'';position:absolute;left:8%;right:8%;bottom:-22px;height:28px;background:radial-gradient(closest-side,rgba(0,0,0,.55),transparent 75%);filter:blur(6px);z-index:-1;}
 .asset-info{flex:1;min-width:0;}
 
-/* North Star — CardObject: tilt/sheen card treatment (useTilt.js). The
-   outer .card-object holds perspective; only .card-object-plate rotates,
-   so the frame/shadow/border on the parent (.asset-img, .card-item-img,
-   …) stay put. Sheen tracks pointer via --mx/--my/--sheen-o set by the hook. */
-.card-object{position:relative;width:100%;height:100%;perspective:900px;border-radius:10px;}
-.card-object-plate{position:relative;width:100%;height:100%;transform-style:preserve-3d;will-change:transform;border-radius:inherit;}
+/* Holographic card treatment (useTilt.js) — technique adapted from
+   simeydotme's poke-holo. .card-object holds perspective; only
+   .card-object-plate rotates. Two layers track the pointer: .card-object-shine
+   (the moving foil, per-rarity) and .card-object-sheen (the radial glare).
+   Intensity rides --pfc (pointer distance from centre) so the effect is
+   strongest at the edges, like real foil. */
+.card-object{position:relative;width:100%;height:100%;perspective:min(900px,60vw);border-radius:10px;}
+.card-object-plate{position:relative;width:100%;height:100%;transform-style:preserve-3d;will-change:transform;border-radius:inherit;transform:rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg));}
 .card-object-plate img{width:100%;height:100%;object-fit:contain;display:block;border-radius:inherit;}
-/* Holographic response: the pointer highlight (radial) layers over a
-   two-accent foil band whose angle is driven by --foil-angle (set from the
-   tilt rotation itself in useTilt.js) — the reflection shifts with viewing
-   angle like real foil, not a fixed decoration. Two accents only, per the
-   design system (gold/relation), never a rainbow. */
-.card-object-sheen{position:absolute;inset:0;border-radius:inherit;pointer-events:none;mix-blend-mode:overlay;opacity:var(--sheen-o,0);background:radial-gradient(circle at var(--mx,50%) var(--my,50%),rgba(255,255,255,.5),transparent 60%),linear-gradient(var(--foil-angle,115deg),transparent 32%,rgba(251,191,36,.24) 46%,rgba(126,139,196,.22) 56%,transparent 72%);transition:opacity var(--dur-fast) var(--ease-out);}
+
+/* the moving foil — coarse spectral bands that read at any card size, offset
+   by --bg-x/--bg-y (a wider travel than the pointer). hard-light so it works
+   on both bright and dark artwork. Flat cards (data-holo="flat") get almost
+   nothing; holo/cosmos/gold rares get progressively more. */
+.card-object-shine{
+  position:absolute;inset:0;border-radius:inherit;pointer-events:none;
+  mix-blend-mode:hard-light;
+  opacity:calc(var(--sheen-o,0) * (.10 + .35 * var(--pfc,0)));
+  background:
+    repeating-linear-gradient(var(--foil-angle,115deg),
+      rgba(0,0,0,0) 0%,
+      rgba(231,183,95,.55) 9%,
+      rgba(126,139,196,.5) 18%,
+      rgba(120,200,190,.4) 26%,
+      rgba(0,0,0,0) 34%),
+    radial-gradient(farthest-corner at var(--mx,50%) var(--my,50%),
+      rgba(255,244,214,.6), rgba(126,139,196,.16) 42%, transparent 68%);
+  background-size:220% 220%, 170% 170%;
+  background-position:var(--bg-x,35%) var(--bg-y,35%), var(--mx,50%) var(--my,50%);
+  transition:opacity var(--dur-fast) var(--ease-out);
+}
+.card-object[data-holo="flat"] .card-object-shine{
+  opacity:calc(var(--sheen-o,0) * (.03 + .10 * var(--pfc,0)));
+}
+.card-object[data-holo="holo"] .card-object-shine{
+  opacity:calc(var(--sheen-o,0) * (.16 + .45 * var(--pfc,0)));
+}
+.card-object[data-holo="cosmos"] .card-object-shine{
+  opacity:calc(var(--sheen-o,0) * (.22 + .55 * var(--pfc,0)));
+  background:
+    radial-gradient(circle at 25% 20%, rgba(255,255,255,.6) 0 1px, transparent 2px) 0 0 / 6% 8%,
+    repeating-linear-gradient(var(--foil-angle,115deg),
+      rgba(0,0,0,0) 0%, rgba(231,183,95,.6) 8%, rgba(126,139,196,.55) 16%,
+      rgba(120,200,190,.45) 24%, rgba(0,0,0,0) 32%),
+    radial-gradient(farthest-corner at var(--mx,50%) var(--my,50%),
+      rgba(255,244,214,.6), transparent 66%);
+  background-size:auto, 240% 240%, 170% 170%;
+  background-position:var(--bg-x,35%) var(--bg-y,35%);
+}
+.card-object[data-holo="gold"] .card-object-shine{
+  opacity:calc(var(--sheen-o,0) * (.20 + .55 * var(--pfc,0)));
+  mix-blend-mode:overlay;
+  background:
+    repeating-linear-gradient(var(--foil-angle,115deg),
+      rgba(0,0,0,0) 0%, rgba(255,236,190,.8) 6%, rgba(231,183,95,.7) 12%,
+      rgba(0,0,0,0) 18%),
+    radial-gradient(farthest-corner at var(--mx,50%) var(--my,50%),
+      rgba(255,240,200,.65), transparent 62%);
+  background-size:180% 180%, 170% 170%;
+  background-position:var(--bg-x,35%) var(--bg-y,35%);
+}
+
+/* radial glare tracking the cursor */
+.card-object-sheen{
+  position:absolute;inset:0;border-radius:inherit;pointer-events:none;
+  mix-blend-mode:overlay;
+  opacity:calc(var(--sheen-o,0) * (.30 + .5 * var(--pfc,0)));
+  background:radial-gradient(circle at var(--mx,50%) var(--my,50%),
+    rgba(255,255,255,.65), rgba(255,255,255,.08) 32%, transparent 58%);
+  transition:opacity var(--dur-fast) var(--ease-out);
+}
 .card-object-hero{border-radius:13px;}
 /* Two-layer shadow (tight contact + soft ambient) — this is what makes the
    card read as sitting above the page rather than printed on it. Clipping
