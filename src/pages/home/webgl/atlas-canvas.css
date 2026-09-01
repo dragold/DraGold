@@ -14,6 +14,13 @@
 .home.has-webgl .stratum-chip{ display:none; }
 .home.has-webgl{ position:relative; z-index:1; }
 .home.has-webgl .atlas-stage{ position:relative; z-index:1; }
-/* the strata content sits over the void — keep it readable */
+/* the strata content sits over the void — keep it readable, and keep it clear
+   of the card's screen zone on the right */
 .home.has-webgl .strata,
 .home.has-webgl .atlas-intro{ position:relative; z-index:1; }
+@media (min-width:1024px){
+  .home.has-webgl .ledger,
+  .home.has-webgl .know-lead,
+  .home.has-webgl .stratum-voice{ max-width:min(100%, 30rem); }
+  .home.has-webgl .know-grid{ max-width:34rem; }
+}

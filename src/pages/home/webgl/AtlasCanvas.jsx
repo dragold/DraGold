@@ -27,7 +27,7 @@ export default function AtlasCanvas({ tier, src, rarity }) {
         frameloop={frameloop}
         dpr={config.dpr}
         gl={{ antialias: true, powerPreference: "high-performance", alpha: false }}
-        camera={{ position: [1.15, 0, 6.4], fov: 38, near: 0.1, far: 60 }}
+        camera={{ position: [0, 0, 12], fov: 34, near: 0.1, far: 70 }}
       >
         <AtlasScene src={src} rarity={rarity} config={config} />
       </Canvas>

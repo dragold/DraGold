@@ -17,6 +17,7 @@ const FoilMaterialImpl = shaderMaterial(
     uFoil: 1.0, // overall strength (also scrolled by velocity)
     uProfile: 0, // 0 soft | 1 galaxy | 2 metallic
     uReveal: 1.0, // 0 → 1 fade-in when the texture is ready
+    uSeparation: 0.0, // 0 laminated over art · 1 floating holographic film
   },
   /* glsl */ `
     varying vec2 vUv;
@@ -39,6 +40,7 @@ const FoilMaterialImpl = shaderMaterial(
     uniform float uFoil;
     uniform float uProfile;
     uniform float uReveal;
+    uniform float uSeparation;
 
     // cheap hash / value noise
     float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
@@ -93,15 +95,34 @@ const FoilMaterialImpl = shaderMaterial(
 
       float strength = uFoil * (0.34 + 0.30 * fres);
 
-      // screen-blend the foil over the artwork
-      vec3 col = 1.0 - (1.0 - art.rgb) * (1.0 - foil * strength);
-
-      // gentle vignette so the card reads as a lit object
+      // ── laminated mode: screen-blend the foil over the artwork ──
+      vec3 laminated = 1.0 - (1.0 - art.rgb) * (1.0 - foil * strength);
+      // a clear specular bar sweeps the surface every few seconds — the card
+      // is alive even at rest
+      float sweepPos = fract(vUv.x * 0.8 + vUv.y * 0.35 - uTime * 0.11);
+      float sweep = smoothstep(0.03, 0.0, abs(sweepPos - 0.5)) * (0.35 + 0.4 * fres);
+      laminated += sweep * vec3(1.0, 0.96, 0.86);
       float vig = smoothstep(1.2, 0.42, length(vUv - 0.5));
-      col *= 0.86 + 0.14 * vig;
+      laminated *= 0.9 + 0.14 * vig;
+
+      // ── film mode: a translucent holographic sheet, bright at the edges.
+      //    biased toward the house accents (gold / periwinkle) with the full
+      //    spectrum only as a thin iridescent hint — not a rainbow tarp. ──
+      vec3 gold = vec3(0.906, 0.718, 0.373);
+      vec3 peri = vec3(0.494, 0.545, 0.769);
+      vec3 accent = mix(gold, peri, 0.5 + 0.5 * sin(band * 3.14159));
+      vec3 sheet = mix(accent, spectrum, 0.28);
+
+      float edge = 1.0 - smoothstep(0.0, 0.1, min(min(vUv.x, 1.0 - vUv.x), min(vUv.y, 1.0 - vUv.y)));
+      vec3 film = sheet * (0.35 + 0.7 * fres) + streak * sheet * 0.45;
+      film += edge * (sheet * 0.7 + 0.15);
+      float filmA = clamp(0.06 + 0.5 * fres + edge * 0.6 + streak * 0.18, 0.0, 0.85) * uFoil;
+
+      vec3 col = mix(laminated, film, uSeparation);
+      float a = mix(art.a, filmA, uSeparation);
 
       col = mix(vec3(0.03, 0.03, 0.045), col, uReveal);
-      gl_FragColor = vec4(col, art.a);
+      gl_FragColor = vec4(col, a * uReveal);
       #include <colorspace_fragment>
     }
   `
