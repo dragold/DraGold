@@ -44,24 +44,31 @@ export function cardBackTexture() {
   roundRect(ctx, 26, 26, W - 52, H - 52, 14);
   ctx.stroke();
 
+  // a warm ground so the mark reads
+  const gm = ctx.createRadialGradient(W / 2, H * 0.42, 10, W / 2, H * 0.42, W * 0.55);
+  gm.addColorStop(0, "rgba(231,183,95,0.14)");
+  gm.addColorStop(1, "rgba(231,183,95,0)");
+  ctx.fillStyle = gm;
+  ctx.fillRect(0, 0, W, H);
+
   // the mark
-  ctx.fillStyle = "#e7b75f";
-  ctx.font = `700 ${Math.round(W * 0.34)}px Georgia, "Times New Roman", serif`;
+  ctx.fillStyle = "#f0d9a6";
+  ctx.font = `700 ${Math.round(W * 0.4)}px Georgia, "Times New Roman", serif`;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.shadowColor = "rgba(231,183,95,0.5)";
-  ctx.shadowBlur = 28;
-  ctx.fillText("D", W / 2, H / 2 - 6);
+  ctx.shadowColor = "rgba(231,183,95,0.7)";
+  ctx.shadowBlur = 36;
+  ctx.fillText("D", W / 2, H * 0.42);
   ctx.shadowBlur = 0;
 
   // wordmark + tagline
-  ctx.fillStyle = "#EDEEF2";
-  ctx.font = `700 ${Math.round(W * 0.075)}px Georgia, serif`;
-  ctx.fillText("DRAGOLD", W / 2, H * 0.74);
+  ctx.fillStyle = "#F4F5F8";
+  ctx.font = `700 ${Math.round(W * 0.085)}px Georgia, serif`;
+  ctx.fillText("DRAGOLD", W / 2, H * 0.72);
 
-  ctx.fillStyle = "rgba(155,161,173,0.85)";
-  ctx.font = `700 ${Math.round(W * 0.032)}px "Courier New", monospace`;
-  ctx.fillText("T H E   T C G   K N O W L E D G E   G R A P H", W / 2, H * 0.80);
+  ctx.fillStyle = "rgba(200,204,214,0.9)";
+  ctx.font = `700 ${Math.round(W * 0.03)}px "Courier New", monospace`;
+  ctx.fillText("T H E   T C G   K N O W L E D G E   G R A P H", W / 2, H * 0.78);
 
   _tex = new THREE.CanvasTexture(c);
   _tex.colorSpace = THREE.SRGBColorSpace;

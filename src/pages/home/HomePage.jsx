@@ -68,7 +68,7 @@ export function HomePage({ home, onOpenSearch, onOpenCard, onOpenSet, onNavColle
       {webgl && (
         <WebGLBoundary onFail={() => setWebglFailed(true)}>
           <Suspense fallback={null}>
-            <AtlasCanvas tier={tier} src={webglImg} rarity={featured?.rarity || ""} />
+            <AtlasCanvas tier={tier} src={webglImg} rarity={featured?.rarity || ""} icons={home?.icons || []} />
           </Suspense>
         </WebGLBoundary>
       )}

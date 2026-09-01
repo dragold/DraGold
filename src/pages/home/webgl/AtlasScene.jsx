@@ -3,6 +3,8 @@ import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import { HeroCard } from "./HeroCard.jsx";
 import { DustField } from "./DustField.jsx";
+import { ConstellationField } from "./ConstellationField.jsx";
+import { IconCards } from "./IconCards.jsx";
 import { atlasScroll } from "./atlasScroll.js";
 
 const damp = THREE.MathUtils.damp;
@@ -18,32 +20,40 @@ const CARD_X = 2.7;
 // rail, constellation) are Phase 5.
 function Rig() {
   const { camera } = useThree();
-  const look = new THREE.Vector3(0.55, 0, 0);
+  const look = new THREE.Vector3(0.9, 0, 0);
   useFrame((_, dt) => {
     const p = atlasScroll.progress;
     const ptr = atlasScroll.pointer;
-    const s1 = seg(p, 0), s2 = seg(p, 1);
-    const arc = bell(s2);
+    const s1 = seg(p, 0), s3 = seg(p, 2),
+          s4 = seg(p, 3), s5 = seg(p, 4), s6 = seg(p, 5);
 
-    const tx = ptr.x * 0.26 + s1 * 0.5 + arc * 1.05;
-    const ty = -ptr.y * 0.16 + arc * 0.55;
-    const tz = 12.4 - s1 * 1.4 + arc * 2.9 - Math.max(0, p - 0.33) * 1.2;
+    // gentle dolly in · a slight drift at Set/Print · lateral traverse at
+    // History · pull all the way back into the constellation at Collection
+    const tx =
+      ptr.x * 0.28 + s1 * 0.45 + s3 * 0.6 + s4 * 3.2 - s5 * 1.4 - s6 * 2.0;
+    const ty = -ptr.y * 0.18 + s4 * 0.5 + s6 * 1.3;
+    const tz =
+      12.6 - s1 * 1.6 - s3 * 0.4 + s4 * 1.8 + s6 * 9.5;
 
-    camera.position.x = damp(camera.position.x, tx, 2.6, dt);
-    camera.position.y = damp(camera.position.y, ty, 2.6, dt);
-    camera.position.z = damp(camera.position.z, tz, 2.6, dt);
+    camera.position.x = damp(camera.position.x, tx, 2.4, dt);
+    camera.position.y = damp(camera.position.y, ty, 2.4, dt);
+    camera.position.z = damp(camera.position.z, tz, 2.4, dt);
 
-    look.set(0.9 + arc * 0.7, -arc * 0.3, 0);
+    const roll = s4 * 0.05;
+    camera.up.set(Math.sin(roll), Math.cos(roll), 0);
+
+    look.set(0.9 - s4 * 1.1 - s6 * 0.5, -s4 * 0.2, s4 * -3);
     camera.lookAt(look);
   });
   return null;
 }
 
-export function AtlasScene({ src, rarity, config }) {
+
+export function AtlasScene({ src, rarity, config, icons }) {
   return (
     <>
       <color attach="background" args={["#08090c"]} />
-      <fog attach="fog" args={["#08090c", 11, 22]} />
+      <fog attach="fog" args={["#08090c", 13, 34]} />
 
       {/* KEY — directional, from behind the card (the North Star's one rule) */}
       <spotLight
@@ -64,10 +74,11 @@ export function AtlasScene({ src, rarity, config }) {
       <pointLight position={[CARD_X + 2.4, -1.2, 3]} intensity={7} color="#e7b75f" distance={9} />
       <ambientLight intensity={0.26} />
 
-      <RakingLight x={CARD_X} />
+      <RovingLight x={CARD_X} />
       <Backlight x={CARD_X} />
-      <ContactShadow x={CARD_X} />
 
+      <ConstellationField />
+      {config.dust > 300 && <IconCards icons={icons} />}
       <DustField count={config.dust} />
 
       <Suspense fallback={null}>
@@ -83,19 +94,19 @@ export function AtlasScene({ src, rarity, config }) {
   );
 }
 
-// A hard, moving light that rakes through the gaps between the layers while the
-// card is open — this is what makes the separation read as physical.
-function RakingLight({ x }) {
+// A soft moving accent that orbits the card — makes the foil catch light like
+// real holo turning under a lamp.
+function RovingLight({ x }) {
   const ref = useRef();
   useFrame((state) => {
     const l = ref.current;
     if (!l) return;
-    const s2 = seg(atlasScroll.progress, 1);
-    l.intensity = bell(s2) * 40;
-    l.position.x = x + Math.sin(state.clock.elapsedTime * 0.9) * 1.4;
-    l.position.y = 0.6 + Math.cos(state.clock.elapsedTime * 0.7) * 0.8;
+    const t = state.clock.elapsedTime;
+    l.position.x = x + Math.sin(t * 0.5) * 2.2;
+    l.position.y = 0.4 + Math.cos(t * 0.37) * 1.4;
+    l.position.z = 1.8 + Math.sin(t * 0.29) * 1.0;
   });
-  return <pointLight ref={ref} position={[x, 0.6, 1.6]} color="#fff4dc" distance={6} intensity={0} />;
+  return <pointLight ref={ref} color="#fff4dc" distance={7} intensity={14} />;
 }
 
 function Backlight({ x }) {
@@ -118,16 +129,3 @@ function Backlight({ x }) {
   );
 }
 
-function ContactShadow({ x }) {
-  return (
-    <mesh position={[x + 0.1, -2.7, 0.3]} rotation={[-Math.PI / 2, 0, 0]}>
-      <planeGeometry args={[4.6, 3.8]} />
-      <shaderMaterial
-        transparent
-        depthWrite={false}
-        vertexShader={`varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }`}
-        fragmentShader={`varying vec2 vUv; void main(){ float d=length((vUv-0.5)*vec2(1.0,1.7)); gl_FragColor=vec4(0.0,0.0,0.0, smoothstep(0.5,0.04,d)*0.5); }`}
-      />
-    </mesh>
-  );
-}

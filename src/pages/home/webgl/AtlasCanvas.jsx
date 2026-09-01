@@ -7,7 +7,7 @@ import "./atlas-canvas.css";
 
 // Fixed, full-viewport canvas behind the DOM Atlas. pointer-events:none so the
 // page stays fully interactive. Pauses its render loop when the tab is hidden.
-export default function AtlasCanvas({ tier, src, rarity }) {
+export default function AtlasCanvas({ tier, src, rarity, icons }) {
   const config = TIER_CONFIG[tier] || TIER_CONFIG[1];
   const [frameloop, setFrameloop] = useState("always");
 
@@ -29,7 +29,7 @@ export default function AtlasCanvas({ tier, src, rarity }) {
         gl={{ antialias: true, powerPreference: "high-performance", alpha: false }}
         camera={{ position: [0, 0, 12], fov: 34, near: 0.1, far: 70 }}
       >
-        <AtlasScene src={src} rarity={rarity} config={config} />
+        <AtlasScene src={src} rarity={rarity} config={config} icons={icons} />
       </Canvas>
     </div>
   );
