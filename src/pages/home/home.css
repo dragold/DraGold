@@ -1,0 +1,20 @@
+/* ══ DraGold home — the Atlas ══════════════════════════════════════
+   All home selectors live here (additive). Imported by HomePage. */
+
+/* full-bleed main for the Atlas (the legacy .main caps at --maxw 980px;
+   the Atlas uses .shell-wrap per section for the 1320px measure). */
+.main-wide{
+  flex:1; width:100%;
+  padding-bottom:calc(var(--tabh) + env(safe-area-inset-bottom,0px) + 28px);
+}
+@media (min-width:1024px){
+  .main-wide{ padding-bottom:var(--space-7); }
+}
+
+.home{ }
+
+/* strata land in Tasks 10–13 */
+.home-placeholder{ padding-block:var(--space-9); }
+.home-placeholder h1{ font-size:var(--fs-display); line-height:1.02; letter-spacing:-.025em; }
+.home-placeholder p{ margin-top:var(--space-4); color:var(--muted); font-size:var(--fs-body-lg); }
+.home-placeholder button{ margin-top:var(--space-5); }

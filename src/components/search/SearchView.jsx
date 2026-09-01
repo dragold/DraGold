@@ -188,6 +188,17 @@ export function SearchView({ country, cur, eurRate, onOpenAsset, setsMap, onOpen
     }
   }, []);
 
+  // Atlas shell: when the command overlay hands us a pending query (it set
+  // savedSearch and flipped homeView to "results"), run it once on mount so
+  // the results grid populates without a second manual submit. Uses the
+  // existing runSearch — no change to search/ranking logic.
+  useEffect(() => {
+    if (initialSearchState?.q && !initialSearchState?.searched && !searched) {
+      runSearch(initialSearchState.q);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Salva lo stato di ricerca prima di aprire il dettaglio carta, così il back restaura i risultati
   const handleOpenAsset = useCallback((card) => {
     onSearchStateChange({ q, results, priceMap, searched, searchTerm, visibleCount });

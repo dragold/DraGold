@@ -23,6 +23,12 @@ import { AlertsView } from "./pages/alerts/AlertsView.jsx";
 import { SetsView } from "./pages/sets/SetsView.jsx";
 import { SetDetailPage } from "./pages/set/SetDetailPage.jsx";
 import { ComingSoon } from "./components/shared/ComingSoon.jsx";
+import { SiteHeader } from "./components/shell/SiteHeader.jsx";
+import { SiteFooter } from "./components/shell/SiteFooter.jsx";
+import { Preloader } from "./components/shell/Preloader.jsx";
+import { CommandSearch } from "./components/shell/CommandSearch.jsx";
+import { HomePage } from "./pages/home/HomePage.jsx";
+import { useHomeData } from "./pages/home/useHomeData.js";
 
 /* ════════════════════════════════════════════════════════════════════════
    DraGold — SHELL (TASK 2)
@@ -98,6 +104,14 @@ export default function DraGold() {
   const authReady = authStatus !== "loading";
   const [menuOpen, setMenuOpen] = useState(false);
 
+  // Atlas redesign — shell orchestration. searchOpen drives the CommandSearch
+  // overlay; homeView switches the search tab between the Atlas home and the
+  // existing SearchView results list.
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [homeView, setHomeView] = useState("atlas"); // "atlas" | "results"
+  const openSearch = useCallback(() => setSearchOpen(true), []);
+  const closeSearch = useCallback(() => setSearchOpen(false), []);
+
   const [tab, setTab]   = useState("search");
   const [asset, setAsset] = useState(null);      // carta aperta (Asset page) o null
   const [viewSet, setViewSet] = useState(null);  // {tcg,set_id,lang,set_name} aperto da Card Detail, o null
@@ -133,6 +147,10 @@ export default function DraGold() {
   const userEmail = session?.user?.email || "";
   const displayName = profile?.username || profile?.display_name || (userEmail ? userEmail.split("@")[0] : "");
   const avatarInitial = (displayName || userEmail || "U").slice(0,1).toUpperCase();
+
+  // Atlas home data — one read-only query composition, shared by HomePage and
+  // the footer's real world counts.
+  const home = useHomeData({ isAuthed });
 
   const signOut = useCallback(async () => {
     await authSignOut();
@@ -268,145 +286,98 @@ export default function DraGold() {
 
   return (
     <div className="app">
-            {/* ░░ HEADER ░░ */}
-      <header className="hdr">
-        <div className="hdr-in">
-          <button className="brand" onClick={()=>goTab("search")}>
-            <img src="/logo192.png" alt="DraGold" style={{height:30,width:30,borderRadius:7,flexShrink:0}}/>
-            <span className="logo-txt font-syne">DraGold</span>
-          </button>
-
-          {/* nav desktop */}
-          <nav className="topnav">
-            {PRIMARY_TABS.map(t => (
-              <button key={t.id}
-                className={`topnav-i ${tab===t.id?"on":""}`}
-                onClick={()=>goTab(t.id)}>
-                {t.label}
-              </button>
-            ))}
-            {/* Academy (Task 4) — standalone route (main.jsx), real full
-                navigation like /account below, not a goTab() shell tab. */}
-            <a className="topnav-i" href="/academy">Academy</a>
-          </nav>
-
-          <div className="hdr-right">
-            <div className="cur-sel" role="group" aria-label="Valuta">
-              {["EUR","USD"].map(c => (
-                <button key={c} className={`cur-b ${cur===c?"on":""}`} onClick={()=>setCur(c)}>{c}</button>
-              ))}
-            </div>
-
-            {!authReady ? (
-              <div className="auth-skel" />
-            ) : isAuthed ? (
-              <div className="usermenu">
-                <button className="avatar" onClick={()=>setMenuOpen(o=>!o)} aria-label="Account">
-                  {avatarInitial}
-                </button>
-                {menuOpen && (
-                  <>
-                    <div className="menu-scrim" onClick={()=>setMenuOpen(false)} />
-                    <div className="menu">
-                      <div className="menu-email">{displayName || userEmail}</div>
-                      <a className="menu-i" href="/account">
-                        <Icon name="card" size={16}/> Account
-                      </a>
-                      {ACCOUNT_LINKS.map(l => (
-                        <button key={l.id} className="menu-i"
-                          onClick={()=>{ goTab(l.id); setMenuOpen(false); }}>
-                          <Icon name={l.icon} size={16}/> {l.label}
-                        </button>
-                      ))}
-                      <button className="menu-i" onClick={signOut}>
-                        <Icon name="logout" size={16}/> Sign out
-                      </button>
-                    </div>
-                  </>
-                )}
-              </div>
-            ) : (
-              <div style={{display:"flex",gap:8}}>
-                <a className="btn btn-ghost btn-sm" href="/login">Sign in</a>
-                <a className="btn btn-primary btn-sm" href="/register">Create account</a>
-              </div>
-            )}
-          </div>
-        </div>
-      </header>
+      <Preloader />
+      <CommandSearch
+        open={searchOpen}
+        onClose={closeSearch}
+        onPickCard={(card)=>{ closeSearch(); openAsset(card); }}
+        onPickSet={(ref)=>{ closeSearch(); openSet(ref); }}
+        onSeeAll={(q)=>{ setSavedSearch({ q, searched: false }); setHomeView("results"); goTab("search"); closeSearch(); }}
+      />
+      {/* ░░ HEADER ░░ — Atlas shell (src/components/shell/SiteHeader.jsx) */}
+      <SiteHeader
+        authReady={authReady}
+        isAuthed={isAuthed}
+        displayName={displayName || userEmail}
+        avatarInitial={avatarInitial}
+        menuOpen={menuOpen}
+        onToggleMenu={()=>setMenuOpen(o=>!o)}
+        onSignOut={signOut}
+        cur={cur}
+        onSetCur={setCur}
+        onOpenSearch={openSearch}
+        onNav={(dest)=>{
+          setMenuOpen(false);
+          if (dest==="academy") { window.location.href="/academy"; return; }
+          if (dest==="collection") { goTab("portfolio"); return; }
+          if (dest==="alerts") { goTab("alerts"); return; }
+          goTab("explore");
+        }}
+        onHome={()=>{ setHomeView("atlas"); goTab("search"); }}
+      />
 
       {/* ░░ MAIN ░░ */}
-      <main className="main">
-        {asset ? (
+      {asset ? (
+        <main className="main">
           <AssetView
             card={asset} onBack={closeAsset}
             isAuthed={isAuthed} onLogin={()=>{ window.location.href="/login"; }}
             country={country} cur={cur} eurRate={eurRate} setsMap={setsMap}
             onOpenCard={openAsset} onOpenSet={openSet}
           />
-        ) : viewSet ? (
+        </main>
+      ) : viewSet ? (
+        <main className="main">
           <SetDetailPage
             setRef={viewSet} setsMap={setsMap}
             country={country} cur={cur} eurRate={eurRate}
             onOpen={openAsset} onBack={closeSet}
             isAuthed={isAuthed}
           />
-        ) : (
-        <>
-        {tab==="search" && (
-          <SearchView
-            country={country} cur={cur} eurRate={eurRate}
-            onOpenAsset={openAsset} setsMap={setsMap} onOpenSet={openSet}
-            initialSearchState={getSavedSearch()}
-            onSearchStateChange={setSavedSearch}
-            onSearchStateClear={clearSavedSearch}
-            onOpenExplore={()=>goTab("explore")}
-            isAuthed={isAuthed}
+        </main>
+      ) : tab==="search" && homeView==="atlas" ? (
+        <main className="main-wide">
+          <HomePage
+            home={home}
+            onOpenSearch={openSearch}
+            onOpenCard={openAsset}
+            onOpenSet={openSet}
+            onNavCollection={()=>goTab("portfolio")}
           />
-        )}
-        {tab==="explore" && (
-          <SetsView setsMap={setsMap} onOpenSet={openSet} />
-        )}
-        {tab==="portfolio" && (
-          <PortfolioView isAuthed={isAuthed} onLogin={()=>{ window.location.href="/login"; }} onExplore={()=>setTab("search")} cur={cur} eurRate={eurRate} onOpenCard={openAsset} />
-        )}
-        {tab==="alerts" && (
-          <AlertsView isAuthed={isAuthed} onLogin={()=>{ window.location.href="/login"; }} onExplore={()=>setTab("search")}
-            cur={cur} eurRate={eurRate} country={country} />
-        )}
+        </main>
+      ) : (
+        <main className="main">
+          {tab==="search" && homeView==="results" && (
+            <SearchView
+              country={country} cur={cur} eurRate={eurRate}
+              onOpenAsset={openAsset} setsMap={setsMap} onOpenSet={openSet}
+              initialSearchState={getSavedSearch()}
+              onSearchStateChange={setSavedSearch}
+              onSearchStateClear={()=>{ clearSavedSearch(); setHomeView("atlas"); }}
+              onOpenExplore={()=>goTab("explore")}
+              isAuthed={isAuthed}
+            />
+          )}
+          {tab==="explore" && (
+            <SetsView setsMap={setsMap} onOpenSet={openSet} />
+          )}
+          {tab==="portfolio" && (
+            <PortfolioView isAuthed={isAuthed} onLogin={()=>{ window.location.href="/login"; }} onExplore={()=>goTab("search")} cur={cur} eurRate={eurRate} onOpenCard={openAsset} />
+          )}
+          {tab==="alerts" && (
+            <AlertsView isAuthed={isAuthed} onLogin={()=>{ window.location.href="/login"; }} onExplore={()=>goTab("search")}
+              cur={cur} eurRate={eurRate} country={country} />
+          )}
+        </main>
+      )}
 
-        {/* Upcoming -- extracted to components/shared/ComingSoon.jsx (Home
-            visual pass): same content, compact multi-column layout instead of
-            3 full-width stacked cards. */}
-        <ComingSoon />
-
-        <footer className="foot">
-          <img src="/logo192.png" alt="DraGold" style={{width:40,height:40,borderRadius:10,marginBottom:6}}/>
-          <span className="font-syne foot-logo">DraGold</span>
-          <span className="foot-sub">The catalog for serious TCG collectors.</span>
-          <div className="foot-links">
-            <button onClick={()=>goTab("portfolio")}>Portfolio</button>
-            <span>·</span>
-            <button onClick={()=>goTab("alerts")}>Alerts</button>
-            <span>·</span>
-            <a href="mailto:hello@dragold.org">Contact</a>
-            <span>·</span>
-            <a href="https://buymeacoffee.com/dragold" target="_blank" rel="noreferrer">Buy us a coffee</a>
-          </div>
-          {/* GDPR / Privacy & Compliance feature — discreet legal links,
-              present on every page via the shared footer (DraGold.jsx is the
-              main SPA shell all tab views render through). */}
-          <div className="foot-links foot-legal">
-            <a href="/privacy">Privacy Policy</a>
-            <span>·</span>
-            <a href="/cookie-policy">Cookie Policy</a>
-            <span>·</span>
-            <a href="/cookie-policy">Cookie Preferences</a>
-          </div>
-        </footer>
-        </>
-        )}
-      </main>
+      {/* Stratum 7 / shared footer — the atlas index */}
+      {!asset && !viewSet && (
+        <SiteFooter
+          worldCounts={home.worldCounts}
+          onNavCollection={()=>goTab("portfolio")}
+        />
+      )}
 
       {/* ░░ BOTTOM TAB (mobile) ░░ */}
       <nav className="tabbar">

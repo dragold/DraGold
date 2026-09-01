@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "vite build",
     "build:esbuild": "node build-esbuild.mjs",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "node --test \"src/**/*.test.js\""
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.4",
