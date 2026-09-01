@@ -134,8 +134,8 @@
 /* SiteFooter ────────────────────────────────────────────────────── */
 .site-footer{
   border-top:1px solid var(--border);
-  margin-top:var(--space-9);
-  padding:var(--space-8) 0 var(--space-7);
+  margin-top:var(--space-7);
+  padding:var(--space-7) 0 var(--space-6);
 }
 .site-footer-eyebrow{
   font-family:'Space Mono',monospace; font-size:var(--fs-micro);
