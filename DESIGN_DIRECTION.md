@@ -1,6 +1,7 @@
 # DESIGN_DIRECTION.md — DraGold
 
-**Status:** Draft for approval · 2026-09-01
+**Status:** Approved · 2026-09-01 · Phases 2–3 built on `redesign/atlas-foundation`
+**Build note:** Ermal lifted the "prove it without WebGL first / GSAP+Lenis later" sequencing after the static Atlas landed — GSAP + Lenis are now in (scroll choreography), and 3D/WebGL is explicitly on the table for further elevation, not deferred. The priority order in §0 still holds: the page must remain exceptional with all of it off.
 **Scope:** Redesign of the DraGold frontend, starting from the home page. This document is the visual-language source of truth. Product scope/behaviour lives in `PRODUCT_SPEC.md`; operating rules in `CLAUDE.md`; this file governs *how DraGold looks, moves and feels*.
 **Companion:** `UX_ARCHITECTURE.md` (information architecture, journeys, section map).
 
@@ -325,9 +326,9 @@ The `PRODUCT_SPEC.md` line "niente nuove librerie oltre a quelle già presenti" 
 
 | Dependency | Target | Why it earns its place | Budget / containment |
 |---|---|---|---|
-| **gsap** (core + ScrollTrigger) | `^3.13` | The Atlas descent is a single scroll-scrubbed timeline with pinning, branching and snap. Not expressible with `IntersectionObserver` + CSS. Mature, framework-agnostic, now fully free including all plugins. React integration via `useGSAP` (see the `gsap-react` skill) for correct cleanup. | Lazy-loaded, home route only. Not imported anywhere in the shared bundle. ~40–50KB gz. No-op / not loaded under reduced-motion. |
-| **lenis** | `^1.1` | Smooth-scroll normalisation that ScrollTrigger consumes; without it the scrubbed timeline judders on trackpads/mice. Tiny, MIT, no React coupling. | Home route only, lazy with GSAP. ~3KB gz. Disabled under reduced-motion and on low-end mobile. |
-| **three** + **@react-three/fiber** + **@react-three/drei** | *(deferred — not now)* | *Only if* a small holographic-foil / directional-light micro-layer for the specimen + owned cards is approved in a later phase. | Not installed in Phase 2. When/if added: its own lazy chunk, desktop-only, GPU-capability-gated, disabled under reduced-motion and on low-power devices, paused when offscreen/hidden, `devicePixelRatio` capped. Enhancement only — never required for the page to work. |
+| **gsap** + **@gsap/react** | `^3.15` / `^2.1` | The Atlas descent is a single scroll-scrubbed timeline transforming the sticky specimen through its six states. Not expressible with `IntersectionObserver` + CSS. Free incl. all plugins. `useGSAP` for cleanup. **Installed.** | Dynamically imported → own chunks (gsap ~28KB gz, ScrollTrigger ~18KB gz). Home route + desktop (≥1024) + non-reduced-motion only. Not in the shared bundle. |
+| **lenis** | `^1.3` | Smooth-scroll normalisation ScrollTrigger consumes; without it the scrubbed timeline judders on trackpads/mice. **Installed.** | ~6KB gz chunk, lazy. Desktop + non-reduced-motion + `innerWidth ≥ 1024` only. `lenis.destroy()` on unmount. |
+| **three** + **@react-three/fiber** + **@react-three/drei** | *(available — not yet used)* | A WebGL holographic-foil / directional-light layer for the hero specimen + owned cards is on the table for further elevation (Ermal, 2026-09-01). The CSS-3D delamination already delivers the core effect; WebGL would be a refinement. | If added: own lazy chunk, desktop + GPU-capability-gated, disabled under reduced-motion / low-power, paused when offscreen, `devicePixelRatio` capped. Never required for the page to work. |
 
 **Explicitly not adding:** Motion / Framer-Motion (View Transitions API + GSAP + CSS cover component transitions), any router, any state library, any CSS/UI framework.
 
