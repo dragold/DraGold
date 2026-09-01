@@ -8,11 +8,11 @@ import { useEffect, useRef } from "react";
 //
 // stageRef: the tall scroll container (threshold + all strata).
 // specimenRef: the CardSpecimen imperative handle ({ plate, art, frame, holo, back }).
-export function useAtlasChoreography(stageRef, specimenRef) {
+export function useAtlasChoreography(stageRef, specimenRef, { enabled = true } = {}) {
   const tlRef = useRef(null);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
+    if (typeof window === "undefined" || !enabled) return;
     const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
     if (reduce || window.innerWidth < 1024) return;
 
@@ -94,5 +94,5 @@ export function useAtlasChoreography(stageRef, specimenRef) {
       ctx?.revert();
       tlRef.current = null;
     };
-  }, [stageRef, specimenRef]);
+  }, [stageRef, specimenRef, enabled]);
 }

@@ -21,8 +21,16 @@ export function selectFeatured(candidates) {
   const pool = (candidates || []).filter(clean);
   if (!pool.length) return null;
 
+  // Prefer cards with a ready cached image — same-origin/CORS-safe, so the
+  // WebGL hero can texture them without a proxy round-trip.
+  const cached = (c) =>
+    Array.isArray(c.card_image_cache) &&
+    c.card_image_cache.some((x) => x?.status === "ready" && x?.cached_url);
+
   const hero = pool.filter((c) => c.rarity && HERO_RARITY.test(c.rarity));
-  const shortlist = hero.length >= 3 ? hero : pool;
+  const heroCached = hero.filter(cached);
+  const shortlist =
+    heroCached.length >= 2 ? heroCached : hero.length >= 3 ? hero : pool.filter(cached).length >= 3 ? pool.filter(cached) : pool;
 
   // stable hash over the shortlist ids → same pick for the session
   let h = 0;

@@ -1,25 +1,28 @@
-import { StrictMode, createElement as h } from 'react'
+import { StrictMode, Suspense, lazy, createElement as h } from 'react'
 import { createRoot } from 'react-dom/client'
 import { Analytics } from '@vercel/analytics/react'
-import DraGold from './DraGold.jsx'
-import CardPage from './pages/card/CardPage.jsx'
-import SetPage from './pages/set/SetPage.jsx'
-import TcgPage from './pages/tcg/TcgPage.jsx'
-import IllustratorPage from './pages/illustrator/IllustratorPage.jsx'
-import AcademyPage from './pages/academy/AcademyPage.jsx'
-import AcademyLessonPage from './pages/academy/AcademyLessonPage.jsx'
-import CardIdPage from './pages/card-id/CardIdPage.jsx'
-import LoginPage from './pages/auth/LoginPage.jsx'
-import RegisterPage from './pages/auth/RegisterPage.jsx'
-import ForgotPasswordPage from './pages/auth/ForgotPasswordPage.jsx'
-import ResetPasswordPage from './pages/auth/ResetPasswordPage.jsx'
-import AccountPage from './pages/auth/AccountPage.jsx'
-import TermsPage from './pages/legal/TermsPage.jsx'
-import PrivacyPage from './pages/legal/PrivacyPage.jsx'
-import CookiePolicyPage from './pages/legal/CookiePolicyPage.jsx'
 import { AuthProvider } from './lib/auth.js'
 import { TCG_HUBS } from './lib/tcgConfig.js'
 import './styles.css'
+
+// Every route is its own lazy chunk — a visitor to /carta/… never downloads
+// the SPA shell (DraGold.jsx) or /account, and vice-versa.
+const DraGold = lazy(() => import('./DraGold.jsx'))
+const CardPage = lazy(() => import('./pages/card/CardPage.jsx'))
+const SetPage = lazy(() => import('./pages/set/SetPage.jsx'))
+const TcgPage = lazy(() => import('./pages/tcg/TcgPage.jsx'))
+const IllustratorPage = lazy(() => import('./pages/illustrator/IllustratorPage.jsx'))
+const AcademyPage = lazy(() => import('./pages/academy/AcademyPage.jsx'))
+const AcademyLessonPage = lazy(() => import('./pages/academy/AcademyLessonPage.jsx'))
+const CardIdPage = lazy(() => import('./pages/card-id/CardIdPage.jsx'))
+const LoginPage = lazy(() => import('./pages/auth/LoginPage.jsx'))
+const RegisterPage = lazy(() => import('./pages/auth/RegisterPage.jsx'))
+const ForgotPasswordPage = lazy(() => import('./pages/auth/ForgotPasswordPage.jsx'))
+const ResetPasswordPage = lazy(() => import('./pages/auth/ResetPasswordPage.jsx'))
+const AccountPage = lazy(() => import('./pages/auth/AccountPage.jsx'))
+const TermsPage = lazy(() => import('./pages/legal/TermsPage.jsx'))
+const PrivacyPage = lazy(() => import('./pages/legal/PrivacyPage.jsx'))
+const CookiePolicyPage = lazy(() => import('./pages/legal/CookiePolicyPage.jsx'))
 
 const cardMatch = window.location.pathname.match(/^\/carta\/([^/]+)\/?$/)
 // Block 5 — SEO Foundation for Sets: /set/{slug} e' una pagina standalone come
@@ -44,9 +47,6 @@ const tcgMatch = TCG_HUBS.find(hub => `/${hub.tcg}` === pathNoSlash)
 
 // Auth/Profile/Username feature — standalone routes, same pattern as the
 // blocks above (exact-match on pathNoSlash, mounted before the SPA shell).
-// Card ID microproduct (2026-08-26) reuses this same exact-match map for
-// /card-id: it's a single static page, same shape as /account etc., not
-// worth a dedicated match variable for one more route.
 const AUTH_ROUTES = {
   '/card-id': CardIdPage,
   '/login': LoginPage,
@@ -71,6 +71,9 @@ const RootView = cardMatch ? h(CardPage, { slug: decodeURIComponent(cardMatch[1]
 
 createRoot(document.getElementById('root')).render(
   h(StrictMode, null,
-    h(AuthProvider, null, RootView, h(Analytics, null))
+    h(AuthProvider, null,
+      h(Suspense, { fallback: h('div', { style: { minHeight: '100svh', background: '#08090C' } }) }, RootView),
+      h(Analytics, null)
+    )
   )
-  )
+)

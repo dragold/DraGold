@@ -9,7 +9,7 @@ import { pickLessons, shapeWorldCounts } from "./homeData.pure.js";
 export { pickLessons, shapeWorldCounts };
 
 const CARD_COLS =
-  "id,tcg,lang,name,set_id,set_name,card_number,rarity,illustrator,image_url,image_url_hi,canonical_card_id";
+  "id,tcg,lang,name,set_id,set_name,card_number,rarity,illustrator,image_url,image_url_hi,canonical_card_id,card_image_cache(cached_url,status)";
 
 const EMPTY = {
   loading: true,
@@ -22,7 +22,17 @@ const EMPTY = {
   timeline: [],
   lessons: [],
   worldCounts: null,
+  icons: [],
 };
+
+function shuffle(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
 
 // Read-only query composition for the Atlas home. Anon-safe; the owned count
 // is the only signed-in branch. One featured card, its canonical print group,
@@ -79,6 +89,22 @@ export function useHomeData({ isAuthed } = {}) {
           .limit(200);
         candidates = candidates.concat(heroPool || []);
         const featured = selectFeatured(candidates);
+
+        // Recognisable cards for the constellation — real catalog rows, old sets
+        // + holo rares. Kept impressionistic in the scene (small, depth-blurred).
+        const { data: iconRows } = await supabase
+          .from("cards")
+          .select(
+            "id,tcg,lang,name,rarity,image_url,image_url_hi,card_image_cache(cached_url,status)"
+          )
+          .eq("tcg", "pokemon")
+          .eq("lang", "en")
+          .not("image_url", "is", null)
+          .or("rarity.ilike.%rare holo%,rarity.ilike.%illustration rare%,rarity.ilike.%ultra%,rarity.ilike.%secret%")
+          .limit(60);
+        const icons = shuffle(iconRows || [])
+          .filter((c) => c.id !== featured?.id)
+          .slice(0, 10);
 
         // 2 — canonical print / language group
         let prints = [];
@@ -190,6 +216,7 @@ export function useHomeData({ isAuthed } = {}) {
           timeline,
           lessons,
           worldCounts: shapeWorldCounts(counts),
+          icons,
         });
       } catch {
         if (!cancelled) setState((s) => ({ ...s, loading: false }));

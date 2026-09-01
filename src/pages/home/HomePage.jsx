@@ -1,11 +1,17 @@
-import { useRef } from "react";
+import { useRef, useState, useEffect, lazy, Suspense } from "react";
 import { AtlasGrid } from "./AtlasGrid.jsx";
 import { Stratum } from "./Stratum.jsx";
 import { DoorRail } from "./DoorRail.jsx";
 import { CardSpecimen } from "./CardSpecimen.jsx";
 import { SpecimenTile } from "./SpecimenTile.jsx";
 import { useAtlasChoreography } from "./useAtlasChoreography.js";
+import { useAtlasScrollProgress } from "./webgl/useAtlasScrollProgress.js";
+import { detectTier } from "./webgl/gpuTier.js";
+import { webglImage } from "./webgl/webglImage.js";
+import { WebGLBoundary } from "./webgl/WebGLBoundary.jsx";
 import { Icon } from "../../components/shared/Icon.jsx";
+
+const AtlasCanvas = lazy(() => import("./webgl/AtlasCanvas.jsx"));
 import { slugifyIllustrator } from "../../lib/illustratorSlug.js";
 import { buildSetSlug } from "../../lib/setSlug.js";
 import { getCategory } from "../academy/academyContent.js";
@@ -28,7 +34,19 @@ export function HomePage({ home, onOpenSearch, onOpenCard, onOpenSet, onNavColle
 
   const stageRef = useRef(null);
   const specimenRef = useRef(null);
-  useAtlasChoreography(stageRef, specimenRef);
+
+  // WebGL tier — decided once on mount. tier 0 → the CSS-3D Atlas (below).
+  // webglFailed flips permanently if the 3D layer ever throws.
+  const [tier, setTier] = useState(0);
+  const [webglFailed, setWebglFailed] = useState(false);
+  useEffect(() => {
+    setTier(detectTier());
+  }, []);
+  const webglImg = featured ? webglImage(featured) : null;
+  const webgl = tier > 0 && !webglFailed && !!webglImg;
+
+  useAtlasChoreography(stageRef, specimenRef, { enabled: !webgl });
+  useAtlasScrollProgress(stageRef);
 
   const otherPrints = prints.filter((p) => p.id !== featured?.id);
   const setSlug = set && featured ? buildSetSlug(featured.tcg, set.set_code) : null;
@@ -46,7 +64,14 @@ export function HomePage({ home, onOpenSearch, onOpenCard, onOpenSet, onNavColle
       : null;
 
   return (
-    <div className="home">
+    <div className={`home${webgl ? " has-webgl" : ""}`}>
+      {webgl && (
+        <WebGLBoundary onFail={() => setWebglFailed(true)}>
+          <Suspense fallback={null}>
+            <AtlasCanvas tier={tier} src={webglImg} rarity={featured?.rarity || ""} icons={home?.icons || []} />
+          </Suspense>
+        </WebGLBoundary>
+      )}
       <div className="atlas-stage" ref={stageRef}>
         {/* ── intro (threshold copy) ── */}
         <div className="atlas-intro">
