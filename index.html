@@ -6,7 +6,7 @@
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#020208" />
+    <meta name="theme-color" content="#08090C" />
 
     <!-- SEO -->
     <title>DraGold — TCG Cards, Sets &amp; Collection Tracker</title>
@@ -25,9 +25,9 @@
     <meta name="twitter:title" content="DraGold — Learn the cards, track your collection" />
     <meta name="twitter:description" content="Every TCG card, set and artist has a page that teaches you something. Learn how collecting works, track what you own, and complete your sets. Free." />
 
-    <!-- Fonts preconnect -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!-- Self-hosted fonts: preload the two critical faces -->
+    <link rel="preload" href="/fonts/fraunces.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/jakarta.woff2" as="font" type="font/woff2" crossorigin />
   </head>
   <body>
     <div id="root"></div>

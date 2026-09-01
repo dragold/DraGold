@@ -2,7 +2,9 @@
 // (DraGold Visual North Star, motion budget: 700ms max, one-shot per element).
 import { useRef, useState, useEffect } from "react";
 
-export function useReveal(index = 0) {
+export function useReveal(opts = 0) {
+  const { index = 0, once = true } =
+    typeof opts === "number" ? { index: opts } : (opts || {});
   const ref = useRef(null);
   const [revealed, setRevealed] = useState(false);
 
@@ -26,7 +28,7 @@ export function useReveal(index = 0) {
       for (const entry of entries) {
         if (entry.isIntersecting) {
           setRevealed(true);
-          io.disconnect();
+          if (once) io.disconnect();
         }
       }
     }, { threshold: 0, rootMargin: "0px 0px -40px 0px" });
