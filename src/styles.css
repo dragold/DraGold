@@ -75,7 +75,10 @@
   --z-base:1; --z-rail:5; --z-header:40; --z-overlay:60; --z-preloader:90;
 }
 *{box-sizing:border-box;margin:0;padding:0;}
-html,body{background:var(--bg);color:var(--text);font-family:'Plus Jakarta Sans',system-ui,sans-serif;-webkit-font-smoothing:antialiased;overflow-x:hidden;}
+/* overflow-x:clip (not hidden) prevents a horizontal scrollbar without
+   turning <body> into a scroll container — which would break position:sticky
+   for descendants (the Atlas specimen). Falls back to hidden on old engines. */
+html,body{background:var(--bg);color:var(--text);font-family:'Plus Jakarta Sans',system-ui,sans-serif;-webkit-font-smoothing:antialiased;overflow-x:hidden;overflow-x:clip;}
 
 /* Phase 2A — prefers-reduced-motion globale. Non disabilita gli stati
    (hover/focus/active restano invariati, cambiano istantaneamente invece

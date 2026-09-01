@@ -166,6 +166,21 @@
   font-family:'Space Mono',monospace; font-size:var(--fs-data);
   color:var(--gold); margin-top:.35rem;
 }
+.site-footer-coming{
+  display:flex; flex-wrap:wrap; align-items:center; gap:.5rem .9rem;
+  margin-top:var(--space-4);
+  font-family:'Space Mono',monospace; font-size:var(--fs-data);
+}
+.site-footer-coming-k{
+  font-size:var(--fs-micro); letter-spacing:.16em; text-transform:uppercase;
+  color:var(--dim); margin-right:.25rem;
+}
+.site-footer-coming-i{
+  color:var(--muted); border-bottom:1px solid var(--border-2); padding-bottom:1px;
+}
+.site-footer-coming-i:hover{ color:var(--text); }
+.site-footer-coming-i.is-more{ color:var(--dim); border-bottom-color:transparent; }
+
 .site-footer-nav{
   display:flex; flex-wrap:wrap; gap:1.25rem;
   margin:var(--space-5) 0; font-size:var(--fs-ui); color:var(--muted);

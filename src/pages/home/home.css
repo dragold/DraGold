@@ -38,22 +38,50 @@
 .door-rail:active{ cursor:grabbing; }
 .door-rail > *{ scroll-snap-align:start; flex:0 0 auto; }
 
+/* ══ Atlas stage — content column + the card riding the descent ═══ */
+.atlas-stage{ display:flex; flex-direction:column; }
+.atlas-stage > *{ min-width:0; }
+.atlas-intro{ padding:var(--space-8) clamp(1rem,4vw,3rem) var(--space-6); }
+.atlas-aside{ display:flex; justify-content:center; padding-block:var(--space-6); }
+.atlas-specimen{ display:grid; place-items:center; }
+
+@media (min-width:1024px){
+  .atlas-stage{
+    display:grid;
+    grid-template-columns:minmax(0,1fr) minmax(360px,42%);
+    max-width:var(--maxw-page); margin-inline:auto;
+    padding-inline:clamp(1rem,4vw,3rem);
+    column-gap:clamp(2rem,5vw,5rem);
+  }
+  .atlas-intro{ grid-column:1; grid-row:1; padding:var(--space-9) 0 var(--space-7); }
+  .atlas-intro .atlas-grid{ margin:0; }
+  .strata{ grid-column:1; grid-row:2; }
+  .atlas-aside{
+    grid-column:2; grid-row:1 / span 2;
+    display:block; padding:0;
+  }
+  .atlas-specimen{
+    position:sticky; top:0; height:100svh;
+    display:grid; place-items:center;
+  }
+}
+
 /* ── Stratum + spine — one continuous stratigraphic column ── */
 .strata{
-  max-width:var(--maxw-page); margin-inline:auto;
+  width:100%; max-width:var(--maxw-page); margin-inline:auto;
   padding-inline:clamp(1rem,4vw,3rem);
 }
-@media (min-width:900px){
+.stratum-in, .stratum-body, .ledger, .know-grid, .coll, .set-identity{ max-width:100%; }
+.door-rail{ max-width:100%; }
+@media (min-width:1024px){
   .strata{
+    max-width:none; margin:0; padding-inline:0;
     position:relative;
     border-left:1px solid var(--border-2);
-    /* nudge the content in from the spine; edge-labels tick back to it */
-    padding-left:calc(clamp(1rem,4vw,3rem) + clamp(1.5rem,3vw,3rem));
+    padding-left:clamp(1.5rem,3vw,3rem);
   }
-  /* the spine fades in at the top (emerging from the threshold) and out at
-     the very bottom — it reads as a core sample, not a full-height rule */
   .strata::before{
-    content:""; position:absolute; left:-1px; top:0; width:1px; height:120px;
+    content:""; position:absolute; left:-1px; top:0; width:1px; height:100px;
     background:linear-gradient(var(--bg),transparent);
   }
   .strata::after{
@@ -70,7 +98,7 @@
   letter-spacing:.22em; text-transform:uppercase; color:var(--relation);
   margin-bottom:var(--space-5);
 }
-@media (min-width:900px){
+@media (min-width:1024px){
   .stratum-edge{ margin-left:calc(clamp(1.5rem,3vw,3rem) * -1); }
   .stratum-edge::before{
     content:""; width:clamp(.9rem,2.5vw,1.75rem); height:1px;
@@ -104,20 +132,9 @@
   outline:2px solid var(--gold); outline-offset:3px;
 }
 
-/* ══ 0 · Threshold ═══════════════════════════════════════════════ */
-.threshold{ padding:var(--space-8) 0 var(--space-6); }
-@media (min-width:900px){ .threshold{ padding-top:var(--space-9); } }
-.threshold-grid{ align-items:center; row-gap:var(--space-7); }
-.threshold-copy{ grid-column:1 / -1; }
-.threshold-card{ grid-column:1 / -1; display:flex; justify-content:center; align-items:center; }
-@media (min-width:768px){
-  .threshold-copy{ grid-column:1 / span 7; }
-  .threshold-card{ grid-column:8 / -1; justify-content:center; }
-}
-@media (min-width:1200px){
-  .threshold-copy{ grid-column:1 / span 6; }
-  .threshold-card{ grid-column:8 / span 4; }
-}
+/* ══ 0 · Intro (threshold copy) ═════════════════════════════════ */
+.intro-grid{ display:block; }
+.intro-copy{ max-width:34rem; }
 .threshold-eyebrow{
   font-family:'Space Mono',monospace; font-size:var(--fs-micro);
   letter-spacing:.28em; text-transform:uppercase; color:var(--dim);
@@ -153,48 +170,58 @@
 .threshold-scroll:hover{ color:var(--muted); }
 .threshold-scroll:focus-visible{ outline:2px solid var(--gold); outline-offset:3px; }
 
-/* ── CardSpecimen ── */
+/* ── CardSpecimen — layered planes, delaminate-ready ── */
 .specimen{
-  position:relative; width:min(300px,72vw); aspect-ratio:63/88;
-  perspective:1200px; margin:0;
+  position:relative; width:min(320px,72vw); aspect-ratio:63/88;
+  perspective:1400px; margin:0;
 }
-/* directional light from behind the artwork (North Star: the only light on
-   the page, never a decorative gradient in the foreground) */
+/* directional light from behind the artwork */
 .specimen::before{
-  content:""; position:absolute; inset:-22% -30% -14%; z-index:-1;
-  background:radial-gradient(52% 46% at 50% 42%, rgb(var(--gold-rgb) / .16), transparent 70%);
-  filter:blur(14px);
+  content:""; position:absolute; inset:-26% -34% -16%; z-index:-1;
+  background:radial-gradient(52% 46% at 50% 42%, rgb(var(--gold-rgb) / .18), transparent 70%);
+  filter:blur(16px);
 }
 .specimen-plate{
   position:relative; width:100%; height:100%;
   transform-style:preserve-3d; border-radius:9px; will-change:transform;
   transition:transform var(--mo-settle) var(--ease-out);
 }
-.specimen-art, .specimen-frame, .specimen-holo, .specimen-ph{
-  position:absolute; inset:0; border-radius:inherit;
+.specimen-layer{
+  position:absolute; inset:0; border-radius:inherit; backface-visibility:hidden;
 }
-.specimen-art{
+.specimen-layer.is-art{
   width:100%; height:100%; object-fit:contain; user-select:none;
   filter:drop-shadow(0 10px 22px rgba(0,0,0,.45)) drop-shadow(0 34px 66px rgba(0,0,0,.55));
 }
-.specimen-frame{ box-shadow:inset 0 0 0 1px var(--border-2); }
-.specimen-holo{
+.specimen-layer.is-frame{
+  box-shadow:inset 0 0 0 1px rgb(var(--gold-rgb) / .16),
+             inset 0 0 34px rgb(var(--gold-rgb) / .05);
+  opacity:0;
+}
+.specimen-layer.is-back{
+  transform:translateZ(-1px); opacity:0;
+  background:
+    repeating-linear-gradient(135deg, rgb(var(--relation-rgb) / .10) 0 8px, transparent 8px 16px),
+    linear-gradient(150deg,var(--surface-2),var(--surface));
+  box-shadow:inset 0 0 0 1px var(--border-2), 0 20px 50px rgba(0,0,0,.5);
+}
+.specimen-layer.is-holo{
   mix-blend-mode:overlay; opacity:.55; overflow:hidden;
   background:
-    radial-gradient(circle at var(--mx,50%) var(--my,50%), rgba(255,255,255,.4), transparent 55%),
+    radial-gradient(circle at var(--mx,50%) var(--my,50%), rgba(255,255,255,.42), transparent 55%),
     linear-gradient(var(--foil-angle,115deg), transparent 34%,
-      rgb(var(--gold-rgb) / .24) 46%, rgb(var(--relation-rgb) / .22) 56%, transparent 72%);
+      rgb(var(--gold-rgb) / .26) 46%, rgb(var(--relation-rgb) / .24) 56%, transparent 72%);
 }
-.specimen-holo::after{
+.specimen-layer.is-holo::after{
   content:""; position:absolute; top:0; bottom:0; left:-45%; width:28%;
-  background:linear-gradient(100deg, transparent, rgb(var(--gold-rgb) / .12), transparent);
+  background:linear-gradient(100deg, transparent, rgb(var(--gold-rgb) / .14), transparent);
   animation:specimen-scan 10s ease-in-out infinite;
 }
-@keyframes specimen-scan{ 0%{ left:-45% } 55%{ left:108% } 100%{ left:108% } }
+@keyframes specimen-scan{ 0%{ left:-45% } 55%{ left:110% } 100%{ left:110% } }
 .specimen-ph{ background:linear-gradient(150deg,var(--surface-3),var(--surface-2)); }
 .specimen-shadow{
-  position:absolute; left:10%; right:10%; bottom:-24px; height:26px; z-index:-1;
-  background:radial-gradient(closest-side, rgba(0,0,0,.6), transparent 75%); filter:blur(8px);
+  position:absolute; left:8%; right:8%; bottom:-26px; height:28px; z-index:-1;
+  background:radial-gradient(closest-side, rgba(0,0,0,.62), transparent 75%); filter:blur(9px);
 }
 .specimen-caption{
   position:absolute; left:0; right:0; bottom:-46px;
@@ -352,7 +379,9 @@
 }
 
 @media (prefers-reduced-motion: reduce){
-  .specimen-plate{ transition:none; }
-  .specimen-holo::after{ animation:none; }
+  .specimen-plate{ transition:none; transform:none !important; }
+  .specimen-layer{ transform:none !important; }
+  .specimen-layer.is-holo::after{ animation:none; }
+  .atlas-specimen{ position:static; min-height:0; }
   .sp-tile, .tl-mark, .know-card{ transition:none; }
 }

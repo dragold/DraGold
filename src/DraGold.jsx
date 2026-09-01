@@ -29,6 +29,7 @@ import { Preloader } from "./components/shell/Preloader.jsx";
 import { CommandSearch } from "./components/shell/CommandSearch.jsx";
 import { HomePage } from "./pages/home/HomePage.jsx";
 import { useHomeData } from "./pages/home/useHomeData.js";
+import { useLenis } from "./lib/useLenis.js";
 
 /* ════════════════════════════════════════════════════════════════════════
    DraGold — SHELL (TASK 2)
@@ -151,6 +152,10 @@ export default function DraGold() {
   // Atlas home data — one read-only query composition, shared by HomePage and
   // the footer's real world counts.
   const home = useHomeData({ isAuthed });
+
+  // Global smooth scroll (desktop, non-reduced-motion) — the Atlas descent
+  // reads as one continuous move rather than notched wheel steps.
+  useLenis();
 
   const signOut = useCallback(async () => {
     await authSignOut();

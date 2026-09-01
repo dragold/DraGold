@@ -10,11 +10,16 @@ const WORLDS = [
   { key: "onepiece:ja", label: "One Piece", sub: "Japanese", href: "/onepiece" },
 ];
 
+const COMING_GAMES = [
+  { label: "Magic: The Gathering", href: "/mtg" },
+  { label: "Yu-Gi-Oh!", href: "/ygo" },
+];
+
 export function SiteFooter({ worldCounts, onNavCollection }) {
   return (
     <footer className="site-footer">
       <div className="shell-wrap">
-        <p className="site-footer-eyebrow">THE ATLAS</p>
+        <p className="site-footer-eyebrow">THE ATLAS · MAPPED SO FAR</p>
 
         <div className="site-footer-worlds">
           {WORLDS.map((w) => {
@@ -31,13 +36,23 @@ export function SiteFooter({ worldCounts, onNavCollection }) {
           })}
         </div>
 
+        <div className="site-footer-coming">
+          <span className="site-footer-coming-k">Next into the graph</span>
+          {COMING_GAMES.map((g) => (
+            <a key={g.href} className="site-footer-coming-i" href={g.href}>{g.label}</a>
+          ))}
+          <span className="site-footer-coming-i is-more">and more</span>
+        </div>
+
         <nav className="site-footer-nav" aria-label="Sections">
           <a href="/academy">Academy</a>
           <a href="/card-id">Identify a card</a>
           <button type="button" onClick={onNavCollection}>Collection</button>
         </nav>
 
-        <p className="site-footer-soon">Binder, Blog and Community are in progress.</p>
+        <p className="site-footer-soon">
+          In progress: virtual binders, an editorial layer, and shared collections.
+        </p>
 
         <div className="site-footer-base">
           <span className="font-syne site-footer-mark">DraGold</span>

@@ -62,9 +62,22 @@ export function useHomeData({ isAuthed } = {}) {
             .in("lang", ["en", "ja"])
             .not("image_url", "is", null)
             .order("updated_at", { ascending: false })
-            .limit(80);
+            .limit(120);
           candidates = candidates.concat(data || []);
         }
+        // A pool of visually striking cards for the hero (full-art / illustration
+        // rares). ilike on a few rarity tokens — cheap, one query.
+        const { data: heroPool } = await supabase
+          .from("cards")
+          .select(CARD_COLS)
+          .eq("tcg", "pokemon")
+          .in("lang", ["en", "ja"])
+          .not("image_url", "is", null)
+          .or(
+            "rarity.ilike.%illustration rare%,rarity.ilike.%special art%,rarity.ilike.%full art%,rarity.ilike.%alt%art%,rarity.ilike.%secret%"
+          )
+          .limit(200);
+        candidates = candidates.concat(heroPool || []);
         const featured = selectFeatured(candidates);
 
         // 2 — canonical print / language group
