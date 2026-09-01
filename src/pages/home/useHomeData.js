@@ -9,7 +9,7 @@ import { pickLessons, shapeWorldCounts } from "./homeData.pure.js";
 export { pickLessons, shapeWorldCounts };
 
 const CARD_COLS =
-  "id,tcg,lang,name,set_id,set_name,card_number,rarity,illustrator,image_url,image_url_hi,canonical_card_id";
+  "id,tcg,lang,name,set_id,set_name,card_number,rarity,illustrator,image_url,image_url_hi,canonical_card_id,card_image_cache(cached_url,status)";
 
 const EMPTY = {
   loading: true,

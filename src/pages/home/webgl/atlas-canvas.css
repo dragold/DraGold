@@ -1,0 +1,19 @@
+/* The WebGL layer sits behind the DOM Atlas. The strata content column has no
+   background of its own, so the void + dust show through faintly behind the
+   text — "the world behind the card". */
+.atlas-canvas{
+  position:fixed; inset:0; z-index:0;
+  pointer-events:none;
+}
+.atlas-canvas canvas{ display:block; }
+
+/* When the WebGL hero is live, the DOM specimen (the CSS-3D card) steps aside —
+   the canvas card is the hero now. The DOM version stays in the markup as the
+   tier-0 / reduced-motion fallback. */
+.home.has-webgl .atlas-aside{ visibility:hidden; }
+.home.has-webgl .stratum-chip{ display:none; }
+.home.has-webgl{ position:relative; z-index:1; }
+.home.has-webgl .atlas-stage{ position:relative; z-index:1; }
+/* the strata content sits over the void — keep it readable */
+.home.has-webgl .strata,
+.home.has-webgl .atlas-intro{ position:relative; z-index:1; }
