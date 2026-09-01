@@ -1,0 +1,387 @@
+/* ══ DraGold home — the Atlas ══════════════════════════════════════
+   All home selectors (additive). Imported by HomePage. The page is one
+   continuous descent through a single card: a stratigraphic column, each
+   layer named on the spine that runs down its left edge. */
+
+/* full-bleed main for the Atlas (the legacy .main caps at --maxw 980px;
+   the Atlas uses .shell-wrap per section for the 1320px measure). */
+.main-wide{
+  flex:1; width:100%;
+  padding-bottom:calc(var(--tabh) + env(safe-area-inset-bottom,0px) + 28px);
+}
+@media (min-width:1024px){ .main-wide{ padding-bottom:var(--space-7); } }
+
+.home{ position:relative; }
+
+/* ── shared primitives ── */
+.atlas-grid{
+  display:grid; grid-template-columns:1fr; gap:var(--space-5);
+  max-width:var(--maxw-page); margin-inline:auto;
+}
+@media (min-width:768px){
+  .atlas-grid{
+    grid-template-columns:repeat(var(--grid-cols),1fr);
+    column-gap:var(--grid-gutter);
+  }
+}
+
+.door-rail{
+  display:flex; gap:var(--space-3); overflow-x:auto;
+  padding:var(--space-1) var(--space-1) var(--space-3);
+  margin-inline:calc(var(--space-1) * -1);
+  scroll-snap-type:x proximity; scrollbar-width:none;
+  -webkit-mask-image:linear-gradient(to right,transparent,#000 20px,#000 calc(100% - 40px),transparent);
+          mask-image:linear-gradient(to right,transparent,#000 20px,#000 calc(100% - 40px),transparent);
+  cursor:grab;
+}
+.door-rail::-webkit-scrollbar{ display:none; }
+.door-rail:active{ cursor:grabbing; }
+.door-rail > *{ scroll-snap-align:start; flex:0 0 auto; }
+
+/* ══ Atlas stage — content column + the card riding the descent ═══ */
+.atlas-stage{ display:flex; flex-direction:column; }
+.atlas-stage > *{ min-width:0; }
+.atlas-intro{ padding:var(--space-8) clamp(1rem,4vw,3rem) var(--space-6); }
+.atlas-aside{ display:flex; justify-content:center; padding-block:var(--space-6); }
+.atlas-specimen{ display:grid; place-items:center; }
+
+@media (min-width:1024px){
+  .atlas-stage{
+    display:grid;
+    grid-template-columns:minmax(0,1fr) minmax(360px,42%);
+    max-width:var(--maxw-page); margin-inline:auto;
+    padding-inline:clamp(1rem,4vw,3rem);
+    column-gap:clamp(2rem,5vw,5rem);
+  }
+  .atlas-intro{ grid-column:1; grid-row:1; padding:var(--space-9) 0 var(--space-7); }
+  .atlas-intro .atlas-grid{ margin:0; }
+  .strata{ grid-column:1; grid-row:2; }
+  .atlas-aside{
+    grid-column:2; grid-row:1 / span 2;
+    display:block; padding:0;
+  }
+  .atlas-specimen{
+    position:sticky; top:0; height:100svh;
+    display:grid; place-items:center;
+  }
+}
+
+/* ── Stratum + spine — one continuous stratigraphic column ── */
+.strata{
+  width:100%; max-width:var(--maxw-page); margin-inline:auto;
+  padding-inline:clamp(1rem,4vw,3rem);
+}
+.stratum-in, .stratum-body, .ledger, .know-grid, .coll, .set-identity{ max-width:100%; }
+.door-rail{ max-width:100%; }
+@media (min-width:1024px){
+  .strata{
+    max-width:none; margin:0; padding-inline:0;
+    position:relative;
+    border-left:1px solid var(--border-2);
+    padding-left:clamp(1.5rem,3vw,3rem);
+  }
+  .strata::before{
+    content:""; position:absolute; left:-1px; top:0; width:1px; height:100px;
+    background:linear-gradient(var(--bg),transparent);
+  }
+  .strata::after{
+    content:""; position:absolute; left:-1px; bottom:0; width:1px; height:120px;
+    background:linear-gradient(transparent,var(--bg));
+  }
+}
+.stratum{ position:relative; }
+.stratum-in{ position:relative; padding-block:var(--space-6); }
+.stratum + .stratum .stratum-in{ padding-top:var(--space-7); }
+.stratum-edge{
+  display:flex; align-items:center; gap:.75rem;
+  font-family:'Space Mono',monospace; font-size:var(--fs-micro);
+  letter-spacing:.22em; text-transform:uppercase; color:var(--relation);
+  margin-bottom:var(--space-5);
+}
+@media (min-width:1024px){
+  .stratum-edge{ margin-left:calc(clamp(1.5rem,3vw,3rem) * -1); }
+  .stratum-edge::before{
+    content:""; width:clamp(.9rem,2.5vw,1.75rem); height:1px;
+    background:var(--relation); opacity:.55; flex-shrink:0;
+  }
+}
+.stratum-edge-t{ flex-shrink:0; }
+.stratum-depth{ color:var(--dim); font-weight:700; letter-spacing:.1em; }
+.stratum-chip{
+  width:28px; height:39px; object-fit:cover; border-radius:3px;
+  margin-left:auto; opacity:.45; border:1px solid var(--border);
+}
+.stratum-voice{
+  font-size:var(--fs-h1); font-weight:700; letter-spacing:-.02em;
+  line-height:1.08; color:var(--text); max-width:20ch; text-wrap:balance;
+  margin-bottom:var(--space-5);
+}
+.stratum-body{ }
+.stratum-note{ color:var(--dim); font-size:var(--fs-body); }
+.stratum-doors{
+  display:flex; flex-wrap:wrap; gap:.5rem 1.5rem;
+  margin-top:var(--space-5);
+  font-family:'Space Mono',monospace; font-size:var(--fs-data);
+}
+.stratum-doors a, .stratum-doors button{
+  color:var(--gold); text-align:left;
+  border-bottom:1px solid transparent; transition:border-color var(--mo-tap) var(--ease-out);
+}
+.stratum-doors a:hover, .stratum-doors button:hover{ border-bottom-color:currentColor; }
+.stratum-doors a:focus-visible, .stratum-doors button:focus-visible{
+  outline:2px solid var(--gold); outline-offset:3px;
+}
+
+/* ══ 0 · Intro (threshold copy) ═════════════════════════════════ */
+.intro-grid{ display:block; }
+.intro-copy{ max-width:34rem; }
+.threshold-eyebrow{
+  font-family:'Space Mono',monospace; font-size:var(--fs-micro);
+  letter-spacing:.28em; text-transform:uppercase; color:var(--dim);
+  margin-bottom:var(--space-5);
+}
+.threshold-h{
+  font-size:var(--fs-display); line-height:.98; letter-spacing:-.03em;
+}
+.threshold-em{ font-style:italic; font-weight:600; color:var(--gold); }
+.threshold-sub{
+  margin-top:var(--space-5); color:var(--muted);
+  font-size:var(--fs-body-lg); max-width:40ch; line-height:1.6;
+}
+.threshold-search{
+  margin-top:var(--space-6); display:flex; align-items:center; gap:.75rem;
+  width:100%; max-width:440px; padding:.95rem 1.05rem;
+  border:1px solid var(--border-2); border-radius:10px;
+  color:var(--muted); font-size:var(--fs-body);
+  transition:border-color var(--mo-tap) var(--ease-out), color var(--mo-tap) var(--ease-out);
+}
+.threshold-search:hover, .threshold-search:focus-visible{
+  border-color:var(--gold); color:var(--text); outline:none;
+}
+.threshold-search kbd{
+  margin-left:auto; font-family:'Space Mono',monospace; font-size:var(--fs-micro);
+  border:1px solid var(--border); border-radius:5px; padding:.1rem .35rem; color:var(--dim);
+}
+.threshold-scroll{
+  display:block; margin-top:var(--space-4);
+  font-family:'Space Mono',monospace; font-size:var(--fs-data);
+  letter-spacing:.04em; color:var(--dim);
+}
+.threshold-scroll:hover{ color:var(--muted); }
+.threshold-scroll:focus-visible{ outline:2px solid var(--gold); outline-offset:3px; }
+
+/* ── CardSpecimen — layered planes, delaminate-ready ── */
+.specimen{
+  position:relative; width:min(320px,72vw); aspect-ratio:63/88;
+  perspective:1400px; margin:0;
+}
+/* directional light from behind the artwork */
+.specimen::before{
+  content:""; position:absolute; inset:-26% -34% -16%; z-index:-1;
+  background:radial-gradient(52% 46% at 50% 42%, rgb(var(--gold-rgb) / .18), transparent 70%);
+  filter:blur(16px);
+}
+.specimen-plate{
+  position:relative; width:100%; height:100%;
+  transform-style:preserve-3d; border-radius:9px; will-change:transform;
+  transition:transform var(--mo-settle) var(--ease-out);
+}
+.specimen-layer{
+  position:absolute; inset:0; border-radius:inherit; backface-visibility:hidden;
+}
+.specimen-layer.is-art{
+  width:100%; height:100%; object-fit:contain; user-select:none;
+  filter:drop-shadow(0 10px 22px rgba(0,0,0,.45)) drop-shadow(0 34px 66px rgba(0,0,0,.55));
+}
+.specimen-layer.is-frame{
+  box-shadow:inset 0 0 0 1px rgb(var(--gold-rgb) / .16),
+             inset 0 0 34px rgb(var(--gold-rgb) / .05);
+  opacity:0;
+}
+.specimen-layer.is-back{
+  transform:translateZ(-1px); opacity:0;
+  background:
+    repeating-linear-gradient(135deg, rgb(var(--relation-rgb) / .10) 0 8px, transparent 8px 16px),
+    linear-gradient(150deg,var(--surface-2),var(--surface));
+  box-shadow:inset 0 0 0 1px var(--border-2), 0 20px 50px rgba(0,0,0,.5);
+}
+.specimen-layer.is-holo{
+  mix-blend-mode:overlay; opacity:.55; overflow:hidden;
+  background:
+    radial-gradient(circle at var(--mx,50%) var(--my,50%), rgba(255,255,255,.42), transparent 55%),
+    linear-gradient(var(--foil-angle,115deg), transparent 34%,
+      rgb(var(--gold-rgb) / .26) 46%, rgb(var(--relation-rgb) / .24) 56%, transparent 72%);
+}
+.specimen-layer.is-holo::after{
+  content:""; position:absolute; top:0; bottom:0; left:-45%; width:28%;
+  background:linear-gradient(100deg, transparent, rgb(var(--gold-rgb) / .14), transparent);
+  animation:specimen-scan 10s ease-in-out infinite;
+}
+@keyframes specimen-scan{ 0%{ left:-45% } 55%{ left:110% } 100%{ left:110% } }
+.specimen-ph{ background:linear-gradient(150deg,var(--surface-3),var(--surface-2)); }
+.specimen-shadow{
+  position:absolute; left:8%; right:8%; bottom:-26px; height:28px; z-index:-1;
+  background:radial-gradient(closest-side, rgba(0,0,0,.62), transparent 75%); filter:blur(9px);
+}
+.specimen-caption{
+  position:absolute; left:0; right:0; bottom:-46px;
+  font-family:'Space Mono',monospace; font-size:var(--fs-micro);
+  letter-spacing:.12em; text-transform:uppercase; color:var(--dim); text-align:center;
+}
+
+/* ══ 1 · Identity — fact ledger ═════════════════════════════════ */
+.ledger{
+  display:grid; grid-template-columns:1fr; gap:1px;
+  background:var(--border); border:1px solid var(--border);
+  border-radius:10px; overflow:hidden; max-width:620px;
+}
+@media (min-width:560px){ .ledger{ grid-template-columns:1fr 1fr; } }
+.fact{
+  background:var(--surface); padding:.85rem 1.1rem;
+  display:flex; flex-direction:column; gap:.3rem; min-height:66px;
+}
+.fact-k{
+  font-family:'Space Mono',monospace; font-size:var(--fs-micro);
+  letter-spacing:.16em; text-transform:uppercase; color:var(--dim);
+}
+.fact-v{ font-size:var(--fs-body); font-weight:600; color:var(--text); }
+.fact-v a{ color:var(--relation); border-bottom:1px solid rgb(var(--relation-rgb) / .3); }
+.fact-v a:hover{ border-bottom-color:currentColor; }
+.fact-skel .fact-k, .fact-skel .fact-v{
+  background:var(--surface-2); border-radius:4px; color:transparent;
+}
+
+/* ══ 2 · Set identity ═══════════════════════════════════════════ */
+.set-identity{
+  display:flex; align-items:center; gap:var(--space-5);
+  margin-bottom:var(--space-6); flex-wrap:wrap;
+}
+.set-identity-logo{ height:48px; max-width:220px; object-fit:contain; }
+.set-identity-logo-fb{
+  display:inline-flex; align-items:center; padding:0 1rem;
+  border:1px solid var(--border-2); border-radius:8px;
+  font-family:'Space Mono',monospace; font-weight:700; font-size:var(--fs-data);
+}
+.set-identity-meta{ display:flex; flex-direction:column; gap:.3rem; }
+.set-identity-name{ font-size:var(--fs-h3); }
+.set-identity-sub{
+  font-family:'Space Mono',monospace; font-size:var(--fs-data); color:var(--muted);
+}
+
+/* ══ SpecimenTile (rails) ══════════════════════════════════════ */
+.sp-tile{
+  width:132px; display:flex; flex-direction:column; gap:.4rem; text-align:left;
+}
+.sp-tile-art{
+  display:block; width:100%; aspect-ratio:63/88; border-radius:7px;
+  background:var(--surface-2); overflow:hidden;
+  border:1px solid var(--border);
+  transition:border-color var(--mo-tap) var(--ease-out), transform var(--mo-lift) var(--ease-out);
+}
+.sp-tile:hover .sp-tile-art{ border-color:rgb(var(--gold-rgb) / .4); transform:translateY(-5px); }
+.sp-tile.is-relation:hover .sp-tile-art{ border-color:rgb(var(--relation-rgb) / .5); }
+.sp-tile:active{ transform:scale(.97); }
+.sp-tile:focus-visible{ outline:2px solid var(--gold); outline-offset:3px; border-radius:8px; }
+.sp-tile-ph{
+  display:flex; align-items:center; justify-content:center; width:100%; height:100%;
+  font-family:'Space Mono',monospace; font-size:1.4rem; color:var(--dim);
+  background:linear-gradient(150deg,var(--surface-3),var(--surface-2));
+}
+.sp-tile-name{
+  font-size:var(--fs-data); font-weight:600; color:var(--text); line-height:1.3;
+  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;
+}
+.sp-tile-meta{ font-family:'Space Mono',monospace; font-size:var(--fs-micro); color:var(--dim); }
+
+/* ══ 4 · History — release timeline ════════════════════════════ */
+.tl-mark{
+  position:relative; display:flex; flex-direction:column; gap:.25rem;
+  width:150px; padding:.85rem; border:1px solid var(--border); border-radius:8px;
+  background:var(--surface);
+  transition:border-color var(--mo-tap) var(--ease-out), transform var(--mo-lift) var(--ease-out);
+}
+.tl-mark:hover{ border-color:var(--border-2); transform:translateY(-4px); }
+.tl-mark:focus-visible{ outline:2px solid var(--gold); outline-offset:3px; }
+.tl-mark.is-current{ border-color:var(--gold); background:rgb(var(--gold-rgb) / .06); }
+.tl-year{ font-family:'Space Mono',monospace; font-size:var(--fs-data); color:var(--gold); }
+.tl-name{
+  font-size:var(--fs-data); color:var(--muted); line-height:1.3;
+  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;
+}
+.tl-here, .tl-edge{
+  position:absolute; top:-.55rem; left:.7rem;
+  font-family:'Space Mono',monospace; font-size:var(--fs-micro); letter-spacing:.08em;
+  text-transform:uppercase; padding:.05rem .4rem; border-radius:4px;
+  background:var(--bg); color:var(--gold); border:1px solid rgb(var(--gold-rgb) / .35);
+}
+.tl-edge{ color:var(--dim); border-color:var(--border); left:auto; right:.7rem; }
+.tl-caption{
+  margin-top:var(--space-4); font-family:'Space Mono',monospace;
+  font-size:var(--fs-data); color:var(--muted);
+}
+.tl-ellipsis{
+  align-self:center; font-family:'Space Mono',monospace; font-size:var(--fs-micro);
+  letter-spacing:.08em; text-transform:uppercase; color:var(--dim);
+  padding:0 .5rem; white-space:nowrap;
+}
+
+/* ══ 5 · Knowledge ════════════════════════════════════════════ */
+.know-lead{
+  color:var(--muted); font-size:var(--fs-body-lg); line-height:1.6;
+  max-width:52ch; margin-bottom:var(--space-6);
+}
+.know-grid{ display:grid; grid-template-columns:1fr; gap:var(--space-3); }
+@media (min-width:768px){ .know-grid{ grid-template-columns:repeat(3,1fr); } }
+.know-card{
+  display:flex; flex-direction:column; gap:.5rem;
+  padding:var(--space-5); border:1px solid var(--border); border-radius:10px;
+  background:var(--surface);
+  transition:border-color var(--mo-tap) var(--ease-out), transform var(--mo-lift) var(--ease-out);
+}
+.know-card:hover{ border-color:rgb(var(--gold-rgb) / .4); transform:translateY(-4px); }
+.know-card:focus-visible{ outline:2px solid var(--gold); outline-offset:3px; }
+.know-cat{
+  font-family:'Space Mono',monospace; font-size:var(--fs-micro);
+  letter-spacing:.14em; text-transform:uppercase; color:var(--relation);
+}
+.know-title{ font-size:var(--fs-h3); line-height:1.2; }
+.know-sum{ font-size:var(--fs-data); color:var(--muted); line-height:1.55; flex:1; }
+.know-min{ font-family:'Space Mono',monospace; font-size:var(--fs-micro); color:var(--dim); }
+
+/* ══ 6 · Collection ═══════════════════════════════════════════ */
+.coll{ display:flex; align-items:center; gap:var(--space-6); flex-wrap:wrap; }
+.coll-copy{
+  color:var(--muted); font-size:var(--fs-body); max-width:42ch; line-height:1.6;
+  display:flex; flex-direction:column; gap:var(--space-4); align-items:flex-start;
+}
+.coll-ring{
+  width:104px; height:104px; border-radius:50%; flex-shrink:0; position:relative;
+  background:conic-gradient(var(--gold) var(--pct,0%), var(--surface-3) var(--pct,0%));
+  display:grid; place-items:center;
+}
+.coll-ring::after{ content:""; position:absolute; inset:7px; border-radius:50%; background:var(--bg); }
+.coll-ring-in{
+  position:relative; z-index:1; text-align:center;
+  font-family:'Space Mono',monospace; color:var(--text);
+}
+.coll-ring-in b{ font-size:1.05rem; }
+.coll-ring-in small{ display:block; font-size:var(--fs-micro); color:var(--dim); }
+.coll-preview{
+  display:grid; grid-template-columns:repeat(8,1fr); gap:4px;
+  width:min(280px,60vw); flex-shrink:0;
+}
+.coll-cell{
+  aspect-ratio:63/88; border-radius:2px; background:var(--surface-2);
+  border:1px solid var(--border);
+}
+.coll-cell.is-owned{
+  background:rgb(var(--gold-rgb) / .18); border-color:rgb(var(--gold-rgb) / .4);
+}
+
+@media (prefers-reduced-motion: reduce){
+  .specimen-plate{ transition:none; transform:none !important; }
+  .specimen-layer{ transform:none !important; }
+  .specimen-layer.is-holo::after{ animation:none; }
+  .atlas-specimen{ position:static; min-height:0; }
+  .sp-tile, .tl-mark, .know-card{ transition:none; }
+}

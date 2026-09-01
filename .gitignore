@@ -10,3 +10,4 @@ dist
 # vedi CLAUDE.md §10, non congelare dati volatili in git). I risultati "ufficiali" di un
 # run CI vivono come artifact del workflow .github/workflows/image-audit.yml, non qui.
 scripts/image-audit/data/
+.atlas-review/
