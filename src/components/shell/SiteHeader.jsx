@@ -140,10 +140,13 @@ export function SiteHeader({
               )}
             </div>
           ) : (
-            <div className="site-auth-cta">
-              <a className="btn btn-ghost btn-sm" href="/login">Sign in</a>
-              <a className="btn btn-primary btn-sm" href="/register">Create account</a>
-            </div>
+            <>
+              <div className="site-auth-cta">
+                <a className="btn btn-ghost btn-sm" href="/login">Sign in</a>
+                <a className="btn btn-primary btn-sm" href="/register">Create account</a>
+              </div>
+              <a className="site-auth-compact" href="/login">Sign in</a>
+            </>
           )}
         </div>
       </div>

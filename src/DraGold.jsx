@@ -349,6 +349,7 @@ export default function DraGold() {
         <main className="main">
           {tab==="search" && homeView==="results" && (
             <SearchView
+              chromeless
               country={country} cur={cur} eurRate={eurRate}
               onOpenAsset={openAsset} setsMap={setsMap} onOpenSet={openSet}
               initialSearchState={getSavedSearch()}

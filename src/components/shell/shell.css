@@ -60,6 +60,12 @@
 .site-header-right{ display:flex; align-items:center; gap:.625rem; flex-shrink:0; }
 .site-auth-cta{ display:none; gap:.5rem; }
 @media (min-width:560px){ .site-auth-cta{ display:flex; } }
+.site-auth-compact{
+  font-size:var(--fs-ui); font-weight:600; color:var(--text);
+  padding:.4rem .2rem; white-space:nowrap;
+}
+.site-auth-compact:focus-visible{ outline:2px solid var(--gold); outline-offset:2px; }
+@media (min-width:560px){ .site-auth-compact{ display:none; } }
 
 @media (prefers-reduced-motion: reduce){
   .site-header, .site-nav-i{ transition:none; }

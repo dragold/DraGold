@@ -14,7 +14,7 @@ import { TCG_LIST } from "../../DraGold.jsx";
 import { buildSetSlug } from "../../lib/setSlug.js";
 import { setIdCandidates } from "../../pages/set/SetDetailPage.jsx";
 
-export function SearchView({ country, cur, eurRate, onOpenAsset, setsMap, onOpenSet, initialSearchState, onSearchStateChange, onSearchStateClear, onOpenExplore, isAuthed = false }) {
+export function SearchView({ country, cur, eurRate, onOpenAsset, setsMap, onOpenSet, initialSearchState, onSearchStateChange, onSearchStateClear, onOpenExplore, isAuthed = false, chromeless = false }) {
   const [q, setQ] = useState(() => initialSearchState?.q || "");
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState(() => initialSearchState?.results || []);
@@ -207,6 +207,43 @@ export function SearchView({ country, cur, eurRate, onOpenAsset, setsMap, onOpen
 
   useEffect(() => { const onScroll = () => { if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 300) { setVisibleCount(v => Math.min(v + 40, results.length)); } }; window.addEventListener('scroll', onScroll); return () => window.removeEventListener('scroll', onScroll); }, [results.length]); const onSubmit = (e) => { e.preventDefault(); runSearch(q); };
   const clearSearch = () => { onSearchStateClear(); setSearched(false); setResults([]); setPriceMap({}); setError(null); setVisibleCount(40); };
+
+  // Atlas shell: when SearchView is embedded as the "results" view under the
+  // new home (chromeless), drop its own hero / onboarding / discovery — the
+  // Atlas home owns all of that. Search logic and results are untouched.
+  if (chromeless) {
+    return (
+      <section className="view search-results-view">
+        <button type="button" className="back-btn" onClick={clearSearch}>← Back to the Atlas</button>
+        <form className="search" onSubmit={onSubmit}>
+          <span className="search-ic"><Icon name="search" size={20}/></span>
+          <input
+            className="search-in"
+            placeholder="Search a card…"
+            value={q} onChange={e => setQ(e.target.value)}
+            enterKeyHint="search" autoComplete="off" autoFocus
+          />
+          {searched && (
+            <button type="button" className="search-clear" onClick={clearSearch} aria-label="Clear search">
+              <Icon name="close" size={15}/>
+            </button>
+          )}
+          <button type="submit" className="search-go">Search</button>
+        </form>
+        <div ref={resultsReveal.ref} className={resultsReveal.className} style={resultsReveal.style}>
+          <SearchResults
+            loading={loading} results={results.slice(0, visibleCount)} priceMap={priceMap}
+            error={error} term={searchTerm}
+            country={country} cur={cur} eurRate={eurRate}
+            onRetry={() => runSearch(searchTerm)}
+            onOpen={handleOpenAsset} setsMap={setsMap}
+            hasMore={visibleCount < results.length}
+            totalCount={results.length}
+          />
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="view">
