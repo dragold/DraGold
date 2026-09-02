@@ -77,20 +77,45 @@ function isAllowedHost(imageUrl) {
     }
 }
 
+// Rate-limit/transient-error resilience: 429 and 5xx are retried with
+// exponential backoff (honoring Retry-After when the source sends one)
+// instead of failing the whole card on a momentary blip. 4xx other than
+// 429 (bad URL, gone, forbidden) is not retried — retrying won't fix it.
+const MAX_FETCH_ATTEMPTS = 4;
+const BASE_BACKOFF_MS = 500;
+
+function sleep(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function backoffDelayMs(res, attempt) {
+    const retryAfter = res?.headers?.get?.("retry-after");
+    const retryAfterMs = retryAfter && !Number.isNaN(Number(retryAfter))
+          ? Number(retryAfter) * 1000
+          : null;
+    return retryAfterMs ?? BASE_BACKOFF_MS * 2 ** (attempt - 1);
+}
+
 async function fetchImageBuffer(imageUrl) {
-    const res = await fetch(imageUrl, {
-          signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
-          headers: {
-                  // A plain browser-like UA; deliberately no Referer header, since the
-            // hotlink protection observed on some providers triggers off the
-            // dragold.org Referer, not a missing one.
-            "User-Agent":
-                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
-                  Accept: "image/*",
-          },
-    });
-    if (!res.ok) {
-          throw new Error(`Fetch failed: ${res.status} ${res.statusText}`);
+    let res;
+    for (let attempt = 1; attempt <= MAX_FETCH_ATTEMPTS; attempt++) {
+          res = await fetch(imageUrl, {
+                signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+                headers: {
+                        // A plain browser-like UA; deliberately no Referer header, since the
+                  // hotlink protection observed on some providers triggers off the
+                  // dragold.org Referer, not a missing one.
+                  "User-Agent":
+                          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
+                        Accept: "image/*",
+                },
+          });
+          if (res.ok) break;
+          const retryable = res.status === 429 || res.status >= 500;
+          if (!retryable || attempt === MAX_FETCH_ATTEMPTS) {
+                throw new Error(`Fetch failed: ${res.status} ${res.statusText}`);
+          }
+          await sleep(backoffDelayMs(res, attempt));
     }
     const contentType = res.headers.get("content-type") || "";
     if (!contentType.startsWith("image/")) {

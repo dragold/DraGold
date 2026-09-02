@@ -334,12 +334,23 @@ function RailCard({ pos, changeUSD, changePct, totalUSD, fmt, onOpen }) {
   const imgUrl = pickCardImage(pos) || null;
   const qty = pos.quantity || 1;
   const cls = changeUSD == null ? "" : changeUSD > 0 ? "gain" : changeUSD < 0 ? "loss" : "";
+  const tcgInfo = TCG_LIST.find(t => t.id === pos.tcg);
+  const initials = (pos.card_name || "")
+    .replace(/[^a-zA-Z ]/g, "").trim()
+    .split(/\s+/).slice(0, 2).map(w => w[0] || "").join("").toUpperCase() || "?";
   return (
     <a className="pf-mover-card" href={`/card/${encodeURIComponent(pos.card_api_id)}`}
       onClick={(e) => { e.preventDefault(); onOpen(); }}
       aria-label={`${pos.card_name}, open card detail`}>
       <div className="pf-mover-img">
-        {imgUrl && !imgFailed ? <img src={imgUrl} alt="" loading="lazy" onError={() => setImgFailed(true)} /> : null}
+        {imgUrl && !imgFailed ? (
+          <img src={imgUrl} alt="" loading="lazy" onError={() => setImgFailed(true)} />
+        ) : (
+          <div className="card-img-ph" style={{ width: "100%", height: "100%" }}>
+            {tcgInfo && <span className="card-img-ph-tcg" style={{ color: tcgInfo.color, fontSize: 8 }}>{tcgInfo.short}</span>}
+            <span className="card-img-ph-init" style={{ fontSize: 12 }}>{initials}</span>
+          </div>
+        )}
       </div>
       <div className="pf-mover-name">{pos.card_name}</div>
       <div className="pf-mover-qty">{qty} {qty === 1 ? "copy" : "copies"} · {fmt(totalUSD)}</div>

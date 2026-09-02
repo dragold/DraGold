@@ -33,19 +33,43 @@ import { readFileSync, existsSync, appendFileSync, mkdirSync } from 'node:fs'
 import { dirname } from 'node:path'
 import { probeUrl } from './crawl-images.mjs'
 import { scoreMatch } from './match-confidence.mjs'
+import { fetchOptcgSet, OptcgSourceNotImplementedError } from '../lib/reconcile/sources/fetch-optcg.js'
 
 const SCRYDEX_API_KEY = process.env.SCRYDEX_API_KEY || null
 const SCRYDEX_TEAM_ID = process.env.SCRYDEX_TEAM_ID || null
 const POKEMONTCG_API_KEY = process.env.POKEMONTCG_API_KEY || null
 const PPT_API_KEY = process.env.POKEMONPRICETRACKER_API_KEY || null
 
+const MAX_FETCH_ATTEMPTS = 4
+const BASE_BACKOFF_MS = 500
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+// 429/5xx sono transitori: ritentati con backoff esponenziale (Retry-After
+// se presente) prima di dichiarare la fonte non disponibile per questa
+// carta — stesso principio di scripts/lib/image-resolver.js.
 async function safeJson(url, options, fetchImpl = fetch) {
-  try {
-    const res = await fetchImpl(url, options)
-    if (!res.ok) return { ok: false, status: res.status, json: null }
-    return { ok: true, status: res.status, json: await res.json() }
-  } catch (err) {
-    return { ok: false, status: null, json: null, error: err?.message || String(err) }
+  for (let attempt = 1; attempt <= MAX_FETCH_ATTEMPTS; attempt++) {
+    try {
+      const res = await fetchImpl(url, options)
+      if (res.ok) return { ok: true, status: res.status, json: await res.json() }
+      const retryable = res.status === 429 || res.status >= 500
+      if (!retryable || attempt === MAX_FETCH_ATTEMPTS) {
+        return { ok: false, status: res.status, json: null }
+      }
+      const retryAfter = Number(res.headers.get('retry-after'))
+      const delay = Number.isFinite(retryAfter) && retryAfter > 0
+        ? retryAfter * 1000
+        : BASE_BACKOFF_MS * 2 ** (attempt - 1)
+      await sleep(delay)
+    } catch (err) {
+      if (attempt === MAX_FETCH_ATTEMPTS) {
+        return { ok: false, status: null, json: null, error: err?.message || String(err) }
+      }
+      await sleep(BASE_BACKOFF_MS * 2 ** (attempt - 1))
+    }
   }
 }
 
@@ -122,12 +146,56 @@ export async function tryPokemonPriceTracker(card, { fetchImpl = fetch, apiKey =
   return { source: 'pokemonpricetracker', url: hit.imageCdnUrl, verified: true, probe, candidateMeta: { name: hit.name, number: hit.cardNumber } }
 }
 
+// Cache di processo: un set OPTCG richiesto una volta serve tutte le carte
+// broken di quel set nella stessa run, invece di rifare la stessa GET per
+// ogni carta (resolveCard gira una carta alla volta).
+const optcgSetCache = new Map()
+
+/**
+ * Stadio One Piece: optcgapi.com, SOLO lang='en' (limite reale della fonte,
+ * vedi header di fetch-optcg.js — nessun dato JA inventato spacciandolo per
+ * EN). Per lang='ja' ritorna `skipped` esplicito: la cascata JA richiede lo
+ * scraper onepiece-cardgame.com gia' usato da sync-cards.js#syncOnePiece,
+ * non ancora integrato qui — task successivo dichiarato, non implicito.
+ */
+export async function tryOptcgOnePiece(card, { fetchImpl = fetch } = {}) {
+  if (card.tcg !== 'onepiece') return null
+  if (card.lang !== 'en') {
+    return { skipped: true, reason: 'optcgapi.com copre solo EN (vedi fetch-optcg.js); fallback JA non ancora implementato' }
+  }
+  if (!card.set_id) return null
+
+  let setResult = optcgSetCache.get(card.set_id)
+  if (!setResult) {
+    try {
+      setResult = await fetchOptcgSet({ setId: card.set_id, lang: 'en', fetchImpl })
+    } catch (err) {
+      if (err instanceof OptcgSourceNotImplementedError) {
+        return { skipped: true, reason: err.message }
+      }
+      return null // OptcgFetchError: fonte non disponibile per questo set, si passa oltre
+    }
+    optcgSetCache.set(card.set_id, setResult)
+  }
+
+  const hit = setResult.rows.find(r => r.card_number === card.card_number)
+  if (!hit || !hit.image_url) return null
+  const probe = await probeUrl(hit.image_url, { fetchImpl, maxRetries: 1 })
+  if (probe.classification !== 'A' && probe.classification !== 'B') return null
+  return {
+    source: 'optcgapi', url: hit.image_url, verified: true, probe,
+    candidateMeta: { name: hit.name, number: hit.card_number, set: hit.set_name },
+  }
+}
+
 /**
  * Esegue l'intera cascata per una carta, ferma al primo candidato verificato via HTTP reale.
  * Calcola match_confidence contro i metadata del candidato (quando disponibili).
  */
 export async function resolveCard(card, opts = {}) {
-  const stages = [tryTcgdexRetry, tryScrydex, tryPokemonTcgIo, tryPokemonPriceTracker]
+  const stages = card.tcg === 'onepiece'
+    ? [tryTcgdexRetry, tryOptcgOnePiece]
+    : [tryTcgdexRetry, tryScrydex, tryPokemonTcgIo, tryPokemonPriceTracker]
   const attempts = []
   for (const stage of stages) {
     const result = await stage(card, opts)

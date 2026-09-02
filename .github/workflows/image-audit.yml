@@ -7,12 +7,12 @@ name: Image Audit (Pokémon EN/JA + One Piece EN/JA)
 # allowlist-only e non raggiunge quegli host (vedi commento in crawl-images.mjs).
 #
 # SOLA LETTURA: nessuno di questi script scrive su Supabase (vedi header dei singoli file).
-# resolve-fallback.mjs (cascata di recovery multi-fonte: TCGdex retry, Scrydex,
-# pokemontcg.io, PokemonPriceTracker) copre solo Pokémon per ora — per One Piece questo
-# workflow produce comunque il crawl+summarize (classificazione VALID/BROKEN/MISSING/...),
-# che è quanto richiesto per la verifica delle 4 combinazioni; l'estensione della cascata di
-# recovery a One Piece (fonti: optcgapi.com, onepiece-cardgame.com) resta un task successivo
-# esplicito, non implicito in questo workflow.
+# resolve-fallback.mjs (cascata di recovery multi-fonte) copre:
+#   - Pokémon: TCGdex retry, Scrydex, pokemontcg.io, PokemonPriceTracker (EN+JA)
+#   - One Piece: TCGdex-style retry sull'URL esistente, poi optcgapi.com (SOLO EN — limite
+#     reale della fonte, vedi header di scripts/lib/reconcile/sources/fetch-optcg.js). La
+#     cascata JA per One Piece richiede lo scraper onepiece-cardgame.com gia' usato da
+#     sync-cards.js#syncOnePiece, non ancora integrato qui — task successivo esplicito.
 
 on:
   workflow_dispatch:
@@ -44,9 +44,9 @@ jobs:
         tcg: ${{ fromJson(github.event.inputs.tcg == 'all' && '["pokemon","onepiece"]' || format('["{0}"]', github.event.inputs.tcg)) }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: Setup Node.js 22
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: '22'
       - name: Install dependencies
@@ -64,13 +64,13 @@ jobs:
           ARGS=""
           if [ -n "${{ github.event.inputs.limit }}" ]; then ARGS="$ARGS --limit=${{ github.event.inputs.limit }}"; fi
           node scripts/image-audit/crawl-images.mjs --in="$IN" --out="$OUT" $ARGS
-      - name: Resolve fallback (solo Pokémon)
-        if: matrix.tcg == 'pokemon' && github.event.inputs.run_resolve == 'true'
+      - name: Resolve fallback (${{ matrix.tcg }})
+        if: github.event.inputs.run_resolve == 'true'
         run: |
           node scripts/image-audit/resolve-fallback.mjs \
-            --broken=scripts/image-audit/data/crawl-pokemon.ndjson \
-            --cards=scripts/image-audit/data/cards-pokemon-$(echo ${{ github.event.inputs.langs }} | tr ',' '-').ndjson \
-            --out=scripts/image-audit/data/resolve-pokemon.ndjson
+            --broken=scripts/image-audit/data/crawl-${{ matrix.tcg }}.ndjson \
+            --cards=scripts/image-audit/data/cards-${{ matrix.tcg }}-$(echo ${{ github.event.inputs.langs }} | tr ',' '-').ndjson \
+            --out=scripts/image-audit/data/resolve-${{ matrix.tcg }}.ndjson
         env:
           SCRYDEX_API_KEY: ${{ secrets.SCRYDEX_API_KEY }}
           SCRYDEX_TEAM_ID: ${{ secrets.SCRYDEX_TEAM_ID }}
@@ -79,8 +79,8 @@ jobs:
       - name: Summarize (${{ matrix.tcg }})
         run: |
           RESOLVE_ARG=""
-          if [ -f "scripts/image-audit/data/resolve-pokemon.ndjson" ]; then
-            RESOLVE_ARG="--resolve=scripts/image-audit/data/resolve-pokemon.ndjson"
+          if [ -f "scripts/image-audit/data/resolve-${{ matrix.tcg }}.ndjson" ]; then
+            RESOLVE_ARG="--resolve=scripts/image-audit/data/resolve-${{ matrix.tcg }}.ndjson"
           fi
           node scripts/image-audit/summarize.mjs \
             --crawl=scripts/image-audit/data/crawl-${{ matrix.tcg }}.ndjson \
