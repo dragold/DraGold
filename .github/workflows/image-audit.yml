@@ -10,9 +10,9 @@ name: Image Audit (Pokémon EN/JA + One Piece EN/JA)
 # resolve-fallback.mjs (cascata di recovery multi-fonte) copre:
 #   - Pokémon: TCGdex retry, Scrydex, pokemontcg.io, PokemonPriceTracker (EN+JA)
 #   - One Piece: TCGdex-style retry sull'URL esistente, poi optcgapi.com (SOLO EN — limite
-#     reale della fonte, vedi header di scripts/lib/reconcile/sources/fetch-optcg.js). La
-#     cascata JA per One Piece richiede lo scraper onepiece-cardgame.com gia' usato da
-#     sync-cards.js#syncOnePiece, non ancora integrato qui — task successivo esplicito.
+#     reale della fonte, vedi header di scripts/lib/reconcile/sources/fetch-optcg.js), poi
+#     onepiece-cardgame.com (Bandai, scraping diretto — SOLO JA, l'unica fonte reale per
+#     quella lingua, vedi scripts/lib/reconcile/sources/fetch-onepiece-ja.js).
 
 on:
   workflow_dispatch:
