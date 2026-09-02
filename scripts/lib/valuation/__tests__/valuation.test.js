@@ -93,6 +93,25 @@ test('F4: Normal e Holofoil non vengono mescolati — vince il sub_type con piu\
   assert.ok(v.estimated_value < 3, `deve valere il Normal, non il blend: ${v.estimated_value}`);
 });
 
+test('valore alto senza corroborazione (1 obs, 1 fonte) -> confidence cap low', () => {
+  const v = computeValuation({
+    cardId: 'chase', tcg: 'onepiece',
+    observations: [{ kind: 'market', source: 'tcgcsv', sub_type: 'Foil', price_eur: 6908, observed_at: daysAgo(0) }],
+    now: NOW,
+  });
+  assert.equal(v.confidence, 'low');
+  assert.match(JSON.stringify(v.confidence_reason), /corroborazione/);
+});
+
+test('valore basso con 1 obs resta medium (il cap e\' solo per valori alti)', () => {
+  const v = computeValuation({
+    cardId: 'common', tcg: 'onepiece',
+    observations: [{ kind: 'market', source: 'tcgcsv', sub_type: 'Foil', price_eur: 12, observed_at: daysAgo(0) }],
+    now: NOW,
+  });
+  assert.equal(v.confidence, 'medium');
+});
+
 test('confidence_reason sempre presente quando ci sono osservazioni', () => {
   const v = computeValuation({ cardId: 'c6', tcg: 'onepiece', observations: [{ kind: 'market', source: 'tcgcsv', price_eur: 10, observed_at: daysAgo(1) }], now: NOW });
   assert.ok(v.confidence_reason);

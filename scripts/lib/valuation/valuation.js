@@ -192,6 +192,13 @@ export function computeValuation({ cardId, canonicalId = null, tcg, currency = '
     base.confidence = 'low';
     base.confidence_reason = { ...(base.confidence_reason || {}), capped: 'solo annunci attivi (nessun prezzo di mercato): max low' };
   }
+  // Valore alto + nessuna corroborazione (1 osservazione, 1 fonte): un singolo
+  // snapshot TCGplayer da migliaia di euro non e' "medium" — serve conferma.
+  if (base.estimated_value != null && base.estimated_value >= 2000
+      && base.n_observations < 2 && base.n_sources < 2 && base.confidence === 'medium') {
+    base.confidence = 'low';
+    base.confidence_reason = { ...(base.confidence_reason || {}), capped: 'valore alto senza corroborazione (1 osservazione, 1 fonte): max low' };
+  }
   if (base.estimated_value == null && base.confidence !== 'none') {
     base.confidence = 'none';
   }
