@@ -13,6 +13,7 @@ import { pickCardImage } from "../../components/shared/cardImage.js";
 import { TCG_LIST, Empty } from "../../DraGold.jsx";
 import { useCardGridColumns } from "../../lib/useCardGridColumns.js";
 import { useVirtualGridRows } from "../../lib/useVirtualGridRows.js";
+import { RevealCell } from "../../components/shared/RevealCell.jsx";
 
 const RANGES = [
   { key: "7", label: "7D", days: 7 },
@@ -385,14 +386,16 @@ function VirtualPortfolioGrid({ positions, priceMap, perPositionChange, fmt, onO
               display: "grid", gridTemplateColumns: `repeat(${columns}, 1fr)`, gap: 14,
               transform: `translateY(${row.start - virtualizer.options.scrollMargin}px)`,
             }}>
-            {rowPositions.map((pos) => (
-              <PortfolioGridCard key={pos.id} pos={pos}
-                priceInfo={priceMap[pos.card_api_id] || null}
-                series={perPositionChange[pos.id].series}
-                fmt={fmt}
-                onOpen={() => onOpen(pos)}
-                onDecrement={() => onDecrement(pos)}
-                decrementBusy={decrementBusyId === pos.id} />
+            {rowPositions.map((pos, i) => (
+              <RevealCell key={pos.id} index={i}>
+                <PortfolioGridCard pos={pos}
+                  priceInfo={priceMap[pos.card_api_id] || null}
+                  series={perPositionChange[pos.id].series}
+                  fmt={fmt}
+                  onOpen={() => onOpen(pos)}
+                  onDecrement={() => onDecrement(pos)}
+                  decrementBusy={decrementBusyId === pos.id} />
+              </RevealCell>
             ))}
           </div>
         );
@@ -414,20 +417,22 @@ function VirtualPortfolioList({ positions, priceMap, cur, eurRate, fmt, confirmI
               position: "absolute", top: 0, left: 0, width: "100%", paddingBottom: 8,
               transform: `translateY(${row.start - virtualizer.options.scrollMargin}px)`,
             }}>
-            <PortfolioRow pos={pos}
-              priceInfo={priceMap[pos.card_api_id] || null}
-              cur={cur} eurRate={eurRate} fmt={fmt}
-              isConfirm={confirmId === pos.id}
-              onConfirm={() => onConfirm(pos.id)}
-              onCancelConfirm={onCancelConfirm}
-              onRemove={() => onRemove(pos.id)}
-              onTrack={() => onTrack(pos)}
-              onOpen={() => onOpen(pos)}
-              trackBusy={!!watchBusy[pos.id]}
-              trackDone={!!watched[pos.id]}
-              removeBusy={removeBusy && confirmId === pos.id}
-              onDecrement={() => onDecrement(pos)}
-              decrementBusy={decrementBusyId === pos.id} />
+            <RevealCell index={0}>
+              <PortfolioRow pos={pos}
+                priceInfo={priceMap[pos.card_api_id] || null}
+                cur={cur} eurRate={eurRate} fmt={fmt}
+                isConfirm={confirmId === pos.id}
+                onConfirm={() => onConfirm(pos.id)}
+                onCancelConfirm={onCancelConfirm}
+                onRemove={() => onRemove(pos.id)}
+                onTrack={() => onTrack(pos)}
+                onOpen={() => onOpen(pos)}
+                trackBusy={!!watchBusy[pos.id]}
+                trackDone={!!watched[pos.id]}
+                removeBusy={removeBusy && confirmId === pos.id}
+                onDecrement={() => onDecrement(pos)}
+                decrementBusy={decrementBusyId === pos.id} />
+            </RevealCell>
           </div>
         );
       })}

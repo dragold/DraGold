@@ -1,6 +1,7 @@
 import { SearchResultItem } from "./SearchResultItem.jsx";
 import { useCardGridColumns } from "../../lib/useCardGridColumns.js";
 import { useVirtualGridRows } from "../../lib/useVirtualGridRows.js";
+import { RevealCell } from "../shared/RevealCell.jsx";
 
 // Virtualizzazione a righe della card-grid: monta nel DOM solo le righe
 // vicine al viewport invece di tutti i risultati (rilevante su liste da
@@ -32,10 +33,12 @@ export function VirtualCardGrid({ results, priceMap, country, cur, eurRate, onOp
               transform: `translateY(${row.start - virtualizer.options.scrollMargin}px)`,
             }}
           >
-            {rowCards.map((card) => (
-              <SearchResultItem key={card.id} card={card} priceInfo={priceMap[card.id] || null}
-                country={country} cur={cur} eurRate={eurRate} onOpen={onOpen} setsMap={setsMap}
-                discoveryMode={discoveryMode} identifyMode={identifyMode} />
+            {rowCards.map((card, i) => (
+              <RevealCell key={card.id} index={i}>
+                <SearchResultItem card={card} priceInfo={priceMap[card.id] || null}
+                  country={country} cur={cur} eurRate={eurRate} onOpen={onOpen} setsMap={setsMap}
+                  discoveryMode={discoveryMode} identifyMode={identifyMode} />
+              </RevealCell>
             ))}
           </div>
         );
