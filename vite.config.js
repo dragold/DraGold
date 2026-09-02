@@ -35,4 +35,14 @@ export default defineConfig({
     outDir: 'dist',
     sourcemap: false,
   },
+  // Component tests only (src/**/*.test.jsx, via vitest + @testing-library/react).
+  // Pure-function tests (src/**/*.test.js) keep running on `node --test` (npm test)
+  // — no overlap by extension, so both runners coexist without double-running files.
+  test: {
+    environment: 'jsdom',
+    globals: true,
+    setupFiles: './src/test-setup.js',
+    include: ['src/**/*.test.jsx'],
+    css: false,
+  },
 })

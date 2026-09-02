@@ -14,6 +14,7 @@ export function CommandSearch({ open, onClose, onPickCard, onPickSet, onSeeAll }
   const dialogRef = useRef(null);
   const debounceRef = useRef(null);
   const reqRef = useRef(0);
+  const abortRef = useRef(null);
 
   useEffect(() => {
     if (!open) return;
@@ -64,18 +65,26 @@ export function CommandSearch({ open, onClose, onPickCard, onPickSet, onSeeAll }
 
   const run = useCallback((term) => {
     const t = term.trim();
+    // A new search starts: any previous request still in flight is now
+    // stale — abort it instead of just discarding its result client-side,
+    // so typing quickly doesn't leave a pile of abandoned requests in flight.
+    if (abortRef.current) abortRef.current.abort();
     if (t.length < 2) {
       setRows([]);
       setLoading(false);
       return;
     }
     const req = ++reqRef.current;
+    const controller = new AbortController();
+    abortRef.current = controller;
     setLoading(true);
-    searchCards(t)
+    searchCards(t, { signal: controller.signal })
       .then((res) => {
         if (req === reqRef.current) setRows(res || []);
       })
       .catch(() => {
+        // An aborted request rejects too (expected on every keystroke but
+        // the last) — only a genuinely current request should clear rows.
         if (req === reqRef.current) setRows([]);
       })
       .finally(() => {

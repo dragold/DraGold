@@ -8,7 +8,8 @@
     "build": "vite build",
     "build:esbuild": "node build-esbuild.mjs",
     "preview": "vite preview",
-    "test": "node --test \"src/**/*.test.js\""
+    "test": "node --test \"src/**/*.test.js\"",
+    "test:components": "vitest run"
   },
   "dependencies": {
     "@gsap/react": "^2.1.2",
@@ -25,7 +26,11 @@
     "three": "^0.169.0"
   },
   "devDependencies": {
+    "@testing-library/jest-dom": "^7.0.1",
+    "@testing-library/react": "^16.3.3",
     "@vitejs/plugin-react": "^4.3.1",
-    "vite": "^5.4.2"
+    "jsdom": "^30.0.1",
+    "vite": "^5.4.2",
+    "vitest": "^4.1.11"
   }
 }

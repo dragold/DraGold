@@ -1,4 +1,4 @@
-import { forwardRef, useImperativeHandle, useRef } from "react";
+import { forwardRef, useImperativeHandle, useRef, useState, useEffect } from "react";
 import { useTilt } from "../../lib/useTilt.js";
 import { pickCardImage } from "../../components/shared/cardImage.js";
 import "./home.css";
@@ -17,7 +17,13 @@ export const CardSpecimen = forwardRef(function CardSpecimen(
   const frameRef = useRef(null);
   const holoRef = useRef(null);
   const backRef = useRef(null);
+  const [imgFailed, setImgFailed] = useState(false);
   const src = card ? pickCardImage(card) : null;
+  const showArt = !!src && !imgFailed;
+
+  // Reset the failed flag when the src actually changes (e.g. a different
+  // specimen is chosen) so a past failure doesn't hide a new, valid image.
+  useEffect(() => { setImgFailed(false); }, [src]);
 
   useImperativeHandle(ref, () => ({
     root: rootRef.current,
@@ -37,13 +43,14 @@ export const CardSpecimen = forwardRef(function CardSpecimen(
         onPointerLeave={onPointerLeave}
       >
         <span className="specimen-layer is-back" ref={backRef} aria-hidden="true" />
-        {src ? (
+        {showArt ? (
           <img
             className="specimen-layer is-art"
             ref={artRef}
             src={src}
             alt={card?.name ? `${card.name} — card artwork` : ""}
             draggable="false"
+            onError={() => setImgFailed(true)}
           />
         ) : (
           <span className="specimen-layer is-art specimen-ph" ref={artRef} aria-hidden="true" />
