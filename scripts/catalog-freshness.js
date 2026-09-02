@@ -133,10 +133,20 @@ async function run() {
   let latestUpstreamRelease = null;
   let latestSyncedRelease = null;
 
+  const targetErrors = [];
   for (const target of TARGETS) {
     const scopeLabel = `${target.tcg}:${target.lang}`;
     console.error(`\n[freshness] ${scopeLabel} — discovery upstream...`);
-    const upstream = await discoverUpstream(target);
+    let upstream;
+    try {
+      upstream = await discoverUpstream(target);
+    } catch (e) {
+      // Errore di rete transiente su una fonte: salta QUESTO target, continua
+      // con gli altri. Il run non fallisce per un blip di TCGdex/TCGCSV.
+      console.error(`[freshness] ${scopeLabel} SALTATO: ${e.message}`);
+      targetErrors.push(`${scopeLabel}: ${e.message}`);
+      continue;
+    }
     upstreamSetCountTotal += upstream.length;
     for (const s of upstream) {
       if (s.releaseDate && (!latestUpstreamRelease || s.releaseDate > latestUpstreamRelease)) {

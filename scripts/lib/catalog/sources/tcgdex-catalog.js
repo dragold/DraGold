@@ -22,7 +22,7 @@ export class TcgdexCatalogError extends Error {
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-async function getJson(url, { fetchImpl = fetch, timeoutMs = 20000 } = {}) {
+async function getJsonOnce(url, { fetchImpl = fetch, timeoutMs = 20000 } = {}) {
   const ctl = new AbortController();
   const t = setTimeout(() => ctl.abort(), timeoutMs);
   try {
@@ -33,6 +33,17 @@ async function getJson(url, { fetchImpl = fetch, timeoutMs = 20000 } = {}) {
     try { return await res.json(); }
     catch (err) { throw new TcgdexCatalogError(`GET ${url}: JSON non valido (${err.message})`); }
   } finally { clearTimeout(t); }
+}
+
+// Retry con backoff — TCGdex da un runner CI ha `fetch failed` transienti.
+async function getJson(url, opts = {}) {
+  const attempts = opts.attempts ?? 3;
+  let lastErr;
+  for (let i = 0; i < attempts; i++) {
+    try { return await getJsonOnce(url, opts); }
+    catch (err) { lastErr = err; if (i < attempts - 1) await sleep(800 * (i + 1)); }
+  }
+  throw lastErr;
 }
 
 /**

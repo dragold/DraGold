@@ -22,7 +22,7 @@ export class TcgcsvFetchError extends Error {
   constructor(message) { super(message); this.name = 'TCGCSV_FETCH_FAILED'; }
 }
 
-async function getResults(url, { fetchImpl = fetch, timeoutMs = 25000 } = {}) {
+async function getResultsOnce(url, { fetchImpl = fetch, timeoutMs = 25000 } = {}) {
   const ctl = new AbortController();
   const t = setTimeout(() => ctl.abort(), timeoutMs);
   try {
@@ -41,6 +41,19 @@ async function getResults(url, { fetchImpl = fetch, timeoutMs = 25000 } = {}) {
     }
     return body.results;
   } finally { clearTimeout(t); }
+}
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// Retry con backoff — errori di rete transienti da CI.
+async function getResults(url, opts = {}) {
+  const attempts = opts.attempts ?? 3;
+  let lastErr;
+  for (let i = 0; i < attempts; i++) {
+    try { return await getResultsOnce(url, opts); }
+    catch (err) { lastErr = err; if (i < attempts - 1) await sleep(800 * (i + 1)); }
+  }
+  throw lastErr;
 }
 
 /** Valore di un campo `extendedData` per nome. Puro. */
