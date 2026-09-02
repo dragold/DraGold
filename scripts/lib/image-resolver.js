@@ -3,21 +3,29 @@
  *
  * Priorita di risoluzione per l'URL immagine di una carta:
  *   1. TCGdex (fonte primaria, gia usata dagli script di sync)
- *   2. Fonte alternativa a pagamento/free-tier (Scrydex, PokemonPriceTracker)
+ *   2. pokemontcg.io - solo lang 'en' (nessuna copertura JA), gratuita anche
+ *      senza key (rate limit piu' basso senza POKEMONTCG_API_KEY) - nessuna
+ *      key richiesta per essere attiva, a differenza degli stadi sotto
+ *   3. Fonte alternativa a pagamento/free-tier (Scrydex, PokemonPriceTracker)
  *      - attiva SOLO se le relative API key sono configurate come env var
  *      - nessuna key configurata = questo stadio viene saltato, nessun costo
- *   3. Cache interna DraGold (card_image_cache / api/cache-image.js) - gestita
+ *   4. Cache interna DraGold (card_image_cache / api/cache-image.js) - gestita
  *      a valle da chi consuma image_url, non da questo modulo
- *   4. Nessuna soluzione automatica: ritorna null, la carta va in coda per
+ *   5. Nessuna soluzione automatica: ritorna null, la carta va in coda per
  *      revisione manuale (vedi query in fondo al file)
  *
  * Nessuna fonte qui restituisce mai un URL "indovinato": se una fonte non ha
  * dati reali per la carta, ritorna null e si passa alla fonte successiva.
+ *
+ * Stessa cascata (a parte l'ordine Scrydex/pokemontcg.io) gia' validata in
+ * scripts/image-audit/resolve-fallback.mjs — qui replicata per il path di
+ * produzione (sync), non solo per il tool di audit read-only.
  */
 
 const SCRYDEX_API_KEY = process.env.SCRYDEX_API_KEY || null
 const SCRYDEX_TEAM_ID = process.env.SCRYDEX_TEAM_ID || null
 const PPT_API_KEY = process.env.POKEMONPRICETRACKER_API_KEY || null
+const POKEMONTCG_API_KEY = process.env.POKEMONTCG_API_KEY || null
 
 const MAX_FETCH_ATTEMPTS = 4
 const BASE_BACKOFF_MS = 500
@@ -47,6 +55,22 @@ async function safeJsonFetch(url, options) {
           }
     }
     return null
+}
+
+// Gratuita anche senza key (rate limit piu' basso senza POKEMONTCG_API_KEY),
+// quindi provata PRIMA degli stadi a key (Scrydex/PPT) nella cascata sotto.
+// Solo EN: pokemontcg.io non ha copertura JA (stesso limite documentato in
+// scripts/image-audit/resolve-fallback.mjs#tryPokemonTcgIo).
+async function resolveFromPokemonTcgIo(card, langCode) {
+    if (langCode !== 'en') return null
+    const q = encodeURIComponent(`name:"${card.name}"`)
+    const url = `https://api.pokemontcg.io/v2/cards?q=${q}`
+    const headers = POKEMONTCG_API_KEY ? { 'X-Api-Key': POKEMONTCG_API_KEY } : {}
+    const json = await safeJsonFetch(url, { headers })
+    const list = json && json.data ? json.data : []
+    const hit = list.find(c => String(c.number) === String(card.localId)) || list[0]
+    if (!hit || !hit.images) return null
+    return hit.images.large || hit.images.small || null
 }
 
 async function resolveFromScrydex(card, langCode) {
@@ -92,6 +116,9 @@ async function resolveCardImage(card, langCode) {
     if (card.image) {
           return { url: `${card.image}/high.webp`, source: 'tcgdex' }
     }
+
+  const pokemonTcgIoUrl = await resolveFromPokemonTcgIo(card, langCode)
+    if (pokemonTcgIoUrl) return { url: pokemonTcgIoUrl, source: 'pokemontcg.io' }
 
   const scrydexUrl = await resolveFromScrydex(card, langCode)
     if (scrydexUrl) return { url: scrydexUrl, source: 'scrydex' }

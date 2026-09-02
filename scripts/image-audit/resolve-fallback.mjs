@@ -34,6 +34,7 @@ import { dirname } from 'node:path'
 import { probeUrl } from './crawl-images.mjs'
 import { scoreMatch } from './match-confidence.mjs'
 import { fetchOptcgSet, OptcgSourceNotImplementedError } from '../lib/reconcile/sources/fetch-optcg.js'
+import { fetchOnePieceBandaiSet, OnePieceBandaiFetchError } from '../lib/reconcile/sources/fetch-onepiece-ja.js'
 
 const SCRYDEX_API_KEY = process.env.SCRYDEX_API_KEY || null
 const SCRYDEX_TEAM_ID = process.env.SCRYDEX_TEAM_ID || null
@@ -152,16 +153,16 @@ export async function tryPokemonPriceTracker(card, { fetchImpl = fetch, apiKey =
 const optcgSetCache = new Map()
 
 /**
- * Stadio One Piece: optcgapi.com, SOLO lang='en' (limite reale della fonte,
- * vedi header di fetch-optcg.js — nessun dato JA inventato spacciandolo per
- * EN). Per lang='ja' ritorna `skipped` esplicito: la cascata JA richiede lo
- * scraper onepiece-cardgame.com gia' usato da sync-cards.js#syncOnePiece,
- * non ancora integrato qui — task successivo dichiarato, non implicito.
+ * Stadio One Piece (EN): optcgapi.com, SOLO lang='en' (limite reale della
+ * fonte, vedi header di fetch-optcg.js — nessun dato JA inventato spacciandolo
+ * per EN). Per lang='ja' ritorna `skipped` esplicito: il fallback JA reale e'
+ * lo stadio successivo, tryOnePieceJaBandai (scraping diretto, nessuna API
+ * pubblica ha dati One Piece JA).
  */
 export async function tryOptcgOnePiece(card, { fetchImpl = fetch } = {}) {
   if (card.tcg !== 'onepiece') return null
   if (card.lang !== 'en') {
-    return { skipped: true, reason: 'optcgapi.com copre solo EN (vedi fetch-optcg.js); fallback JA non ancora implementato' }
+    return { skipped: true, reason: 'optcgapi.com copre solo EN (vedi fetch-optcg.js); il fallback JA e\' lo stadio successivo (tryOnePieceJaBandai)' }
   }
   if (!card.set_id) return null
 
@@ -188,13 +189,48 @@ export async function tryOptcgOnePiece(card, { fetchImpl = fetch } = {}) {
   }
 }
 
+// Cache di processo per lo stage Bandai JA — stesso motivo di optcgSetCache sopra.
+const bandaiJaSetCache = new Map()
+
+/**
+ * Stadio One Piece (JA): onepiece-cardgame.com (Bandai), scraping diretto
+ * delle pagine cardlist ufficiali — nessuna API pubblica copre One Piece JA
+ * (vedi fetch-onepiece-ja.js). Solo lang='ja': per EN resta preferito lo
+ * stadio precedente (optcgapi.com, fonte strutturata via API invece di
+ * scraping HTML).
+ */
+export async function tryOnePieceJaBandai(card, { fetchImpl = fetch } = {}) {
+  if (card.tcg !== 'onepiece' || card.lang !== 'ja') return null
+  if (!card.set_id) return null
+
+  let setResult = bandaiJaSetCache.get(card.set_id)
+  if (!setResult) {
+    try {
+      setResult = await fetchOnePieceBandaiSet({ setId: card.set_id, lang: 'ja', fetchImpl })
+    } catch (err) {
+      if (err instanceof OnePieceBandaiFetchError) return null // fonte non disponibile per questo set, si passa oltre
+      throw err
+    }
+    bandaiJaSetCache.set(card.set_id, setResult)
+  }
+
+  const hit = setResult.rows.find(r => r.card_number === card.card_number)
+  if (!hit || !hit.image_url) return null
+  const probe = await probeUrl(hit.image_url, { fetchImpl, maxRetries: 1 })
+  if (probe.classification !== 'A' && probe.classification !== 'B') return null
+  return {
+    source: 'onepiece-cardgame.com', url: hit.image_url, verified: true, probe,
+    candidateMeta: { name: hit.name, number: hit.card_number },
+  }
+}
+
 /**
  * Esegue l'intera cascata per una carta, ferma al primo candidato verificato via HTTP reale.
  * Calcola match_confidence contro i metadata del candidato (quando disponibili).
  */
 export async function resolveCard(card, opts = {}) {
   const stages = card.tcg === 'onepiece'
-    ? [tryTcgdexRetry, tryOptcgOnePiece]
+    ? [tryTcgdexRetry, tryOptcgOnePiece, tryOnePieceJaBandai]
     : [tryTcgdexRetry, tryScrydex, tryPokemonTcgIo, tryPokemonPriceTracker]
   const attempts = []
   for (const stage of stages) {
