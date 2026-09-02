@@ -34,6 +34,11 @@ const ONLY = (argVal('only') || '').split(',').map((s) => s.trim()).filter(Boole
 const CARD_DIFF_DAYS = Number(argVal('card-diff-days') || 400);
 const MAX_CARD_DIFF_SETS = Number(argVal('max-card-diff-sets') || 40);
 const PROMO_WINDOW_DAYS = Number(argVal('promo-window-days') || 180);
+// Un set/espansione mancante uscito oltre questa finestra non e' un problema di
+// "freschezza" ma una decisione di backfill storico -> non genera un gap
+// (evita che meta-set TCGdex del 2000 tipo "Jumbo cards" inquinino il KPI).
+// Override con --backfill-window-days=99999 per un audit storico completo.
+const SET_BACKFILL_WINDOW_DAYS = Number(argVal('backfill-window-days') || 900);
 
 const ALL_TARGETS = [
   { tcg: 'pokemon', lang: 'en' },
@@ -64,8 +69,9 @@ function isFuture(dateStr) {
 
 /** e' un gap che vale la pena inseguire ora (freschezza), non archeologia. */
 function isActionableGap(entityType, releaseDate) {
-  if (entityType === 'set') return true;
-  return isFuture(releaseDate) || withinDays(releaseDate, PROMO_WINDOW_DAYS);
+  if (isFuture(releaseDate)) return true;
+  if (entityType === 'set') return withinDays(releaseDate, SET_BACKFILL_WINDOW_DAYS);
+  return withinDays(releaseDate, PROMO_WINDOW_DAYS);
 }
 
 // ── Discovery upstream per target ──────────────────────────────────────────────

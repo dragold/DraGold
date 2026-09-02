@@ -26,8 +26,10 @@ export function rawSetIdCandidates(code) {
 
 /**
  * Set delle chiavi normalizzate dei set gia' presenti in DraGold per (tcg, lang).
- * Pokémon: canonical_cards (piu' leggera); fallback a cards. One Piece: cards
- * (canonical_cards.set_id e' NULL per OP — verificato).
+ * Fonte: `cards.set_id` (autoritativo per-carta) — NON canonical_cards, che e'
+ * un'ottimizzazione UI e ha set_id popolato solo su un sottoinsieme dei set
+ * (verificato 2026-09-02: canonical_cards da' 18 set Pokémon vs ~150 reali).
+ * Pagina finche' ci sono righe (cards Pokémon EN e' ~44k).
  *
  * @param {object} supabase
  * @param {string} tcg
@@ -36,19 +38,17 @@ export function rawSetIdCandidates(code) {
  */
 export async function dbSetCodes(supabase, tcg, lang) {
   const keys = new Set();
-  const add = (raw) => { const k = normalizeSetCode(raw); if (k) keys.add(k); };
-
-  if (tcg !== 'onepiece') {
-    const { data } = await supabase
-      .from('canonical_cards').select('set_id').eq('tcg', tcg)
-      .not('set_id', 'is', null).limit(MAX_ROWS);
-    for (const r of data || []) add(r.set_id);
-  }
-  if (!keys.size) {
-    const { data } = await supabase
-      .from('cards').select('set_id').eq('tcg', tcg).eq('lang', lang)
-      .not('set_id', 'is', null).limit(MAX_ROWS);
-    for (const r of data || []) add(r.set_id);
+  const PAGE = 1000;
+  for (let offset = 0; offset < 300_000; offset += PAGE) {
+    const { data, error } = await supabase
+      .from('cards').select('set_id')
+      .eq('tcg', tcg).eq('lang', lang)
+      .not('set_id', 'is', null)
+      .order('id', { ascending: true })
+      .range(offset, offset + PAGE - 1);
+    if (error) throw new Error(`dbSetCodes(${tcg}/${lang}): ${error.message}`);
+    for (const r of data || []) { const k = normalizeSetCode(r.set_id); if (k) keys.add(k); }
+    if (!data || data.length < PAGE) break;
   }
   return keys;
 }
