@@ -19,6 +19,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { ONEPIECE_MANAGED_FIELDS, mergeOnePieceRow } from './lib/onepiece-sync.js'
 import { processSupabaseReadResult } from './lib/pokemon-sync.js'
+import { runOnePieceSync } from './sync-onepiece.js'
 
 async function fetchExistingOnePieceRows(supabaseClient, setId, lang) {
   const columns = ['id', ...ONEPIECE_MANAGED_FIELDS, 'updated_at', 'canonical_card_id'].join(',')
@@ -235,6 +236,22 @@ async function syncPokemonJA() {
 // ONE PIECE EN  â  optcgapi.com
 // âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 async function syncOnePieceEN() {
+  // FASE 1 (2026-09): discovery One Piece SOURCE-DRIVEN via TCGCSV
+  // (scripts/sync-onepiece.js). Nessuna lista hardcoded, nessuna dipendenza da
+  // optcgapi.com (ferma a OP-12). --set esplicito -> quel set; altrimenti i
+  // group con release negli ultimi 150 giorni (lo storico e' gia' in DB, i gap
+  // piu' vecchi li gestisce catalog-freshness.yml).
+  log('\n[One Piece EN] TCGCSV (source-driven, sync-onepiece.js)...')
+  const opts = argSet
+    ? { sets: [argSet] }
+    : { since: new Date(Date.now() - 150 * 864e5).toISOString().slice(0, 10) }
+  const r = await runOnePieceSync({ supabase, dryRun: DRY_RUN, log, ...opts })
+  SYNC_STATS.onePieceEN = { groups: r.groupsProcessed, cardsUpserted: r.cardsUpserted, pricesUpserted: r.pricesUpserted }
+  log(`  One Piece EN: ${r.cardsUpserted} carte, ${r.pricesUpserted} prezzi (${r.groupsProcessed} group)`)
+  return
+}
+
+async function _deadSyncOnePieceEN_optcgapi() {
   log('\n[One Piece EN] optcgapi.com...')
   const OPTCG = 'https://optcgapi.com/api'
 
@@ -317,6 +334,17 @@ async function syncOnePieceEN() {
 //     (con nome EN come placeholder finchÃ© non si trova fonte JA migliore)
 // âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 async function syncOnePieceJA() {
+  // FASE 1 (2026-09): disattivata. Scriveva immagini in hotlink verso
+  // onepiece-cardgame.com (referrer-protected -> rotte in rendering) e usava
+  // l'enum hardcoded + optcgapi (ferma a OP-12). One Piece JA e' Fase 1.5:
+  // sara' gestita da scripts/sync-onepiece-ja.js con pipeline immagini
+  // proprietaria. Qui NON tocchiamo i dati JA esistenti (nessuna regressione).
+  log('\n[One Piece JA] disattivata in sync-full (vedi Fase 1.5 / sync-onepiece-ja.js)')
+  SYNC_STATS.onePieceJA = { skipped: true, reason: 'phase-1.5' }
+  return
+}
+
+async function _deadSyncOnePieceJA_optcgapi() {
   log('\n[One Piece JA] Derivata da optcgapi + CDN JP (ignoreDuplicates=true)...')
   const OPTCG    = 'https://optcgapi.com/api'
   const IMG_BASE = 'https://www.onepiece-cardgame.com/images/cardlist/card'

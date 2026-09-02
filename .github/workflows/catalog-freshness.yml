@@ -1,0 +1,88 @@
+name: Catalog Freshness & Release Monitor
+
+# Release Monitor giornaliero (Fase 1):
+#   1. freshness  — discovery upstream (TCGdex / TCGCSV) -> diff vs DraGold ->
+#                   scrive i gap in catalog_gaps + KPI in catalog_freshness_runs
+#   2. sync       — drena la coda catalog_gaps (missing/error) -> ingestion mirata
+#   3. set-catalog— aggiorna set_logos v2 (release date/status) + transizione
+#                   upcoming -> released
+#
+# Env: SUPABASE_URL, SUPABASE_SERVICE_KEY (secrets repo).
+
+on:
+  schedule:
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+    inputs:
+      only:
+        description: 'Scope, es. onepiece:en (vuoto = tutti i target)'
+        required: false
+        default: ''
+      dry_run:
+        description: 'Dry run: nessuna scrittura DB'
+        required: false
+        type: boolean
+        default: false
+
+concurrency:
+  group: catalog-freshness
+  cancel-in-progress: false
+
+jobs:
+  freshness:
+    name: Detect gaps + KPI
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - run: npm install @supabase/supabase-js
+      - name: Run catalog-freshness
+        run: node scripts/catalog-freshness.js ${{ inputs.only && format('--only={0}', inputs.only) || '' }} ${{ inputs.dry_run && '--dry-run' || '' }}
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+
+  sync:
+    name: Drain sync queue + set catalog
+    needs: freshness
+    if: ${{ !inputs.dry_run }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - run: npm install @supabase/supabase-js
+      - name: Drain catalog_gaps queue
+        run: node scripts/catalog-sync.js --limit=25
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+      - name: Refresh set_logos v2 + transition
+        run: node scripts/sync-set-catalog-v2.js
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+      - name: Re-run freshness (post-sync KPI)
+        run: node scripts/catalog-freshness.js ${{ inputs.only && format('--only={0}', inputs.only) || '' }}
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+
+  report:
+    name: Result
+    needs: [freshness, sync]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          echo "freshness: ${{ needs.freshness.result }}"
+          echo "sync:      ${{ needs.sync.result }}"
+          if [ "${{ needs.freshness.result }}" = "failure" ] || [ "${{ needs.sync.result }}" = "failure" ]; then
+            echo "::error::Catalog freshness pipeline: almeno un job fallito"
+            exit 1
+          fi

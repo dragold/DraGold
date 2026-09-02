@@ -1,0 +1,23 @@
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  node-test:
+    name: node:test (src + scripts)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - run: npm ci
+      - name: Unit tests — src
+        run: npm test
+      - name: Unit tests — scripts (catalog / reconcile / lib)
+        run: node --test "scripts/**/*.test.js"
