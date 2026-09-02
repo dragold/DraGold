@@ -130,7 +130,15 @@ async function syncPokemonJA() {
   const failedSets = []
 
   for (const meta of toProcess) {
-    const setId    = meta.id
+    // Normalizzato a minuscolo: TCGdex restituisce l'id dello stesso set con
+    // casing diverso a seconda dell'endpoint interrogato (verificato dal vivo
+    // 2026-09-02: /en/sets -> "sv10", /ja/sets -> "SV10" per lo stesso set) —
+    // senza normalizzare, ogni run di questo script ricrea righe duplicate
+    // sotto un set_id maiuscolo mentre il resto del catalogo (EN e le sync
+    // precedenti) usa minuscolo. Vedi supabase/migrations/
+    // 20260902140000_dedupe_ja_set_id_casing.sql per il cleanup una-tantum
+    // delle righe gia' duplicate da questo bug.
+    const setId    = String(meta.id || '').toLowerCase()
     const setName  = meta.name || setId
     const dateStr  = dateMap[setId] || 'n/d'
     const expected = meta.cardCount?.total ?? meta.cardCount ?? 0

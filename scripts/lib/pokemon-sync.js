@@ -297,7 +297,11 @@ export function classifyRow(existingRow, mergedRow) {
 export function buildIncomingFromBrief(cardBrief, setMeta, setData) {
   return {
     name: cardBrief.name,
-    set_id: setMeta.id,
+    // Normalizzato a minuscolo: TCGdex restituisce l'id dello stesso set con
+    // casing diverso a seconda dell'endpoint/lingua interrogato (verificato
+    // dal vivo 2026-09-02: /en/sets -> "sv10", /ja/sets -> "SV10" per lo
+    // stesso set) — vedi supabase/migrations/20260902140000_dedupe_ja_set_id_casing.sql.
+    set_id: String(setMeta.id || '').toLowerCase(),
     set_name: setData?.name || setMeta.name || null,
     card_number: String(cardBrief.localId),
     image_url: cardBrief.image ? `${cardBrief.image}/high.webp` : null,
