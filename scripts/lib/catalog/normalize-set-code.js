@@ -51,6 +51,30 @@ export function canonicalOnePieceSetId(raw) {
   return s.toUpperCase();
 }
 
+/**
+ * Chiave di IDENTITA' di un set, piu' aggressiva di normalizeSetCode: collassa
+ * anche lo zero-padding e le notazioni "point" semanticamente equivalenti.
+ *   "me4" == "me04";  "sv08.5" == "sv8pt5" == "sv3pt5"? no -> "sv85" vs "sv35";
+ *   "sv1" != "sv10" (lo zero di "10" non e' padding).
+ *
+ * NON sostituisce normalizeSetCode (usata per gap/diff/card-number, dove il
+ * comportamento attuale e' corretto e stabile). Serve per: (a) rilevare i
+ * duplicati di spelling in `cards`/`set_logos`, (b) la migration di dedup
+ * (Fase 1.x), (c) un guard anti-regressione.
+ *
+ * @param {unknown} raw
+ * @returns {string}
+ */
+export function setIdentityKey(raw) {
+  let s = String(raw ?? '').toLowerCase();
+  s = s.replace(/pt(\d)/g, '.$1');          // "sv3pt5" -> "sv3.5"
+  s = s.replace(/[^a-z0-9.]+/g, '');         // via tutto tranne lettere/cifre/punto
+  s = s.replace(/([a-z])0+(\d)/g, '$1$2');   // zero-padding dopo lettera: "me04"->"me4"
+  s = s.replace(/\.0+(\d)/g, '.$1');         // "sv8.05" -> "sv8.5"
+  s = s.replace(/\./g, '');                  // "sv3.5" -> "sv35"
+  return s;
+}
+
 /** true se il code e' un'espansione numerata (OP/EB/PRB), non un bucket promo. */
 export function isNumberedOnePieceExpansion(code) {
   return /^(OP|EB|PRB)-\d{2}$/.test(String(code || ''));

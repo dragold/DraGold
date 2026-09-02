@@ -18,6 +18,7 @@ import { normalizeSetCode } from './lib/catalog/normalize-set-code.js';
 import { rawSetIdCandidates } from './lib/catalog/db-read.js';
 import { latestFxRate, insertObservations } from './lib/valuation/obs-store.js';
 import { tcgcsvPriceToObservation } from './lib/valuation/observation-rows.js';
+import { detectPrintVariant } from './lib/catalog/onepiece-rows.js';
 import { parseFrankfurter } from './lib/valuation/fx.js';
 import {
   buildPokemonSetIndex, resolvePokemonSetId, tcgcsvNumberToLocalId, cardNumberNorm,
@@ -60,14 +61,34 @@ async function existingCardMap(cardIds) {
   return map;
 }
 
-function priceObsFor(cardId, canonicalId, tcg, priceEntries, eurRate, capturedAt) {
+function priceObsFor(cardId, canonicalId, tcg, priceEntries, eurRate, capturedAt, match = 'exact') {
   const out = [];
   for (const entry of priceEntries || []) {
     const o = tcgcsvPriceToObservation({ cardId, canonicalId, tcg, priceEntry: entry, eurRate, capturedAt });
-    if (o) out.push(o);
+    if (o) { o._match = match; out.push(o); }
   }
   return out;
 }
+
+/**
+ * Il match per-numero attribuisce piu' prodotti TCGCSV (base + varianti alt-art/
+ * pattern) alla STESSA carta DB. Per quelle righe, per ogni (card_id, sub_type)
+ * teniamo SOLO la piu' economica (= la stampa base). Le righe da match esatto
+ * (card_id proprio) restano tutte. Rimuove `_match` prima dell'insert.
+ */
+function collapseByNumberDuplicates(rows) {
+  const cheapest = new Map(); // key -> row (solo per _match==='bynum')
+  const kept = [];
+  for (const r of rows) {
+    if (r._match !== 'bynum') { kept.push(stripMatch(r)); continue; }
+    const key = `${r.card_id}|${r.sub_type || ''}`;
+    const prev = cheapest.get(key);
+    if (!prev || r.price_eur < prev.price_eur) cheapest.set(key, r);
+  }
+  for (const r of cheapest.values()) kept.push(stripMatch(r));
+  return kept;
+}
+function stripMatch(r) { const { _match, ...rest } = r; return rest; }
 
 // ── One Piece ─────────────────────────────────────────────────────────────────
 async function runOnePiece(eurRate, capturedAt) {
@@ -104,14 +125,21 @@ async function runOnePiece(eurRate, capturedAt) {
         gExact++; continue;
       }
       if (!p.number) { gUnres++; continue; }
+      // Il match per-numero attribuisce a UNA carta DB (la base optcg). Se il
+      // prodotto TCGCSV e' una variante (Alternate Art / Manga / Parallel), NON
+      // lo attribuiamo a quella carta: mescolerebbe base (€2) e alt-art (€180)
+      // -> valore fuorviante. Le varianti avranno la loro riga quando il set
+      //  sara' sincronizzato nativamente da TCGCSV.
+      if (detectPrintVariant(p.name)) { gUnres++; continue; }
       const cid = resolveCardIdFromIndex(numIndex, cardNumberNorm(p.number));
-      if (cid) { rows.push(...priceObsFor(cid, null, 'onepiece', entries, eurRate, capturedAt)); gNum++; }
+      if (cid) { rows.push(...priceObsFor(cid, null, 'onepiece', entries, eurRate, capturedAt, 'bynum')); gNum++; }
       else gUnres++;
     }
 
-    if (!DRY_RUN && rows.length) await insertObservations(sb, rows);
-    observations += rows.length; matchedExact += gExact; matchedByNumber += gNum; unresolved += gUnres;
-    perGroup.push({ setCode: g.setCode, group: g.groupName, observations: rows.length, exact: gExact, byNumber: gNum, unresolved: gUnres });
+    const finalRows = collapseByNumberDuplicates(rows);
+    if (!DRY_RUN && finalRows.length) await insertObservations(sb, finalRows);
+    observations += finalRows.length; matchedExact += gExact; matchedByNumber += gNum; unresolved += gUnres;
+    perGroup.push({ setCode: g.setCode, group: g.groupName, observations: finalRows.length, exact: gExact, byNumber: gNum, unresolved: gUnres });
     process.stderr.write(`  [${g.setCode}] ${rows.length} obs · exact ${gExact} · byNum ${gNum} · unresolved ${gUnres}\n`);
   }
   return { groups: selected.length, observations, matchedExact, matchedByNumber, unresolved, perGroup };
@@ -150,13 +178,14 @@ async function runPokemon(eurRate, capturedAt) {
       const entries = priceMap.get(String(p.productId)) || [];
       if (!entries.length || !p.number) { if (!p.number) gUnres++; continue; }
       const cid = resolveCardIdFromIndex(numIndex, cardNumberNorm(tcgcsvNumberToLocalId(p.number)));
-      if (cid) { rows.push(...priceObsFor(cid, null, 'pokemon', entries, eurRate, capturedAt)); gMatch++; }
+      if (cid) { rows.push(...priceObsFor(cid, null, 'pokemon', entries, eurRate, capturedAt, 'bynum')); gMatch++; }
       else gUnres++;
     }
 
-    if (!DRY_RUN && rows.length) await insertObservations(sb, rows);
-    observations += rows.length; matched += gMatch; unresolvedCard += gUnres;
-    perGroup.push({ setId, group: g.name, observations: rows.length, matched: gMatch, unresolved: gUnres });
+    const finalRows = collapseByNumberDuplicates(rows);
+    if (!DRY_RUN && finalRows.length) await insertObservations(sb, finalRows);
+    observations += finalRows.length; matched += gMatch; unresolvedCard += gUnres;
+    perGroup.push({ setId, group: g.name, observations: finalRows.length, matched: gMatch, unresolved: gUnres });
     process.stderr.write(`  [${setId}] ${g.name}: ${rows.length} obs · matched ${gMatch} · unresolved ${gUnres}\n`);
   }
   return { groups: selected.length, observations, matched, unresolvedSet, unresolvedCard, skippedSets: skippedSets.slice(0, 40), perGroup };

@@ -61,6 +61,38 @@ test('una fonte con 40 righe non domina (dedupe per fonte/subtype)', () => {
   assert.ok(v.confidence_reason.observations.buckets <= 6);
 });
 
+test('F2: osservazione placeholder TCGplayer (low==mid==high, valore alto) esclusa', () => {
+  const obs = [
+    { kind: 'market', source: 'tcgcsv', sub_type: 'Foil', price: 25, price_eur: 22, observed_at: daysAgo(1), raw: { low: 21, mid: 30, high: 70 } },
+    { kind: 'market', source: 'tcgcsv', sub_type: 'Foil', price: 29994.99, price_eur: 25900, observed_at: daysAgo(1), raw: { low: 29994.99, mid: 29994.99, high: 29994.99 } },
+  ];
+  const v = computeValuation({ cardId: 'ph', tcg: 'onepiece', observations: obs, now: NOW });
+  assert.ok(v.estimated_value < 100, `il placeholder da 26k non deve entrare: ${v.estimated_value}`);
+  assert.equal(v.observed_high < 100, true);
+});
+
+test('F3: observed_low/high riflettono la dispersione reale, non collassano a un punto', () => {
+  const obs = [
+    { kind: 'market', source: 'tcgcsv', sub_type: 'Foil', price_eur: 40, observed_at: daysAgo(1) },
+    { kind: 'market', source: 'cardmarket', sub_type: 'Foil', price_eur: 700, observed_at: daysAgo(1) },
+  ];
+  const v = computeValuation({ cardId: 'sp', tcg: 'onepiece', observations: obs, now: NOW });
+  assert.ok(v.observed_low < v.observed_high, `range non deve essere a larghezza 0: [${v.observed_low}, ${v.observed_high}]`);
+  assert.ok(v.observed_low >= 40 && v.observed_high <= 700);
+});
+
+test('F4: Normal e Holofoil non vengono mescolati — vince il sub_type con piu\' osservazioni', () => {
+  const obs = [
+    { kind: 'market', source: 'tcgcsv', sub_type: 'Normal', price_eur: 1, observed_at: daysAgo(1) },
+    { kind: 'market', source: 'tcgcsv', sub_type: 'Normal', price_eur: 1.1, observed_at: daysAgo(2) },
+    { kind: 'market', source: 'tcgcsv', sub_type: 'Normal', price_eur: 0.9, observed_at: daysAgo(3) },
+    { kind: 'market', source: 'tcgcsv', sub_type: 'Holofoil', price_eur: 15, observed_at: daysAgo(1) },
+  ];
+  const v = computeValuation({ cardId: 'ft', tcg: 'pokemon', observations: obs, now: NOW });
+  // Normal ha 3 giorni di osservazioni, Holofoil 1 -> primario = Normal, ~1 EUR (non ~8)
+  assert.ok(v.estimated_value < 3, `deve valere il Normal, non il blend: ${v.estimated_value}`);
+});
+
 test('confidence_reason sempre presente quando ci sono osservazioni', () => {
   const v = computeValuation({ cardId: 'c6', tcg: 'onepiece', observations: [{ kind: 'market', source: 'tcgcsv', price_eur: 10, observed_at: daysAgo(1) }], now: NOW });
   assert.ok(v.confidence_reason);

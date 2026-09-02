@@ -23,6 +23,18 @@ test('tcgcsvPriceToObservation: nessun market/mid -> null', () => {
   assert.equal(tcgcsvPriceToObservation({ cardId: 'x', tcg: 'onepiece', priceEntry: { market: 0 }, eurRate: 1.16 }), null);
 });
 
+test('tcgcsvPriceToObservation: placeholder (low==mid==high, alto) -> null', () => {
+  assert.equal(tcgcsvPriceToObservation({
+    cardId: 'x', tcg: 'onepiece',
+    priceEntry: { subType: 'Foil', market: 29994.99, low: 29994.99, mid: 29994.99, high: 29994.99 }, eurRate: 1.16,
+  }), null);
+  // ma low==mid==high su valore piccolo (carta bulk davvero flat) resta valido
+  assert.ok(tcgcsvPriceToObservation({
+    cardId: 'x', tcg: 'onepiece',
+    priceEntry: { subType: 'Normal', market: 0.1, low: 0.1, mid: 0.1, high: 0.1 }, eurRate: 1.16,
+  }));
+});
+
 test('ebayListingToObservation: kind listing, EUR passthrough', () => {
   const o = ebayListingToObservation({
     cardId: 'c1', tcg: 'onepiece',

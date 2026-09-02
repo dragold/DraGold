@@ -20,6 +20,11 @@ export function tcgcsvPriceToObservation({ cardId, canonicalId = null, tcg, pric
     : Number.isFinite(priceEntry.mid) ? priceEntry.mid
       : null;
   if (price == null || price <= 0) return null;
+  // Placeholder TCGplayer: un unico annuncio assurdo, nessun mercato reale
+  // (low == mid == high, valore alto). Non e' un prezzo di mercato -> scarta.
+  if (priceEntry.low != null && priceEntry.low === priceEntry.mid && priceEntry.mid === priceEntry.high && price >= 1000) {
+    return null;
+  }
 
   const rates = { USD: eurRate };
   return {

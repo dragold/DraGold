@@ -28,6 +28,55 @@ function dedupeBySourceSubtype(obs) {
   return [...best.values()];
 }
 
+/** Per (source, sub_type, giorno) tiene una sola osservazione — collassa gli
+ * snapshot ripetuti dello stesso giorno ma preserva la dispersione reale
+ * fra fonti/giorni. Usato per low/median/high. */
+function dedupeBySourceSubtypeDay(obs) {
+  const best = new Map();
+  for (const o of obs) {
+    const k = `${o.source}|${o.sub_type || ''}|${String(o.observed_at).slice(0, 10)}`;
+    const prev = best.get(k);
+    if (!prev || new Date(o.observed_at) > new Date(prev.observed_at)) best.set(k, o);
+  }
+  return [...best.values()];
+}
+
+// Ordine di preferenza per il sub_type "primario" a parita' di osservazioni.
+const SUBTYPE_PREF = ['normal', '', 'holofoil', 'foil', 'reverse holofoil', 'reverse foil'];
+
+/**
+ * Sceglie il sub_type PRIMARIO (la stampa di cui riportiamo il valore headline)
+ * e restituisce SOLO le sue osservazioni. Evita di mescolare finish diversi
+ * (Normal €1 + Holo €15 -> €8, che non corrisponde a nessun prodotto reale).
+ */
+function primarySubtypeObservations(obs) {
+  if (!obs.length) return obs;
+  const byType = new Map();
+  for (const o of obs) {
+    const k = (o.sub_type || '').toLowerCase();
+    if (!byType.has(k)) byType.set(k, []);
+    byType.get(k).push(o);
+  }
+  if (byType.size === 1) return obs;
+  let bestKey = null;
+  let bestScore = -1;
+  for (const [k, list] of byType) {
+    const days = new Set(list.map((o) => String(o.observed_at).slice(0, 10))).size;
+    const pref = SUBTYPE_PREF.indexOf(k);
+    const score = days * 100 + (pref >= 0 ? SUBTYPE_PREF.length - pref : 0);
+    if (score > bestScore) { bestScore = score; bestKey = k; }
+  }
+  return byType.get(bestKey);
+}
+
+// Osservazione "placeholder" TCGplayer: un singolo annuncio assurdo senza
+// mercato reale (low == mid == high, valore alto). Non e' un prezzo di mercato.
+function isPlaceholderObservation(o) {
+  const r = o.raw || {};
+  const flat = r.low != null && r.low === r.mid && r.mid === r.high;
+  return flat && Number(o.price) >= 1000;
+}
+
 function medianInWindow(obs, now, fromDays, toDays) {
   const lo = now.getTime() - fromDays * DAY;
   const hi = now.getTime() - toDays * DAY;
@@ -52,10 +101,13 @@ function medianInWindow(obs, now, fromDays, toDays) {
 export function computeValuation({ cardId, canonicalId = null, tcg, currency = 'EUR', observations = [], now = new Date() } = {}) {
   const cutoff = now.getTime() - VALUE_WINDOW_DAYS * DAY;
   const valid = (observations || [])
-    .filter((o) => o && Number.isFinite(o.price_eur) && o.price_eur > 0 && new Date(o.observed_at).getTime() >= cutoff);
+    .filter((o) => o && Number.isFinite(o.price_eur) && o.price_eur > 0 && new Date(o.observed_at).getTime() >= cutoff)
+    .filter((o) => !isPlaceholderObservation(o));
 
-  const marketish = valid.filter((o) => o.kind === 'market' || o.kind === 'sold');
+  const marketishAll = valid.filter((o) => o.kind === 'market' || o.kind === 'sold');
   const listings = valid.filter((o) => o.kind === 'listing');
+  // Solo il sub_type primario alimenta il valore headline (no blend di finish).
+  const marketish = primarySubtypeObservations(marketishAll);
 
   const base = {
     card_id: cardId,
@@ -66,9 +118,9 @@ export function computeValuation({ cardId, canonicalId = null, tcg, currency = '
     observed_low: null,
     observed_median: null,
     observed_high: null,
-    n_observations: valid.length,
-    n_sources: new Set(valid.map((o) => o.source)).size,
-    sources: [...new Set(valid.map((o) => o.source))].sort(),
+    n_observations: marketish.length || valid.length,
+    n_sources: new Set((marketish.length ? marketish : valid).map((o) => o.source)).size,
+    sources: [...new Set((marketish.length ? marketish : valid).map((o) => o.source))].sort(),
     trend_7d_pct: null,
     trend_30d_pct: null,
     newest_observed_at: valid.length ? new Date(Math.max(...valid.map((o) => new Date(o.observed_at).getTime()))).toISOString() : null,
@@ -84,31 +136,41 @@ export function computeValuation({ cardId, canonicalId = null, tcg, currency = '
   }
 
   // ── estimated_value ─────────────────────────────────────────────────────────
-  let priceBasis = [];        // le osservazioni usate per low/median/high
+  let priceBasis = [];        // TUTTI i prezzi (primary sub_type) nella finestra usata
   let listingOnly = false;
 
-  const recent30 = dedupeBySourceSubtype(marketish.filter((o) => new Date(o.observed_at).getTime() >= now.getTime() - PRIMARY_WINDOW_DAYS * DAY));
-  const recent90 = dedupeBySourceSubtype(marketish);
+  const inWindow = (list, days) => list.filter((o) => new Date(o.observed_at).getTime() >= now.getTime() - days * DAY);
+  const window30 = inWindow(marketish, PRIMARY_WINDOW_DAYS);
+  const usedWindow = window30.length ? window30 : marketish;
 
-  const pool = recent30.length ? recent30 : recent90;
-  if (pool.length) {
-    const entries = pool.map((o) => ({
+  if (usedWindow.length) {
+    // stima = mediana pesata sulle osservazioni deduplicate per (source, sub_type)
+    // -> nessuna fonte domina per volume; ma low/median/high riflettono la
+    // dispersione REALE di tutte le osservazioni usate (fix "range a larghezza 0").
+    const deduped = dedupeBySourceSubtype(usedWindow);
+    const entries = deduped.map((o) => ({
       value: o.price_eur,
       weight: recencyWeight((now.getTime() - new Date(o.observed_at).getTime()) / DAY),
     }));
     base.estimated_value = round2(weightedMedian(entries));
-    priceBasis = pool.map((o) => o.price_eur);
+    priceBasis = dedupeBySourceSubtypeDay(usedWindow).map((o) => o.price_eur);
   } else if (listings.length) {
     listingOnly = true;
-    const m = median(dedupeBySourceSubtype(listings).map((o) => o.price_eur));
+    const dl = dedupeBySourceSubtype(listings);
+    const m = median(dl.map((o) => o.price_eur));
     base.estimated_value = m != null ? round2(m * LISTING_DISCOUNT) : null;
-    priceBasis = dedupeBySourceSubtype(listings).map((o) => o.price_eur);
+    priceBasis = dedupeBySourceSubtypeDay(listings).map((o) => o.price_eur);
   }
 
   if (priceBasis.length) {
-    base.observed_low = round2(quantile(priceBasis, 0.1));
-    base.observed_median = round2(quantile(priceBasis, 0.5));
-    base.observed_high = round2(quantile(priceBasis, 0.9));
+    const distinct = [...new Set(priceBasis.map((p) => round2(p)))];
+    if (distinct.length === 1) {
+      base.observed_low = base.observed_median = base.observed_high = distinct[0];
+    } else {
+      base.observed_low = round2(quantile(priceBasis, 0.1));
+      base.observed_median = round2(quantile(priceBasis, 0.5));
+      base.observed_high = round2(quantile(priceBasis, 0.9));
+    }
   }
 
   // ── trend ───────────────────────────────────────────────────────────────────
