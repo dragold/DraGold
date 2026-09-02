@@ -37,6 +37,17 @@ test('canonicalOnePieceSetId: promo bucket', () => {
   assert.equal(canonicalOnePieceSetId('P-1'), 'P');
 });
 
+test('canonicalOnePieceSetId: etichette TCGCSV combinate -> primo token strutturato', () => {
+  assert.equal(canonicalOnePieceSetId('OP15-EB04'), 'OP-15');
+  assert.equal(canonicalOnePieceSetId('EB-03-04'), 'EB-03');
+  assert.equal(canonicalOnePieceSetId('OP17 RE'), 'OP-17');
+});
+
+test('canonicalOnePieceSetId: bucket a suffisso alfabetico invariati', () => {
+  assert.equal(canonicalOnePieceSetId('OP-PR'), 'OP-PR');
+  assert.equal(canonicalOnePieceSetId('OP-DD'), 'OP-DD');
+});
+
 test('canonicalOnePieceSetId: valori non riconosciuti restano invariati (upper/trim)', () => {
   assert.equal(canonicalOnePieceSetId('OTHER'), 'OTHER');
   assert.equal(canonicalOnePieceSetId('  weird  '), 'WEIRD');

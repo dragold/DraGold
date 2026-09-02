@@ -22,8 +22,14 @@ test('classifyEntityType: starter/deck -> product', () => {
   assert.equal(classifyEntityType({ tcg: 'onepiece', groupName: 'Set Sail Deck Set', abbreviation: 'SD01' }), 'product');
 });
 
-test('classifyEntityType: supplemental non classificato altrove -> special', () => {
-  assert.equal(classifyEntityType({ tcg: 'onepiece', abbreviation: 'XX', groupName: 'Weird Box Topper', isSupplemental: true }), 'special');
+test('classifyEntityType: One Piece non-strutturato -> promo (mai "set mancante")', () => {
+  assert.equal(classifyEntityType({ tcg: 'onepiece', abbreviation: 'OP-PR', groupName: 'One Piece Promotion Cards' }), 'promo');
+  assert.equal(classifyEntityType({ tcg: 'onepiece', abbreviation: 'OP-DD', groupName: 'One Piece Demo Deck Cards' }), 'product');
+  assert.equal(classifyEntityType({ tcg: 'onepiece', abbreviation: 'XX', groupName: 'Weird Box Topper', isSupplemental: true }), 'promo');
+});
+
+test('classifyEntityType: Pokémon supplemental -> special', () => {
+  assert.equal(classifyEntityType({ tcg: 'pokemon', groupName: 'Trick or Trade BOOster Bundle', isSupplemental: true }), 'special');
 });
 
 test('diffSets: OP-17 mancante, OP-16 matched', () => {

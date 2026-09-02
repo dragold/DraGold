@@ -11,10 +11,10 @@
 //               "released but missing" di carte singolari.
 // - 'set'     : espansione principale (OP-xx, EB-xx, PRB-xx) o set Pokémon.
 
-import { normalizeSetCode } from './normalize-set-code.js';
+import { normalizeSetCode, isNumberedOnePieceExpansion, isOnePieceStarterDeck } from './normalize-set-code.js';
 
-const PROMO_RE = /\b(promo|promos|promotional|black\s*star|winner|pre[-\s]?release|prerelease|championship|tournament|anniversary|release\s*event|\bprize\b|treasure\s*cup|store\s*championship|regional|gift\s*with\s*purchase)\b/i;
-const PRODUCT_RE = /\b(starter\s*deck|structure\s*deck|ultra\s*deck|deck\s*set|premium\s*collection|gift\s*box|gift\s*collection|trainer\s*kit|battle\s*deck|starter\s*set)\b/i;
+const PROMO_RE = /\b(promo|promos|promotion|promotional|black\s*star|winner|pre[-\s]?release|prerelease|championship|tournament|anniversary|release\s*event|\bprize\b|treasure\s*cup|store\s*championship|regional|gift\s*with\s*purchase|revision\s*pack)\b/i;
+const PRODUCT_RE = /\b(starter\s*deck|structure\s*deck|ultra\s*deck|deck\s*set|premium\s*collection|gift\s*box|gift\s*collection|trainer\s*kit|battle\s*deck|starter\s*set|demo\s*deck|collection\s*sets?)\b/i;
 const OP_STRUCTURED_SET_RE = /^(op|eb|prb)\d{1,3}$/;
 const OP_STARTER_RE = /^st\d{1,3}$/;
 
@@ -32,8 +32,13 @@ export function classifyEntityType({ tcg, setCode, groupName, abbreviation, isSu
   if (PROMO_RE.test(text)) return 'promo';
 
   if (tcg === 'onepiece') {
-    if (OP_STRUCTURED_SET_RE.test(codeNorm)) return 'set';
-    if (OP_STARTER_RE.test(codeNorm)) return 'product';
+    const code = setCode || abbreviation || '';
+    if (isNumberedOnePieceExpansion(code) || OP_STRUCTURED_SET_RE.test(codeNorm)) return 'set';
+    if (isOnePieceStarterDeck(code) || OP_STARTER_RE.test(codeNorm)) return 'product';
+    if (PRODUCT_RE.test(text)) return 'product';
+    // codice One Piece non-strutturato (OP-PR, OP-DD, OP-CS, ...) -> bucket promo,
+    // mai un "set mancante" (in DB questi vivono sotto set_id 'P'/'OTHER').
+    return 'promo';
   }
 
   if (PRODUCT_RE.test(text)) return 'product';

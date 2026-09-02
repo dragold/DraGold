@@ -21,14 +21,20 @@ export function normalizeSetCode(raw) {
 
 const OP_SET_PREFIXES = ['OP', 'EB', 'PRB', 'ST'];
 const OP_PREFIX_RE = new RegExp(`^(${OP_SET_PREFIXES.join('|')})[-_ ]?0*(\\d{1,3})$`, 'i');
+// primo token strutturato ovunque nella stringa (gestisce le etichette TCGCSV
+// combinate: "OP15-EB04" -> OP-15, "EB-03-04" -> EB-03, "OP17 RE" -> OP-17).
+const OP_TOKEN_RE = new RegExp(`\\b(${OP_SET_PREFIXES.join('|')})[-_ ]?0*(\\d{1,3})\\b`, 'i');
 const OP_PROMO_RE = /^p(?:romo)?(?:[-_ ]?\d+)?$/i;
 
 /**
  * Forma canonica del set code One Piece cosi' come vive in `cards.set_id`.
  * - "OP17" / "op-17" / "OP 17" -> "OP-17"
- * - "EB5" -> "EB-05"
- * - "PRB2" -> "PRB-02"
+ * - "OP15-EB04" -> "OP-15"  (etichetta combinata TCGCSV: primo token strutturato)
+ * - "EB-03-04" -> "EB-03"
+ * - "OP17 RE" -> "OP-17"
+ * - "EB5" -> "EB-05" ; "PRB2" -> "PRB-02"
  * - "P" / "promo" / "P-1" -> "P"
+ * - "OP-PR" / "OP-DD" (bucket a suffisso alfabetico) -> invariato uppercase
  * - qualunque altra cosa -> `raw` trimmato e uppercase (nessuna regola inventata)
  *
  * @param {unknown} raw
@@ -38,11 +44,18 @@ export function canonicalOnePieceSetId(raw) {
   const s = String(raw ?? '').trim();
   if (!s) return '';
   if (OP_PROMO_RE.test(s)) return 'P';
-  const m = s.match(OP_PREFIX_RE);
-  if (m) {
-    const prefix = m[1].toUpperCase();
-    const num = String(Number(m[2])).padStart(2, '0');
-    return `${prefix}-${num}`;
-  }
+  const exact = s.match(OP_PREFIX_RE);
+  if (exact) return `${exact[1].toUpperCase()}-${String(Number(exact[2])).padStart(2, '0')}`;
+  const token = s.match(OP_TOKEN_RE);
+  if (token) return `${token[1].toUpperCase()}-${String(Number(token[2])).padStart(2, '0')}`;
   return s.toUpperCase();
+}
+
+/** true se il code e' un'espansione numerata (OP/EB/PRB), non un bucket promo. */
+export function isNumberedOnePieceExpansion(code) {
+  return /^(OP|EB|PRB)-\d{2}$/.test(String(code || ''));
+}
+/** true se il code e' uno starter/structure deck numerato. */
+export function isOnePieceStarterDeck(code) {
+  return /^ST-\d{2}$/.test(String(code || ''));
 }
