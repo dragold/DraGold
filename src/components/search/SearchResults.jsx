@@ -1,8 +1,14 @@
 import { Icon } from "../shared/Icon.jsx";
 import { ebaySearchURL } from "../../DraGold.jsx";
 import { SearchResultItem } from "./SearchResultItem.jsx";
+import { VirtualCardGrid } from "./VirtualCardGrid.jsx";
 
-export function SearchResults({ loading, results, priceMap, error, term, country, cur, eurRate, onRetry, onOpen, setsMap, hasMore = false, totalCount = null, discoveryMode = false, onMissingCard = null, identifyMode = false }) {
+// virtualize: opt-in (default false) — SetDetailPage.jsx NON lo passa
+// deliberatamente: quella pagina e' indicizzata via JSON-LD e montare solo
+// le righe vicine al viewport significherebbe nascondere il resto delle
+// carte ai crawler. Chiamanti con liste potenzialmente molto lunghe e non
+// SEO-critiche (ricerca, portfolio) lo attivano esplicitamente.
+export function SearchResults({ loading, results, priceMap, error, term, country, cur, eurRate, onRetry, onOpen, setsMap, hasMore = false, totalCount = null, discoveryMode = false, onMissingCard = null, identifyMode = false, virtualize = false }) {
   if (loading) return (
     <div className="card-grid">
       {Array.from({ length: 6 }).map((_, i) => (
@@ -70,13 +76,19 @@ export function SearchResults({ loading, results, priceMap, error, term, country
   );
   return (
     <>
-      <div className="card-grid">
-        {results.map(card => (
-          <SearchResultItem key={card.id} card={card} priceInfo={priceMap[card.id] || null}
-            country={country} cur={cur} eurRate={eurRate} onOpen={onOpen} setsMap={setsMap}
-            discoveryMode={discoveryMode} identifyMode={identifyMode} />
-        ))}
-      </div>
+      {virtualize ? (
+        <VirtualCardGrid results={results} priceMap={priceMap} country={country} cur={cur}
+          eurRate={eurRate} onOpen={onOpen} setsMap={setsMap}
+          discoveryMode={discoveryMode} identifyMode={identifyMode} />
+      ) : (
+        <div className="card-grid">
+          {results.map(card => (
+            <SearchResultItem key={card.id} card={card} priceInfo={priceMap[card.id] || null}
+              country={country} cur={cur} eurRate={eurRate} onOpen={onOpen} setsMap={setsMap}
+              discoveryMode={discoveryMode} identifyMode={identifyMode} />
+          ))}
+        </div>
+      )}
       {!hasMore && (
         <p className="hint-center">
           {totalCount != null ? `${totalCount} result${totalCount !== 1 ? "s" : ""} — end of list` : "End of list"}
