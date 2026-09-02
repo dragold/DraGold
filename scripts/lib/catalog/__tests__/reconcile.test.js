@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import { classifyEntityType } from '../classify-entity.js';
 import { diffSets } from '../reconcile-sets.js';
 import { diffSetCards } from '../reconcile-cards.js';
+import { mapOnePieceGroups } from '../onepiece-groups.js';
+import { normalizeSetCode } from '../normalize-set-code.js';
 
 test('classifyEntityType: set principali One Piece', () => {
   assert.equal(classifyEntityType({ tcg: 'onepiece', setCode: 'OP-17', groupName: "The World's Strongest Warriors" }), 'set');
@@ -62,4 +64,24 @@ test('diffSetCards: differenza insiemistica ordinata', () => {
   });
   assert.deepEqual(r.missingNumbers, ['op17002', 'op17003']);
   assert.deepEqual(r.extraNumbers, []);
+});
+
+test('scoperta del prossimo set ignoto: un OP-19 futuro upstream diventa gap senza modifiche al codice', () => {
+  // Simula la lista group TCGCSV del futuro: identica a oggi + un OP-19 non
+  // ancora esistente. Nessun ramo di codice nuovo: mapOnePieceGroups + diffSets
+  // lo trattano come qualunque altro set.
+  const futureGroups = [
+    { groupId: 1, name: "The World's Strongest Warriors", abbreviation: 'OP17', isSupplemental: false, publishedOn: '2026-08-28T00:00:00' },
+    { groupId: 2, name: 'A Set That Does Not Exist Yet', abbreviation: 'OP19', isSupplemental: false, publishedOn: '2027-02-01T00:00:00' },
+  ];
+  const mapped = mapOnePieceGroups(futureGroups);
+  const op19 = mapped.find((m) => m.setCode === 'OP-19');
+  assert.ok(op19, 'OP-19 mappato');
+  assert.equal(op19.entityType, 'set');
+
+  const { missing } = diffSets({
+    upstreamSets: mapped.map((m) => ({ code: m.setCode, name: m.groupName, releaseDate: m.publishedOn })),
+    dbSetCodesNorm: new Set(['op17']), // DB ha solo OP-17
+  });
+  assert.deepEqual(missing.map((s) => s.code), ['OP-19']);
 });
