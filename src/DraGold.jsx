@@ -71,6 +71,26 @@ const ACCOUNT_LINKS = [
   { id:"alerts",    label:"Alerts",    icon:"bell" },
 ];
 
+/* ─── Deep-link dei tab della shell ───
+   /collection /search /explore /alerts sono URL reali: refreshabili e
+   condivisibili. /, /card/:id e le pagine standalone (/carta /set /pokemon
+   /academy /account…) restano gestite altrove (main.jsx o l'handler /card/).
+   Nessun router: solo History API, com'è già per /card/:id. */
+const NAV_BY_PATH = { "/explore": "explore", "/collection": "portfolio", "/alerts": "alerts" };
+function readNavFromPath() {
+  const p = window.location.pathname.replace(/\/+$/, "") || "/";
+  if (p === "/search") return { tab: "search", homeView: "results" };
+  if (NAV_BY_PATH[p]) return { tab: NAV_BY_PATH[p], homeView: "atlas" };
+  return { tab: "search", homeView: "atlas" };
+}
+function pathFromNav(tab, homeView) {
+  if (tab === "explore") return "/explore";
+  if (tab === "portfolio") return "/collection";
+  if (tab === "alerts") return "/alerts";
+  if (tab === "search" && homeView === "results") return "/search";
+  return "/";
+}
+
 /* ─── Placeholder immagine carta (Fix #4) — mai immagine rotta ─── */
 function CardThumb({ name="", size=44 }) {
   const initials = name.replace(/[^a-zA-Z ]/g,"").trim().split(/\s+/).slice(0,2).map(w=>w[0]||"").join("").toUpperCase() || "?";
@@ -109,11 +129,11 @@ export default function DraGold() {
   // overlay; homeView switches the search tab between the Atlas home and the
   // existing SearchView results list.
   const [searchOpen, setSearchOpen] = useState(false);
-  const [homeView, setHomeView] = useState("atlas"); // "atlas" | "results"
+  const [homeView, setHomeView] = useState(() => readNavFromPath().homeView); // "atlas" | "results"
   const openSearch = useCallback(() => setSearchOpen(true), []);
   const closeSearch = useCallback(() => setSearchOpen(false), []);
 
-  const [tab, setTab]   = useState("search");
+  const [tab, setTab]   = useState(() => readNavFromPath().tab);
   const [asset, setAsset] = useState(null);      // carta aperta (Asset page) o null
   const [viewSet, setViewSet] = useState(null);  // {tcg,set_id,lang,set_name} aperto da Card Detail, o null
   const [cur, setCur]   = useState("EUR");       // EUR | USD
@@ -215,11 +235,9 @@ export default function DraGold() {
   // (AssetView) aperta dentro la SPA, usando cards.id (sempre presente) invece
   // dello slug canonico (copertura oggi parziale, vedi canonical_cards). Nessuna
   // nuova libreria: solo History API nativa. Nessun canonical tag/JSON-LD qui.
-  const clearAssetUrl = useCallback(() => {
-    if (window.location.pathname.startsWith("/card/")) {
-      window.history.pushState({}, "", "/");
-    }
-  }, []);
+  // No-op: il ripristino dell'URL alla chiusura di una carta è gestito dall'effetto
+  // di sync qui sotto (che riporta al path del tab corrente, non sempre "/").
+  const clearAssetUrl = useCallback(() => {}, []);
 
   const openAsset = useCallback((card) => {
     withViewTransition(() => setAsset(card));
@@ -245,18 +263,31 @@ export default function DraGold() {
   // refresh), risolve la carta e apre AssetView dentro la shell normale (header/nav
   // inclusi — a differenza di /carta/{slug} che è una pagina standalone separata).
   // Se l'id non esiste più, torna silenziosamente alla home (nessun errore bloccante).
+  // Finché il bootstrap di /card/:id è in corso, l'effetto di sync URL qui sotto
+  // non deve "correggere" il path verso il tab: la carta sta per aprirsi.
+  const cardBootRef = useRef(/^\/card\/[^/]+\/?$/.test(window.location.pathname));
   useEffect(() => {
     const m = window.location.pathname.match(/^\/card\/([^/]+)\/?$/);
-    if (!m) return;
+    if (!m) { cardBootRef.current = false; return; }
     const id = decodeURIComponent(m[1]);
     getCardById(id).then((card) => {
       if (card) setAsset(card);
       else window.history.replaceState({}, "", "/");
-    }).catch(() => window.history.replaceState({}, "", "/"));
+    }).catch(() => window.history.replaceState({}, "", "/"))
+      .finally(() => { cardBootRef.current = false; });
   }, []);
 
+  // Sync URL <- stato: /collection /search /explore /alerts riflettono il tab
+  // corrente (push). Skip quando una carta è aperta (/card/:id ha il suo handler).
+  useEffect(() => {
+    if (asset || cardBootRef.current) return;
+    const have = window.location.pathname.replace(/\/+$/, "") || "/";
+    const want = viewSet ? "/" : pathFromNav(tab, homeView);
+    if (have !== want) window.history.pushState({}, "", want);
+  }, [tab, homeView, asset, viewSet]);
+
   // Back/forward: riflette l'url corrente nello stato React senza fare push
-  // (evita loop con openAsset/closeAsset sopra).
+  // (evita loop con openAsset/closeAsset e con l'effetto di sync sopra).
   useEffect(() => {
     const onPopState = () => {
       const m = window.location.pathname.match(/^\/card\/([^/]+)\/?$/);
@@ -268,7 +299,8 @@ export default function DraGold() {
           return cur;
         });
       } else {
-        withViewTransition(() => setAsset(null));
+        const nav = readNavFromPath();
+        withViewTransition(() => { setAsset(null); setViewSet(null); setTab(nav.tab); setHomeView(nav.homeView); });
       }
     };
     window.addEventListener("popstate", onPopState);
