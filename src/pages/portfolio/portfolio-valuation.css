@@ -1,0 +1,69 @@
+/* DraGold — Portfolio Core (Fase 3). Stili dei pannelli valutazione.
+   Palette neutra + gold (PRODUCT_SPEC §6): niente verde/rosso di sfondo. */
+
+/* ── ConfidenceBadge ─────────────────────────────────────────────────────── */
+.pf-conf{display:inline-flex;align-items:center;gap:5px;font-family:'Space Mono',monospace;
+  font-size:10px;font-weight:700;letter-spacing:.02em;padding:2px 8px;border-radius:100px;
+  border:1px solid var(--border);white-space:nowrap;}
+.pf-conf-lg{font-size:11px;padding:3px 10px;}
+.pf-conf-dot{width:5px;height:5px;border-radius:50%;background:currentColor;flex-shrink:0;}
+.pf-conf-medium{color:var(--muted);background:var(--surface-3);}
+.pf-conf-low{color:var(--gold);background:rgba(231,183,95,.10);border-color:rgba(231,183,95,.28);}
+.pf-conf-none{color:var(--muted);background:transparent;border-style:dashed;font-weight:600;text-transform:none;letter-spacing:0;}
+
+/* ── PortfolioConfidence bar ─────────────────────────────────────────────── */
+.pf-confbar{margin:10px 0 4px;}
+.pf-confbar-track{display:flex;height:6px;border-radius:100px;overflow:hidden;background:var(--surface-3);}
+.pf-confbar-seg{height:100%;}
+.pf-confbar-seg.seg-medium{background:var(--muted);opacity:.6;}
+.pf-confbar-seg.seg-low{background:var(--gold);opacity:.8;}
+.pf-confbar-legend{display:flex;align-items:center;gap:10px;margin-top:6px;font-size:12px;color:var(--muted);}
+.pf-confbar-legend b{color:var(--text);font-weight:700;}
+.pf-confbar-none{font-size:12px;color:var(--gold);background:none;border:none;padding:0;text-decoration:underline;cursor:pointer;}
+.pf-confbar-note{margin:6px 0 0;font-size:11px;line-height:1.5;color:var(--muted);opacity:.8;}
+
+/* ── Breakdown ──────────────────────────────────────────────────────────── */
+.pf-bd-tabs{display:flex;gap:4px;margin-left:auto;}
+.pf-bd-tab{font-size:11px;font-weight:600;color:var(--muted);background:var(--surface-2);
+  border:1px solid var(--border);border-radius:100px;padding:4px 10px;}
+.pf-bd-tab.on{color:var(--text);background:var(--surface-3);border-color:var(--border-2);}
+.pf-bd-list{display:flex;flex-direction:column;gap:8px;margin-top:10px;}
+.pf-bd-row{display:grid;grid-template-columns:minmax(60px,1.3fr) 3fr auto auto auto;align-items:center;gap:10px;font-size:12px;}
+.pf-bd-name{color:var(--text);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.pf-bd-bar{height:6px;border-radius:100px;background:var(--surface-3);overflow:hidden;}
+.pf-bd-fill{display:block;height:100%;background:linear-gradient(90deg,var(--gold-deep),var(--gold));}
+.pf-bd-pct{font-family:'Space Mono',monospace;color:var(--muted);text-align:right;min-width:32px;}
+.pf-bd-val{font-family:'Space Mono',monospace;color:var(--text);text-align:right;min-width:64px;}
+.pf-bd-count{font-family:'Space Mono',monospace;color:var(--muted);text-align:right;min-width:22px;}
+.pf-bd-more{font-size:11px;color:var(--muted);padding-top:2px;}
+
+/* ── Collection Intelligence ────────────────────────────────────────────── */
+.pf-ci-list{list-style:none;margin:10px 0 0;padding:0;display:flex;flex-direction:column;gap:9px;}
+.pf-ci-row{display:flex;align-items:flex-start;gap:9px;font-size:13px;line-height:1.5;color:var(--text);}
+.pf-ci-row svg{margin-top:2px;color:var(--gold);flex-shrink:0;}
+
+/* ── Unvalued ───────────────────────────────────────────────────────────── */
+.pf-uv-group{margin-top:12px;}
+.pf-uv-group-h{display:flex;flex-direction:column;gap:2px;margin-bottom:8px;}
+.pf-uv-group-t{font-size:13px;font-weight:700;color:var(--text);}
+.pf-uv-group-x{font-size:12px;color:var(--muted);line-height:1.5;}
+.pf-uv-thumbs{display:flex;gap:6px;flex-wrap:wrap;}
+.pf-uv-thumb{width:38px;height:53px;border-radius:5px;overflow:hidden;background:var(--surface-3);
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.pf-uv-thumb img{width:100%;height:100%;object-fit:cover;}
+.pf-uv-thumb-ph{color:var(--muted);font-size:12px;}
+.pf-uv-more{width:38px;height:53px;border-radius:5px;background:var(--surface-2);border:1px dashed var(--border);
+  display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--muted);flex-shrink:0;}
+
+/* ── row/grid valuation additions ──────────────────────────────────────── */
+.pf-val-line{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:4px;}
+.pf-val-eur{font-family:'Space Mono',monospace;font-size:13px;font-weight:700;color:var(--text);}
+.pf-val-range{font-family:'Space Mono',monospace;font-size:10px;color:var(--muted);}
+.pf-val-pending{font-size:11px;color:var(--muted);font-style:italic;}
+.pf-hist-building{padding:16px;text-align:center;color:var(--muted);font-size:13px;line-height:1.6;
+  background:var(--surface-2);border:1px dashed var(--border);border-radius:12px;}
+
+@media (max-width:520px){
+  .pf-bd-row{grid-template-columns:minmax(48px,1fr) 2fr auto auto;}
+  .pf-bd-count{display:none;}
+}
