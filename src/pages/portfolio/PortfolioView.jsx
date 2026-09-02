@@ -7,10 +7,23 @@
 // idempotente per costruzione — stesso giorno => stesso valore, nessun
 // duplicato, nessuna scrittura periodica necessaria.
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import { supabase, listCollection, removeFromCollection, decrementOrRemoveCollection, addToWatchlist } from "../../supabase.js";
+import { supabase, listCollection, removeFromCollection, decrementOrRemoveCollection, addToWatchlist, fetchPortfolioValuations, fetchPortfolioValueHistory } from "../../supabase.js";
 import { Icon } from "../../components/shared/Icon.jsx";
 import { pickCardImage } from "../../components/shared/cardImage.js";
 import { TCG_LIST, Empty } from "../../DraGold.jsx";
+import { buildPortfolioValuation } from "../../lib/portfolio/valuation.js";
+import { deriveInsights } from "../../lib/portfolio/insights.js";
+import { buildValueHistory } from "../../lib/portfolio/history.js";
+import { ConfidenceBadge } from "./ConfidenceBadge.jsx";
+import { PortfolioConfidence } from "./PortfolioConfidence.jsx";
+import { PortfolioBreakdown } from "./PortfolioBreakdown.jsx";
+import { CollectionIntelligence } from "./CollectionIntelligence.jsx";
+import { UnvaluedSection } from "./UnvaluedSection.jsx";
+import "./portfolio-valuation.css";
+
+// Formatter EUR-nativo per i numeri basati su market_valuations (che sono in EUR).
+// NON passa da `fmt`/`eurRate` (che convertono da USD, per il P&L legacy).
+const fmtEur = (n) => (n == null || isNaN(n)) ? "—" : `€${Number(n).toFixed(2)}`;
 
 const RANGES = [
   { key: "7", label: "7D", days: 7 },
@@ -73,7 +86,7 @@ function buildSeries(rows, positions) {
 }
 
 /* ─── PortfolioRow — vista compatta (riuso invariato, ora cliccabile → Card Detail) ─── */
-function PortfolioRow({ pos, priceInfo, cur, eurRate, fmt, isConfirm, onConfirm, onCancelConfirm, onRemove, onTrack, trackBusy, trackDone, removeBusy, onOpen, onDecrement, decrementBusy }) {
+function PortfolioRow({ pos, priceInfo, valuation, cur, eurRate, fmt, isConfirm, onConfirm, onCancelConfirm, onRemove, onTrack, trackBusy, trackDone, removeBusy, onOpen, onDecrement, decrementBusy }) {
   const [imgFailed, setImgFailed] = useState(false);
   const imgUrl = pickCardImage(pos) || null;
   const initials = (pos.card_name || "")
@@ -140,16 +153,23 @@ function PortfolioRow({ pos, priceInfo, cur, eurRate, fmt, isConfirm, onConfirm,
             <span className="pf-price-val">{paidDisplay}</span>
           </div>
           <div className="pf-price-col">
-            <span className="pf-price-lbl">Now</span>
-            <span className="pf-price-val">{currentUSD != null ? fmt(currentUSD) : "—"}</span>
+            <span className="pf-price-lbl">Market value</span>
+            <span className="pf-price-val">
+              {valuation && valuation.estimated_value != null ? fmtEur(Number(valuation.estimated_value)) : "—"}
+            </span>
           </div>
           <div className="pf-price-col">
-            <span className="pf-price-lbl">P&amp;L</span>
+            <span className="pf-price-lbl">P&amp;L vs paid</span>
             <span className={`pf-price-val${rowPnlPos === true ? " gain" : rowPnlPos === false ? " loss" : ""}`}>
               {rowPnlUSD != null ? `${rowPnlPos ? "+" : ""}${fmt(rowPnlUSD)}` : "—"}
             </span>
           </div>
         </div>
+        {valuation && (
+          <div className="pf-val-line" style={{ marginTop: 6 }}>
+            <ConfidenceBadge level={valuation.confidence} reason={valuation.confidence_reason} />
+          </div>
+        )}
       </div>
 
       <div className="pf-actions">
@@ -274,7 +294,7 @@ function MiniPositionChart({ series, fmt }) {
 }
 
 /* ─── Grid card (default view, FASE 4) ─── */
-function PortfolioGridCard({ pos, priceInfo, series, fmt, onOpen, onDecrement, decrementBusy }) {
+function PortfolioGridCard({ pos, priceInfo, series, fmt, valuation, onOpen, onDecrement, decrementBusy }) {
   const [imgFailed, setImgFailed] = useState(false);
   const imgUrl = pickCardImage(pos) || null;
   const tcgInfo = TCG_LIST.find(t => t.id === pos.tcg);
@@ -283,11 +303,11 @@ function PortfolioGridCard({ pos, priceInfo, series, fmt, onOpen, onDecrement, d
   const unitUSD = priceInfo?.price_market ?? null;
   const totalUSD = unitUSD != null ? unitUSD * qty : null;
 
-  const first = series && series.length ? series[0] : null;
-  const baseline = first ? first.value : null;
-  const changeUSD = (totalUSD != null && baseline != null) ? totalUSD - baseline : null;
-  const changePct = (baseline != null && baseline > 0 && changeUSD != null) ? (changeUSD / baseline) * 100 : null;
-  const changeCls = changeUSD == null ? "flat" : changeUSD > 0 ? "gain" : changeUSD < 0 ? "loss" : "flat";
+  // Valore di mercato DraGold (EUR) — sostituisce il "prezzo spot" come numero
+  // primario. Se assente -> "Estimate pending", mai un numero finto.
+  const estEur = valuation && valuation.estimated_value != null ? Number(valuation.estimated_value) : null;
+  const totalEur = estEur != null ? estEur * qty : null;
+  const trendPct = valuation ? (valuation.trend_7d_pct ?? valuation.trend_30d_pct ?? null) : null;
 
   return (
     <a className="pfg-card" href={`/card/${encodeURIComponent(pos.card_api_id)}`}
@@ -312,15 +332,23 @@ function PortfolioGridCard({ pos, priceInfo, series, fmt, onOpen, onDecrement, d
       <div className="pfg-body">
         <div className="pfg-name">{pos.card_name || "—"}</div>
         {pos.set_name && <div className="pfg-set">{pos.set_name}</div>}
-        <div className="pfg-vals">
-          <span className="pfg-unit">{unitUSD != null ? `${fmt(unitUSD)} each` : "no price yet"}</span>
-          <span className="pfg-total">{totalUSD != null ? fmt(totalUSD) : "—"}</span>
-        </div>
-        {changeUSD != null && (
-          <div className={`pfg-change ${changeCls}`}>
-            <span>{changeUSD >= 0 ? "+" : ""}{fmt(changeUSD)}</span>
-            {changePct != null && <span>{changeUSD >= 0 ? "+" : ""}{changePct.toFixed(1)}%</span>}
-          </div>
+        {estEur != null ? (
+          <>
+            <div className="pfg-vals">
+              <span className="pfg-unit">{fmtEur(estEur)} each</span>
+              <span className="pfg-total">{fmtEur(totalEur)}</span>
+            </div>
+            <div className="pf-val-line">
+              <ConfidenceBadge level={valuation.confidence} reason={valuation.confidence_reason} />
+              {trendPct != null && (
+                <span className={`pfg-change ${trendPct > 0 ? "gain" : trendPct < 0 ? "loss" : "flat"}`}>
+                  {trendPct >= 0 ? "+" : ""}{Number(trendPct).toFixed(1)}%
+                </span>
+              )}
+            </div>
+          </>
+        ) : (
+          <div className="pf-val-line"><span className="pf-val-pending">Estimate pending</span></div>
         )}
         <MiniPositionChart series={series} fmt={fmt} />
       </div>
@@ -329,11 +357,11 @@ function PortfolioGridCard({ pos, priceInfo, series, fmt, onOpen, onDecrement, d
 }
 
 /* ─── Biggest Movers / Most Valuable rail card ─── */
-function RailCard({ pos, changeUSD, changePct, totalUSD, fmt, onOpen }) {
+function RailCard({ pos, changeUSD, changePct, totalUSD, confidence, fmt, onOpen }) {
   const [imgFailed, setImgFailed] = useState(false);
   const imgUrl = pickCardImage(pos) || null;
   const qty = pos.quantity || 1;
-  const cls = changeUSD == null ? "" : changeUSD > 0 ? "gain" : changeUSD < 0 ? "loss" : "";
+  const cls = changePct == null ? "" : changePct > 0 ? "gain" : changePct < 0 ? "loss" : "";
   const tcgInfo = TCG_LIST.find(t => t.id === pos.tcg);
   const initials = (pos.card_name || "")
     .replace(/[^a-zA-Z ]/g, "").trim()
@@ -353,13 +381,12 @@ function RailCard({ pos, changeUSD, changePct, totalUSD, fmt, onOpen }) {
         )}
       </div>
       <div className="pf-mover-name">{pos.card_name}</div>
-      <div className="pf-mover-qty">{qty} {qty === 1 ? "copy" : "copies"} · {fmt(totalUSD)}</div>
-      {changeUSD != null ? (
+      <div className="pf-mover-qty">{qty} {qty === 1 ? "copy" : "copies"} · {totalUSD != null ? fmt(totalUSD) : "—"}</div>
+      {changePct != null ? (
         <div className={`pf-mover-change ${cls}`}>
-          {changeUSD >= 0 ? "+" : ""}{fmt(changeUSD)}
-          {changePct != null && <span className="pf-mover-change-pct">{changeUSD >= 0 ? "+" : ""}{changePct.toFixed(1)}%</span>}
+          {changePct >= 0 ? "+" : ""}{Number(changePct).toFixed(1)}%
         </div>
-      ) : <div className="pf-mover-change">—</div>}
+      ) : (confidence ? <ConfidenceBadge level={confidence} size="sm" /> : <div className="pf-mover-change">—</div>)}
     </a>
   );
 }
@@ -368,7 +395,10 @@ function RailCard({ pos, changeUSD, changePct, totalUSD, fmt, onOpen }) {
 export function PortfolioView({ isAuthed, onLogin, onExplore, cur, eurRate, onOpenCard }) {
   const [positions, setPositions]   = useState([]);
   const [priceMap, setPriceMap]     = useState({});
+  const [valuations, setValuations] = useState([]);   // righe RPC portfolio_valuations
+  const [valHistRows, setValHistRows] = useState([]); // righe RPC portfolio_value_history
   const [loading, setLoading]       = useState(true);
+  const unvaluedRef = useRef(null);
   const [error, setError]           = useState(null);
   const [confirmId, setConfirmId]   = useState(null);
   const [removeBusy, setRemoveBusy] = useState(false);
@@ -380,7 +410,6 @@ export function PortfolioView({ isAuthed, onLogin, onExplore, cur, eurRate, onOp
   // portfolio with many cards never pulls unbounded history (FASE 12).
   const [histCache, setHistCache]   = useState({});
   const [histLoading, setHistLoading] = useState(false);
-  const [heroRange, setHeroRange]   = useState("30");
 
   const [tcgFilter, setTcgFilter]   = useState("all");
   const [sortMode, setSortMode]     = useState("value");
@@ -416,8 +445,14 @@ export function PortfolioView({ isAuthed, onLogin, onExplore, cur, eurRate, onOp
       }
       setPositions(dataWithLang);
       if (ids0.length) {
-        // "Now" price per card: latest SPOT snapshot only (timeframe IS NULL) —
-        // eBay sold-aggregate rows must never shadow the true spot price.
+        // Valore di mercato DraGold (EUR + confidence) — la fonte primaria del
+        // valore. RPC che risolve gli spelling duplicati e segnala le carte
+        // senza valutazione (JA, set non coperti).
+        const vals = await fetchPortfolioValuations(ids0);
+        setValuations(vals);
+
+        // "Now" spot price (USD) — resta solo per il P&L "vs paid" legacy e le
+        // sparkline per-posizione. Non e' piu' il numero primario.
         const { data: priceRows } = await supabase
           .from("card_prices")
           .select("card_id,price_market,captured_at")
@@ -430,8 +465,10 @@ export function PortfolioView({ isAuthed, onLogin, onExplore, cur, eurRate, onOp
         setPriceMap(pm);
       } else {
         setPriceMap({});
+        setValuations([]);
       }
       setHistCache({});
+      setValHistRows([]);
     } catch (e) {
       setError(e.message || "Unknown error");
     } finally {
@@ -469,13 +506,33 @@ export function PortfolioView({ isAuthed, onLogin, onExplore, cur, eurRate, onOp
   // Default 30D window powers the hero (default range), every mini-chart and
   // the Biggest Movers / Most Valuable calculations.
   useEffect(() => { if (ids.length) ensureHistory("30"); }, [ids]); // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(() => { if (ids.length && heroRange !== "30") ensureHistory(heroRange); }, [heroRange, ids]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const miniSeries = useMemo(() => buildSeries(histCache["30"] || [], positions), [histCache, positions]);
-  const heroSeries  = useMemo(() => {
-    if (heroRange === "30") return miniSeries;
-    return buildSeries(histCache[heroRange] || [], positions);
-  }, [heroRange, histCache, positions, miniSeries]);
+
+  // ── Portfolio valuation (EUR) — la spina dorsale della vista ──────────────
+  const portfolio = useMemo(
+    () => buildPortfolioValuation({ positions, valuations }),
+    [positions, valuations],
+  );
+  const insights = useMemo(() => deriveInsights(portfolio), [portfolio]);
+  const resolvedByInput = useMemo(() => {
+    const m = new Map();
+    for (const v of valuations) if (v.resolved_card_id) m.set(v.input_card_id, v.resolved_card_id);
+    return m;
+  }, [valuations]);
+  const valueHistory = useMemo(
+    () => buildValueHistory({ historyRows: valHistRows, positions, resolvedByInput }),
+    [valHistRows, positions, resolvedByInput],
+  );
+
+  // Fetch dello storico valore (una volta, 90 giorni) quando ci sono posizioni.
+  useEffect(() => {
+    const resolved = [...resolvedByInput.values()];
+    if (!resolved.length) { setValHistRows([]); return; }
+    let cancelled = false;
+    fetchPortfolioValueHistory(resolved, 90).then((rows) => { if (!cancelled) setValHistRows(rows); });
+    return () => { cancelled = true; };
+  }, [resolvedByInput]);
 
   const doRemove = useCallback(async (id) => {
     setRemoveBusy(true);
@@ -580,80 +637,62 @@ export function PortfolioView({ isAuthed, onLogin, onExplore, cur, eurRate, onOp
     </section>
   );
 
-  /* ── totals (live, priceMap-based — only priced positions contribute) ── */
-  let totalValueUSD = 0, totalPaidUSD = 0, unpricedCount = 0, noPaidCount = 0;
+  /* ── valore & P&L ──────────────────────────────────────────────────────
+     Valore di mercato = market_valuations (EUR), via `portfolio`.
+     P&L "vs paid" = separato: purchase_price dell'utente vs spot USD (invariato). */
+  const valByInput = portfolio.valuationByInput;
+  const unvaluedCount = portfolio.unvaluedCount;
+
+  let totalPaidUSD = 0, noPaidCount = 0, matchedForPnl = 0, curValForPnlUSD = 0;
   for (const pos of positions) {
-    const priceRow  = priceMap[pos.card_api_id];
-    const currentUSD = priceRow?.price_market ?? null;
     const qty = pos.quantity || 1;
-    const paidRaw    = pos.purchase_price;
-    const fmvCur     = pos.fmv_currency || cur;
-    const paidUSD    = paidRaw != null ? (fmvCur === "EUR" ? paidRaw / eurRate : Number(paidRaw)) : null;
-    if (currentUSD != null) {
-      totalValueUSD += currentUSD * qty;
-      if (paidUSD != null) totalPaidUSD += paidUSD * qty;
-    } else {
-      unpricedCount++;
-    }
-    if (paidUSD == null) noPaidCount++;
+    const paidRaw = pos.purchase_price;
+    const fmvCur  = pos.fmv_currency || cur;
+    const paidUSD = paidRaw != null ? (fmvCur === "EUR" ? paidRaw / eurRate : Number(paidRaw)) : null;
+    const spotUSD = priceMap[pos.card_api_id]?.price_market ?? null;
+    if (paidUSD == null) { noPaidCount++; continue; }
+    if (spotUSD != null) { totalPaidUSD += paidUSD * qty; curValForPnlUSD += spotUSD * qty; matchedForPnl++; }
   }
-  const pnlUSD = totalValueUSD - totalPaidUSD;
+  const pnlUSD = curValForPnlUSD - totalPaidUSD;
   const pnlPct = totalPaidUSD > 0 ? (pnlUSD / totalPaidUSD) * 100 : null;
   const pnlPos = pnlUSD >= 0;
 
-  // Period change (linked to the selected range pill) — baseline is the
-  // oldest point available in that window, current is the live total above.
-  const heroPts = heroSeries.totalSeries;
-  const periodBaseline = heroPts.length ? heroPts[0].value : null;
-  const periodChangeUSD = periodBaseline != null ? totalValueUSD - periodBaseline : null;
-  const periodChangePct = (periodBaseline != null && periodBaseline > 0) ? (periodChangeUSD / periodBaseline) * 100 : null;
-  const periodPos = periodChangeUSD != null ? periodChangeUSD >= 0 : null;
-
-  // Real "last updated" — max captured_at across this portfolio's own spot
-  // prices. Never Date.now()/page-load time (FASE 11).
-  let lastUpdatedTs = null;
-  for (const k in priceMap) {
-    const t = priceMap[k]?.captured_at ? new Date(priceMap[k].captured_at).getTime() : null;
-    if (t != null && (lastUpdatedTs == null || t > lastUpdatedTs)) lastUpdatedTs = t;
+  // "Last valued" — max computed_at fra le valutazioni del portfolio.
+  let lastValuedTs = null;
+  for (const v of valuations) {
+    const t = v.computed_at ? new Date(v.computed_at).getTime() : null;
+    if (t != null && (lastValuedTs == null || t > lastValuedTs)) lastValuedTs = t;
   }
-  const lastUpdatedLabel = lastUpdatedTs != null
-    ? new Date(lastUpdatedTs).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
-      + " · " + new Date(lastUpdatedTs).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })
+  const lastUpdatedLabel = lastValuedTs != null
+    ? new Date(lastValuedTs).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
     : null;
 
-  // Per-position change over the 30D mini window — feeds grid cards, movers, most valuable.
+  // Sparkline per-posizione (storico prezzo USD) — informativo, non il numero primario.
   const perPositionChange = {};
   for (const pos of positions) {
-    const series = miniSeries.perPosition[pos.id] || [];
-    const qty = pos.quantity || 1;
-    const unitUSD = priceMap[pos.card_api_id]?.price_market ?? null;
-    const totalUSD = unitUSD != null ? unitUSD * qty : null;
-    const baseline = series.length ? series[0].value : null;
-    const changeUSD = (totalUSD != null && baseline != null) ? totalUSD - baseline : null;
-    const changePct = (baseline != null && baseline > 0 && changeUSD != null) ? (changeUSD / baseline) * 100 : null;
-    perPositionChange[pos.id] = { totalUSD, changeUSD, changePct, series };
+    perPositionChange[pos.id] = { series: miniSeries.perPosition[pos.id] || [] };
   }
 
-  const biggestMovers = positions
-    .filter(p => perPositionChange[p.id].changeUSD != null)
-    .slice()
-    .sort((a, b) => Math.abs(perPositionChange[b.id].changeUSD) - Math.abs(perPositionChange[a.id].changeUSD))
-    .slice(0, 8);
+  // Movers / Most Valuable — dal valuation layer.
+  const posById = Object.fromEntries(positions.map(p => [p.card_api_id, p]));
+  const biggestMovers = portfolio.movers.map(m => posById[m.card_api_id]).filter(Boolean).slice(0, 8);
+  const mostValuable  = portfolio.mostValuable.map(m => posById[m.card_api_id]).filter(Boolean).slice(0, 10);
 
-  const mostValuable = positions
-    .filter(p => perPositionChange[p.id].totalUSD != null)
-    .slice()
-    .sort((a, b) => perPositionChange[b.id].totalUSD - perPositionChange[a.id].totalUSD)
-    .slice(0, 10);
+  const valueOf = (pos) => {
+    const v = valByInput.get(pos.card_api_id);
+    return v && v.estimated_value != null ? Number(v.estimated_value) * (pos.quantity || 1) : null;
+  };
+  const trendOf = (pos) => {
+    const v = valByInput.get(pos.card_api_id);
+    return v ? (v.trend_7d_pct ?? v.trend_30d_pct ?? null) : null;
+  };
 
-  // Filter (TCG chips) + sort — all client-side on already-loaded positions,
-  // no extra query (FASE 8/12).
+  // Filter (TCG chips) + sort.
   let visible = tcgFilter === "all" ? positions : positions.filter(p => p.tcg === tcgFilter);
   visible = visible.slice().sort((a, b) => {
-    const ca = perPositionChange[a.id], cb = perPositionChange[b.id];
-    if (sortMode === "value") return (cb.totalUSD ?? -1) - (ca.totalUSD ?? -1);
-    if (sortMode === "gain") return (cb.changeUSD ?? -Infinity) - (ca.changeUSD ?? -Infinity);
-    if (sortMode === "loss") return (ca.changeUSD ?? Infinity) - (cb.changeUSD ?? Infinity);
+    if (sortMode === "value") return (valueOf(b) ?? -1) - (valueOf(a) ?? -1);
+    if (sortMode === "gain")  return (trendOf(b) ?? -Infinity) - (trendOf(a) ?? -Infinity);
+    if (sortMode === "loss")  return (trendOf(a) ?? Infinity) - (trendOf(b) ?? Infinity);
     return new Date(b.added_at || 0) - new Date(a.added_at || 0); // recent
   });
 
@@ -666,58 +705,63 @@ export function PortfolioView({ isAuthed, onLogin, onExplore, cur, eurRate, onOp
       {/* ── HERO ── */}
       <div className="pf-header">
         <div className="pf-header-top">
-          <span className="pf-label">Total Value</span>
-          {unpricedCount > 0 && <span className="pf-unpriced">{unpricedCount} unpriced</span>}
+          <span className="pf-label">Estimated Market Value</span>
         </div>
-        <div className="pf-total">{fmt(totalValueUSD)}</div>
+        <div className="pf-total">{fmtEur(portfolio.totalEur)}</div>
 
-        {periodChangeUSD != null && (
-          <div className={`pf-pnl ${periodPos ? "gain" : "loss"}`}>
-            <span>{periodPos ? "+" : ""}{fmt(periodChangeUSD)}</span>
-            {periodChangePct != null && <span className="pf-pnl-pct">{periodPos ? "+" : ""}{periodChangePct.toFixed(2)}%</span>}
-          </div>
-        )}
         {totalPaidUSD > 0 && (
           <div className="pf-nopaid" style={{ marginBottom: 4 }}>
-            {pnlPos ? "+" : ""}{fmt(pnlUSD)}{pnlPct != null ? ` (${pnlPos ? "+" : ""}${pnlPct.toFixed(2)}%)` : ""} vs paid
+            {pnlPos ? "+" : ""}{fmt(pnlUSD)}{pnlPct != null ? ` (${pnlPos ? "+" : ""}${pnlPct.toFixed(2)}%)` : ""} vs your purchase price
+            <span style={{ opacity: .7 }}> · {matchedForPnl} card{matchedForPnl === 1 ? "" : "s"}</span>
           </div>
         )}
 
-        <div className="pf-range-pills">
-          {RANGES.map(r => (
-            <button key={r.key} className={`pf-range-pill ${heroRange === r.key ? "on" : ""}`}
-              onClick={() => setHeroRange(r.key)}>{r.label}</button>
-          ))}
-        </div>
-        <div className={`pf-hero-chart ${histLoading && heroRange !== "30" ? "loading" : ""}`}>
-          {heroPts.length >= 2 ? <HeroChart points={heroPts} fmt={fmt} /> : (
-            <div className="pf-nopaid">Not enough price history yet for this range.</div>
+        <PortfolioConfidence confidenceMix={portfolio.confidenceMix}
+          onJumpToUnvalued={() => unvaluedRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })} />
+
+        {/* storico valore (market_observations) */}
+        <div className="pf-hero-chart">
+          {valueHistory.state === "ok" && valueHistory.series.length >= 2 ? (
+            <HeroChart points={valueHistory.series.map(s => ({ label: s.label, value: s.valueEur }))} fmt={fmtEur} />
+          ) : (
+            <div className="pf-hist-building">
+              Your value history is being built.<br />
+              We record a market snapshot each day — check back in a few days for the trend chart.
+            </div>
           )}
         </div>
 
         <div className="pf-count">
-          {positions.length - unpricedCount} of {positions.length} position{positions.length !== 1 ? "s" : ""} priced
+          {portfolio.pricedCount} of {positions.length} card{positions.length !== 1 ? "s" : ""} valued
         </div>
         {noPaidCount > 0 && (
-          <div className="pf-nopaid">{noPaidCount} of {positions.length} without a purchase price — P&amp;L not shown for these</div>
+          <div className="pf-nopaid">P&amp;L uses your purchase price where set; market value uses DraGold's estimate (EUR).</div>
         )}
         {lastUpdatedLabel && (
-          <div className="pf-updated"><span className="pf-updated-dot" />Last updated · {lastUpdatedLabel}</div>
+          <div className="pf-updated"><span className="pf-updated-dot" />Last valued · {lastUpdatedLabel}</div>
         )}
       </div>
 
-      {/* ── BIGGEST MOVERS (FASE 6) ── */}
+      {/* ── BREAKDOWN + COLLECTION INTELLIGENCE ── */}
+      {portfolio.totalEur > 0 && (
+        <PortfolioBreakdown byTcg={portfolio.byTcg} bySet={portfolio.bySet} byLang={portfolio.byLang} fmtEur={fmtEur} />
+      )}
+      <CollectionIntelligence insights={insights} />
+
+      {/* ── BIGGEST MOVERS (FASE 6) — solo con dati trend ── */}
       {biggestMovers.length > 0 && (
         <div className="pf-section">
           <div className="pf-section-h"><span className="pf-section-t"><Icon name="trend-up" size={14} />Biggest Movers</span></div>
           <div className="pf-rail">
-            {biggestMovers.map(pos => (
-              <RailCard key={pos.id} pos={pos}
-                totalUSD={perPositionChange[pos.id].totalUSD}
-                changeUSD={perPositionChange[pos.id].changeUSD}
-                changePct={perPositionChange[pos.id].changePct}
-                fmt={fmt} onOpen={() => openPosition(pos)} />
-            ))}
+            {biggestMovers.map(pos => {
+              const v = valByInput.get(pos.card_api_id);
+              return <RailCard key={pos.id} pos={pos}
+                totalUSD={valueOf(pos)}
+                changeUSD={null}
+                changePct={trendOf(pos)}
+                confidence={v?.confidence}
+                fmt={fmtEur} onOpen={() => openPosition(pos)} />;
+            })}
           </div>
         </div>
       )}
@@ -727,13 +771,15 @@ export function PortfolioView({ isAuthed, onLogin, onExplore, cur, eurRate, onOp
         <div className="pf-section">
           <div className="pf-section-h"><span className="pf-section-t"><Icon name="trophy" size={14} />Most Valuable</span></div>
           <div className="pf-rail">
-            {mostValuable.map(pos => (
-              <RailCard key={pos.id} pos={pos}
-                totalUSD={perPositionChange[pos.id].totalUSD}
-                changeUSD={perPositionChange[pos.id].changeUSD}
-                changePct={perPositionChange[pos.id].changePct}
-                fmt={fmt} onOpen={() => openPosition(pos)} />
-            ))}
+            {mostValuable.map(pos => {
+              const v = valByInput.get(pos.card_api_id);
+              return <RailCard key={pos.id} pos={pos}
+                totalUSD={valueOf(pos)}
+                changeUSD={null}
+                changePct={trendOf(pos)}
+                confidence={v?.confidence}
+                fmt={fmtEur} onOpen={() => openPosition(pos)} />;
+            })}
           </div>
         </div>
       )}
@@ -771,6 +817,7 @@ export function PortfolioView({ isAuthed, onLogin, onExplore, cur, eurRate, onOp
             <PortfolioGridCard key={pos.id} pos={pos}
               priceInfo={priceMap[pos.card_api_id] || null}
               series={perPositionChange[pos.id].series}
+              valuation={valByInput.get(pos.card_api_id) || null}
               fmt={fmt}
               onOpen={() => openPosition(pos)}
               onDecrement={() => doDecrement(pos)}
@@ -784,6 +831,7 @@ export function PortfolioView({ isAuthed, onLogin, onExplore, cur, eurRate, onOp
               key={pos.id}
               pos={pos}
               priceInfo={priceMap[pos.card_api_id] || null}
+              valuation={valByInput.get(pos.card_api_id) || null}
               cur={cur}
               eurRate={eurRate}
               fmt={fmt}
@@ -802,6 +850,12 @@ export function PortfolioView({ isAuthed, onLogin, onExplore, cur, eurRate, onOp
           ))}
         </div>
       )}
+
+      {/* ── NOT YET VALUED ── */}
+      <UnvaluedSection
+        unvalued={portfolio.unvalued}
+        positionsByCardId={Object.fromEntries(positions.map(p => [p.card_api_id, p]))}
+        anchorRef={unvaluedRef} />
 
       {toast && <div className="toast">{toast}</div>}
     </section>

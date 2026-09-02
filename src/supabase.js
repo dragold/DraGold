@@ -73,6 +73,23 @@ export async function listCollection() {
   const { data } = await supabase.from('collection').select('*').order('added_at', { ascending: false })
   return data || []
 }
+
+// ---- Portfolio valuation (Fase 3) ----
+// RPC: risolve card_api_id -> valutazione EUR + confidence, con fallback via
+// set_identity_key per gli spelling duplicati. Degrada a [] su errore — il
+// Portfolio deve funzionare anche senza valutazioni.
+export async function fetchPortfolioValuations(cardIds) {
+  if (!supabase || !cardIds || !cardIds.length) return []
+  const { data, error } = await supabase.rpc('portfolio_valuations', { p_card_ids: cardIds })
+  if (error) { console.warn('portfolio_valuations:', error.message); return [] }
+  return data || []
+}
+export async function fetchPortfolioValueHistory(cardIds, days = 90) {
+  if (!supabase || !cardIds || !cardIds.length) return []
+  const { data, error } = await supabase.rpc('portfolio_value_history', { p_card_ids: cardIds, p_days: days })
+  if (error) { console.warn('portfolio_value_history:', error.message); return [] }
+  return data || []
+}
 export async function addToCollection(card) {
   if (!supabase) return { error: 'Backend not configured' }
   const { data: u } = await supabase.auth.getUser()
