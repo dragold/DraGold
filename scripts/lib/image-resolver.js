@@ -19,14 +19,34 @@ const SCRYDEX_API_KEY = process.env.SCRYDEX_API_KEY || null
 const SCRYDEX_TEAM_ID = process.env.SCRYDEX_TEAM_ID || null
 const PPT_API_KEY = process.env.POKEMONPRICETRACKER_API_KEY || null
 
+const MAX_FETCH_ATTEMPTS = 4
+const BASE_BACKOFF_MS = 500
+
+function sleep(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+// Rate-limit resilience: 429/5xx sono transitori e vengono ritentati con
+// backoff esponenziale (rispettando Retry-After se presente) invece di far
+// fallire subito lo stadio — un 429 momentaneo di Scrydex/PPT non deve far
+// saltare a torto la fonte successiva nella cascata.
 async function safeJsonFetch(url, options) {
-    try {
-          const res = await fetch(url, options)
-          if (!res.ok) return null
-          return await res.json()
-    } catch (err) {
-          return null
+    for (let attempt = 1; attempt <= MAX_FETCH_ATTEMPTS; attempt++) {
+          try {
+                const res = await fetch(url, options)
+                if (res.ok) return await res.json()
+                const retryable = res.status === 429 || res.status >= 500
+                if (!retryable || attempt === MAX_FETCH_ATTEMPTS) return null
+                const retryAfter = Number(res.headers.get('retry-after'))
+                const delay = Number.isFinite(retryAfter) && retryAfter > 0
+                      ? retryAfter * 1000
+                      : BASE_BACKOFF_MS * 2 ** (attempt - 1)
+                await sleep(delay)
+          } catch (err) {
+                return null
+          }
     }
+    return null
 }
 
 async function resolveFromScrydex(card, langCode) {

@@ -30,13 +30,13 @@ jobs:
     timeout-minutes: 90
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: Setup Node.js 22
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: '22'
       - name: Installa dipendenze
-        run: npm install @supabase/supabase-js ws
+        run: npm install @supabase/supabase-js
       - name: Run sync (scheduled)
         if: github.event_name == 'schedule'
         run: node scripts/sync-full.js --tcg=pokemon,op --lang=en,ja
