@@ -74,27 +74,49 @@ async function autoTransition() {
 
 async function run() {
   const report = {};
+  const errors = [];
 
   if (!ONLY || ONLY === 'pokemon') {
-    process.stderr.write('[set-catalog] Pokémon (TCGdex)...\n');
-    const sets = await listTcgdexSets('en', { withDetail: true });
-    const rows = sets.map((s) => tcgdexSetToLogoRow(s));
-    report.pokemon = await upsertLogoRows('pokemon', rows);
-    process.stderr.write(`  ${JSON.stringify(report.pokemon)}\n`);
+    try {
+      process.stderr.write('[set-catalog] Pokémon (TCGdex)...\n');
+      const sets = await listTcgdexSets('en', { withDetail: true });
+      const rows = sets.map((s) => tcgdexSetToLogoRow(s));
+      report.pokemon = await upsertLogoRows('pokemon', rows);
+      process.stderr.write(`  ${JSON.stringify(report.pokemon)}\n`);
+    } catch (e) {
+      errors.push(`pokemon: ${e.message}`);
+      process.stderr.write(`  [set-catalog] Pokémon SALTATO: ${e.message}\n`);
+    }
   }
 
   if (!ONLY || ONLY === 'onepiece') {
-    process.stderr.write('[set-catalog] One Piece (TCGCSV)...\n');
-    const groups = await listTcgcsvGroups(TCGCSV_CATEGORY.onepiece);
-    const rows = mapOnePieceGroups(groups).map((g) => tcgcsvGroupToLogoRow(g)).filter(Boolean);
-    report.onepiece = await upsertLogoRows('onepiece', rows);
-    process.stderr.write(`  ${JSON.stringify(report.onepiece)}\n`);
+    try {
+      process.stderr.write('[set-catalog] One Piece (TCGCSV)...\n');
+      const groups = await listTcgcsvGroups(TCGCSV_CATEGORY.onepiece);
+      const rows = mapOnePieceGroups(groups).map((g) => tcgcsvGroupToLogoRow(g)).filter(Boolean);
+      report.onepiece = await upsertLogoRows('onepiece', rows);
+      process.stderr.write(`  ${JSON.stringify(report.onepiece)}\n`);
+    } catch (e) {
+      errors.push(`onepiece: ${e.message}`);
+      process.stderr.write(`  [set-catalog] One Piece SALTATO: ${e.message}\n`);
+    }
   }
 
-  report.transition = await autoTransition();
-  process.stderr.write(`[set-catalog] transition upcoming->released: ${JSON.stringify(report.transition)}\n`);
+  try {
+    report.transition = await autoTransition();
+    process.stderr.write(`[set-catalog] transition upcoming->released: ${JSON.stringify(report.transition)}\n`);
+  } catch (e) {
+    errors.push(`transition: ${e.message}`);
+  }
 
+  report.errors = errors;
   console.log('SYNC_SET_CATALOG_REPORT=' + JSON.stringify({ dryRun: DRY_RUN, ...report }));
+
+  // Fallisce SOLO se non e' andato a buon fine NIENTE (tutte le fonti + la
+  // transizione). Un errore transiente su una sola fonte non deve rompere il
+  // workflow giornaliero.
+  const anyOk = report.pokemon || report.onepiece || report.transition;
+  if (!anyOk && errors.length) { console.error('FATAL: nessuna operazione riuscita'); process.exit(1); }
 }
 
 run().catch((err) => { console.error('FATAL:', err.stack || err.message); process.exit(1); });
