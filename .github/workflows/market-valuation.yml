@@ -1,0 +1,57 @@
+name: Market Valuation
+
+# Pipeline valutazione giornaliera (Fase 2):
+#   1. ingest-fx           — cambio EUR (Frankfurter/BCE)
+#   2. ingest-market-tcgcsv — prezzi TCGplayer (via TCGCSV) -> market_observations
+#   3. compute-valuations   — market_observations -> market_valuations (+ confidence)
+#
+# TCGCSV si aggiorna ~20:00 UTC -> giriamo alle 05:30 UTC (dopo catalog-freshness).
+# Env: SUPABASE_URL, SUPABASE_SERVICE_KEY (secrets repo).
+
+on:
+  schedule:
+    - cron: '30 5 * * *'
+  workflow_dispatch:
+    inputs:
+      tcg:
+        description: 'onepiece | pokemon | (vuoto = entrambi)'
+        required: false
+        default: ''
+      dry_run:
+        description: 'Dry run (nessuna scrittura DB)'
+        required: false
+        type: boolean
+        default: false
+
+concurrency:
+  group: market-valuation
+  cancel-in-progress: false
+
+jobs:
+  valuation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - run: npm install @supabase/supabase-js
+
+      - name: FX (EUR)
+        run: node scripts/ingest-fx.js ${{ inputs.dry_run && '--dry-run' || '' }}
+
+      - name: Ingest One Piece prices
+        if: ${{ inputs.tcg == '' || inputs.tcg == 'onepiece' }}
+        run: node scripts/ingest-market-tcgcsv.js --tcg=onepiece --all ${{ inputs.dry_run && '--dry-run' || '' }}
+
+      - name: Ingest Pokémon EN prices
+        if: ${{ inputs.tcg == '' || inputs.tcg == 'pokemon' }}
+        run: node scripts/ingest-market-tcgcsv.js --tcg=pokemon --since=2023-01-01 ${{ inputs.dry_run && '--dry-run' || '' }}
+
+      - name: Compute valuations
+        if: ${{ !inputs.dry_run }}
+        run: node scripts/compute-valuations.js ${{ inputs.tcg && format('--tcg={0}', inputs.tcg) || '' }}

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { normalizeSetCode, canonicalOnePieceSetId } from '../normalize-set-code.js';
+import { normalizeSetCode, canonicalOnePieceSetId, setIdentityKey } from '../normalize-set-code.js';
 
 test('normalizeSetCode: lowercase + strip non-alfanumerici', () => {
   assert.equal(normalizeSetCode('OP-17'), 'op17');
@@ -46,6 +46,26 @@ test('canonicalOnePieceSetId: etichette TCGCSV combinate -> primo token struttur
 test('canonicalOnePieceSetId: bucket a suffisso alfabetico invariati', () => {
   assert.equal(canonicalOnePieceSetId('OP-PR'), 'OP-PR');
   assert.equal(canonicalOnePieceSetId('OP-DD'), 'OP-DD');
+});
+
+test('setIdentityKey: collassa lo zero-padding e la notazione point', () => {
+  assert.equal(setIdentityKey('me4'), setIdentityKey('me04'));
+  assert.equal(setIdentityKey('sv08.5'), setIdentityKey('sv8pt5'));
+  assert.equal(setIdentityKey('sv03.5'), setIdentityKey('sv3pt5'));
+  assert.equal(setIdentityKey('swsh12.5'), setIdentityKey('swsh12pt5'));
+  assert.equal(setIdentityKey('sm35'), setIdentityKey('sm3.5'));
+});
+
+test('setIdentityKey: NON collassa set genuinamente diversi', () => {
+  assert.notEqual(setIdentityKey('sv1'), setIdentityKey('sv10'));
+  assert.notEqual(setIdentityKey('sv08'), setIdentityKey('sv08.5'));
+  assert.notEqual(setIdentityKey('me1'), setIdentityKey('me10'));
+  assert.notEqual(setIdentityKey('swsh12.5'), setIdentityKey('swsh12.5gg'));
+});
+
+test('setIdentityKey: input degeneri', () => {
+  assert.equal(setIdentityKey(''), '');
+  assert.equal(setIdentityKey(null), '');
 });
 
 test('canonicalOnePieceSetId: valori non riconosciuti restano invariati (upper/trim)', () => {
