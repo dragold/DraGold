@@ -157,7 +157,17 @@ export function CommandSearch({ open, onClose, onPickCard, onPickSet, onSeeAll }
               Type at least two characters — a card name, a set, an illustrator.
             </p>
           ) : loading ? (
-            <p className="cmd-empty">Searching…</p>
+            <>
+              <span className="sr-only">Searching…</span>
+              <div aria-hidden="true">
+                {[0, 1, 2, 3].map((i) => (
+                  <div className="cmd-skel-row" key={i}>
+                    <span className="cmd-skel-bar w40" />
+                    <span className="cmd-skel-bar" />
+                  </div>
+                ))}
+              </div>
+            </>
           ) : cardHits.length === 0 ? (
             <p className="cmd-empty">No matches for “{term}”.</p>
           ) : (
