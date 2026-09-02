@@ -21,7 +21,7 @@ export function SearchView({ country, cur, eurRate, onOpenAsset, setsMap, onOpen
   const [priceMap, setPriceMap] = useState(() => initialSearchState?.priceMap || {});
   const [error, setError] = useState(null);
   const [searched, setSearched] = useState(() => initialSearchState?.searched || false);
-  const [searchTerm, setSearchTerm] = useState(() => initialSearchState?.searchTerm || ""); const [visibleCount, setVisibleCount] = useState(() => initialSearchState?.visibleCount || 40);
+  const [searchTerm, setSearchTerm] = useState(() => initialSearchState?.searchTerm || "");
   const [showOnboard, setShowOnboard] = useState(() => {
     try { return !localStorage.getItem(ONBOARD_KEY); } catch { return false; }
   });
@@ -157,7 +157,7 @@ export function SearchView({ country, cur, eurRate, onOpenAsset, setsMap, onOpen
   const runSearch = useCallback(async (query) => {
     const trimmed = query.trim();
     if (!trimmed) return;
-    setLoading(true); setError(null); setSearched(true); setSearchTerm(trimmed); setVisibleCount(40);
+    setLoading(true); setError(null); setSearched(true); setSearchTerm(trimmed);
     try {
       const cards = await searchCards(trimmed);
       setResults(cards);
@@ -201,12 +201,16 @@ export function SearchView({ country, cur, eurRate, onOpenAsset, setsMap, onOpen
 
   // Salva lo stato di ricerca prima di aprire il dettaglio carta, così il back restaura i risultati
   const handleOpenAsset = useCallback((card) => {
-    onSearchStateChange({ q, results, priceMap, searched, searchTerm, visibleCount });
+    onSearchStateChange({ q, results, priceMap, searched, searchTerm });
     onOpenAsset(card);
-  }, [q, results, priceMap, searched, searchTerm, visibleCount, onOpenAsset]);
+  }, [q, results, priceMap, searched, searchTerm, onOpenAsset]);
 
-  useEffect(() => { const onScroll = () => { if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 300) { setVisibleCount(v => Math.min(v + 40, results.length)); } }; window.addEventListener('scroll', onScroll); return () => window.removeEventListener('scroll', onScroll); }, [results.length]); const onSubmit = (e) => { e.preventDefault(); runSearch(q); };
-  const clearSearch = () => { onSearchStateClear(); setSearched(false); setResults([]); setPriceMap({}); setError(null); setVisibleCount(40); };
+  // Virtualizzazione (VirtualCardGrid, sotto) sostituisce il precedente reveal
+  // incrementale su scroll: i risultati arrivano gia' tutti da searchCards()
+  // in un'unica chiamata, "hasMore" serviva solo a limitare quanti nodi DOM
+  // montare per volta, non a recuperare altri dati dal server.
+  const onSubmit = (e) => { e.preventDefault(); runSearch(q); };
+  const clearSearch = () => { onSearchStateClear(); setSearched(false); setResults([]); setPriceMap({}); setError(null); };
 
   // Atlas shell: when SearchView is embedded as the "results" view under the
   // new home (chromeless), drop its own hero / onboarding / discovery — the
@@ -232,13 +236,13 @@ export function SearchView({ country, cur, eurRate, onOpenAsset, setsMap, onOpen
         </form>
         <div ref={resultsReveal.ref} className={resultsReveal.className} style={resultsReveal.style}>
           <SearchResults
-            loading={loading} results={results.slice(0, visibleCount)} priceMap={priceMap}
+            loading={loading} results={results} priceMap={priceMap}
             error={error} term={searchTerm}
             country={country} cur={cur} eurRate={eurRate}
             onRetry={() => runSearch(searchTerm)}
             onOpen={handleOpenAsset} setsMap={setsMap}
-            hasMore={visibleCount < results.length}
             totalCount={results.length}
+            virtualize
           />
         </div>
       </section>
@@ -311,13 +315,13 @@ export function SearchView({ country, cur, eurRate, onOpenAsset, setsMap, onOpen
       {searched ? (
         <div ref={resultsReveal.ref} className={resultsReveal.className} style={resultsReveal.style}>
           <SearchResults
-            loading={loading} results={results.slice(0, visibleCount)} priceMap={priceMap}
+            loading={loading} results={results} priceMap={priceMap}
             error={error} term={searchTerm}
             country={country} cur={cur} eurRate={eurRate}
             onRetry={() => runSearch(searchTerm)}
             onOpen={handleOpenAsset} setsMap={setsMap}
-            hasMore={visibleCount < results.length}
             totalCount={results.length}
+            virtualize
           />
         </div>
       ) : (

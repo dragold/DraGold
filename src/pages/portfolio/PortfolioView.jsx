@@ -11,6 +11,8 @@ import { supabase, listCollection, removeFromCollection, decrementOrRemoveCollec
 import { Icon } from "../../components/shared/Icon.jsx";
 import { pickCardImage } from "../../components/shared/cardImage.js";
 import { TCG_LIST, Empty } from "../../DraGold.jsx";
+import { useCardGridColumns } from "../../lib/useCardGridColumns.js";
+import { useVirtualGridRows } from "../../lib/useVirtualGridRows.js";
 
 const RANGES = [
   { key: "7", label: "7D", days: 7 },
@@ -361,6 +363,75 @@ function RailCard({ pos, changeUSD, changePct, totalUSD, fmt, onOpen }) {
         </div>
       ) : <div className="pf-mover-change">—</div>}
     </a>
+  );
+}
+
+/* ─── Griglia posizioni virtualizzata (stessa meccanica di VirtualCardGrid,
+   colonne .pf-grid: identiche a .card-grid — 2/3/4/5, vedi styles.css) ───
+   Una collezione puo' crescere senza limite (CLAUDE.md audit 2026-09-02,
+   §F del piano) — monta nel DOM solo le righe vicine al viewport. */
+function VirtualPortfolioGrid({ positions, priceMap, perPositionChange, fmt, onOpen, onDecrement, decrementBusyId }) {
+  const columns = useCardGridColumns();
+  const { containerRef, virtualizer } = useVirtualGridRows({ itemCount: positions.length, columns, estimateRowSize: 330 });
+  return (
+    <div ref={containerRef} className="pf-grid" style={{ position: "relative", display: "block", height: virtualizer.getTotalSize() }}>
+      {virtualizer.getVirtualItems().map((row) => {
+        const start = row.index * columns;
+        const rowPositions = positions.slice(start, start + columns);
+        return (
+          <div key={row.key} ref={virtualizer.measureElement} data-index={row.index}
+            style={{
+              position: "absolute", top: 0, left: 0, width: "100%",
+              display: "grid", gridTemplateColumns: `repeat(${columns}, 1fr)`, gap: 14,
+              transform: `translateY(${row.start - virtualizer.options.scrollMargin}px)`,
+            }}>
+            {rowPositions.map((pos) => (
+              <PortfolioGridCard key={pos.id} pos={pos}
+                priceInfo={priceMap[pos.card_api_id] || null}
+                series={perPositionChange[pos.id].series}
+                fmt={fmt}
+                onOpen={() => onOpen(pos)}
+                onDecrement={() => onDecrement(pos)}
+                decrementBusy={decrementBusyId === pos.id} />
+            ))}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/* ─── Lista compatta virtualizzata (.pf-list, colonna singola: lanes=1) ─── */
+function VirtualPortfolioList({ positions, priceMap, cur, eurRate, fmt, confirmId, onConfirm, onCancelConfirm, onRemove, onTrack, onOpen, watchBusy, watched, removeBusy, onDecrement, decrementBusyId }) {
+  const { containerRef, virtualizer } = useVirtualGridRows({ itemCount: positions.length, columns: 1, estimateRowSize: 84 });
+  return (
+    <div ref={containerRef} className="pf-list" style={{ position: "relative", display: "block", gap: 0, height: virtualizer.getTotalSize() }}>
+      {virtualizer.getVirtualItems().map((row) => {
+        const pos = positions[row.index];
+        return (
+          <div key={row.key} ref={virtualizer.measureElement} data-index={row.index}
+            style={{
+              position: "absolute", top: 0, left: 0, width: "100%", paddingBottom: 8,
+              transform: `translateY(${row.start - virtualizer.options.scrollMargin}px)`,
+            }}>
+            <PortfolioRow pos={pos}
+              priceInfo={priceMap[pos.card_api_id] || null}
+              cur={cur} eurRate={eurRate} fmt={fmt}
+              isConfirm={confirmId === pos.id}
+              onConfirm={() => onConfirm(pos.id)}
+              onCancelConfirm={onCancelConfirm}
+              onRemove={() => onRemove(pos.id)}
+              onTrack={() => onTrack(pos)}
+              onOpen={() => onOpen(pos)}
+              trackBusy={!!watchBusy[pos.id]}
+              trackDone={!!watched[pos.id]}
+              removeBusy={removeBusy && confirmId === pos.id}
+              onDecrement={() => onDecrement(pos)}
+              decrementBusy={decrementBusyId === pos.id} />
+          </div>
+        );
+      })}
+    </div>
   );
 }
 
@@ -764,43 +835,17 @@ export function PortfolioView({ isAuthed, onLogin, onExplore, cur, eurRate, onOp
         </div>
       </div>
 
-      {/* ── GRID / COMPACT (FASE 4) ── */}
+      {/* ── GRID / COMPACT (FASE 4) — virtualizzate (P1, audit 2026-09-02): monta
+          solo le righe vicine al viewport invece dell'intera collezione. ── */}
       {viewMode === "grid" ? (
-        <div className="pf-grid">
-          {visible.map(pos => (
-            <PortfolioGridCard key={pos.id} pos={pos}
-              priceInfo={priceMap[pos.card_api_id] || null}
-              series={perPositionChange[pos.id].series}
-              fmt={fmt}
-              onOpen={() => openPosition(pos)}
-              onDecrement={() => doDecrement(pos)}
-              decrementBusy={decrementBusyId === pos.id} />
-          ))}
-        </div>
+        <VirtualPortfolioGrid positions={visible} priceMap={priceMap} perPositionChange={perPositionChange}
+          fmt={fmt} onOpen={openPosition} onDecrement={doDecrement} decrementBusyId={decrementBusyId} />
       ) : (
-        <div className="pf-list">
-          {visible.map(pos => (
-            <PortfolioRow
-              key={pos.id}
-              pos={pos}
-              priceInfo={priceMap[pos.card_api_id] || null}
-              cur={cur}
-              eurRate={eurRate}
-              fmt={fmt}
-              isConfirm={confirmId === pos.id}
-              onConfirm={() => setConfirmId(pos.id)}
-              onCancelConfirm={() => setConfirmId(null)}
-              onRemove={() => doRemove(pos.id)}
-              onTrack={() => doTrack(pos)}
-              onOpen={() => openPosition(pos)}
-              trackBusy={!!watchBusy[pos.id]}
-              trackDone={!!watched[pos.id]}
-              removeBusy={removeBusy && confirmId === pos.id}
-              onDecrement={() => doDecrement(pos)}
-              decrementBusy={decrementBusyId === pos.id}
-            />
-          ))}
-        </div>
+        <VirtualPortfolioList positions={visible} priceMap={priceMap} cur={cur} eurRate={eurRate} fmt={fmt}
+          confirmId={confirmId} onConfirm={setConfirmId} onCancelConfirm={() => setConfirmId(null)}
+          onRemove={doRemove} onTrack={doTrack} onOpen={openPosition}
+          watchBusy={watchBusy} watched={watched} removeBusy={removeBusy}
+          onDecrement={doDecrement} decrementBusyId={decrementBusyId} />
       )}
 
       {toast && <div className="toast">{toast}</div>}
