@@ -17,7 +17,8 @@ import { createClient } from '@supabase/supabase-js';
 import { listTcgdexSets, listTcgdexSetCardNumbers } from './lib/catalog/sources/tcgdex-catalog.js';
 import { listTcgcsvGroups, listTcgcsvGroupCards, TCGCSV_CATEGORY } from './lib/catalog/sources/tcgcsv-catalog.js';
 import { classifyEntityType } from './lib/catalog/classify-entity.js';
-import { canonicalOnePieceSetId, normalizeSetCode } from './lib/catalog/normalize-set-code.js';
+import { mapOnePieceGroups } from './lib/catalog/onepiece-groups.js';
+import { normalizeSetCode } from './lib/catalog/normalize-set-code.js';
 import { diffSets } from './lib/catalog/reconcile-sets.js';
 import { diffSetCards } from './lib/catalog/reconcile-cards.js';
 import { cardNumberKey } from './lib/catalog/card-number-key.js';
@@ -83,30 +84,14 @@ async function discoverUpstream(target) {
   }
   // onepiece -> TCGCSV categoryId 68
   const groups = await listTcgcsvGroups(TCGCSV_CATEGORY.onepiece);
-  const seen = new Set();
-  const out = [];
-  for (const g of groups) {
-    const abbr = g.abbreviation || '';
-    const baseCode = canonicalOnePieceSetId(abbr || g.name);
-    // I gruppi "Release Event Cards" mappano allo stesso token del set base
-    // (es. "OP17 RE" -> "OP-17"): serve un code distinto o si sovrascrivono.
-    const isRE = /\bRE\b/i.test(abbr) || /release\s*event/i.test(g.name);
-    const code = isRE ? `${baseCode}-RE` : baseCode;
-    if (seen.has(normalizeSetCode(code))) continue; // primo gruppo vince
-    seen.add(normalizeSetCode(code));
-    out.push({
-      code,
-      name: g.name,
-      releaseDate: g.publishedOn || null,
-      cardCountOfficial: null,
-      entityType: isRE ? 'promo' : classifyEntityType({
-        tcg: 'onepiece', setCode: code, abbreviation: abbr,
-        groupName: g.name, isSupplemental: g.isSupplemental,
-      }),
-      _fetch: { kind: 'tcgcsv', groupId: g.groupId, category: TCGCSV_CATEGORY.onepiece },
-    });
-  }
-  return out;
+  return mapOnePieceGroups(groups).map((m) => ({
+    code: m.setCode,
+    name: m.groupName,
+    releaseDate: m.publishedOn,
+    cardCountOfficial: null,
+    entityType: m.entityType,
+    _fetch: { kind: 'tcgcsv', groupId: m.groupId, category: TCGCSV_CATEGORY.onepiece },
+  }));
 }
 
 async function upstreamSetCardKeys(upSet, target) {
