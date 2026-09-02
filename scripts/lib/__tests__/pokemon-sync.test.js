@@ -356,6 +356,17 @@ test('buildIncomingFromBrief: card senza image -> image_url null, non un URL ind
   assert.equal(incoming.image_url_hi, null);
 });
 
+test('buildIncomingFromBrief: set_id maiuscolo (TCGdex /ja/sets) normalizzato a minuscolo, coerente col resto del catalogo', () => {
+  // Verificato dal vivo 2026-09-02: TCGdex restituisce l'id dello stesso set
+  // con casing diverso a seconda dell'endpoint/lingua interrogato (/en/sets
+  // -> "sv10", /ja/sets -> "SV10") — senza normalizzare, questa funzione
+  // scriveva duplicati sotto set_id maiuscolo. Vedi supabase/migrations/
+  // 20260902140000_dedupe_ja_set_id_casing.sql per il cleanup delle righe
+  // gia' duplicate da questo bug prima del fix.
+  const incoming = buildIncomingFromBrief(CARD_BRIEF, { id: 'SV10', name: 'Team Rocket no Eikou' }, SET_DATA_FULL);
+  assert.equal(incoming.set_id, 'sv10');
+});
+
 test('buildIncomingFromBrief: setData.serie assente -> series_id/series_name null, non inventati', () => {
   const incoming = buildIncomingFromBrief(CARD_BRIEF, SET_META_BRIEF, { name: 'Darkness Ablaze' });
   assert.equal(incoming.series_id, null);
