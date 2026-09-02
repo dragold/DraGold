@@ -13,7 +13,10 @@
     "catalog:freshness": "node scripts/catalog-freshness.js",
     "catalog:sync": "node scripts/catalog-sync.js",
     "sync:onepiece": "node scripts/sync-onepiece.js",
-    "sync:set-catalog": "node scripts/sync-set-catalog-v2.js"
+    "sync:set-catalog": "node scripts/sync-set-catalog-v2.js",
+    "ingest:fx": "node scripts/ingest-fx.js",
+    "ingest:market": "node scripts/ingest-market-tcgcsv.js",
+    "compute:valuations": "node scripts/compute-valuations.js"
   },
   "dependencies": {
     "@gsap/react": "^2.1.2",
