@@ -97,7 +97,7 @@ export function rankSearchResults(cards, rawQuery) {
 // di duplicarla in un secondo motore di ricerca. Comportamento identico a prima:
 // stesso codice, solo spostato e reso riusabile. Il caricamento prezzi (specifico
 // della UI di SearchView) resta nel chiamante.
-export async function searchCards(rawQuery) {
+export async function searchCards(rawQuery, { signal } = {}) {
   const trimmed = (rawQuery || '').trim();
   if (!trimmed) return [];
   if (!supabaseReady) throw new Error("Backend non configurato.");
@@ -162,7 +162,7 @@ export async function searchCards(rawQuery) {
     );
   }
 
-  const { data, error: dbErr } = await dbQuery;
+  const { data, error: dbErr } = await dbQuery.abortSignal(signal);
   if (dbErr) throw dbErr;
 
   let nameMatches = data || [];
@@ -188,15 +188,21 @@ export async function searchCards(rawQuery) {
       if (!byTcg[c.tcg]) byTcg[c.tcg] = new Set();
       byTcg[c.tcg].add(c.card_number);
     }
+    // Un round-trip indipendente per TCG (nessuna dipendenza tra i risultati):
+    // eseguiti in parallelo invece che in sequenza per ridurre la latenza totale
+    // quando la ricerca copre più TCG contemporaneamente.
     const allLangCards = [];
-    for (const [tcgKey, numSet] of Object.entries(byTcg)) {
+    const langExpandEntries = Object.entries(byTcg).filter(([, numSet]) => {
       const nums = [...numSet];
-      if (!nums.length || nums.length > 400) continue;
+      return nums.length > 0 && nums.length <= 400;
+    });
+    const langExpandResults = await Promise.all(langExpandEntries.map(([tcgKey, numSet]) => {
+      const nums = [...numSet];
       // Usa solo card_number con prefisso set (es. "sv3-125", "OP05-119").
       // I numeri bare (es. "006") causano collisioni cross-set nel DB:
       // Base Set Charizard e Jungle Beedrill condividono entrambi "006".
       const safeNums = nums.filter(n => /^[a-zA-Z].*-\d|^[a-zA-Z]{2,}\d{2,}/.test(n));
-      if (!safeNums.length) continue;
+      if (!safeNums.length) return Promise.resolve({ data: [] });
       let lq = supabase
         .from('cards')
         .select('id,name,name_en,set_name,set_id,card_number,image_url,lang,tcg,rarity,canonical_card_id,print_variant,card_image_cache(cached_url,status),canonical_cards!cards_canonical_card_id_fkey(slug)')
@@ -204,7 +210,9 @@ export async function searchCards(rawQuery) {
         .in('card_number', safeNums);
       if (langFilterCodes.length === 1) lq = lq.eq('lang', langFilterCodes[0]);
       else lq = lq.in('lang', langFilterCodes);
-      const { data: expanded } = await lq.limit(300);
+      return lq.limit(300).abortSignal(signal);
+    }));
+    for (const { data: expanded } of langExpandResults) {
       for (const c of (expanded || [])) allLangCards.push(c);
     }
     allLangCards.sort((a, b) => {
@@ -230,15 +238,22 @@ export async function searchCards(rawQuery) {
       }
       const knownIds = new Set(nameMatches.map(c => c.id));
       const allCards = [...nameMatches];
-      for (const [tcgKey, numSet] of Object.entries(byTcg)) {
+      // Round-trip indipendenti per TCG, eseguiti in parallelo (stesso motivo
+      // del lang-expand sopra).
+      const cardNumExpandEntries = Object.entries(byTcg).filter(([, numSet]) => {
         const nums = [...numSet];
-        if (!nums.length || nums.length > 400) continue;
-        const { data: expanded } = await supabase
+        return nums.length > 0 && nums.length <= 400;
+      });
+      const cardNumExpandResults = await Promise.all(cardNumExpandEntries.map(([tcgKey, numSet]) =>
+        supabase
           .from('cards')
           .select('id,name,name_en,set_name,set_id,card_number,image_url,lang,tcg,canonical_card_id,print_variant,card_image_cache(cached_url,status),canonical_cards!cards_canonical_card_id_fkey(slug)')
           .eq('tcg', tcgKey)
-          .in('card_number', nums)
-          .limit(400);
+          .in('card_number', [...numSet])
+          .limit(400)
+          .abortSignal(signal)
+      ));
+      for (const { data: expanded } of cardNumExpandResults) {
         for (const c of (expanded || [])) {
           if (!knownIds.has(c.id)) { knownIds.add(c.id); allCards.push(c); }
         }
@@ -269,7 +284,8 @@ export async function searchCards(rawQuery) {
           .from('cards')
           .select('id,name,name_en,set_name,set_id,card_number,image_url,lang,tcg,rarity,canonical_card_id,print_variant,card_image_cache(cached_url,status),canonical_cards!cards_canonical_card_id_fkey(slug)')
           .in('canonical_card_id', canonIds)
-          .limit(2000);
+          .limit(2000)
+          .abortSignal(signal);
         const merged = [...nameMatches];
         for (const c of (canonExpand || [])) {
           if (!knownIds.has(c.id)) { knownIds.add(c.id); merged.push(c); }

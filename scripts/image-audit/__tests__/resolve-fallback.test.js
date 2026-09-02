@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { tryOptcgOnePiece } from '../resolve-fallback.mjs'
+import { tryOptcgOnePiece, tryOnePieceJaBandai } from '../resolve-fallback.mjs'
 
 function fakeFetch(optcgCards) {
   return async (url, options) => {
@@ -53,5 +53,52 @@ test('tryOptcgOnePiece: lang=en, carta assente dal set -> null (mai un URL inven
   ]
   const card = { tcg: 'onepiece', lang: 'en', set_id: 'OP-02', card_number: 'OP02-001' }
   const r = await tryOptcgOnePiece(card, { fetchImpl: fakeFetch(cards) })
+  assert.equal(r, null)
+})
+
+function fakeBandaiFetch(html) {
+  return async (url, options) => {
+    if (options?.method === 'HEAD') {
+      return {
+        status: 200, redirected: false, url,
+        headers: { get: (h) => (h.toLowerCase() === 'content-type' ? 'image/png' : null) },
+      }
+    }
+    return { ok: true, status: 200, text: async () => html }
+  }
+}
+
+const BANDAI_FIXTURE = `
+<dl class="modalCol">
+  <dt><span>OP01-025</span><span>SR</span><span>Character</span></dt>
+  <dd><div class="cardName">ウタ</div></dd>
+</dl>
+`
+
+test('tryOnePieceJaBandai: carta non onepiece -> null', async () => {
+  const r = await tryOnePieceJaBandai({ tcg: 'pokemon', lang: 'ja', set_id: 'OP-01', card_number: '1' }, { fetchImpl: fakeBandaiFetch('') })
+  assert.equal(r, null)
+})
+
+test('tryOnePieceJaBandai: lang=en -> null, mai una richiesta di rete (lo stadio EN e\' optcgapi, non questo)', async () => {
+  let called = false
+  const fetchImpl = async (...args) => { called = true; return fakeBandaiFetch(BANDAI_FIXTURE)(...args) }
+  const r = await tryOnePieceJaBandai({ tcg: 'onepiece', lang: 'en', set_id: 'OP-01', card_number: 'OP01-025' }, { fetchImpl })
+  assert.equal(r, null)
+  assert.equal(called, false)
+})
+
+test('tryOnePieceJaBandai: lang=ja, carta trovata -> resolved con source onepiece-cardgame.com', async () => {
+  const card = { tcg: 'onepiece', lang: 'ja', set_id: 'OP-01', card_number: 'OP01-025' }
+  const r = await tryOnePieceJaBandai(card, { fetchImpl: fakeBandaiFetch(BANDAI_FIXTURE) })
+  assert.equal(r.verified, true)
+  assert.equal(r.source, 'onepiece-cardgame.com')
+  assert.equal(r.url, 'https://www.onepiece-cardgame.com/images/cardlist/card/OP01-025.png')
+  assert.equal(r.candidateMeta.name, 'ウタ')
+})
+
+test('tryOnePieceJaBandai: carta assente dal set -> null (mai un URL inventato)', async () => {
+  const card = { tcg: 'onepiece', lang: 'ja', set_id: 'OP-03', card_number: 'OP03-999' }
+  const r = await tryOnePieceJaBandai(card, { fetchImpl: fakeBandaiFetch(BANDAI_FIXTURE) })
   assert.equal(r, null)
 })
