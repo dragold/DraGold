@@ -1,0 +1,42 @@
+{
+  "$schema": "./set-aliases.schema.json",
+  "generated_note": "Curated cross-language set equivalences. Each entry asserts a relation between a regional set (alias_set_id, as it appears in cards.set_id) and a reference-region set (canonical_set_id, the EN / TCGdex-EN code). ONLY confidence:confirmed AND relation:equivalent activates automatic card linking (same main-set list + same numbering). Everything else is recorded for review and is inert. Facts only (set codes, languages, release dates) + DraGold's own notes — no third-party card content. License: CC0-1.0 (see ./LICENSE).",
+  "aliases": [
+    {
+      "tcg": "pokemon",
+      "alias_set_id": "SV2a",
+      "canonical_set_id": "sv03.5",
+      "relation": "equivalent",
+      "confidence": "confirmed",
+      "source": "bulbapedia",
+      "note": "JA '強化拡張パック ポケモンカード151' (SV2a, 2023-06-16) == EN 'Scarlet & Violet—151' (SV3.5 / sv03.5, 2023-09-22). Shared 165-card main set ordered by National Pokedex number, identical numbering 001-165; JA adds secret rares above 165 (JA hi 210 vs EN tcgdex 207). Verified Bulbapedia '151 (TCG)' 2026-09-03."
+    },
+    {
+      "tcg": "pokemon",
+      "alias_set_id": "SV11B",
+      "canonical_set_id": "sv10.5b",
+      "relation": "partial",
+      "confidence": "candidate",
+      "source": "bulbapedia",
+      "note": "JA 'ブラックボルト' (SV11B, 2025) ~ EN 'Scarlet & Violet—Black Bolt' (sv10.5b, 2025-07-18). Bulbapedia notes the EN set list was 'modified slightly' from the JA main expansion, so numbering is NOT guaranteed 1:1. INERT until reviewed card-by-card; individual cards may be linked via card-number-aliases.json."
+    },
+    {
+      "tcg": "pokemon",
+      "alias_set_id": "SV11W",
+      "canonical_set_id": "sv10.5w",
+      "relation": "partial",
+      "confidence": "candidate",
+      "source": "bulbapedia",
+      "note": "JA 'ホワイトフレア' (SV11W, 2025) ~ EN 'Scarlet & Violet—White Flare' (sv10.5w, 2025-07-18). Same caveat as SV11B / Black Bolt: EN list modified from JA, numbering not verified 1:1. INERT until reviewed."
+    },
+    {
+      "tcg": "pokemon",
+      "alias_set_id": "SV4a",
+      "canonical_set_id": "sv04.5",
+      "relation": "partial",
+      "confidence": "candidate",
+      "source": "bulbapedia",
+      "note": "JA 'シャイニートレジャーex' (SV4a, 2023-12-01, ~360 numbered) is the parent of EN 'Paldean Fates' (sv04.5, 2024-01-26, 245). EN Paldean Fates is a re-cut subset with its own numbering, NOT the same list. INERT — card-by-card mapping only."
+    }
+  ]
+}

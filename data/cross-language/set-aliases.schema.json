@@ -1,0 +1,26 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "required": ["aliases"],
+  "properties": {
+    "$schema": { "type": "string" },
+    "generated_note": { "type": "string" },
+    "aliases": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["tcg", "alias_set_id", "canonical_set_id", "relation", "confidence", "source", "note"],
+        "properties": {
+          "tcg": { "type": "string", "enum": ["pokemon", "onepiece", "mtg", "ygo"] },
+          "alias_set_id": { "type": "string", "minLength": 1 },
+          "canonical_set_id": { "type": "string", "minLength": 1 },
+          "relation": { "type": "string", "enum": ["equivalent", "subset", "superset", "partial"] },
+          "confidence": { "type": "string", "enum": ["confirmed", "candidate", "rejected"] },
+          "source": { "type": "string", "minLength": 1 },
+          "note": { "type": "string", "minLength": 10 }
+        }
+      }
+    }
+  }
+}

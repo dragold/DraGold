@@ -1,0 +1,5 @@
+{
+  "$schema": "./card-number-aliases.schema.json",
+  "generated_note": "Point-in-point exceptions: 'this specific regional card IS this specific reference card', when the two sets are linked but the numbers differ (secret rares, alt arts). Strictly 1:1 in both directions. Only confidence:confirmed activates. Facts + DraGold notes only. License: CC0-1.0. v1 ships empty: the one confirmed set equivalence (SV2a=sv03.5) shares main-set numbering 001-165 exactly, so no per-card exception is needed yet; secret-rare (166+) mappings will be added here as each is individually verified.",
+  "aliases": []
+}
