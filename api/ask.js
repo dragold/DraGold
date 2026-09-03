@@ -11,7 +11,7 @@
 //      (optional) EBAY_CLIENT_ID/SECRET for live_market.
 
 import { runAgent } from './_lib/ask/agent.js';
-import { serviceClient, userClient, userIdFromJwt } from './_lib/ask/db.js';
+import { serviceClient, userClient } from './_lib/ask/db.js';
 
 // The agent may run several tool round-trips + LLM steps. Hosted providers
 // (Gemini/Anthropic) finish in ~5–20s; a self-hosted Ollama can take much
@@ -38,7 +38,9 @@ export default async function handler(req, res) {
   try { sb = serviceClient(); }
   catch (e) { return res.status(500).json({ error: 'server misconfigured', detail: String(e.message) }); }
   const userSb = userClient(jwt);
-  const userId = jwt ? userIdFromJwt(jwt) : null;
+  // verified user id (Supabase checks the JWT signature), not a client-supplied claim
+  let userId = null;
+  if (userSb) { try { const { data } = await userSb.auth.getUser(); userId = data?.user?.id || null; } catch { /* anon */ } }
 
   let result;
   try {
