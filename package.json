@@ -11,6 +11,9 @@
     "test": "node --test \"src/**/*.test.js\"",
     "test:scripts": "node --test \"scripts/**/*.test.js\"",
     "test:rpc": "node --test \"scripts/__tests__/*.test.mjs\"",
+    "ask:repl": "node scripts/ask-dragold-repl.mjs",
+    "ask:eval": "node scripts/eval/run-eval.mjs",
+    "ask:compare": "node scripts/eval/compare-baseline.mjs",
     "catalog:freshness": "node scripts/catalog-freshness.js",
     "catalog:sync": "node scripts/catalog-sync.js",
     "sync:onepiece": "node scripts/sync-onepiece.js",
@@ -20,19 +23,24 @@
     "compute:valuations": "node scripts/compute-valuations.js"
   },
   "dependencies": {
+    "@ai-sdk/anthropic": "^2.0.101",
+    "@ai-sdk/google": "^2.0.96",
+    "@ai-sdk/openai-compatible": "^1.0.53",
     "@gsap/react": "^2.1.2",
     "@react-three/drei": "^9.114.3",
     "@react-three/fiber": "^8.17.10",
     "@supabase/supabase-js": "^2.45.4",
     "@tanstack/react-virtual": "^3.14.10",
     "@vercel/analytics": "^1.3.1",
+    "ai": "^5.0.252",
     "gsap": "^3.15.0",
     "lenis": "^1.3.26",
     "node-html-parser": "^9.0.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "sharp": "^0.33.5",
-    "three": "^0.169.0"
+    "three": "^0.169.0",
+    "zod": "^3.25.76"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.3.1",
