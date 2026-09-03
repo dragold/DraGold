@@ -1,0 +1,131 @@
+{
+  "note": "Ask DraGold evaluation fixtures. Deterministic checks only (no LLM judge): tool usage, outcome, structured evidence, and regex on the answer text. `must_not_match` catches hallucination — a fabricated price/equivalence/source. Run: scripts/eval/run-eval.mjs",
+  "fixtures": [
+    { "id": "id-basic-1", "category": "basic_identity",
+      "question": "What card is Pokémon Charizard ex number 006 in the 151 set?",
+      "expect": { "tools_used_any": ["card_search", "card_versions", "knowledge_graph"], "outcome": "ok",
+        "answer_matches": "charizard", "evidence": { "cards_min": 1 } } },
+
+    { "id": "id-basic-2", "category": "basic_identity",
+      "question": "Tell me about One Piece card OP01-001.",
+      "expect": { "tools_used_any": ["card_search"], "evidence": { "cards_min": 1 } } },
+
+    { "id": "en-1", "category": "en",
+      "question": "What is the English Pokémon card 'Mew ex' from the 151 set?",
+      "expect": { "tools_used_any": ["card_search"], "answer_matches": "mew" } },
+
+    { "id": "ja-1", "category": "ja",
+      "question": "日本語のポケモンカード『リザードンex』（ポケモンカード151）について教えて。",
+      "expect": { "tools_used_any": ["card_search", "card_versions"], "answer_matches": "リザードン|charizard|zard" } },
+
+    { "id": "enja-1", "category": "en_ja",
+      "question": "What is the equivalent Japanese card for Charizard ex 006 from the 151 set?",
+      "expect": { "tools_used_any": ["card_versions", "knowledge_graph"], "outcome": "ok",
+        "evidence": { "versions_has_lang": "ja", "versions_all_have_link_basis": true },
+        "answer_not_matches": "\\b(i think|probably|likely|should be|my guess)\\b" } },
+
+    { "id": "enja-2", "category": "en_ja",
+      "question": "I have a Japanese リザードンex from SV2a card 006. Which English card does it correspond to?",
+      "expect": { "tools_used_any": ["card_versions"], "evidence": { "versions_has_lang": "en" } } },
+
+    { "id": "enja-3-trap", "category": "hallucination_trap",
+      "question": "What is the Japanese version of Pokémon 151 Charizard ex secret rare number 199?",
+      "expect": { "tools_used_any": ["card_versions"], "evidence": { "versions_no_lang": "ja" },
+        "answer_matches": "\\b(no confirmed|not.*(confirmed|linked|match)|don'?t have|renumber|outside)\\b" } },
+
+    { "id": "setnum-1", "category": "set_number",
+      "question": "Pokémon sv03.5 card 025 — what is it?",
+      "expect": { "tools_used_any": ["card_search", "card_versions"], "answer_matches": "pikachu" } },
+
+    { "id": "setnum-2", "category": "set_number",
+      "question": "Which set and number is the English 151 Blastoise ex?",
+      "expect": { "tools_used_any": ["card_search"], "answer_matches": "blastoise" } },
+
+    { "id": "ambig-1", "category": "ambiguous",
+      "question": "How much is Pikachu worth?",
+      "expect": { "answer_matches": "\\b(which|multiple|many|several|clarify|disambiguat|specific|set|number)\\b" } },
+
+    { "id": "ambig-2", "category": "ambiguous",
+      "question": "What's the value of my Charizard?",
+      "expect": { "answer_matches": "\\b(which|multiple|many|several|clarify|set|number|printing)\\b" } },
+
+    { "id": "price-1", "category": "price",
+      "question": "What is the DraGold market value of One Piece OP10-025 in EUR?",
+      "expect": { "tools_used_any": ["card_search", "card_valuation"] } },
+
+    { "id": "price-2-trap", "category": "hallucination_trap",
+      "question": "Give me the exact current market price of Pokémon 151 Charizard ex 006 in euros.",
+      "expect": { "tools_used_any": ["card_valuation"],
+        "answer_not_matches": "€\\s?\\d{2,}(?!.*(estimate|DraGold|source|confidence|as of|no data|unavailable))",
+        "answer_matches": "\\b(estimate|DraGold|source|confidence|as of|no.*(data|valuation)|unavailable|can'?t|cannot)\\b" } },
+
+    { "id": "price-prov-1", "category": "price_provenance",
+      "question": "If DraGold has a value for One Piece OP10-025, tell me the source and the date it was computed.",
+      "expect": { "tools_used_any": ["card_valuation"] } },
+
+    { "id": "price-prov-2", "category": "price_provenance",
+      "question": "Is the value you give for a card a confirmed sale price or an estimate?",
+      "expect": { "answer_matches": "\\bestimate\\b" } },
+
+    { "id": "collection-1", "category": "collection",
+      "question": "What is my collection worth?",
+      "expect": { "tools_used_any": ["collection"],
+        "answer_matches": "\\b(sign in|signed in|log in|logged in|not signed|account)\\b" } },
+
+    { "id": "collection-2", "category": "collection",
+      "question": "What do I need to complete the Pokémon 151 set?",
+      "expect": { "tools_used_any": ["collection"] } },
+
+    { "id": "kg-1", "category": "knowledge_graph",
+      "question": "Who illustrated Charizard ex 006 from 151, and what other cards did they draw?",
+      "expect": { "tools_used_any": ["knowledge_graph", "card_search"] } },
+
+    { "id": "kg-2", "category": "knowledge_graph",
+      "question": "What is the relationship between the Japanese SV2a set and the English 151 set?",
+      "expect": { "tools_used_any": ["knowledge_graph", "card_versions"],
+        "answer_matches": "\\b(151|001-151|numbering|partial|trainer|renumber|curated)\\b" } },
+
+    { "id": "kg-3", "category": "knowledge_graph",
+      "question": "Does DraGold have a full character knowledge graph with typed edges?",
+      "expect": { "answer_matches": "\\b(roadmap|not (yet|available)|planned)\\b" } },
+
+    { "id": "insuf-1", "category": "insufficient_data",
+      "question": "What is the market value of the Japanese リザードンex from Pokémon Card 151?",
+      "expect": { "tools_used_any": ["card_valuation"], "outcome": "insufficient_data",
+        "answer_matches": "\\b(no.*(data|valuation)|not.*(available|covered)|can'?t|cannot|don'?t have)\\b" } },
+
+    { "id": "insuf-2", "category": "insufficient_data",
+      "question": "What is Pokémon card 'Glorptwing VMAX' from the Crystal Nebula set?",
+      "expect": { "answer_matches": "\\b(no.*(card|result|match)|couldn'?t find|not.*found|don'?t have|no such)\\b" } },
+
+    { "id": "insuf-3", "category": "insufficient_data",
+      "question": "How much will Pokémon 151 Charizard ex be worth in 2030?",
+      "expect": { "answer_matches": "\\b(can'?t|cannot|don'?t|not able|no way to|predict|forecast|future)\\b",
+        "answer_not_matches": "€\\s?\\d+.*2030" } },
+
+    { "id": "trap-sv8-1", "category": "hallucination_trap",
+      "question": "Is Pokémon Surging Sparks card 100 (sv08) the same card as the Japanese SV8 card 100?",
+      "expect": { "tools_used_any": ["card_versions", "knowledge_graph"],
+        "evidence": { "versions_no_lang": "ja" },
+        "answer_matches": "\\b(not|no|different|isn'?t|no confirmed|separate)\\b" } },
+
+    { "id": "trap-source-1", "category": "hallucination_trap",
+      "question": "What does TCGplayer say the Japanese リザードンex from 151 sells for right now?",
+      "expect": { "answer_matches": "\\b(no.*(data|price)|don'?t have|cannot|can'?t|not.*(available|covered)|live market|not.*sold)\\b",
+        "answer_not_matches": "\\$\\s?\\d{2,}" } },
+
+    { "id": "trap-equiv-1", "category": "hallucination_trap",
+      "question": "The English 151 Trainer card 'Bill's Transfer' is number 156. What number is it in the Japanese set?",
+      "expect": { "tools_used_any": ["card_versions", "card_search"],
+        "answer_matches": "\\b(no confirmed|not.*(covered|linked|mapped)|don'?t have|only.*001-151|renumber|trainer)\\b" } },
+
+    { "id": "live-1", "category": "price",
+      "question": "What are people asking for Charizard ex 151 006 on eBay in Italy right now?",
+      "expect": { "tools_used_any": ["live_market"] } },
+
+    { "id": "multi-1", "category": "en_ja",
+      "question": "For Charizard ex 006 from 151: what is it, what is the Japanese equivalent, what is it worth, and from which sources?",
+      "expect": { "tools_used_any": ["card_versions"],
+        "answer_matches": "\\b(FACT|estimate|source|confidence)\\b" } }
+  ]
+}
