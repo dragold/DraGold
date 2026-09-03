@@ -2,6 +2,12 @@ import { createElement as h } from 'react';
 import './askDossier.css';
 
 const CONF_LABEL = { high: 'High', medium: 'Medium', low: 'Low', none: 'Estimate pending' };
+const REASON_EXPLAIN = {
+  no_data_yet: "there aren't enough recent market observations for it yet",
+  ja_not_covered: "the Japanese printing isn't in DraGold's price pipeline yet",
+  set_not_covered: "this set isn't in DraGold's price pipeline yet",
+  resolved_via_alias: 'a spelling-variant match was used',
+};
 const BASIS_LABEL = {
   self: 'this printing', same_canonical: 'same card (shared identity)',
   set_alias: 'curated set mapping', number_alias: 'curated card mapping',
@@ -73,9 +79,15 @@ function Valuations({ valuations }) {
     h('h3', null, 'Market valuation'),
     valuations.map((v, i) => {
       if (v.available === false) {
-        return h('div', { key: i, className: 'ad-val ad-val-none' },
-          h('strong', null, 'No reliable valuation yet'),
-          h('span', { className: 'ad-card-meta' }, `reason: ${v.unavailable_reason || 'unknown'}`));
+        return h('div', { key: i, className: 'ad-val ad-val-pending' },
+          h('div', { className: 'ad-val-top' },
+            h('span', { className: 'ad-val-price ad-val-pending-label' }, 'Not yet valued'),
+            h('span', { className: 'ad-conf' }, 'DraGold')),
+          h('p', { className: 'ad-note' },
+            "DraGold doesn't have a verified market value for this exact printing — " +
+            (REASON_EXPLAIN[v.unavailable_reason] || `(${v.unavailable_reason || 'no data'})`) + '.'),
+          h('p', { className: 'ad-disclaimer' },
+            'This is a data-coverage gap, not an error. Rather than show an unreliable number, DraGold says it doesn’t know. Coverage grows as more market observations are collected.'));
       }
       const reason = v.confidence_reason && typeof v.confidence_reason === 'object'
         ? Object.entries(v.confidence_reason).map(([k, val]) => `${k}: ${val}`).join(' · ')
@@ -134,6 +146,36 @@ function KnowledgeGraph({ kg }) {
     h('p', { className: 'ad-disclaimer' }, kg.roadmap_note));
 }
 
+function Collection({ c }) {
+  if (!c) return null;
+  if (c.available === false) {
+    return h('section', { className: 'ad-sec' }, h('h3', null, 'Your collection'),
+      h('p', { className: 'ad-card-meta' },
+        c.reason === 'sign_in_required'
+          ? 'Sign in to DraGold to include your collection in the answer.'
+          : `Not available (${c.reason || 'unknown'}).`));
+  }
+  if (c.mode === 'set_completion') {
+    return h('section', { className: 'ad-sec' }, h('h3', null, `Set completion — ${c.set_id}`),
+      h('dl', { className: 'ad-val-grid' },
+        h('div', { key: 'a' }, h('dt', null, 'Set size (EN)'), h('dd', null, String(c.total_cards_en ?? '—'))),
+        h('div', { key: 'b' }, h('dt', null, 'You own (est.)'), h('dd', null, String(c.owned_estimate ?? '—'))),
+        h('div', { key: 'c' }, h('dt', null, 'Missing (est.)'), h('dd', null, String(c.missing_estimate ?? '—')))),
+      h('p', { className: 'ad-disclaimer' }, c.caveat));
+  }
+  return h('section', { className: 'ad-sec' }, h('h3', null, 'Your collection'),
+    h('div', { className: 'ad-val' },
+      h('div', { className: 'ad-val-top' },
+        h('span', { className: 'ad-val-price' }, fmtMoney(c.estimated_total_eur, 'EUR')),
+        h('span', { className: 'ad-conf' }, `${c.valued_cards}/${c.total_cards} valued`)),
+      h('dl', { className: 'ad-val-grid' },
+        h('div', { key: 'd' }, h('dt', null, 'Distinct cards'), h('dd', null, String(c.distinct_cards ?? '—'))),
+        h('div', { key: 'u' }, h('dt', null, 'Not yet valued'), h('dd', null, String(c.unvalued_cards ?? '—'))),
+        c.confidence_mix && h('div', { key: 'm' }, h('dt', null, 'Confidence'), h('dd', null,
+          Object.entries(c.confidence_mix).filter(([, n]) => n).map(([k, n]) => `${n} ${k}`).join(' · ') || '—'))),
+      h('p', { className: 'ad-disclaimer' }, c.disclaimer)));
+}
+
 export function AskDossier({ result }) {
   if (!result) return null;
   const { answer, meta = {}, evidence = {} } = result;
@@ -144,9 +186,7 @@ export function AskDossier({ result }) {
     h(Valuations, { valuations: evidence.valuations }),
     h(LiveMarket, { lm: evidence.live_market }),
     h(KnowledgeGraph, { kg: evidence.knowledge_graph }),
-    evidence.collection && evidence.collection.available !== false ? h('section', { className: 'ad-sec' },
-      h('h3', null, 'Your collection'),
-      h('p', { className: 'ad-card-meta' }, JSON.stringify(evidence.collection))) : null,
+    h(Collection, { c: evidence.collection }),
     h('footer', { className: 'ad-meta' },
       `${meta.provider || '?'}/${meta.model || '?'} · ${meta.tools_used?.join(', ') || 'no tools'} · ${meta.latency_ms ? Math.round(meta.latency_ms / 100) / 10 + 's' : ''}` +
       (meta.outcome === 'insufficient_data' ? ' · flagged: insufficient data' : '')),
