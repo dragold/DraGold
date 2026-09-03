@@ -68,6 +68,11 @@ DraGold is designed to be **100% self-hostable** with:
 
 No DraGold-operated API, key, or paid tier is required to run the core.
 
+The Ask DraGold agent uses the Vercel AI SDK (`ai`, `@ai-sdk/*`, `zod` — all
+MIT / Apache-2.0-compatible) purely as a provider-abstraction layer. The agent
+core is not bound to any vendor: `DRAGOLD_LLM_PROVIDER=ollama` is a complete,
+key-free path; `gemini` and `anthropic` are optional adapters.
+
 ## Contributing data
 
 When adding to `data/cross-language/`, contributions are accepted **only**

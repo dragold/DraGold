@@ -21,8 +21,28 @@ current roadmap and phase results.
 - ✅ Catalogue freshness + release monitor (Pokémon, One Piece)
 - ✅ Market valuation foundation (`market_observations` → `market_valuations`, explainable confidence)
 - ✅ Collection valuation ("My Collection → My Market Value")
-- 🚧 Cross-language identity layer (EN↔JA) — *Phase A in progress*
-- 🚧 Ask DraGold agent (deterministic tools + swappable LLM) — *MVP next*
+- ✅ Cross-language identity layer (EN↔JA) — Phase A: `card_versions` RPC + curated mappings
+- ✅ **Ask DraGold** agent MVP — `POST /api/ask`, 6 deterministic tools, swappable LLM (Ollama default), `/ask` UI
+
+### Ask DraGold
+
+```
+POST /api/ask   { "message": "What is Charizard ex 151 006, its Japanese version, and what is it worth?" }
+```
+
+The LLM plans and calls read-only DraGold tools (`card_search`, `card_versions`,
+`card_valuation`, `live_market`, `collection`, `knowledge_graph`) and synthesises
+the result. It is not allowed to invent identities, prices, cross-language
+equivalences, or sources — every economic figure carries `source` + `as_of` +
+`confidence`, or the agent says it doesn't have the data. Runs on **Ollama**
+(self-hosted, default), Gemini, or Anthropic — set `DRAGOLD_LLM_PROVIDER`.
+
+```bash
+ollama pull llama3.2          # or gpt-oss:20b for stronger tool use
+npm run ask:repl "your question"
+npm run ask:eval              # 28-fixture evaluation
+npm run ask:compare          # generic LLM vs Ask DraGold
+```
 
 ## Architecture
 
