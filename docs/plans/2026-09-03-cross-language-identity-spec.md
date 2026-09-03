@@ -92,9 +92,10 @@ create policy set_alias_public_read on public.set_alias for select using (true);
 ```
 
 - **Solo `confidence = 'confirmed'` partecipa alla risoluzione.** `'candidate'` = registrato per revisione, inerte. `'rejected'` = coppia esaminata e scartata (memoria negativa, non riproporla).
-- `relation`: `'equivalent'` = stesso card list. `'subset'`/`'superset'`/`'partial'` = i set combaciano ma i card list divergono (es. un high-class pack JA che raccoglie 2 set EN). **In v1 `relation` NON cambia la logica di match** (un numero presente in entrambi È la stessa carta); serve solo a KG e coverage reporting (§7, §9).
+- **`relation` gate (conservativo — vedi §2.5):** SOLO `relation = 'equivalent'` attiva l'auto-link per numero. `'subset'`/`'superset'`/`'partial'` sono registrati per KG e coverage (§7, §9) ma **NON alimentano `xlang_key`**: le loro carte si collegano *esclusivamente* tramite righe esplicite in `card_number_alias`. "I set si assomigliano" non basta per un link; serve "i set sono lo stesso set" oppure "questa carta è quella carta".
 - Simmetria: la risoluzione tratta `canonical_set_id` come punto fisso (si risolve in sé stesso). Non serve una riga `sv03.5 → sv03.5`.
 - **Niente `alias_lang` in v1** (YAGNI): un codice set regionale come `SV2a` è per costruzione della sola regione JP, quindi rimappare *tutte* le sue righe è corretto. Se in futuro emergesse un codice set genuinamente condiviso tra regioni con significato diverso, si aggiunge `alias_lang` come colonna additiva senza rompere nulla.
+- **Un `set_id` non può essere sia `alias_set_id` sia `canonical_set_id`** per lo stesso `tcg` (un set è o un riferimento o un alias, mai entrambi). Validato dall'apply script (§3.4) e da un `CHECK`/trigger difensivo (§2.5).
 
 ### 2.2 `card_number_alias` — eccezioni numero → numero (secret/alt-art regionali)
 
@@ -114,7 +115,10 @@ create table public.card_number_alias (
   note                  text,
   created_at            timestamptz not null default now(),
   updated_at            timestamptz not null default now(),
-  unique (tcg, alias_set_id, alias_card_number)
+  -- 1:1 IN ENTRAMBE LE DIREZIONI: una carta alias mappa a una sola carta di riferimento,
+  -- e nessuna carta di riferimento riceve due carte alias diverse dallo stesso alias_set.
+  unique (tcg, alias_set_id, alias_card_number),
+  unique (tcg, canonical_set_id, alias_set_id, canonical_card_number)
 );
 
 create index card_number_alias_lookup_idx on public.card_number_alias (tcg, alias_set_id, alias_card_number) where confidence = 'confirmed';
@@ -123,8 +127,9 @@ alter table public.card_number_alias enable row level security;
 create policy card_number_alias_public_read on public.card_number_alias for select using (true);
 ```
 
-- Usata **solo** quando `set_alias` ha già collegato i due set e il numero **non** combacia. Popolata a mano, per carte chiave ad alto valore.
+- Usata **solo** quando i due set sono collegati (via `set_alias` `equivalent`, oppure sono set diversi mappati come `partial`) e il numero **non** combacia. Popolata a mano, per carte chiave ad alto valore.
 - Il match avviene su `card_number_norm` di entrambi i lati (la tabella conserva il raw, la RPC normalizza).
+- **Strettamente 1:1 in entrambe le direzioni** (i due `unique`): un mapping numero→numero è un'asserzione puntuale "questa carta = quella carta", mai molti-a-uno. Se emergesse un caso reale molti-a-uno, si valuta allora, non ora.
 
 ### 2.3 Indice su `cards` (unico cambiamento a una tabella esistente)
 
@@ -141,6 +146,57 @@ Serve alla RPC che filtra `where tcg = ? and set_id = any(?) and card_number_nor
 - `cards` — solo il nuovo indice.
 - `market_valuations`, `market_observations`, `card_prices`, `portfolio_valuations` — intatti.
 - `collection`, `watchlist`, `alerts` — intatti.
+
+### 2.5 Garanzie di conservatività — perché un mapping ambiguo non può creare un falso link
+
+Regola guida (requisito Ermal): **in caso di dubbio → nessun link.** Un link cross-lingua nasce **solo** da un'asserzione curata, esplicita, ad alta confidenza. Non esiste inferenza automatica, nessun fuzzy, nessuna similarità di nome, nessun "probabilmente".
+
+Un link `A ↔ B` (righe `cards` di lingue diverse nello stesso concept) può nascere **solo** da uno di questi 4 percorsi, in ordine di forza:
+
+| # | Percorso | Condizione | `link_basis` |
+|---|---|---|---|
+| 1 | Stesso `canonical_card_id` | già oggi (tutte le lingue che condividono `set_id`) | `same_canonical` |
+| 2 | `set_alias` `equivalent` + `confirmed` **e** `card_number_norm` identico | il curatore ha asserito "questi due set SONO lo stesso set (stesso card list, stessa numerazione)" | `set_alias` |
+| 3 | `card_number_alias` `same_card` + `confirmed` (1:1 bidirezionale) | il curatore ha asserito "QUESTA carta È quella carta" | `number_alias` |
+| 4 | — | *nessun altro percorso esiste* | — |
+
+**Ogni forma di ambiguità cade nel "nessun link":**
+
+| Situazione ambigua | Comportamento |
+|---|---|
+| Set JA non presente nel seed | `xlang_key` usa il codice grezzo → non combacia con nessun EN → **nessun link** |
+| `set_alias` con `confidence` ≠ `confirmed` (`candidate`/`rejected`) | ignorato dalla risoluzione → **nessun link** |
+| `set_alias` con `relation` ≠ `equivalent` (`partial`/`subset`/`superset`) | NON alimenta `xlang_key`. I set restano separati per il match automatico. Link solo per le carte con una riga `card_number_alias` esplicita. → di default **nessun link** |
+| Numero presente in un lato ma non nell'altro (secret/alt-art con numerazione diversa) | `card_number_norm` non combacia, nessun `card_number_alias` → **nessun link** (la carta resta mostrata come versione a sé) |
+| Due carte diverse con lo stesso numero in set non mappati (Base Set 006 vs Jungle 006) | `xlang_key` include il set risolto → chiavi diverse → **nessun link** |
+| `card_number_alias` molti-a-uno (curatore prova ad asserire 2 carte JA = 1 EN) | rifiutato dal `unique (tcg, canonical_set_id, alias_set_id, canonical_card_number)` → non entra in DB |
+| Un `set_id` messo sia come `alias_set_id` sia come `canonical_set_id` | rifiutato dall'apply script + trigger difensivo → non entra in DB |
+| `set_identity_key` collassa due spelling | **è già voluto e vettato**: i 26 gruppi di collisione analizzati nel dedup `me4`/`me04` sono tutti spelling dello *stesso* set. `xlang_key` compone `set_identity_key` *dopo* la risoluzione alias, non prima → nessun nuovo rischio introdotto qui. |
+
+**Trigger difensivo (in M1):**
+
+```sql
+-- un set non può essere contemporaneamente riferimento e alias per lo stesso tcg
+create or replace function public.set_alias_no_self_ref() returns trigger
+language plpgsql set search_path = '' as $$
+begin
+  if exists (select 1 from public.set_alias
+             where tcg = new.tcg and alias_set_id = new.canonical_set_id) then
+    raise exception 'set % is already an alias_set_id for tcg % — cannot also be a canonical_set_id', new.canonical_set_id, new.tcg;
+  end if;
+  if exists (select 1 from public.set_alias
+             where tcg = new.tcg and canonical_set_id = new.alias_set_id) then
+    raise exception 'set % is already a canonical_set_id for tcg % — cannot also be an alias_set_id', new.alias_set_id, new.tcg;
+  end if;
+  return new;
+end $$;
+create trigger set_alias_no_self_ref_trg before insert or update on public.set_alias
+  for each row execute function public.set_alias_no_self_ref();
+```
+
+**Il `xlang_key` SQL (§4.3) filtra `relation = 'equivalent'`** nella sottoquery `set_alias`. Nessuna riga `partial`/`subset`/`superset` influenza mai la chiave.
+
+**Conseguenza per la coverage:** in v1 il sistema linkerà solo dove esiste un'asserzione `equivalent` (o un `card_number_alias` puntuale). I set con card list divergenti restano non linkati finché non li si mappa carta-per-carta. Questo è **voluto**: `ACCURACY > COVERAGE`. Il coverage KPI (§7) misura la copertura e guida l'estensione curata, mai un allentamento della soglia.
 
 ---
 
@@ -207,7 +263,13 @@ Stima seed v1: ~25-40 righe `set_alias` `confirmed`, ~10-30 righe `card_number_a
 
 - Legge i due JSON, valida contro lo schema, upsert idempotente in `set_alias` / `card_number_alias` (chiave: gli `unique` di §2).
 - `--dry-run` di default; `--apply` scrive.
-- Riporta: righe nuove / aggiornate / invariate, e un **sanity check**: per ogni alias `confirmed`, quante righe `cards` esistono su `alias_set_id` e su `canonical_set_id`, quanti card_number combaciano, quanti no (→ candidati per `card_number_alias`).
+- **Validazioni che bloccano l'apply** (`--apply` esce ≠0 senza scrivere se una fallisce):
+  - nessun `set_id` compare sia come `alias_set_id` sia come `canonical_set_id` per lo stesso `tcg`;
+  - `card_number_alias` 1:1 in entrambe le direzioni (rispecchia i due `unique`);
+  - ogni riga `confidence='confirmed'` ha una `note` non vuota;
+  - `alias_set_id` ≠ `canonical_set_id`;
+  - `relation` ∈ valori ammessi.
+- Riporta: righe nuove / aggiornate / invariate, e un **sanity check** (non bloccante): per ogni alias `confirmed`, quante righe `cards` esistono su `alias_set_id` e su `canonical_set_id`, quanti card_number combaciano, quanti no (→ candidati per `card_number_alias`); alias che non matchano **nessuna** riga `cards` (probabile errore di codice set).
 - Env: `SUPABASE_URL`, `SUPABASE_SERVICE_KEY` (come gli altri script).
 - Test: `scripts/__tests__/apply-cross-language-aliases.test.js` (validazione schema, idempotenza, rifiuto di righe malformate).
 
@@ -296,24 +358,37 @@ language sql stable security invoker set search_path = '' as $$ ... $$;
 ```sql
 create or replace function public.xlang_key(p_tcg text, p_set_id text, p_card_number text)
 returns text language sql stable set search_path = '' as $$
+  with num_alias as (
+    -- override puntuale completo: "questa carta È quella carta" → risolve SET e NUMERO
+    -- al riferimento. Funziona anche se il set è 'partial' o non mappato.
+    select canonical_set_id, canonical_card_number
+    from public.card_number_alias
+    where tcg = p_tcg and alias_set_id = p_set_id
+      and regexp_replace(lower(alias_card_number),'[^a-z0-9]','','g')
+        = regexp_replace(lower(p_card_number),'[^a-z0-9]','','g')
+      and confidence = 'confirmed'
+    limit 1
+  ),
+  set_equiv as (
+    -- rimappa il set SOLO se asserito 'equivalent' + 'confirmed'
+    select canonical_set_id from public.set_alias
+    where tcg = p_tcg and alias_set_id = p_set_id
+      and confidence = 'confirmed' and relation = 'equivalent'
+    limit 1
+  )
   select lower(p_tcg) || ':'
-    || public.set_identity_key(
-         coalesce(
-           (select canonical_set_id from public.set_alias
-            where tcg = p_tcg and alias_set_id = p_set_id and confidence = 'confirmed'
-            limit 1),
-           p_set_id))
+    || public.set_identity_key(coalesce(
+         (select canonical_set_id from num_alias),   -- 1. override puntuale (set+numero)
+         (select canonical_set_id from set_equiv),   -- 2. set-alias equivalent
+         p_set_id))                                  -- 3. codice grezzo
     || ':'
     || coalesce(
-         (select regexp_replace(lower(canonical_card_number), '[^a-z0-9]', '', 'g')
-          from public.card_number_alias
-          where tcg = p_tcg and alias_set_id = p_set_id
-            and regexp_replace(lower(alias_card_number),'[^a-z0-9]','','g') = regexp_replace(lower(p_card_number),'[^a-z0-9]','','g')
-            and confidence = 'confirmed' limit 1),
-         regexp_replace(lower(p_card_number), '[^a-z0-9]', '', 'g'));
+         (select regexp_replace(lower(canonical_card_number),'[^a-z0-9]','','g') from num_alias),
+         regexp_replace(lower(p_card_number),'[^a-z0-9]','','g'));
 $$;
 ```
 
+- Precedenza di risoluzione: **override puntuale `card_number_alias`** (risolve sia set che numero, vale anche per set `partial`/non mappati) → **`set_alias` `equivalent`** (rimappa solo il set, il numero resta) → **codice grezzo** (`set_identity_key` normalizza solo lo spelling).
 - `stable` (non `immutable`): legge `set_alias` / `card_number_alias`. Va bene per l'uso in `card_versions` e per un indice **non** funzionale.
 - La stessa logica esiste in JS (`scripts/lib/catalog/cross-lang.js#xlangKey(tcg, setId, num, {setAliases, numberAliases})`) come funzione **pura** — le mappe passate come argomento — per i test unitari (§10.1) e per il fallback client-side se la RPC non è disponibile.
 - Una variante `immutable` pura (solo `set_identity_key`, senza lookup) può esistere in futuro come `xlang_key_raw` per un indice funzionale, se il benchmark lo richiede.
@@ -499,6 +574,10 @@ Sulla funzione JS `xlangKey(tcg, setId, cardNumber, { setAliases, numberAliases 
 | 11 | Idempotenza: `xlangKey` chiamata 2× | identico |
 | 12 | False-positive guard: due carte diverse stesso numero set diversi non mappati (`base1/006` Charizard vs `jungle/006` Beedrill) | chiavi diverse |
 | 13 | Alias verso un `canonical_set_id` che a sua volta ha spelling variante (`sv03.5` vs `sv3pt5` sul lato EN) | `set_identity_key` li collassa → JA, EN-tcgdex, EN-ptcg tutte stessa chiave |
+| 14 | **`relation='partial'` non rimappa il set**: `set_alias('SV1a'→'sv01', relation='partial', confidence='confirmed')`, `xlangKey('pokemon','SV1a','010')` senza number-alias | `= pokemon:sv1a:010` (grezzo) ≠ `pokemon:sv01:010` → **nessun link** |
+| 15 | **`card_number_alias` su set `partial` funziona**: aggiungi `SV1a/010 → sv01/010 confirmed` | `xlangKey('pokemon','SV1a','010') = xlangKey('pokemon','sv01','010')` |
+| 16 | **`relation='subset'`/`'superset'`** stesso comportamento di `partial` (nessun rimap set) | nessun link automatico |
+| 17 | Precedenza: number-alias vince su set-alias `equivalent` in conflitto | usa il `canonical_set_id`/`canonical_card_number` del number-alias |
 
 ### 10.2 Test RPC (SQL) — `supabase/migrations/__tests__/` o script `scripts/__tests__/card-versions-rpc.test.mjs` (contro un branch DB di test o fixture seed)
 
@@ -649,12 +728,14 @@ Ogni fase: branch dedicato, test verdi, build verde, revertibile in isolamento.
 | Rischio | Prob. | Impatto | Mitigazione |
 |---|---|---|---|
 | **Mapping set sbagliato** (SV2a ≠ sv03.5) → carte diverse collegate | Bassa (curatela + `note` obbligatoria + review PR) | Alto (fiducia) | Solo `confidence='confirmed'` attiva; `verify-cross-language.mjs` allegato a ogni PR di seed; rollback = `update ... set confidence='rejected'` (dato, istantaneo). |
-| **`card_number` combacia ma sono carte diverse** (numero riusato tra set non-equivalenti mappati per errore) | Bassa | Alto | Match richiede `set_alias` confirmed *E* numero; `relation='partial'` per set con card list divergenti resta `candidate` finché non verificato numero-per-numero; test §10.1 #12. |
+| **`card_number` combacia ma sono carte diverse** (numero riusato tra set non-equivalenti mappati per errore) | Bassa | Alto | Il rimap set richiede `relation='equivalent'` + `confirmed` — un'asserzione forte ("stesso card list, stessa numerazione"), non "i set si assomigliano". `partial`/`subset`/`superset` non rimappano nulla (§2.5). Set con divergenze → link solo carta-per-carta via `card_number_alias` 1:1. Test §10.1 #12/#14/#16. |
 | **Seed troppo piccolo** → l'agente/Search dicono "nessuna corrispondenza" spesso | Alta (v1) | Medio | È il comportamento voluto (accuracy > coverage). Coverage KPI (§7) guida l'espansione curata. One Piece già coperto al 100% via canonical. |
 | **`card_versions` lenta** (query su `xlang_key` calcolato) | Media | Medio | Indice `cards_tcg_set_number_idx`; `xlang_key` risolve alias con `LIMIT 1` su indici parziali; match bounded dal numero; `card_versions_batch` per Search (1 round-trip). Benchmark in Fase A checkpoint. |
 | **Regressione Search** (espansione xlang introduce falsi positivi su query di nome) | Media | Medio | L'espansione xlang si attiva **solo** per righe con `card_number` set-prefixed (stesso `safeNums` di oggi); test U4; le euristiche attuali restano come fallback, non sostituite di colpo. |
 | **`get_advisors` warning** su nuove RPC | Bassa | Basso | `security invoker` + `search_path=''` come le RPC portfolio (0 warning lì). |
 | **Interazione con debito `me4`/`me04`** | Bassa | Basso | `set_identity_key` già collassa quei casi; `xlang_key` lo compone dopo l'alias → nessun conflitto. Il dedup `me4` resta task separato e indipendente. |
+| **`set_identity_key` collassa due set genuinamente diversi** (sul lato riferimento) | Molto bassa | Alto | `set_identity_key` è già in produzione e vettato: i 26 gruppi di collisione analizzati nel report dedup `me4`/`me04` sono tutti spelling dello stesso set. Questa spec non modifica `set_identity_key` e non introduce nuovi input problematici (i codici JA vengono prima rimappati a un codice EN reale, poi normalizzati). Se un nuovo caso emergesse, è un bug di `set_identity_key` da fixare a monte, non di questo layer. Test §10.1 #7/#13. |
+| **Mapping ambiguo** ("questi set si assomigliano ~80%") | Media (curatela) | Alto | Il seed non ha un livello "somiglianza". Solo `equivalent` (asserzione binaria "SONO lo stesso set") auto-linka. Il dubbio si registra come `candidate`/`partial` → **inerte**. §2.5 elenca ogni forma di ambiguità → tutte cadono in "nessun link". |
 | **`card_versions` usata per fondere prezzi** da un futuro sviluppatore | Media | Alto | Contratto esplicito (§4.1): 0 colonne market nell'output; test R7 lo verifica; documentato in §7. |
 | **Licenza seed** contestata (contiene dati di terzi) | Bassa | Medio | Seed = solo codici set + lingua + nota originale. Nessun nome carta, nessuna immagine, nessun prezzo. CC0 + review che il PR non introduca contenuto di terzi. |
 | **`concurrently` index build fallisce** (lock, transazione) | Bassa | Basso | M2 separata, ri-eseguibile; fallback a build non-concurrent in finestra di manutenzione (5-15s). |
