@@ -10,6 +10,7 @@
     "preview": "vite preview",
     "test": "node --test \"src/**/*.test.js\"",
     "test:scripts": "node --test \"scripts/**/*.test.js\"",
+    "test:rpc": "node --test \"scripts/__tests__/*.test.mjs\"",
     "catalog:freshness": "node scripts/catalog-freshness.js",
     "catalog:sync": "node scripts/catalog-sync.js",
     "sync:onepiece": "node scripts/sync-onepiece.js",

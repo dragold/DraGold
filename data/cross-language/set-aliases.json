@@ -6,10 +6,10 @@
       "tcg": "pokemon",
       "alias_set_id": "SV2a",
       "canonical_set_id": "sv03.5",
-      "relation": "equivalent",
-      "confidence": "confirmed",
-      "source": "bulbapedia",
-      "note": "JA '強化拡張パック ポケモンカード151' (SV2a, 2023-06-16) == EN 'Scarlet & Violet—151' (SV3.5 / sv03.5, 2023-09-22). Shared 165-card main set ordered by National Pokedex number, identical numbering 001-165; JA adds secret rares above 165 (JA hi 210 vs EN tcgdex 207). Verified Bulbapedia '151 (TCG)' 2026-09-03."
+      "relation": "partial",
+      "confidence": "candidate",
+      "source": "dragold-verified",
+      "note": "JA '強化拡張パック ポケモンカード151' (SV2a, 2023-06-16) ~ EN 'Scarlet & Violet—151' (SV3.5 / sv03.5, 2023-09-22). The base 151 Pokemon (001-151) DO share numbering across regions, BUT the Trainer cards (EN 152-165) are renumbered vs JA, and the secret rares (191+) differ entirely (verified against the catalogue 2026-09-03: EN #199 Charizard ex vs JA #199 マサキの転送). So this is NOT relation:equivalent. INERT — the verified 001-151 range is linked per-card via card-number-aliases.json instead."
     },
     {
       "tcg": "pokemon",

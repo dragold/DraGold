@@ -1,5 +1,1516 @@
 {
   "$schema": "./card-number-aliases.schema.json",
-  "generated_note": "Point-in-point exceptions: 'this specific regional card IS this specific reference card', when the two sets are linked but the numbers differ (secret rares, alt arts). Strictly 1:1 in both directions. Only confidence:confirmed activates. Facts + DraGold notes only. License: CC0-1.0. v1 ships empty: the one confirmed set equivalence (SV2a=sv03.5) shares main-set numbering 001-165 exactly, so no per-card exception is needed yet; secret-rare (166+) mappings will be added here as each is individually verified.",
-  "aliases": []
+  "generated_note": "Point-in-point cross-language card equivalences (this regional card IS this reference card). Strictly 1:1 both directions. Only confidence:confirmed activates. Facts + DraGold notes only. License: CC0-1.0. v1: the verified TCG 151 base-Pokemon range (JA SV2a 001-151 == EN sv03.5 001-151). The SV2a<->sv03.5 sets are NOT fully equivalent (trainers + top SRs diverge), so linking is per-card here rather than via set-aliases.json.",
+  "aliases": [
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "001",
+      "canonical_card_number": "001",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #1: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "002",
+      "canonical_card_number": "002",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #2: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "003",
+      "canonical_card_number": "003",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #3: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "004",
+      "canonical_card_number": "004",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #4: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "005",
+      "canonical_card_number": "005",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #5: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "006",
+      "canonical_card_number": "006",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #6: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "007",
+      "canonical_card_number": "007",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #7: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "008",
+      "canonical_card_number": "008",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #8: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "009",
+      "canonical_card_number": "009",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #9: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "010",
+      "canonical_card_number": "010",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #10: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "011",
+      "canonical_card_number": "011",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #11: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "012",
+      "canonical_card_number": "012",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #12: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "013",
+      "canonical_card_number": "013",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #13: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "014",
+      "canonical_card_number": "014",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #14: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "015",
+      "canonical_card_number": "015",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #15: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "016",
+      "canonical_card_number": "016",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #16: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "017",
+      "canonical_card_number": "017",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #17: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "018",
+      "canonical_card_number": "018",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #18: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "019",
+      "canonical_card_number": "019",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #19: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "020",
+      "canonical_card_number": "020",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #20: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "021",
+      "canonical_card_number": "021",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #21: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "022",
+      "canonical_card_number": "022",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #22: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "023",
+      "canonical_card_number": "023",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #23: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "024",
+      "canonical_card_number": "024",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #24: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "025",
+      "canonical_card_number": "025",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #25: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "026",
+      "canonical_card_number": "026",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #26: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "027",
+      "canonical_card_number": "027",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #27: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "028",
+      "canonical_card_number": "028",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #28: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "029",
+      "canonical_card_number": "029",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #29: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "030",
+      "canonical_card_number": "030",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #30: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "031",
+      "canonical_card_number": "031",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #31: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "032",
+      "canonical_card_number": "032",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #32: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "033",
+      "canonical_card_number": "033",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #33: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "034",
+      "canonical_card_number": "034",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #34: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "035",
+      "canonical_card_number": "035",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #35: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "036",
+      "canonical_card_number": "036",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #36: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "037",
+      "canonical_card_number": "037",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #37: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "038",
+      "canonical_card_number": "038",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #38: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "039",
+      "canonical_card_number": "039",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #39: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "040",
+      "canonical_card_number": "040",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #40: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "041",
+      "canonical_card_number": "041",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #41: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "042",
+      "canonical_card_number": "042",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #42: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "043",
+      "canonical_card_number": "043",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #43: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "044",
+      "canonical_card_number": "044",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #44: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "045",
+      "canonical_card_number": "045",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #45: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "046",
+      "canonical_card_number": "046",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #46: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "047",
+      "canonical_card_number": "047",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #47: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "048",
+      "canonical_card_number": "048",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #48: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "049",
+      "canonical_card_number": "049",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #49: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "050",
+      "canonical_card_number": "050",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #50: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "051",
+      "canonical_card_number": "051",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #51: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "052",
+      "canonical_card_number": "052",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #52: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "053",
+      "canonical_card_number": "053",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #53: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "054",
+      "canonical_card_number": "054",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #54: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "055",
+      "canonical_card_number": "055",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #55: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "056",
+      "canonical_card_number": "056",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #56: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "057",
+      "canonical_card_number": "057",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #57: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "058",
+      "canonical_card_number": "058",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #58: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "059",
+      "canonical_card_number": "059",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #59: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "060",
+      "canonical_card_number": "060",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #60: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "061",
+      "canonical_card_number": "061",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #61: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "062",
+      "canonical_card_number": "062",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #62: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "063",
+      "canonical_card_number": "063",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #63: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "064",
+      "canonical_card_number": "064",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #64: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "065",
+      "canonical_card_number": "065",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #65: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "066",
+      "canonical_card_number": "066",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #66: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "067",
+      "canonical_card_number": "067",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #67: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "068",
+      "canonical_card_number": "068",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #68: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "069",
+      "canonical_card_number": "069",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #69: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "070",
+      "canonical_card_number": "070",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #70: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "071",
+      "canonical_card_number": "071",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #71: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "072",
+      "canonical_card_number": "072",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #72: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "073",
+      "canonical_card_number": "073",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #73: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "074",
+      "canonical_card_number": "074",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #74: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "075",
+      "canonical_card_number": "075",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #75: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "076",
+      "canonical_card_number": "076",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #76: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "077",
+      "canonical_card_number": "077",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #77: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "078",
+      "canonical_card_number": "078",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #78: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "079",
+      "canonical_card_number": "079",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #79: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "080",
+      "canonical_card_number": "080",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #80: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "081",
+      "canonical_card_number": "081",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #81: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "082",
+      "canonical_card_number": "082",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #82: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "083",
+      "canonical_card_number": "083",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #83: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "084",
+      "canonical_card_number": "084",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #84: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "085",
+      "canonical_card_number": "085",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #85: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "086",
+      "canonical_card_number": "086",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #86: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "087",
+      "canonical_card_number": "087",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #87: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "088",
+      "canonical_card_number": "088",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #88: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "089",
+      "canonical_card_number": "089",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #89: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "090",
+      "canonical_card_number": "090",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #90: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "091",
+      "canonical_card_number": "091",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #91: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "092",
+      "canonical_card_number": "092",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #92: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "093",
+      "canonical_card_number": "093",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #93: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "094",
+      "canonical_card_number": "094",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #94: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "095",
+      "canonical_card_number": "095",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #95: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "096",
+      "canonical_card_number": "096",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #96: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "097",
+      "canonical_card_number": "097",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #97: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "098",
+      "canonical_card_number": "098",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #98: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "099",
+      "canonical_card_number": "099",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #99: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "100",
+      "canonical_card_number": "100",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #100: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "101",
+      "canonical_card_number": "101",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #101: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "102",
+      "canonical_card_number": "102",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #102: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "103",
+      "canonical_card_number": "103",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #103: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "104",
+      "canonical_card_number": "104",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #104: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "105",
+      "canonical_card_number": "105",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #105: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "106",
+      "canonical_card_number": "106",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #106: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "107",
+      "canonical_card_number": "107",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #107: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "108",
+      "canonical_card_number": "108",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #108: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "109",
+      "canonical_card_number": "109",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #109: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "110",
+      "canonical_card_number": "110",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #110: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "111",
+      "canonical_card_number": "111",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #111: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "112",
+      "canonical_card_number": "112",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #112: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "113",
+      "canonical_card_number": "113",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #113: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "114",
+      "canonical_card_number": "114",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #114: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "115",
+      "canonical_card_number": "115",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #115: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "116",
+      "canonical_card_number": "116",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #116: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "117",
+      "canonical_card_number": "117",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #117: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "118",
+      "canonical_card_number": "118",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #118: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "119",
+      "canonical_card_number": "119",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #119: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "120",
+      "canonical_card_number": "120",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #120: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "121",
+      "canonical_card_number": "121",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #121: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "122",
+      "canonical_card_number": "122",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #122: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "123",
+      "canonical_card_number": "123",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #123: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "124",
+      "canonical_card_number": "124",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #124: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "125",
+      "canonical_card_number": "125",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #125: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "126",
+      "canonical_card_number": "126",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #126: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "127",
+      "canonical_card_number": "127",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #127: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "128",
+      "canonical_card_number": "128",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #128: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "129",
+      "canonical_card_number": "129",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #129: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "130",
+      "canonical_card_number": "130",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #130: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "131",
+      "canonical_card_number": "131",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #131: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "132",
+      "canonical_card_number": "132",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #132: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "133",
+      "canonical_card_number": "133",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #133: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "134",
+      "canonical_card_number": "134",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #134: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "135",
+      "canonical_card_number": "135",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #135: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "136",
+      "canonical_card_number": "136",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #136: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "137",
+      "canonical_card_number": "137",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #137: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "138",
+      "canonical_card_number": "138",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #138: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "139",
+      "canonical_card_number": "139",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #139: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "140",
+      "canonical_card_number": "140",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #140: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "141",
+      "canonical_card_number": "141",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #141: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "142",
+      "canonical_card_number": "142",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #142: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "143",
+      "canonical_card_number": "143",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #143: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "144",
+      "canonical_card_number": "144",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #144: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "145",
+      "canonical_card_number": "145",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #145: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "146",
+      "canonical_card_number": "146",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #146: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "147",
+      "canonical_card_number": "147",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #147: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "148",
+      "canonical_card_number": "148",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #148: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "149",
+      "canonical_card_number": "149",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #149: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "150",
+      "canonical_card_number": "150",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #150: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    },
+    {
+      "tcg": "pokemon",
+      "canonical_set_id": "sv03.5",
+      "alias_set_id": "SV2a",
+      "alias_card_number": "151",
+      "canonical_card_number": "151",
+      "confidence": "confirmed",
+      "source": "dragold-verified",
+      "note": "TCG 151 base Pokemon #151: JA SV2a and EN sv03.5 both number the original 151 Pokemon by National Pokedex order. Verified 2026-09-03 against the catalogue: every number 001-151 has exactly one card per region and the Pokemon identity matches for all 151. (Trainers 152-165 and secret rares 191+ are renumbered between regions and are NOT covered.)"
+    }
+  ]
 }
