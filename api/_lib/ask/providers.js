@@ -16,10 +16,11 @@ import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { createAnthropic } from '@ai-sdk/anthropic';
 
+const PROVIDERS = ['ollama', 'gemini', 'anthropic'];
 const DEFAULTS = {
-  ollama: 'llama3.1',
+  ollama: 'gpt-oss:20b',        // recommended for reliable tool calling; llama3.2 is too weak
   gemini: 'gemini-2.0-flash',
-  anthropic: 'claude-sonnet-5',
+  anthropic: 'claude-haiku-4-5-20251001',
 };
 
 // rough per-1M-token USD, for agent_queries.cost_usd. null = unknown/free.
@@ -32,6 +33,28 @@ const PRICING = {
 
 export function providerName() {
   return (process.env.DRAGOLD_LLM_PROVIDER || 'ollama').toLowerCase();
+}
+
+/**
+ * Config health without constructing a model or throwing. For a health check
+ * and for a clear "provider not configured" error before running the agent.
+ */
+export function providerStatus() {
+  const provider = providerName();
+  const modelId = process.env.DRAGOLD_LLM_MODEL || DEFAULTS[provider] || null;
+  if (!PROVIDERS.includes(provider)) {
+    return { provider, ok: false, reason: `unknown DRAGOLD_LLM_PROVIDER "${provider}" (expected ${PROVIDERS.join(' | ')})` };
+  }
+  if (provider === 'gemini' && !(process.env.GEMINI_API_KEY || process.env.GOOGLE_GENERATIVE_AI_API_KEY)) {
+    return { provider, modelId, ok: false, reason: 'GEMINI_API_KEY is not set' };
+  }
+  if (provider === 'anthropic' && !process.env.ANTHROPIC_API_KEY) {
+    return { provider, modelId, ok: false, reason: 'ANTHROPIC_API_KEY is not set' };
+  }
+  const extra = provider === 'ollama'
+    ? { base_url: (process.env.OLLAMA_BASE_URL || 'http://localhost:11434').replace(/\/$/, '') }
+    : {};
+  return { provider, modelId, ok: true, ...extra };
 }
 
 /** Returns { model, provider, modelId }. Throws a clear error if creds are missing. */
