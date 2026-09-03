@@ -1,0 +1,26 @@
+DraGold — Open Source TCG Intelligence Layer
+Copyright 2026 DraGold contributors
+
+This product includes software developed by the DraGold project
+(https://github.com/dragold/DraGold), licensed under the Apache License 2.0.
+
+--------------------------------------------------------------------------------
+Data classification (see LICENSING.md for the full statement)
+--------------------------------------------------------------------------------
+
+1. Software (this repository's code): Apache-2.0 — see LICENSE.
+
+2. First-party curated mappings authored by DraGold — the cross-language
+   set/number equivalence assertions in data/cross-language/ (set codes,
+   languages, release dates, and DraGold's own editorial notes):
+   dedicated to the public domain under CC0-1.0 — see
+   data/cross-language/LICENSE. No third-party card content is contained
+   in those files.
+
+3. Third-party data (card names, images, rules text, prices, set metadata)
+   retrieved at runtime from external sources — TCGdex, TCGCSV/TCGplayer,
+   Cardmarket, JustTCG, Scryfall, YGOPRODeck, Bandai, eBay, and others —
+   is NOT owned by DraGold, is NOT redistributed in this repository, and
+   remains subject to each source's own licence and terms of service. A
+   self-hosted deployment fetches this data directly from those sources
+   under the deployer's own responsibility.

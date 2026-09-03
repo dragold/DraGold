@@ -15,6 +15,7 @@ const IllustratorPage = lazy(() => import('./pages/illustrator/IllustratorPage.j
 const AcademyPage = lazy(() => import('./pages/academy/AcademyPage.jsx'))
 const AcademyLessonPage = lazy(() => import('./pages/academy/AcademyLessonPage.jsx'))
 const CardIdPage = lazy(() => import('./pages/card-id/CardIdPage.jsx'))
+const AskPage = lazy(() => import('./pages/ask/AskPage.jsx'))
 const LoginPage = lazy(() => import('./pages/auth/LoginPage.jsx'))
 const RegisterPage = lazy(() => import('./pages/auth/RegisterPage.jsx'))
 const ForgotPasswordPage = lazy(() => import('./pages/auth/ForgotPasswordPage.jsx'))
@@ -49,6 +50,7 @@ const tcgMatch = TCG_HUBS.find(hub => `/${hub.tcg}` === pathNoSlash)
 // blocks above (exact-match on pathNoSlash, mounted before the SPA shell).
 const AUTH_ROUTES = {
   '/card-id': CardIdPage,
+  '/ask': AskPage,
   '/login': LoginPage,
   '/register': RegisterPage,
   '/forgot-password': ForgotPasswordPage,

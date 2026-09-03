@@ -1,0 +1,70 @@
+.ad {
+  margin: 24px 0 8px;
+  border: 1px solid var(--border, rgba(255,255,255,.09));
+  border-radius: 16px;
+  background: linear-gradient(180deg, var(--surface, #0F1116), var(--bg, #08090C));
+  overflow: hidden;
+}
+.ad-answer { padding: 22px 22px 8px; }
+.ad-block { font-size: 15px; line-height: 1.62; margin: 0 0 12px; color: var(--text, #EDEEF2); }
+.ad-tag {
+  display: inline-block;
+  font-family: 'Space Mono', ui-monospace, monospace;
+  font-size: 10px; letter-spacing: .1em;
+  padding: 2px 6px; border-radius: 5px; margin-right: 6px;
+  vertical-align: 1px;
+}
+.ad-fact .ad-tag { background: rgba(var(--gold-rgb, 231 183 95) / .16); color: var(--foil, #F3E1B8); }
+.ad-inference .ad-tag, .ad-conclusion .ad-tag { background: rgba(var(--relation-rgb, 126 139 196) / .18); color: var(--relation, #7E8BC4); }
+.ad-recommendation .ad-tag { background: rgba(255,255,255,.08); color: var(--muted, #9BA1AD); }
+
+.ad-sec { padding: 16px 22px; border-top: 1px solid var(--border, rgba(255,255,255,.07)); }
+.ad-sec h3 {
+  font-family: 'Space Mono', ui-monospace, monospace;
+  font-size: 11px; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--dim, #6C7280); margin: 0 0 10px;
+}
+
+.ad-cards { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.ad-cards li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; font-size: 13.5px; }
+.ad-card-link { display: flex; flex-wrap: wrap; gap: 8px; align-items: baseline; text-decoration: none; }
+a.ad-card-link:hover .ad-card-name { color: var(--gold, #E7B75F); }
+.ad-card-name { color: var(--text, #EDEEF2); font-weight: 600; }
+.ad-card-meta { color: var(--muted, #9BA1AD); font-size: 12px; }
+
+.ad-xlang .ad-cards li { border-left: 2px solid rgba(var(--relation-rgb, 126 139 196) / .4); padding-left: 10px; }
+.ad-basis {
+  font-family: 'Space Mono', ui-monospace, monospace; font-size: 10px;
+  padding: 1px 6px; border-radius: 4px; background: rgba(255,255,255,.06); color: var(--muted, #9BA1AD);
+}
+.ad-basis-set_alias, .ad-basis-number_alias, .ad-basis-same_canonical {
+  background: rgba(var(--relation-rgb, 126 139 196) / .18); color: var(--relation, #7E8BC4);
+}
+.ad-note { flex-basis: 100%; color: var(--dim, #6C7280); font-size: 11.5px; line-height: 1.4; }
+
+.ad-val { border: 1px solid var(--border, rgba(255,255,255,.09)); border-radius: 10px; padding: 12px 14px; margin-bottom: 8px; }
+.ad-val-top { display: flex; justify-content: space-between; align-items: center; }
+.ad-val-price { font-family: 'Fraunces', Georgia, serif; font-size: 22px; color: var(--foil, #F3E1B8); }
+.ad-conf {
+  font-family: 'Space Mono', ui-monospace, monospace; font-size: 10px;
+  padding: 3px 8px; border-radius: 5px; background: rgba(255,255,255,.07); color: var(--muted, #9BA1AD);
+}
+.ad-conf-low { background: rgba(220,170,80,.16); color: #E7B75F; }
+.ad-val-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px 16px; margin: 10px 0 0; }
+.ad-val-grid dt { font-size: 10px; text-transform: uppercase; letter-spacing: .06em; color: var(--dim, #6C7280); }
+.ad-val-grid dd { margin: 2px 0 0; font-size: 13px; color: var(--text, #EDEEF2); }
+.ad-val-pending { border-style: dashed; border-color: var(--border-2, rgba(255,255,255,.14)); background: rgba(255,255,255,.02); }
+.ad-val-pending-label { font-family: 'Fraunces', Georgia, serif; font-size: 18px; color: var(--muted, #9BA1AD); }
+.ad-disclaimer { color: var(--dim, #6C7280); font-size: 11.5px; line-height: 1.45; margin: 8px 0 0; font-style: italic; }
+
+.ad-listings { list-style: none; margin: 6px 0 0; padding: 0; display: flex; flex-direction: column; gap: 5px; }
+.ad-listings a { color: var(--relation, #7E8BC4); text-decoration: none; font-size: 12.5px; }
+.ad-listings a:hover { text-decoration: underline; }
+
+.ad-kg-row { display: flex; gap: 10px; font-size: 13px; margin-bottom: 6px; }
+.ad-kg-label { color: var(--dim, #6C7280); font-size: 11px; min-width: 110px; text-transform: uppercase; letter-spacing: .05em; }
+
+.ad-meta {
+  padding: 10px 22px; border-top: 1px solid var(--border, rgba(255,255,255,.07));
+  font-family: 'Space Mono', ui-monospace, monospace; font-size: 10.5px; color: var(--dim, #6C7280);
+}

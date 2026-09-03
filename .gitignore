@@ -11,3 +11,6 @@ dist
 # run CI vivono come artifact del workflow .github/workflows/image-audit.yml, non qui.
 scripts/image-audit/data/
 .atlas-review/
+
+# Ask DraGold eval run outputs (not source)
+scripts/eval/results/
