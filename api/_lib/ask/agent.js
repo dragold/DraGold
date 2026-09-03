@@ -62,7 +62,17 @@ export async function runAgent({ message, history = [], ctx, modelOverride = nul
 
   const toolsUsed = [...new Set(toolCalls.map(c => c.tool))];
   const anyToolOk = toolCalls.some(c => c.ok);
-  const outcome = INSUFFICIENT_RE.test(text) && !hasEconomicClaim(toolResults) ? 'insufficient_data' : 'ok';
+
+  // If the model hit the step cap without producing a final answer, don't return
+  // an empty string — say so, and hand back whatever the tools established.
+  if (!text.trim()) {
+    text = toolResults.length
+      ? "I gathered data from DraGold's tools but did not finish composing an answer. The structured results below are what the tools returned."
+      : "I could not complete this request — no answer was produced.";
+    finishReason = finishReason || 'no-text';
+  }
+
+  const outcome = (!text.trim() || (INSUFFICIENT_RE.test(text) && !hasEconomicClaim(toolResults))) ? 'insufficient_data' : 'ok';
 
   const inTok = usage?.inputTokens ?? usage?.promptTokens ?? null;
   const outTok = usage?.outputTokens ?? usage?.completionTokens ?? null;

@@ -163,8 +163,7 @@ export async function collection(ctx, { mode = 'summary', set_id = null }) {
     const { sb } = ctx;
     const { count: totalInSet } = await sb.from('cards')
       .select('id', { count: 'exact', head: true }).eq('set_id', set_id).eq('lang', 'en');
-    const owned = new Set(items.filter(i => (i.set_name || '').length || i.card_api_id).map(i => i.card_api_id));
-    // best-effort: owned rows tagged to this set by card_api_id prefix or set_name
+    // best-effort: owned rows tagged to this set by card_api_id containing the set code
     const ownedInSet = items.filter(i => (i.card_api_id || '').toLowerCase().includes(String(set_id).toLowerCase())).length;
     return {
       available: true, mode, set_id,

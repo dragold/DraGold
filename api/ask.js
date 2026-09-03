@@ -13,7 +13,10 @@
 import { runAgent } from './_lib/ask/agent.js';
 import { serviceClient, userClient, userIdFromJwt } from './_lib/ask/db.js';
 
-export const config = { maxDuration: 60 };
+// The agent may run several tool round-trips + LLM steps. Hosted providers
+// (Gemini/Anthropic) finish in ~5–20s; a self-hosted Ollama can take much
+// longer. 300s needs a Vercel plan that allows it; Hobby caps lower.
+export const config = { maxDuration: 300 };
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
