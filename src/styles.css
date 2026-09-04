@@ -73,12 +73,57 @@
 
   /* ── z-index scale ── */
   --z-base:1; --z-rail:5; --z-header:40; --z-overlay:60; --z-preloader:90;
+
+  /* ════════════════════════════════════════════════════════════════════
+     CONSTELLATION VISUAL IDENTITY (Fase 4 · Punto 3)
+     "DraGold = TCG Intelligence Universe". Additive: every value below
+     traces back to the two accents (--gold, --relation) and --bg. No
+     selector renamed, nothing deleted.
+     ════════════════════════════════════════════════════════════════════ */
+
+  /* night sky — the deep-navy field behind every route (NightSky.jsx + body) */
+  --sky-0:#05060B; --sky-1:#0A0C15; --sky-2:#0E1120;
+  --sky-glow-warm:rgb(var(--gold-rgb) / .07);
+  --sky-glow-cool:rgb(var(--relation-rgb) / .10);
+  --star:var(--foil); --star-bright:#FFFFFF;
+
+  /* surfaces — SEMANTIC ALIASES over the three ink surfaces (no rename).
+     use these in new code so intent is legible: card vs elevated vs base. */
+  --surface-1:var(--surface);
+  --surface-card:var(--surface-2);
+  --surface-elevated:var(--surface-3);
+  --text-2:var(--muted);
+
+  /* borders */
+  --border-gold:rgb(var(--gold-rgb) / .42);
+  --border-gold-soft:rgb(var(--gold-rgb) / .22);
+  --border-relation:rgb(var(--relation-rgb) / .40);
+
+  /* effects — glow (important / selected / intelligence), atmosphere
+     opacity, and the two-accent holo band (never a rainbow) */
+  --glow-gold:0 0 24px rgb(var(--gold-rgb) / .26);
+  --glow-gold-sm:0 0 12px rgb(var(--gold-rgb) / .30);
+  --glow-relation:0 0 22px rgb(var(--relation-rgb) / .24);
+  --glow-focus:0 0 0 3px rgb(var(--gold-rgb) / .18);
+  --star-opacity:.60;
+  --constellation-opacity:.16;
+  --holo-angle:115deg;
+  --holo-band:linear-gradient(var(--holo-angle),
+    transparent 30%, rgb(var(--gold-rgb) / .22) 45%,
+    rgb(var(--relation-rgb) / .20) 56%, transparent 72%);
 }
 *{box-sizing:border-box;margin:0;padding:0;}
 /* overflow-x:clip (not hidden) prevents a horizontal scrollbar without
    turning <body> into a scroll container — which would break position:sticky
    for descendants (the Atlas specimen). Falls back to hidden on old engines. */
-html,body{background:var(--bg);color:var(--text);font-family:'Plus Jakarta Sans',system-ui,sans-serif;-webkit-font-smoothing:antialiased;overflow-x:hidden;overflow-x:clip;}
+/* --sky-0 is the flat fallback the browser paints before NightSky.jsx mounts
+   (CSR app — JS is a given). The living gradient + stars live in NightSky. */
+html,body{background:var(--sky-0);color:var(--text);font-family:'Plus Jakarta Sans',system-ui,sans-serif;-webkit-font-smoothing:antialiased;overflow-x:hidden;overflow-x:clip;}
+
+/* Every route renders inside .dg-root — the stacking context one level ABOVE
+   the fixed .dg-sky atmosphere, so page content is never covered by it while
+   transparent gaps (page gutters, --bg sections) let the sky read through. */
+.dg-root{position:relative;z-index:1;}
 
 /* Phase 2A — prefers-reduced-motion globale. Non disabilita gli stati
    (hover/focus/active restano invariati, cambiano istantaneamente invece
@@ -139,10 +184,10 @@ input{font-family:inherit;font-size:16px;}
 [id="main-content"]:focus{outline:none;}
 
 /* header */
-.hdr{position:sticky;top:0;z-index:40;background:rgba(2,2,8,.82);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-bottom:1px solid var(--border);padding-top:env(safe-area-inset-top,0px);}
+.hdr{position:sticky;top:0;z-index:40;background:rgb(var(--bg-rgb) / .82);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-bottom:1px solid var(--border);padding-top:env(safe-area-inset-top,0px);}
 .hdr-in{max-width:var(--maxw);margin:0 auto;height:58px;display:flex;align-items:center;gap:14px;padding:0 var(--p);}
 .brand{display:flex;align-items:center;gap:9px;}
-.brand-dot{width:10px;height:10px;border-radius:50%;background:linear-gradient(135deg,var(--gold),var(--gold-deep));box-shadow:0 0 14px rgba(251,191,36,.6);}
+.brand-dot{width:10px;height:10px;border-radius:50%;background:linear-gradient(135deg,var(--gold),var(--gold-deep));box-shadow:0 0 14px rgb(var(--gold-rgb) / .6);}
 .logo-txt{font-size:20px;}
 .topnav{display:none;gap:4px;margin-left:18px;}
 .topnav-i{padding:8px 14px;border-radius:9px;font-size:14px;font-weight:600;color:var(--muted);transition:.15s;}
@@ -172,7 +217,7 @@ input{font-family:inherit;font-size:16px;}
 /* hero — North Star "Codex entrance": eyebrow + oversized display headline
    with an italic accent word, subtle two-accent radial glow behind it. */
 .hero{position:relative;padding:26px 0 10px;}
-.hero::before{content:'';position:absolute;top:-40px;left:-24px;right:-24px;height:340px;background:radial-gradient(65% 100% at 78% 10%,rgba(251,191,36,.10),transparent 62%),radial-gradient(55% 90% at 8% 100%,rgba(126,139,196,.08),transparent 60%);pointer-events:none;z-index:-1;}
+.hero::before{content:'';position:absolute;top:-40px;left:-24px;right:-24px;height:340px;background:radial-gradient(65% 100% at 78% 10%,rgb(var(--gold-rgb) / .10),transparent 62%),radial-gradient(55% 90% at 8% 100%,rgb(var(--relation-rgb) / .08),transparent 60%);pointer-events:none;z-index:-1;}
 .hero-eyebrow{display:block;font-family:'Space Mono',monospace;font-size:11px;font-weight:700;letter-spacing:.24em;text-transform:uppercase;color:var(--dim);margin-bottom:16px;}
 .hero-t{font-family:'Fraunces',serif;font-weight:800;font-size:clamp(32px,8vw,60px);line-height:1.02;letter-spacing:-.025em;}
 .hero-accent{font-style:italic;font-weight:600;color:var(--gold);}
@@ -222,11 +267,11 @@ input{font-family:inherit;font-size:16px;}
 .discover-tile img{max-height:34px;max-width:96px;object-fit:contain;}
 .discover-tile-name{font-size:12px;font-weight:700;text-align:center;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
 .discover-tile-tcg{font-family:'Space Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.12em;color:var(--tcg-color,var(--dim));}
-@media(hover:hover){.discover-tile:hover{border-color:var(--tcg-color,var(--gold));transform:translateY(-5px);box-shadow:0 18px 32px -20px rgba(0,0,0,.6);}}
+@media(hover:hover){.discover-tile:hover{border-color:var(--tcg-color,var(--gold));transform:translateY(-5px);box-shadow:0 18px 32px -20px rgba(0,0,0,.6),var(--glow-gold-sm);}}
 /* Collection & Set Completion Loop on the Discover-a-set rail (see
    SearchView.jsx's ownedBySet) — a small real-data badge, not a fabricated
    progress bar (we don't cheaply have each set's total card count here). */
-.discover-tile-owned{position:absolute;top:8px;right:8px;font-family:'Space Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.02em;color:var(--gold);background:rgba(251,191,36,.12);border:1px solid rgba(251,191,36,.3);border-radius:100px;padding:2px 7px;}
+.discover-tile-owned{position:absolute;top:8px;right:8px;font-family:'Space Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.02em;color:var(--gold);background:rgb(var(--gold-rgb) / .12);border:1px solid rgb(var(--gold-rgb) / .3);border-radius:100px;padding:2px 7px;}
 /* Collection Progress mini ring on Discover-a-set tiles -- same conic-gradient
    mechanic as .set-completion-ring (SetDetailPage.jsx), scaled down to fit a
    128px rail tile's corner instead of the full set-detail hero. */
@@ -241,7 +286,7 @@ input{font-family:inherit;font-size:16px;}
 
 /* search */
 .search{display:flex;align-items:center;gap:8px;margin:20px 0 14px;background:var(--surface-2);border:1px solid var(--border-2);border-radius:14px;padding:6px 6px 6px 14px;transition:.15s;}
-.search:focus-within{border-color:var(--gold);box-shadow:0 0 0 3px rgba(251,191,36,.12);}
+.search:focus-within{border-color:var(--gold);box-shadow:var(--glow-focus);}
 .search-ic{color:var(--muted);display:flex;flex-shrink:0;}
 .search-in{flex:1;background:none;border:none;outline:none;color:var(--text);font-size:16px;padding:10px 4px;min-width:0;}
 .search-in::placeholder{color:var(--dim);}
@@ -256,8 +301,8 @@ input{font-family:inherit;font-size:16px;}
 .chip.on{color:var(--text);background:var(--surface-3);border-color:var(--border-2);}
 .hero-cta-row{display:flex;flex-wrap:wrap;gap:8px;}
 .hero-cta-row .chip{display:inline-flex;align-items:center;gap:5px;text-decoration:none;}
-.chip-academy{color:var(--gold);border-color:rgba(251,191,36,.25);}
-.chip-academy:hover{color:var(--gold);border-color:rgba(251,191,36,.45);background:rgba(251,191,36,.08);}
+.chip-academy{color:var(--gold);border-color:rgb(var(--gold-rgb) / .25);}
+.chip-academy:hover{color:var(--gold);border-color:rgb(var(--gold-rgb) / .45);background:rgb(var(--gold-rgb) / .08);}
 .tcg-chip{display:flex;align-items:center;gap:6px;}
 .tcg-chip-logo{height:15px;width:auto;object-fit:contain;filter:brightness(0) invert(1);opacity:.85;}
 .tcg-chip.on .tcg-chip-logo{filter:none;opacity:1;}
@@ -295,7 +340,7 @@ input{font-family:inherit;font-size:16px;}
 .btn{border-radius:11px;font-weight:700;font-size:14px;padding:11px 18px;transition:.15s;display:inline-flex;align-items:center;justify-content:center;gap:8px;}
 .btn-sm{padding:8px 14px;font-size:13px;border-radius:9px;}
 .btn-primary{background:var(--gold);color:#1a1200;}
-.btn-primary:hover{filter:brightness(1.06);}
+.btn-primary:hover{filter:brightness(1.06);box-shadow:var(--glow-gold-sm);}
 .btn-primary:disabled{opacity:.6;cursor:default;}
 .btn-ghost{background:var(--surface-2);color:var(--text);border:1px solid var(--border-2);}
 .btn-block{width:100%;}
@@ -306,7 +351,7 @@ input{font-family:inherit;font-size:16px;}
 .up-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:12px;opacity:.65;cursor:default;pointer-events:none;user-select:none;}
 .up-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
 .up-ic{width:30px;height:30px;border-radius:9px;background:var(--surface-2);display:flex;align-items:center;justify-content:center;color:var(--muted);}
-.badge-soon{font-size:10px;font-weight:700;font-family:'Space Mono',monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--gold);background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.25);padding:3px 8px;border-radius:100px;}
+.badge-soon{font-size:10px;font-weight:700;font-family:'Space Mono',monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--gold);background:rgb(var(--gold-rgb) / .1);border:1px solid rgb(var(--gold-rgb) / .25);padding:3px 8px;border-radius:100px;}
 .up-label{font-size:14px;font-weight:700;margin-bottom:2px;}
 .up-desc{font-size:12px;color:var(--muted);line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
 
@@ -314,11 +359,11 @@ input{font-family:inherit;font-size:16px;}
 .onboard{background:var(--surface);border:1px solid var(--border-2);border-radius:18px;padding:18px;margin-bottom:22px;}
 .onboard-pills{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;}
 .onboard-pill{display:flex;align-items:center;gap:6px;padding:7px 12px;border-radius:100px;font-size:12px;font-weight:700;color:var(--dim);background:var(--surface-2);border:1px solid var(--border);transition:.15s;flex-shrink:0;}
-.onboard-pill.on{color:var(--text);border-color:var(--gold);background:rgba(251,191,36,.08);}
+.onboard-pill.on{color:var(--text);border-color:var(--gold);background:rgb(var(--gold-rgb) / .08);}
 .onboard-n{width:18px;height:18px;border-radius:50%;background:var(--surface-3);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;font-family:'Space Mono',monospace;flex-shrink:0;}
 .onboard-pill.on .onboard-n{background:var(--gold);color:#1a1200;}
 .onboard-body{display:flex;flex-direction:column;gap:8px;padding:4px 0 16px;}
-.onboard-ic{width:44px;height:44px;border-radius:14px;background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.2);display:flex;align-items:center;justify-content:center;color:var(--gold);}
+.onboard-ic{width:44px;height:44px;border-radius:14px;background:rgb(var(--gold-rgb) / .1);border:1px solid rgb(var(--gold-rgb) / .2);display:flex;align-items:center;justify-content:center;color:var(--gold);}
 .onboard-title{font-size:16px;font-weight:800;letter-spacing:-.01em;}
 .onboard-desc{font-size:14px;color:var(--muted);line-height:1.5;max-width:440px;}
 .onboard-foot{display:flex;align-items:center;gap:10px;}
@@ -334,7 +379,7 @@ input{font-family:inherit;font-size:16px;}
 .foot-legal{margin-top:6px;font-size:11.5px;opacity:.75;}
 
 /* bottom tab (mobile) */
-.tabbar{position:fixed;bottom:0;left:0;right:0;z-index:40;display:flex;background:rgba(11,11,24,.92);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border-top:1px solid var(--border);padding-bottom:env(safe-area-inset-bottom);}
+.tabbar{position:fixed;bottom:0;left:0;right:0;z-index:40;display:flex;background:rgb(var(--bg-rgb) / .92);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border-top:1px solid var(--border);padding-bottom:env(safe-area-inset-bottom);}
 .tab-i{flex:1;height:var(--tabh);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;color:var(--dim);font-size:11px;font-weight:600;transition:.15s;}
 .tab-i.on{color:var(--gold);}
 /* Atlas redesign: the bottom tab bar is mobile-only. Desktop navigation
@@ -343,7 +388,7 @@ input{font-family:inherit;font-size:16px;}
 @media (min-width:1024px){ .tabbar{ display:none; } }
 
 /* modal */
-.modal-backdrop{position:fixed;inset:0;z-index:60;background:rgba(2,2,8,.7);backdrop-filter:blur(6px);display:flex;align-items:flex-end;justify-content:center;padding:0;min-height:100svh;}
+.modal-backdrop{position:fixed;inset:0;z-index:60;background:rgb(var(--bg-rgb) / .7);backdrop-filter:blur(6px);display:flex;align-items:flex-end;justify-content:center;padding:0;min-height:100svh;}
 .modal{position:relative;width:100%;max-width:430px;background:var(--surface);border:1px solid var(--border-2);border-radius:22px 22px 0 0;padding:28px 22px calc(26px + env(safe-area-inset-bottom));box-shadow:0 -20px 60px rgba(0,0,0,.6);}
 .modal-x{position:absolute;top:16px;right:16px;color:var(--muted);width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;}
 .modal-x:hover{background:var(--surface-2);color:var(--text);}
@@ -351,7 +396,7 @@ input{font-family:inherit;font-size:16px;}
 .auth-form h3,.auth-sent h3{font-size:20px;font-weight:800;letter-spacing:-.01em;margin-bottom:6px;}
 .auth-p{color:var(--muted);font-size:14px;margin-bottom:16px;line-height:1.45;}
 .input{width:100%;background:var(--surface-2);border:1px solid var(--border-2);border-radius:11px;padding:13px 14px;color:var(--text);font-size:16px;outline:none;margin-bottom:12px;transition:.15s;}
-.input:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(251,191,36,.12);}
+.input:focus{border-color:var(--gold);box-shadow:var(--glow-focus);}
 .auth-err{background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.3);color:var(--loss);font-size:13px;padding:9px 12px;border-radius:9px;margin-bottom:12px;}
 .auth-sent{text-align:center;}
 .auth-sent-ic{width:60px;height:60px;border-radius:16px;background:rgba(52,211,153,.1);color:var(--gain);display:flex;align-items:center;justify-content:center;margin:4px auto 14px;}
@@ -374,7 +419,7 @@ input{font-family:inherit;font-size:16px;}
   /* North Star card treatment: rest → hover-lift-6 (translateY -6px, gold-tinted
      border, deeper shadow) rather than a flat scale — the card reads as an
      object lifting off the surface, not a button growing. */
-  .card-item:hover{border-color:rgba(251,191,36,.35);background:var(--surface-2);transform:translateY(-6px);box-shadow:0 20px 36px -20px rgba(0,0,0,.6);}
+  .card-item:hover{border-color:rgb(var(--gold-rgb) / .35);background:var(--surface-2);transform:translateY(-6px);box-shadow:0 20px 36px -20px rgba(0,0,0,.6),var(--glow-gold-sm);}
 }
 /* Press feedback (fires on touch and mouse alike, independent of the
    desktop-only :hover lift) — a card compresses slightly when pressed,
@@ -395,19 +440,19 @@ input{font-family:inherit;font-size:16px;}
 .set-logo-img{max-height:28px;max-width:130px;object-fit:contain;opacity:.85;display:block;margin:4px 0 2px;}
 .card-item-lang{font-size:12px;}
 /* Print variant badge (Alternate Art/Promo/Foil/Parallel), FASE 4 search suggestions -- stesso token .card-item-num, leggermente evidenziato per distinguerlo dal numero carta. */
-.card-item-variant{color:var(--gold);border:1px solid rgba(251,191,36,.25);border-radius:5px;padding:1px 5px;}
+.card-item-variant{color:var(--gold);border:1px solid rgb(var(--gold-rgb) / .25);border-radius:5px;padding:1px 5px;}
 /* Link reali (non SPA) a /carta/{slug}?lang=xx per ogni stampa del gruppo canonico -- vedi commento in SearchResultItem.jsx. */
 .card-item-variants{display:flex;flex-wrap:wrap;gap:4px;padding:0 10px 10px;margin-top:-4px;}
 .card-item-variant-link{font-size:11px;text-decoration:none;color:var(--muted);background:var(--surface-2);border:1px solid var(--border);border-radius:5px;padding:2px 6px;line-height:1.4;}
-.card-item-variant-link:hover{color:var(--gold);border-color:rgba(251,191,36,.3);}
+.card-item-variant-link:hover{color:var(--gold);border-color:rgb(var(--gold-rgb) / .3);}
 /* House rule: no red/green price signal on catalog/browsing surfaces — a
    price is a fact (mono), not a trading cue. Matches .fmv-val/.sold-avg,
    which already use gold rather than gain/loss. Portfolio/Alerts keep
    their own gain/loss convention below (a dedicated tracking feature, not
    this rule's target). */
 .price-tag{font-family:'Space Mono',monospace;font-size:13px;font-weight:700;color:var(--gold);}
-.btn-ebay{font-size:10px;font-weight:700;color:var(--gold);text-decoration:none;background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.2);padding:4px 8px;border-radius:7px;display:inline-block;white-space:nowrap;}
-.btn-ebay:hover{background:rgba(251,191,36,.16);}
+.btn-ebay{font-size:10px;font-weight:700;color:var(--gold);text-decoration:none;background:rgb(var(--gold-rgb) / .08);border:1px solid rgb(var(--gold-rgb) / .2);padding:4px 8px;border-radius:7px;display:inline-block;white-space:nowrap;}
+.btn-ebay:hover{background:rgb(var(--gold-rgb) / .16);}
 
 /* search states */
 .search-clear{color:var(--dim);display:flex;padding:5px;border-radius:6px;flex-shrink:0;}
@@ -422,7 +467,7 @@ input{font-family:inherit;font-size:16px;}
 .back-btn{display:inline-flex;align-items:center;gap:4px;color:var(--muted);font-size:14px;font-weight:600;padding:8px 4px;margin-bottom:10px;}
 .back-btn:hover{color:var(--text);}
 .asset-head{position:relative;display:flex;flex-direction:column;gap:22px;}
-.asset-head::before{content:'';position:absolute;top:-30px;left:-24px;right:-24px;height:340px;background:radial-gradient(55% 100% at 30% 10%,rgba(251,191,36,.10),transparent 62%),radial-gradient(45% 80% at 85% 60%,rgba(126,139,196,.06),transparent 65%);pointer-events:none;z-index:-1;}
+.asset-head::before{content:'';position:absolute;top:-30px;left:-24px;right:-24px;height:340px;background:radial-gradient(55% 100% at 30% 10%,rgb(var(--gold-rgb) / .10),transparent 62%),radial-gradient(45% 80% at 85% 60%,rgb(var(--relation-rgb) / .06),transparent 65%);pointer-events:none;z-index:-1;}
 /* The card is an object floating in the page, not a photo inside a window:
    .asset-img is pure layout (size/position) — no border, no background, no
    clipping — so CardObject's own drop-shadow bleeds freely into the
@@ -455,11 +500,11 @@ input{font-family:inherit;font-size:16px;}
     repeating-linear-gradient(var(--foil-angle,115deg),
       rgba(0,0,0,0) 0%,
       rgba(231,183,95,.55) 9%,
-      rgba(126,139,196,.5) 18%,
+      rgb(var(--relation-rgb) / .5) 18%,
       rgba(120,200,190,.4) 26%,
       rgba(0,0,0,0) 34%),
     radial-gradient(farthest-corner at var(--mx,50%) var(--my,50%),
-      rgba(255,244,214,.6), rgba(126,139,196,.16) 42%, transparent 68%);
+      rgba(255,244,214,.6), rgb(var(--relation-rgb) / .16) 42%, transparent 68%);
   background-size:220% 220%, 170% 170%;
   background-position:var(--bg-x,35%) var(--bg-y,35%), var(--mx,50%) var(--my,50%);
   transition:opacity var(--dur-fast) var(--ease-out);
@@ -475,7 +520,7 @@ input{font-family:inherit;font-size:16px;}
   background:
     radial-gradient(circle at 25% 20%, rgba(255,255,255,.6) 0 1px, transparent 2px) 0 0 / 6% 8%,
     repeating-linear-gradient(var(--foil-angle,115deg),
-      rgba(0,0,0,0) 0%, rgba(231,183,95,.6) 8%, rgba(126,139,196,.55) 16%,
+      rgba(0,0,0,0) 0%, rgba(231,183,95,.6) 8%, rgb(var(--relation-rgb) / .55) 16%,
       rgba(120,200,190,.45) 24%, rgba(0,0,0,0) 32%),
     radial-gradient(farthest-corner at var(--mx,50%) var(--my,50%),
       rgba(255,244,214,.6), transparent 66%);
@@ -515,12 +560,12 @@ input{font-family:inherit;font-size:16px;}
 /* Hero is the one place a continuous ambient effect is allowed even when
    not owned (README motion budget: "reserved for hero/owned states only") —
    a faint diagonal scan, the "one moment per page that's pure pleasure". */
-.card-object-hero .card-object-plate::after{content:'';position:absolute;top:0;bottom:0;left:-40%;width:32%;background:linear-gradient(100deg,transparent,rgba(251,191,36,.10),transparent);animation:dgScan 6.5s ease-in-out infinite;pointer-events:none;}
+.card-object-hero .card-object-plate::after{content:'';position:absolute;top:0;bottom:0;left:-40%;width:32%;background:linear-gradient(100deg,transparent,rgb(var(--gold-rgb) / .10),transparent);animation:dgScan 6.5s ease-in-out infinite;pointer-events:none;}
 @keyframes dgScan{0%{left:-40%;}55%{left:104%;}100%{left:104%;}}
 /* Foil-scan: ambient motion reserved for owned cards only (never in
    grid/search utility contexts) — covered by the global
    prefers-reduced-motion animation-duration override above. */
-.card-object-owned .card-object-foil{position:absolute;inset:0;border-radius:inherit;pointer-events:none;mix-blend-mode:color-dodge;opacity:.35;background:linear-gradient(115deg,transparent 20%,rgba(251,191,36,.35) 40%,rgba(126,139,196,.35) 52%,transparent 70%);background-size:250% 250%;animation:foilScan 3.2s ease-in-out infinite;}
+.card-object-owned .card-object-foil{position:absolute;inset:0;border-radius:inherit;pointer-events:none;mix-blend-mode:color-dodge;opacity:.35;background:linear-gradient(115deg,transparent 20%,rgb(var(--gold-rgb) / .35) 40%,rgb(var(--relation-rgb) / .35) 52%,transparent 70%);background-size:250% 250%;animation:foilScan 3.2s ease-in-out infinite;}
 @keyframes foilScan{0%{background-position:0% 0%;}50%{background-position:100% 100%;}100%{background-position:0% 0%;}}
 
 /* North Star — edge-label: small relationship indicator above a rail,
@@ -546,7 +591,7 @@ input{font-family:inherit;font-size:16px;}
 
 /* Artwork zoom lightbox — one image, one dismiss action; no focus-trap
    dependency needed for that. Esc handled in AssetView.jsx. */
-.artwork-lightbox{position:fixed;inset:0;z-index:90;background:rgba(2,2,8,.92);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:40px 20px;cursor:zoom-out;animation:artworkLightboxIn var(--dur-settle) var(--ease-out);}
+.artwork-lightbox{position:fixed;inset:0;z-index:90;background:rgb(var(--bg-rgb) / .92);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:40px 20px;cursor:zoom-out;animation:artworkLightboxIn var(--dur-settle) var(--ease-out);}
 @keyframes artworkLightboxIn{from{opacity:0;}to{opacity:1;}}
 .artwork-lightbox img{max-width:min(560px,92vw);max-height:88vh;width:auto;height:auto;border-radius:14px;box-shadow:0 40px 90px -20px rgba(0,0,0,.7);cursor:default;animation:artworkLightboxScale var(--dur-settle) var(--ease-out);}
 @keyframes artworkLightboxScale{from{transform:scale(.94);opacity:0;}to{transform:scale(1);opacity:1;}}
@@ -570,7 +615,7 @@ input{font-family:inherit;font-size:16px;}
 .fmv-block{margin-top:20px;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:22px 20px;}
 .fmv-row{display:flex;align-items:baseline;gap:10px;}
 .fmv-val{font-family:'Space Mono',monospace;font-size:40px;font-weight:700;color:var(--text);letter-spacing:-.01em;}
-.fmv-tag{font-size:10px;font-weight:700;font-family:'Space Mono',monospace;letter-spacing:.1em;color:var(--gold);background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.25);padding:3px 7px;border-radius:6px;}
+.fmv-tag{font-size:10px;font-weight:700;font-family:'Space Mono',monospace;letter-spacing:.1em;color:var(--gold);background:rgb(var(--gold-rgb) / .1);border:1px solid rgb(var(--gold-rgb) / .25);padding:3px 7px;border-radius:6px;}
 .fmv-sub{margin-top:5px;font-size:12px;color:var(--dim);font-family:'Space Mono',monospace;}
 .spark-wrap{margin-top:14px;}
 .spark-svg{width:100%;height:64px;display:block;}
@@ -584,7 +629,7 @@ input{font-family:inherit;font-size:16px;}
 .sold-table{margin-top:10px;background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;}
 .sold-hdr{display:grid;grid-template-columns:1fr 1fr 1fr 48px;padding:8px 14px;background:var(--surface-2);font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);}
 .sold-row{display:grid;grid-template-columns:1fr 1fr 1fr 48px;padding:11px 14px;border-top:1px solid var(--border);align-items:center;}
-.sold-row.sold-featured{background:rgba(251,191,36,.04);}
+.sold-row.sold-featured{background:rgb(var(--gold-rgb) / .04);}
 .sold-row.sold-locked{grid-template-columns:1fr auto;cursor:pointer;}
 .sold-row.sold-locked:hover{background:var(--surface-2);}
 .sold-row.sold-empty{opacity:.5;}
@@ -654,7 +699,7 @@ input{font-family:inherit;font-size:16px;}
   .asset-img{width:380px;}
 }
 @media(max-width:639px){
-  .asset-actions{position:sticky;bottom:calc(var(--tabh) + env(safe-area-inset-bottom,0px));z-index:30;background:rgba(2,2,8,.92);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);margin:24px calc(var(--p) * -1) 0;padding:12px var(--p) calc(env(safe-area-inset-bottom,0px) + 12px);border-top:1px solid var(--border);}
+  .asset-actions{position:sticky;bottom:calc(var(--tabh) + env(safe-area-inset-bottom,0px));z-index:30;background:rgb(var(--bg-rgb) / .92);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);margin:24px calc(var(--p) * -1) 0;padding:12px var(--p) calc(env(safe-area-inset-bottom,0px) + 12px);border-top:1px solid var(--border);}
   .asset-actions .btn{min-height:46px;}
 }
 .price-chart-wrap{margin:0 0 4px;}
@@ -681,7 +726,7 @@ input{font-family:inherit;font-size:16px;}
 .pf-cond,.pf-set,.pf-lang{font-size:11px;color:var(--muted);}
 .pf-fresh{font-size:10px;font-family:'Space Mono',monospace;padding:1px 6px;border-radius:100px;border:1px solid var(--border);}
 .pf-fresh.ok{color:var(--gain);border-color:rgba(52,211,153,.3);}
-.pf-fresh.warn{color:var(--gold);border-color:rgba(251,191,36,.3);}
+.pf-fresh.warn{color:var(--gold);border-color:rgb(var(--gold-rgb) / .3);}
 .pf-fresh.stale{color:var(--loss);border-color:rgba(248,113,113,.3);}
 .pf-prices{display:flex;gap:16px;margin-top:2px;}
 .pf-price-col{display:flex;flex-direction:column;gap:1px;}
@@ -701,7 +746,7 @@ input{font-family:inherit;font-size:16px;}
 .pf-range-pills{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0 2px;}
 .pf-range-pill{font-size:11px;font-weight:700;font-family:'Space Mono',monospace;letter-spacing:.04em;padding:5px 11px;border-radius:100px;border:1px solid var(--border);background:transparent;color:var(--dim);cursor:pointer;transition:.15s;}
 .pf-range-pill:hover{color:var(--text);}
-.pf-range-pill.on{border-color:var(--gold);color:var(--gold);background:rgba(251,191,36,.08);}
+.pf-range-pill.on{border-color:var(--gold);color:var(--gold);background:rgb(var(--gold-rgb) / .08);}
 .pf-hero-chart{margin:10px 0 2px;padding:0 2px;min-height:100px;}
 .pf-hero-chart.loading{opacity:.4;}
 .pf-updated{font-size:11px;color:var(--dim);margin-top:12px;font-family:'Space Mono',monospace;display:flex;align-items:center;gap:6px;}
@@ -716,7 +761,7 @@ input{font-family:inherit;font-size:16px;}
 .pf-tcg-chips{display:flex;flex-wrap:wrap;gap:6px;}
 .pf-tcg-chip{font-size:12px;font-weight:600;padding:6px 13px;border-radius:100px;border:1px solid var(--border);background:var(--surface);color:var(--muted);cursor:pointer;transition:.15s;}
 .pf-tcg-chip:hover{color:var(--text);}
-.pf-tcg-chip.on{border-color:var(--gold);color:var(--text);background:rgba(251,191,36,.08);}
+.pf-tcg-chip.on{border-color:var(--gold);color:var(--text);background:rgb(var(--gold-rgb) / .08);}
 .pf-filterbar-r{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
 .pf-sort-select{background:var(--surface);border:1px solid var(--border);color:var(--text);font-size:12px;padding:8px 10px;border-radius:9px;font-family:inherit;}
 .pf-view-toggle{display:flex;border:1px solid var(--border);border-radius:9px;overflow:hidden;flex-shrink:0;}
@@ -731,12 +776,12 @@ input{font-family:inherit;font-size:16px;}
 @media(min-width:1400px){.pf-grid{grid-template-columns:repeat(5,1fr);}}
 
 .pfg-card{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden;text-decoration:none;color:inherit;box-shadow:0 8px 18px -14px rgba(0,0,0,.5);transition:border-color .18s var(--ease-out),transform .18s var(--ease-out),box-shadow .18s var(--ease-out);}
-@media(hover:hover){.pfg-card:hover{border-color:var(--gold);transform:translateY(-3px);box-shadow:0 18px 30px -20px rgba(0,0,0,.6);}}
+@media(hover:hover){.pfg-card:hover{border-color:var(--gold);transform:translateY(-3px);box-shadow:0 18px 30px -20px rgba(0,0,0,.6),var(--glow-gold-sm);}}
 .pfg-card:focus-visible{outline:2px solid var(--gold);outline-offset:2px;}
 .pfg-img{width:100%;aspect-ratio:5/7;background:var(--surface-2);overflow:hidden;position:relative;flex-shrink:0;}
 .pfg-img img{width:100%;height:100%;object-fit:cover;display:block;}
-.pfg-qty-badge{position:absolute;top:8px;right:8px;background:rgba(8,8,14,.8);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);color:#fff;font-family:'Space Mono',monospace;font-size:11px;font-weight:700;padding:2px 9px;border-radius:100px;border:1px solid rgba(255,255,255,.15);}
-.pfg-qty-decrement{position:absolute;top:8px;left:8px;width:22px;height:22px;display:flex;align-items:center;justify-content:center;background:rgba(8,8,14,.8);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);color:#fff;font-family:'Space Mono',monospace;font-size:14px;font-weight:700;line-height:1;padding:0;border-radius:100px;border:1px solid rgba(255,255,255,.15);cursor:pointer;transition:background .15s var(--ease-out);}
+.pfg-qty-badge{position:absolute;top:8px;right:8px;background:rgb(var(--bg-rgb) / .8);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);color:#fff;font-family:'Space Mono',monospace;font-size:11px;font-weight:700;padding:2px 9px;border-radius:100px;border:1px solid rgba(255,255,255,.15);}
+.pfg-qty-decrement{position:absolute;top:8px;left:8px;width:22px;height:22px;display:flex;align-items:center;justify-content:center;background:rgb(var(--bg-rgb) / .8);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);color:#fff;font-family:'Space Mono',monospace;font-size:14px;font-weight:700;line-height:1;padding:0;border-radius:100px;border:1px solid rgba(255,255,255,.15);cursor:pointer;transition:background .15s var(--ease-out);}
 .pfg-qty-decrement:hover{background:rgba(255,80,80,.35);}
 .pfg-qty-decrement:disabled{opacity:.6;cursor:default;}
 .pfg-body{padding:11px 12px 12px;display:flex;flex-direction:column;gap:3px;flex:1;}
@@ -750,7 +795,7 @@ input{font-family:inherit;font-size:16px;}
 .pfg-change.loss{color:var(--loss);}
 .pfg-change.flat{color:var(--dim);}
 .pfg-chart-wrap{margin-top:6px;position:relative;}
-.pfg-tooltip{position:absolute;bottom:calc(100% + 4px);left:50%;transform:translateX(-50%);background:#0a0a10;border:1px solid var(--border-2);border-radius:8px;padding:6px 10px;font-size:10px;line-height:1.5;font-family:'Space Mono',monospace;white-space:nowrap;pointer-events:none;z-index:6;box-shadow:0 10px 24px rgba(0,0,0,.55);}
+.pfg-tooltip{position:absolute;bottom:calc(100% + 4px);left:50%;transform:translateX(-50%);background:var(--surface);border:1px solid var(--border-2);border-radius:8px;padding:6px 10px;font-size:10px;line-height:1.5;font-family:'Space Mono',monospace;white-space:nowrap;pointer-events:none;z-index:6;box-shadow:0 10px 24px rgba(0,0,0,.55);}
 .pfg-tooltip b{color:var(--gold);}
 .pfg-tooltip-date{color:var(--dim);text-transform:uppercase;font-size:9px;letter-spacing:.06em;margin-bottom:2px;}
 
@@ -789,7 +834,7 @@ input{font-family:inherit;font-size:16px;}
 .al-status.al-triggered{color:var(--dim);}
 .al-actions{display:flex;align-items:center;gap:6px;flex-shrink:0;}
 .al-toggle{width:38px;height:22px;border-radius:100px;background:var(--surface-3);border:1px solid var(--border-2);position:relative;flex-shrink:0;transition:.15s;}
-.al-toggle.on{background:rgba(251,191,36,.25);border-color:var(--gold);}
+.al-toggle.on{background:rgb(var(--gold-rgb) / .25);border-color:var(--gold);}
 .al-toggle-knob{position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:var(--muted);transition:.15s;}
 .al-toggle.on .al-toggle-knob{left:18px;background:var(--gold);}
 .al-search-box{margin-bottom:14px;position:relative;}
@@ -806,7 +851,7 @@ input{font-family:inherit;font-size:16px;}
 
 /* explore / sets */
 .explore-head{position:relative;padding:22px 0 8px;margin-bottom:6px;}
-.explore-head::before{content:'';position:absolute;top:-20px;left:-24px;right:-24px;height:220px;background:radial-gradient(60% 100% at 20% 10%,rgba(126,139,196,.08),transparent 62%);pointer-events:none;z-index:-1;}
+.explore-head::before{content:'';position:absolute;top:-20px;left:-24px;right:-24px;height:220px;background:radial-gradient(60% 100% at 20% 10%,rgb(var(--relation-rgb) / .08),transparent 62%);pointer-events:none;z-index:-1;}
 .explore-eyebrow{display:block;font-family:'Space Mono',monospace;font-size:10.5px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--relation);margin-bottom:10px;}
 .explore-title{font-family:'Fraunces',serif;font-weight:800;font-size:clamp(30px,6vw,46px);line-height:1.0;letter-spacing:-.02em;}
 .explore-sub{margin-top:10px;color:var(--muted);font-size:14.5px;}
@@ -820,7 +865,7 @@ input{font-family:inherit;font-size:16px;}
    design pass. */
 .set-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px 12px;display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center;transform:translateY(0);box-shadow:0 8px 18px -14px rgba(0,0,0,.5);transition:border-color var(--dur-fast) var(--ease-out),background-color var(--dur-fast) var(--ease-out),transform var(--dur-lift) var(--ease-out),box-shadow var(--dur-lift) var(--ease-out);}
 @media (hover:hover){
-  .set-card:hover{border-color:rgba(251,191,36,.35);background:var(--surface-2);transform:translateY(-6px);box-shadow:0 20px 36px -20px rgba(0,0,0,.6);}
+  .set-card:hover{border-color:rgb(var(--gold-rgb) / .35);background:var(--surface-2);transform:translateY(-6px);box-shadow:0 20px 36px -20px rgba(0,0,0,.6),var(--glow-gold-sm);}
 }
 .set-card:active{transform:scale(.96);transition-duration:100ms;}
 .set-card:focus-visible{outline:2px solid var(--gold);outline-offset:2px;}
@@ -894,12 +939,12 @@ input{font-family:inherit;font-size:16px;}
    design system's rule is gold=ownership/focus, periwinkle=relation/edges of
    the graph. Grid tiles elsewhere keep the gold hover. */
 @media (hover:hover){
-  .rel-rail .card-item:hover{border-color:rgba(126,139,196,.5);box-shadow:0 20px 36px -20px rgba(0,0,0,.6),0 0 0 1px rgba(126,139,196,.12);}
+  .rel-rail .card-item:hover{border-color:rgb(var(--relation-rgb) / .5);box-shadow:0 20px 36px -20px rgba(0,0,0,.6),0 0 0 1px rgb(var(--relation-rgb) / .12);}
 }
 
 /* ─── Set Detail page header ─── */
 .set-detail-head{position:relative;display:flex;flex-direction:column;gap:16px;margin:10px 0 8px;padding:28px 24px 34px;border:1px solid var(--border);border-radius:18px;overflow:hidden;background:var(--surface);}
-.set-detail-head::before{content:'';position:absolute;inset:0;background:radial-gradient(75% 120% at 78% 0%,rgba(126,139,196,.16),transparent 62%),radial-gradient(60% 90% at 6% 100%,rgba(251,191,36,.08),transparent 60%);pointer-events:none;}
+.set-detail-head::before{content:'';position:absolute;inset:0;background:radial-gradient(75% 120% at 78% 0%,rgb(var(--relation-rgb) / .16),transparent 62%),radial-gradient(60% 90% at 6% 100%,rgb(var(--gold-rgb) / .08),transparent 60%);pointer-events:none;}
 .set-detail-eyebrow{position:relative;font-family:'Space Mono',monospace;font-size:10.5px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--relation);}
 .set-detail-row{position:relative;display:flex;align-items:center;gap:18px;}
 .set-detail-head .set-logo-img{height:52px;max-width:220px;object-fit:contain;}
@@ -908,7 +953,7 @@ input{font-family:inherit;font-size:16px;}
 .set-detail-head .view-t{font-family:'Fraunces',serif;font-weight:800;font-size:clamp(34px,6.5vw,58px);letter-spacing:-.02em;line-height:.98;}
 .set-preview-strip{position:relative;display:flex;gap:10px;overflow-x:auto;margin-top:20px;padding-top:16px;border-top:1px solid rgba(255,255,255,.08);}
 .set-preview-card{flex:0 0 56px;aspect-ratio:63/88;border-radius:7px;overflow:hidden;border:1px solid var(--border-2);box-shadow:0 10px 20px -12px rgba(0,0,0,.6);}
-.set-preview-card.owned{border-color:rgba(251,191,36,.6);box-shadow:0 10px 20px -12px rgba(0,0,0,.6),0 0 0 1px rgba(251,191,36,.18);}
+.set-preview-card.owned{border-color:rgb(var(--gold-rgb) / .6);box-shadow:0 10px 20px -12px rgba(0,0,0,.6),0 0 0 1px rgb(var(--gold-rgb) / .18);}
 
 /* Completion ring — real data only (rendered solely when ownedIds exists,
    i.e. the user is signed in and we fetched their rows for this set).
@@ -928,12 +973,12 @@ input{font-family:inherit;font-size:16px;}
 .constellation-protagonist{flex:0 0 150px;aspect-ratio:63/88;padding:0;background:none;border:none;cursor:pointer;}
 .constellation-satellite{position:relative;flex:0 0 84px;aspect-ratio:63/88;border-radius:7px;overflow:hidden;background:var(--surface-2);border:1px solid var(--border);cursor:pointer;padding:0;transition:transform var(--dur-lift) var(--ease-out),border-color var(--dur-fast) var(--ease-out),box-shadow var(--dur-lift) var(--ease-out),opacity var(--dur-fast) var(--ease-out);}
 .constellation-satellite img{width:100%;height:100%;object-fit:cover;display:block;opacity:.88;transition:opacity var(--dur-fast) var(--ease-out);}
-.constellation-satellite.owned{border-color:rgba(251,191,36,.55);box-shadow:0 0 0 1px rgba(251,191,36,.18);}
+.constellation-satellite.owned{border-color:rgb(var(--gold-rgb) / .55);box-shadow:0 0 0 1px rgb(var(--gold-rgb) / .18);}
 .constellation-satellite.owned img{opacity:1;}
 .constellation-satellite:active,.constellation-protagonist:active{transform:scale(.95);transition-duration:100ms;}
 .constellation-node-ph{display:block;width:100%;height:100%;background:linear-gradient(150deg,var(--surface-3),var(--surface-2));}
 @media(hover:hover){
-  .constellation-satellite:hover{transform:translateY(-5px);border-color:rgba(251,191,36,.55);box-shadow:0 18px 32px -16px rgba(0,0,0,.75);z-index:1;}
+  .constellation-satellite:hover{transform:translateY(-5px);border-color:rgb(var(--gold-rgb) / .55);box-shadow:0 18px 32px -16px rgba(0,0,0,.75),var(--glow-gold-sm);z-index:1;}
   .constellation-satellite:hover img{opacity:1;}
   /* Protagonist focus: hovering one satellite reads the field as a
      network — the rest recede instead of competing for attention. Cheap
@@ -946,7 +991,8 @@ input{font-family:inherit;font-size:16px;}
    AUTH PAGES — /login /register /forgot-password /reset-password /account
    (Auth/Profile/Username feature) — reuses .btn/.input/.auth-* tokens above.
    ════════════════════════════════════════════════════════════════════════ */
-.authpage{min-height:100svh;display:flex;align-items:center;justify-content:center;padding:32px var(--p);background:var(--bg);}
+/* transparent — the global night sky (NightSky.jsx) is the auth backdrop now */
+.authpage{min-height:100svh;display:flex;align-items:center;justify-content:center;padding:32px var(--p);background:transparent;}
 .authpage-card{width:100%;max-width:420px;background:var(--surface);border:1px solid var(--border-2);border-radius:22px;padding:32px 26px;box-shadow:0 30px 80px rgba(0,0,0,.5);}
 .authpage-back{color:var(--muted);font-size:13px;margin-bottom:18px;display:inline-block;transition:.15s;}
 .authpage-back:hover{color:var(--text);}
@@ -990,7 +1036,7 @@ input{font-family:inherit;font-size:16px;}
 .avatar-edit-row{display:flex;gap:8px;flex-wrap:wrap;}
 .avatar-edit-input{display:none;}
 .avatar-edit-hint{font-size:11.5px;color:var(--dim);}
-.avatar-edit-spinner{position:absolute;inset:0;border-radius:50%;background:rgba(2,2,8,.55);display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;}
+.avatar-edit-spinner{position:absolute;inset:0;border-radius:50%;background:rgb(var(--bg-rgb) / .55);display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;}
 
 .field-status{font-size:12px;margin-top:-8px;margin-bottom:12px;display:flex;align-items:center;gap:5px;}
 .field-status.ok{color:var(--gain);}
@@ -1013,13 +1059,13 @@ input{font-family:inherit;font-size:16px;}
 /* Legal placeholder pages */
 .legal-page{max-width:720px;margin:0 auto;padding:40px var(--p) 80px;}
 .legal-page h1{font-family:'Fraunces',serif;font-size:clamp(26px,5vw,36px);font-weight:800;margin-bottom:8px;}
-.legal-page .legal-note{background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.25);color:var(--muted);font-size:13.5px;padding:12px 14px;border-radius:11px;margin:18px 0 26px;line-height:1.55;}
+.legal-page .legal-note{background:rgb(var(--gold-rgb) / .08);border:1px solid rgb(var(--gold-rgb) / .25);color:var(--muted);font-size:13.5px;padding:12px 14px;border-radius:11px;margin:18px 0 26px;line-height:1.55;}
 .legal-page h2{font-size:17px;font-weight:800;margin:26px 0 8px;}
 .legal-page p{color:var(--muted);font-size:14.5px;line-height:1.7;margin-bottom:10px;}
 
 /* Academy MVP (Task 4) */
 .acad-hero{padding:28px 0 24px;border-bottom:1px solid var(--border);margin-bottom:24px;}
-.acad-hero-ic{display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:11px;background:rgba(251,191,36,.12);color:var(--gold);margin-bottom:12px;}
+.acad-hero-ic{display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:11px;background:rgb(var(--gold-rgb) / .12);color:var(--gold);margin-bottom:12px;}
 .acad-hero-t{font-family:'Fraunces',serif;font-size:clamp(26px,5vw,36px);font-weight:800;letter-spacing:-.02em;margin-bottom:8px;}
 .acad-hero-sub{color:var(--muted);font-size:14.5px;line-height:1.65;max-width:640px;margin-bottom:16px;}
 .acad-progress{display:flex;align-items:center;gap:12px;max-width:420px;}

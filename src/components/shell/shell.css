@@ -27,9 +27,27 @@
 .site-header-in{
   display:flex; align-items:center; gap:clamp(.75rem,2vw,1.75rem); height:64px;
 }
+/* Wordmark — the one place gold is always allowed. The mark carries a
+   permanent, controlled glow; the word stays ink until hover/focus, where a
+   warm gold wash confirms "this is the brand" without shouting it. */
 .site-wordmark{ display:flex; align-items:center; gap:.5rem; flex-shrink:0; }
-.site-wordmark span{ font-size:1.15rem; letter-spacing:-.01em; }
-.site-wordmark img{ border-radius:6px; }
+.site-wordmark span{
+  font-size:1.15rem; letter-spacing:-.01em; color:var(--text);
+  transition:color var(--mo-tap) var(--ease-out);
+}
+.site-wordmark img{
+  border-radius:6px;
+  filter:drop-shadow(var(--glow-gold-sm));
+  transition:filter var(--mo-tap) var(--ease-out), transform var(--mo-instant) var(--ease-out);
+}
+@media (hover:hover){
+  .site-wordmark:hover span{ color:var(--gold); }
+  .site-wordmark:hover img{ filter:drop-shadow(var(--glow-gold)); transform:scale(1.04); }
+}
+.site-wordmark:focus-visible{ outline:2px solid var(--gold); outline-offset:3px; border-radius:8px; }
+@media (prefers-reduced-motion:reduce){
+  .site-wordmark span, .site-wordmark img{ transition:none; }
+}
 
 .site-nav{ display:none; gap:.15rem; }
 @media (min-width:1024px){ .site-nav{ display:flex; } }
