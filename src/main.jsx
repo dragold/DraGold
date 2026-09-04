@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import { Analytics } from '@vercel/analytics/react'
 import { AuthProvider } from './lib/auth.js'
 import { TCG_HUBS } from './lib/tcgConfig.js'
+import NightSky from './components/atmosphere/NightSky.jsx'
 import './styles.css'
 
 // Every route is its own lazy chunk — a visitor to /carta/… never downloads
@@ -69,10 +70,16 @@ const RootView = cardMatch ? h(CardPage, { slug: decodeURIComponent(cardMatch[1]
   : authRouteComp ? h(authRouteComp, null)
   : h(DraGold, null)
 
+// NightSky is the global atmosphere layer (fixed, z-index:0, aria-hidden).
+// Everything else renders inside .dg-root, which is the stacking context that
+// sits ABOVE the sky so page content is never obscured.
 createRoot(document.getElementById('root')).render(
   h(StrictMode, null,
     h(AuthProvider, null,
-      h(Suspense, { fallback: h('div', { style: { minHeight: '100svh', background: '#08090C' } }) }, RootView),
+      h(NightSky, null),
+      h('div', { className: 'dg-root' },
+        h(Suspense, { fallback: h('div', { style: { minHeight: '100svh', background: '#05060B' } }) }, RootView)
+      ),
       h(Analytics, null)
     )
   )
