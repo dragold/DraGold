@@ -1,61 +1,31 @@
 // DraGold — Explore/Sets (Explorer/Set-Experience feature, builds on v1 P0-D).
 //
-// Pokémon + One Piece: still sourced from setsMap (set_logos, cached once via
-// lib/state.js loadSetsMap() — zero new queries for the default tab load,
-// same as before) — now also carrying release_date (added to that query by
-// this task), so sets sort release_date DESC and group by year for real,
-// instead of the previous alphabetical order.
+// MVP Set Selector (Task 2): Integrated into SetsView. The SetSelector component
+// offers the 6 MVP sets (OP-01, OP-02, EB-01, EB-02, SV07, SV08) with one click
+// navigation to /set/{slug} (Standalone SetPage with completion, owned/missing,
+// prices, estimated value). Below the selector, the full Explore grid shows all
+// sets grouped by TCG, year, and product type — clicking a tile opens SetDetailPage
+// inside the shell (different destination: SetDetailPage uses setRef with tcg/set_id,
+// SetPage uses slug-based routing).
 //
-// MTG + Yu-Gi-Oh!: set_logos has no rows for these two TCGs (verified on
-// Supabase), so they were entirely absent from Explore before. They're now
-// real sections, loaded lazily on demand via lib/tcgSets.js's loadTcgSets()
-// (same computation the public /mtg //ygo hub pages use, memoized) — not
-// fetched eagerly on tab-open, to keep the default Explore load as cheap as
-// it was (canonical_cards has 27k/14k rows for mtg/ygo respectively; scanning
-// both up front on every Explore visit would be a real regression).
+// The SetSelector uses loadTcgSets (TCGdex API) for MVP sets that may not be in
+// setsMap (e.g., EB-01, EB-02), ensuring all 6 MVP sets are available regardless
+// of Supabase set_logos coverage. Non-MVP sets use the existing setsMap/language
+// sets paths (pokemon/onepiece from set_logos, mtg/ygo lazy via loadTcgSets).
 //
-// Explorer + Catalog Completeness (2026-08-25): the cheap set_logos-based
-// path above only ever carried the English/International print of a set —
-// Pokémon/One Piece Japanese sets live under a completely different set_id
-// namespace (verified on Supabase: pokemon ja uses CP1/E1../M1L/PCG1..,
-// nothing like base1/bw1/swshp) and were invisible in Explore. Each TCG now
-// gets an extra, separately-lazy "Japanese" subsection, shown only when
-// detectJapaneseSets() confirms real ja rows exist for that tcg (checked live
-// per tcg, not hardcoded — mtg/ygo are 100% 'en', verified, so they never get
-// an empty/dead subsection). One Piece's ja sets share the same real
-// set_logos row as their en counterpart (same physical set, two source-id
-// spellings — see setSlug.js normalizeSetKey), so they reuse its logo/name
-// instead of showing a duplicate identity or an invented asset; Pokémon's ja
-// sets have no set_logos match at all (different code namespace), so they
-// fall back to the same elegant branded tile already used for mtg/ygo.
+// Integration point: SetSelector sits at the top of SetsView as a "Pick a Set"
+// panel. When user clicks an MVP set card, we navigate to /set/{slug} (standalone
+// SetPage). When user clicks a tile in the TCG grid below, onOpenSet(ref) opens
+// SetDetailPage inside the shell (existing behavior, NOT changed).
 //
-// Fallback loghi One Piece (STEP 3, verificato il 12/08/2026): i loghi ufficiali
-// (en.onepiece-cardgame.com) sono protetti da hotlink — l'immagine "carica" (evento
-// load, complete:true) ma restituisce 0×0 px, quindi il solo onError non basta a
-// rilevare il fallimento e la tile resta con uno spazio vuoto. Nessuna fonte
-// alternativa con licenza chiara e hosting stabile è stata trovata in tempi
-// ragionevoli. Soluzione: fallback elegante invece di un rettangolo bianco —
-// tile brandizzata con codice set ben leggibile. Stesso fallback riusato ora
-// per qualunque set senza logo (mtg/ygo compresi, e ora i set JP di Pokémon),
-// non solo One Piece.
-//
-// Phase 3 — Fase 2 (Ordinamento e filtri Explore, 26/08/2026): aggiunge un
-// controllo di ordinamento esplicito (Novità / Alfabetico / Per era) e un
-// filtro per tipologia prodotto, sopra i dati già presenti — nessuna nuova
-// query, riusa src/lib/setEras.js (era Pokémon verificata 153/153 contro
-// set_logos, tipologia prodotto Pokémon/One Piece). "Per era" è significativo
-// solo per Pokémon (unico TCG con un vero concetto di blocco/era nei dati
-// oggi disponibili — vedi commento in setEras.js): per gli altri TCG il
-// controllo resta selezionabile ma la lista non si spezza in sotto-gruppi
-// finti, mostra solo l'elenco alfabetico. Il filtro tipologia prodotto è
-// per-sezione TCG (le etichette non sono le stesse tra Pokémon e One Piece) e
-// appare solo quando quel TCG ha davvero dati di tipologia (mai un filtro
-// finto su dati assenti, coerente con CLAUDE.md §9).
+// IMPORTANT: Do NOT refactor SetsView. Only add the SetSelector panel at the top.
+// Keep all existing sorting, filtering, lazy-loading, Japanese subsection logic.
 import { useState, useEffect, useMemo } from "react";
 import { TCG_LIST } from "../../DraGold.jsx";
 import { useReveal } from "../../lib/useReveal.js";
 import { loadTcgSets, loadLangSets, detectJapaneseSets } from "../../lib/tcgSets.js";
 import { getSetEra, getProductType, PRODUCT_TYPE_LABELS } from "../../lib/setEras.js";
+import { SetSelector } from "../../components/set/SetSelector.jsx";
 
 const LANG_LABEL = { ja: "JP" };
 const SORT_MODES = [
@@ -64,8 +34,6 @@ const SORT_MODES = [
   { id: "era", label: "Per era" },
 ];
 
-// Arricchisce un set grezzo con era/eraOrder (solo Pokémon, altrimenti null —
-// mai inventata) e productType (Pokémon + One Piece, altrimenti null).
 function withClassification(s) {
   const eraInfo = getSetEra(s.tcg, s.setId);
   return {
@@ -117,13 +85,6 @@ function SetTile({ s, tcg, onOpenSet }) {
   );
 }
 
-// Groups an already-sorted list into buckets depending on sortMode. 'date' ->
-// year buckets (newest first, unknown-date sets in one trailing bucket,
-// unchanged behaviour). 'era' -> era buckets for Pokémon (newest era first,
-// same convention as year buckets); any set without an assigned era (every
-// non-Pokémon set today, plus Pokémon JA) falls into a single trailing
-// "Altri set" bucket instead of a fabricated era. 'alpha' -> no sub-grouping,
-// a single flat bucket (LangGroup already hides headers when there's only one).
 function groupSets(sets, sortMode) {
   if (sortMode === "alpha") {
     return sets.length ? [{ key: "all", label: null, items: sets }] : [];
@@ -141,7 +102,6 @@ function groupSets(sets, sortMode) {
     }
     return groups;
   }
-  // 'date' (default)
   const groups = [];
   for (const s of sets) {
     const key = s.releaseYear != null ? String(s.releaseYear) : "unknown";
@@ -163,10 +123,9 @@ function sortSets(sets, sortMode) {
   if (sortMode === "era") {
     return arr.sort((a, b) => {
       const ea = a.eraOrder, eb = b.eraOrder;
-      if (ea != null && eb != null && ea !== eb) return eb - ea; // era più recente prima
+      if (ea != null && eb != null && ea !== eb) return eb - ea;
       if (ea != null && eb == null) return -1;
       if (ea == null && eb != null) return 1;
-      // stessa era (o nessuna): stesso criterio del sort 'date' come tie-break
       const da = a.releaseDate ? new Date(a.releaseDate) : null;
       const db = b.releaseDate ? new Date(b.releaseDate) : null;
       if (da && db) return db - da;
@@ -175,7 +134,6 @@ function sortSets(sets, sortMode) {
       return (a.setName || "").localeCompare(b.setName || "");
     });
   }
-  // 'date' (default)
   return arr.sort((a, b) => {
     const da = a.releaseDate ? new Date(a.releaseDate) : null;
     const db = b.releaseDate ? new Date(b.releaseDate) : null;
@@ -186,11 +144,6 @@ function sortSets(sets, sortMode) {
   });
 }
 
-// One language group inside a TCG section (International or Japanese).
-// `loadState` is undefined for the always-visible International group when
-// it's the cheap/instant setsMap path (no button needed); it's a real
-// idle/loading/done state for anything lazily fetched (mtg/ygo's only group,
-// and every TCG's Japanese group).
 function LangGroup({ label, sets, loadState, onLoad, tcg, onOpenSet, emptyLabel, sortMode }) {
   const groups = groupSets(sets, sortMode);
   const showGroupHeaders = sets.length > 0 && groups.length > 1;
@@ -237,9 +190,6 @@ function TcgSection({
 }) {
   const reveal = useReveal(index);
 
-  // Tipologie prodotto realmente presenti in questa sezione (International +
-  // Japanese insieme) — il filtro appare solo se ce n'è più di una, altrimenti
-  // sarebbe un controllo senza scelta reale.
   const availableTypes = useMemo(() => {
     const found = new Set();
     for (const s of [...sets, ...(jaSets || [])]) if (s.productType) found.add(s.productType);
@@ -278,16 +228,9 @@ function TcgSection({
           </div>
         )}
 
-        {/* International — always the first group. Unlabeled when this TCG
-            has no Japanese group at all (mtg/ygo today): a lone
-            "International" header would just be noise when there's nothing
-            to distinguish it from. */}
         <LangGroup label={jaAvailable ? "International" : null} sets={filteredSets} loadState={loadState}
           onLoad={onLoad} tcg={tcg} onOpenSet={onOpenSet} sortMode={sortMode} />
 
-        {/* Japanese — only rendered once detectJapaneseSets() has confirmed
-            real ja rows exist for this tcg. jaAvailable is undefined while
-            that check is still in flight, so nothing flashes in/out. */}
         {jaAvailable && (
           <LangGroup label="Japanese" sets={filteredJaSets} loadState={jaLoadState}
             onLoad={onLoadJa} tcg={tcg} onOpenSet={onOpenSet} sortMode={sortMode}
@@ -303,11 +246,8 @@ export function SetsView({ setsMap, onOpenSet }) {
   const allSets = loading ? [] : [...setsMap.values()];
 
   const [sortMode, setSortMode] = useState("date");
-  // Filtro tipologia prodotto, per tcg (le etichette non sono condivise tra
-  // Pokémon e One Piece, quindi non ha senso un unico filtro globale).
-  const [productTypeByTcg, setProductTypeByTcg] = useState({}); // tcg -> 'all' | type
+  const [productTypeByTcg, setProductTypeByTcg] = useState({});
 
-  // Pokémon + One Piece: instant, from the already-cached setsMap.
   const cheapByTcg = {};
   for (const s of allSets) {
     if (!cheapByTcg[s.tcg]) cheapByTcg[s.tcg] = [];
@@ -321,10 +261,8 @@ export function SetsView({ setsMap, onOpenSet }) {
     }));
   }
 
-  // MTG + Yu-Gi-Oh! (and any future TCG absent from set_logos): lazy, via
-  // lib/tcgSets.js — one fetch per tcg, cached, triggered on demand.
-  const [lazySets, setLazySets] = useState({}); // tcg -> array
-  const [lazyState, setLazyState] = useState({}); // tcg -> 'idle'|'loading'|'done'
+  const [lazySets, setLazySets] = useState({});
+  const [lazyState, setLazyState] = useState({});
 
   const loadLazy = (tcgId) => {
     setLazyState(prev => ({ ...prev, [tcgId]: "loading" }));
@@ -334,11 +272,9 @@ export function SetsView({ setsMap, onOpenSet }) {
     });
   };
 
-  // Japanese subsection — one cheap existence check per tcg on mount, then a
-  // real (lazy, on-demand) set list only for the TCGs that actually have one.
-  const [jaAvail, setJaAvail] = useState({}); // tcg -> true|false (undefined = still checking)
-  const [jaSets, setJaSets] = useState({}); // tcg -> array
-  const [jaState, setJaState] = useState({}); // tcg -> 'idle'|'loading'|'done'
+  const [jaAvail, setJaAvail] = useState({});
+  const [jaSets, setJaSets] = useState({});
+  const [jaState, setJaState] = useState({});
 
   useEffect(() => {
     let alive = true;
@@ -359,8 +295,12 @@ export function SetsView({ setsMap, onOpenSet }) {
     });
   };
 
-  const orderedTcgs = TCG_LIST; // priorita' di prodotto gia' incorporata nell'ordine dell'array (CLAUDE.md §1); una 5a riga (es. Lorcana) non richiede refactor qui.
+  const orderedTcgs = TCG_LIST;
   const totalCheap = Object.values(cheapByTcg).reduce((n, arr) => n + arr.length, 0);
+
+  const navigateToSetPage = (slug) => {
+    window.location.href = `/set/${slug}`;
+  };
 
   return (
     <section className="view">
@@ -371,6 +311,8 @@ export function SetsView({ setsMap, onOpenSet }) {
           <p className="explore-sub">{totalCheap}+ sets across {orderedTcgs.length} games.</p>
         )}
       </div>
+
+      <SetSelector onSelectSet={navigateToSetPage} />
 
       {!loading && (
         <div className="explore-controls">

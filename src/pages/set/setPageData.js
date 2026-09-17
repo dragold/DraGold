@@ -131,6 +131,25 @@ export async function getSetPageData(slug, lang) {
   }
   const cardsOut = deduped.map(c => ({ ...c, cardSlug: c.canonical_card_id ? slugMap.get(c.canonical_card_id) || null : null }))
 
+  // Fetch prices for these cards (batched query)
+  const cardIds = cardsOut.map(c => c.id)
+  let priceMap = new Map()
+  if (cardIds.length) {
+    const { data: priceRows } = await supabase
+      .from('card_prices_latest')
+      .select('card_id, price_market, currency, source, captured_at')
+      .in('card_id', cardIds)
+    if (priceRows && priceRows.length) {
+      priceMap = new Map(priceRows.map(p => [p.card_id, p]))
+    }
+  }
+
+  // Attach prices to cards
+  const cardsWithPrices = cardsOut.map(c => ({
+    ...c,
+    price: priceMap.get(c.id) || null
+  }))
+
   const sample = rows[0]
   const setName = logo?.set_name || sample?.set_name || realSetId
   const seriesName = sample?.series_name || null
@@ -145,9 +164,9 @@ export async function getSetPageData(slug, lang) {
     releaseDate: logo?.release_date || null,
     langUsed,
     langRequested: lang || null,
-    cardCount: cardsOut.length,
+    cardCount: cardsWithPrices.length,
     hasMore,
-    cards: cardsOut,
+    cards: cardsWithPrices,
   }
 }
 

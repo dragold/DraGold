@@ -341,6 +341,9 @@ export default function SetPage({ slug }) {
           ),
           h('div', { style: styles.cardName }, c.name),
           h('div', { style: styles.muted }, '#' + c.card_number, c.rarity ? ' · ' + c.rarity : ''),
+          c.price
+            ? h('div', { style: styles.priceTag }, formatPrice(c.price))
+            : h('div', { style: styles.priceUnavailable }, 'Price unavailable'),
           otherLangs.length ? h('div', { style: styles.variantTag }, 'Also: ' + otherLangs.join(', ').toUpperCase()) : null
         )
       }))
@@ -436,6 +439,13 @@ function formatDate(iso) {
   catch { return iso }
 }
 
+function formatPrice(p) {
+  if (!p || p.price_market == null) return 'Price unavailable'
+  const val = Number(p.price_market)
+  if (!isFinite(val)) return 'Price unavailable'
+  return new Intl.NumberFormat('en-US', { style: 'currency', currency: p.currency || 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val)
+}
+
 const TILE_CSS = `
 .dg-set-link:hover{text-decoration:underline;}
 .dg-set-link:focus-visible{outline:2px solid #fbbf24;outline-offset:2px;border-radius:3px;}
@@ -475,9 +485,11 @@ const styles = {
   cardImgPh: { width: '100%', aspectRatio: '3/4', background: '#14141f', borderRadius: 8 },
   qtyBadge: { position: 'absolute', top: 6, right: 6, background: '#4b3cff', color: '#fff', fontSize: 11, fontWeight: 700, borderRadius: 12, padding: '2px 7px', boxShadow: '0 2px 6px rgba(0,0,0,0.4)' },
   cardName: { fontSize: 13, fontWeight: 600, lineHeight: 1.3 },
+  priceTag: { fontSize: 11, fontWeight: 700, color: '#4ade80', marginTop: 2 },
+  priceUnavailable: { fontSize: 10, color: '#555', marginTop: 2, fontStyle: 'italic' },
   variantTag: { color: '#7a7ae0', fontSize: 11, marginTop: 2 },
   adjacentRow: { display: 'flex', gap: 16, flexWrap: 'wrap' },
   adjacentCard: { flex: '1 1 200px', textDecoration: 'none', color: 'inherit', background: '#0f0f18', border: '1px solid #23233a', borderRadius: 10, padding: 12 },
   muted: { color: '#777', fontSize: 13 },
   link: { color: '#9aa0ff' },
-}
+};
