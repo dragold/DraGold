@@ -6,6 +6,11 @@ import { TCG_HUBS } from './lib/tcgConfig.js'
 import NightSky from './components/atmosphere/NightSky.jsx'
 import './styles.css'
 
+// Global error boundary — catches React errors anywhere in the tree and renders
+// a graceful fallback instead of crashing the whole page. Placed OUTSIDE the
+// lazy-loaded routes so even a crash in a lazy chunk is caught.
+import { ErrorBoundary } from './components/shared/ErrorBoundary.jsx'
+
 // Every route is its own lazy chunk — a visitor to /carta/… never downloads
 // the SPA shell (DraGold.jsx) or /account, and vice-versa.
 const DraGold = lazy(() => import('./DraGold.jsx'))
@@ -76,11 +81,13 @@ const RootView = cardMatch ? h(CardPage, { slug: decodeURIComponent(cardMatch[1]
 createRoot(document.getElementById('root')).render(
   h(StrictMode, null,
     h(AuthProvider, null,
-      h(NightSky, null),
-      h('div', { className: 'dg-root' },
-        h(Suspense, { fallback: h('div', { style: { minHeight: '100svh', background: '#05060B' } }) }, RootView)
+      h(ErrorBoundary, null,
+        h(NightSky, null),
+        h('div', { className: 'dg-root' },
+          h(Suspense, { fallback: h('div', { style: { minHeight: '100svh', background: '#05060B' } }) }, RootView)
+        ),
       ),
-      h(Analytics, null)
-    )
-  )
+      h(Analytics, null),
+    ),
+  ),
 )

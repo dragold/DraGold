@@ -61,9 +61,9 @@ function SetTile({ s, tcg, onOpenSet }) {
       onKeyDown={e => { if (onOpenSet && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); open(); } }}>
       <div className="set-card-logo">
         {showImg ? (
-          <img src={src} alt="" loading="lazy"
-            onError={() => setImgOk(false)}
-            onLoad={e => { if (e.currentTarget.naturalWidth === 0) setImgOk(false); }} />
+          <img src={src} alt={s.setName} loading="lazy"
+                      onError={() => setImgOk(false)}
+                      onLoad={e => { if (e.currentTarget.naturalWidth === 0) setImgOk(false); }} />
         ) : (
           <div className="set-card-fallback" style={{ color: tcg.color, borderColor: `${tcg.color}33` }}>
             <span className="set-card-fallback-code">{s.setId}</span>
@@ -207,7 +207,7 @@ function TcgSection({
     <div ref={reveal.ref} className={reveal.className} style={reveal.style}>
       <div className="set-section">
         <div className="sec-h">
-          <img src={tcg.logo} alt="" className="set-section-logo" />
+          <img src={tcg.logo} alt={tcg.label} className="set-section-logo" />
           <span className="sec-h-t" style={{ color: tcg.color }}>{tcg.label}</span>
           <span className="sec-h-line" />
           {sets.length > 0 && <span className="explore-count">{sets.length + (jaSets?.length || 0)}</span>}

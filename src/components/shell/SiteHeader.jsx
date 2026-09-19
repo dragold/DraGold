@@ -69,7 +69,7 @@ export function SiteHeader({
     <header className={`site-header${condensed ? " is-condensed" : ""}`}>
       <div className="shell-wrap site-header-in">
         <button className="site-wordmark" onClick={onHome} aria-label="DraGold — home">
-          <img src="/logo192.png" alt="" width="26" height="26" />
+                  <img src="/logo192.png" alt="DraGold" width="26" height="26" />
           <span className="font-syne">DraGold</span>
         </button>
 

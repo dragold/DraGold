@@ -14,13 +14,13 @@ export function SpecimenTile({ card, relation = false, owned = false, onOpen }) 
     >
       <span className="sp-tile-art">
         <CardObject
-          card={card}
-          src={src}
-          alt=""
-          variant="grid"
-          owned={owned}
-          fallback={<span className="sp-tile-ph" aria-hidden="true">{(card?.name || "?").slice(0, 1)}</span>}
-        />
+                  card={card}
+                  src={src}
+                  alt={card?.name || ""}
+                  variant="grid"
+                  owned={owned}
+                  fallback={<span className="sp-tile-ph" aria-hidden="true">{(card?.name || "?").slice(0, 1)}</span>}
+                />
       </span>
       <span className="sp-tile-name">{card?.name}</span>
       <span className="sp-tile-meta">

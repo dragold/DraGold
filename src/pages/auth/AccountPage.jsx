@@ -68,7 +68,7 @@ export default function AccountPage() {
 
         <div className="account-hero">
           {profile?.avatar_url
-            ? <img src={profile.avatar_url} alt="" className="account-avatar" style={{ objectFit: "cover" }} />
+            ? <img src={profile.avatar_url} alt={`Foto profilo per ${displayName}`} className="account-avatar" style={{ objectFit: "cover" }} />
             : <div className="account-avatar">{initial}</div>}
           <div>
             <div className="account-name">{displayName}</div>
@@ -145,7 +145,7 @@ function AvatarSection({ profile, hasGoogle, onUpdated, onToast }) {
       <div className="avatar-edit">
         <div className="avatar-edit-pic">
           {profile?.avatar_url
-            ? <img src={profile.avatar_url} alt="" />
+            ? <img src={profile.avatar_url} alt={`Foto profilo per ${profile?.username || "utente"}`} />
             : <div className="account-avatar">{(profile?.username || "?").slice(0, 1).toUpperCase()}</div>}
           {busy && <div className="avatar-edit-spinner"><Icon name="camera" size={16} /></div>}
         </div>

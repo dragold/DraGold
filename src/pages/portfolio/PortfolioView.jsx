@@ -313,9 +313,9 @@ function PortfolioGridCard({ pos, priceInfo, series, fmt, valuation, onOpen, onD
     <a className="pfg-card" href={`/card/${encodeURIComponent(pos.card_api_id)}`}
       onClick={(e) => { e.preventDefault(); onOpen(); }}
       aria-label={`${pos.card_name}, ${qty} ${qty === 1 ? "copy" : "copies"}, ${totalUSD != null ? fmt(totalUSD) : "price unavailable"} total — open card detail`}>
-      <div className="pfg-img">
-        {imgUrl && !imgFailed ? (
-          <img src={imgUrl} alt="" loading="lazy" onError={() => setImgFailed(true)} />
+            <div className="pfg-img">
+              {imgUrl && !imgFailed ? (
+                <img src={imgUrl} alt={pos.card_name || ""} loading="lazy" onError={() => setImgFailed(true)} />
         ) : (
           <div className="card-img-ph" style={{ width:"100%", height:"100%" }}>
             {tcgInfo && <span className="card-img-ph-tcg" style={{ color:tcgInfo.color, fontSize:9 }}>{tcgInfo.short}</span>}
@@ -370,9 +370,9 @@ function RailCard({ pos, changeUSD, changePct, totalUSD, confidence, fmt, onOpen
     <a className="pf-mover-card" href={`/card/${encodeURIComponent(pos.card_api_id)}`}
       onClick={(e) => { e.preventDefault(); onOpen(); }}
       aria-label={`${pos.card_name}, open card detail`}>
-      <div className="pf-mover-img">
-        {imgUrl && !imgFailed ? (
-          <img src={imgUrl} alt="" loading="lazy" onError={() => setImgFailed(true)} />
+            <div className="pf-mover-img">
+              {imgUrl && !imgFailed ? (
+                <img src={imgUrl} alt={pos.card_name || ""} loading="lazy" onError={() => setImgFailed(true)} />
         ) : (
           <div className="card-img-ph" style={{ width: "100%", height: "100%" }}>
             {tcgInfo && <span className="card-img-ph-tcg" style={{ color: tcgInfo.color, fontSize: 8 }}>{tcgInfo.short}</span>}
