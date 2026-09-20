@@ -21,3 +21,7 @@ export const TCG_HUBS = [
 export function getTcgHub(tcg) {
   return TCG_HUBS.find(h => h.tcg === tcg) || null
 }
+
+// Costanti interne per i 4 TCG supportati. Non esportata (usa TCG_HUBS per
+// introspection se serve). Nome maiuscolo per coerenza con altre costanti.
+const TCGS = ['pokemon', 'onepiece', 'mtg', 'ygo']

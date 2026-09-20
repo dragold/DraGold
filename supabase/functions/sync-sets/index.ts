@@ -1,10 +1,22 @@
 // sync-sets: sincronizza tutti i set da TCG Price Lookup -> tabella public.sets
 // Rate limit: 200 req/day. 12 chiamate totali per tutti i giochi.
 // Eseguire massimo 1 volta al giorno.
+//
+// CONFIGURAZIONE: TCG_LOOKUP_API_KEY deve essere impostato come variabile
+// d'ambiente / Supabase Edge Function secret. Non è presente alcun valore
+// hardcoded nel codice. Vedere .github/workflows/sync-set-catalog.yml e
+// la documentazione in docs/secrets.md per l'installazione.
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
 const SERVICE_KEY  = Deno.env.get('SUPABASE_SERVICE_KEY')!
-const TCG_KEY      = Deno.env.get('TCG_LOOKUP_API_KEY') || 'tcg_13cab6f910a348848a908751cc07d9fcaff84cc005bd1f94'
+const TCG_KEY      = Deno.env.get('TCG_LOOKUP_API_KEY')
+
+if (!TCG_KEY) {
+  throw new Error(
+    'TCG_LOOKUP_API_KEY non configurato. Impostalo come secret nell\'Edge Function ' +
+    'o come variabile d\'ambiente. Vedere docs/secrets.md.'
+  )
+}
 
 const GAMES = ['pokemon', 'mtg', 'yugioh', 'onepiece', 'lorcana', 'fab']
 const LIMIT = 200
