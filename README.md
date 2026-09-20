@@ -51,7 +51,7 @@ DraGold Community Core is released under the **BSD 3-Clause License**. See [LICE
 
 ### Brand and trademark
 
-**DraGold**, the DraGold logo, and `dragold.org` are trademarks of DraGold (Ermal Malali). This license grants you the right to use, modify, and distribute the *code*. It does **not** grant you the right to use the DraGold name, logo, or brand to endorse or market your own project. If you fork this codebase, your project should have its own name and identity.
+**DraGold**, the DraGold logo, and `dragold.org` are trademarks of DraGold (Ermal). This license grants you the right to use, modify, and distribute the *code*. It does **not** grant you the right to use the DraGold name, logo, or brand to endorse or market your own project. If you fork this codebase, your project should have its own name and identity.
 
 ### Third-party assets
 
@@ -91,4 +91,4 @@ See [docs/data-sources.md](docs/data-sources.md) for a list of known sources and
 
 ---
 
-*Built by [Ermal Malali](https://github.com/dragold). DraGold — fair market value for serious TCG collectors.*
+*Built by [Ermal](https://github.com/dragold). DraGold — fair market value for serious TCG collectors.*
