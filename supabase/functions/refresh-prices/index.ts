@@ -21,141 +21,9 @@ import { serve } from 'https://deno.land/std@0.224.0/http/server.ts'
 import { getServiceClient, loggedFetch, tryPriceChain } from '../_shared/fetch-with-log.ts'
 
 // ─── eBay credentials ────────────────────────────────────────────────────────
-// App ID is used for:
-//   - OAuth token (Browse API) via fetch-ebay-sold edge fn → EBAY_APP_ID + EBAY_CERT_ID
-//   - Finding API (findCompletedItems) → only App ID needed as SECURITY-APPNAME
+// EBAY_APP_ID is used only if fetch-ebay-sold edge function exists.
+// If it doesn't exist, the fallback chain uses TCG-specific APIs only.
 const EBAY_APP_ID  = Deno.env.get('EBAY_APP_ID')  || Deno.env.get('EBAY_CLIENT_ID')  || ''
-
-// ─── Finding API: fetch sold listings for last N days ────────────────────────
-// Makes ONE call with a 90-day window, then splits client-side into 7d/30d/90d.
-// Returns null on any fatal error (no credentials, timeout, bad response).
-
-interface SoldStats {
-  avg:    number | null
-  median: number | null
-  count:  number
-}
-
-interface SoldTimeframes {
-  '7d':  SoldStats
-  '30d': SoldStats
-  '90d': SoldStats
-}
-
-function computeStats(prices: number[]): SoldStats {
-  if (!prices.length) return { avg: null, median: null, count: 0 }
-  const sorted = [...prices].sort((a, b) => a - b)
-  const n = sorted.length
-  const avg    = +(sorted.reduce((s, p) => s + p, 0) / n).toFixed(2)
-  const median = +(sorted[Math.floor(n / 2)]).toFixed(2)
-  return { avg, median, count: n }
-}
-
-async function findEbaySold(
-  query:          string,
-  globalId:       string,   // 'EBAY-IT' | 'EBAY-US' | 'EBAY-GB'
-  sellerCountry?: string,   // e.g. 'JP'
-  timeoutMs = 12000
-): Promise<SoldTimeframes | null> {
-  if (!EBAY_APP_ID) return null
-
-  const now    = Date.now()
-  const from90 = new Date(now - 90 * 24 * 60 * 60 * 1000).toISOString()
-
-  // Build query params for findCompletedItems
-  const params: Record<string, string> = {
-    'OPERATION-NAME':        'findCompletedItems',
-    'SERVICE-VERSION':       '1.0.0',
-    'SECURITY-APPNAME':      EBAY_APP_ID,
-    'RESPONSE-DATA-FORMAT':  'JSON',
-    'GLOBAL-ID':             globalId,
-    'keywords':              query,
-    'itemFilter(0).name':    'SoldItemsOnly',
-    'itemFilter(0).value':   'true',
-    'itemFilter(1).name':    'EndTimeFrom',
-    'itemFilter(1).value':   from90,
-    'paginationInput.entriesPerPage': '100',
-    'paginationInput.pageNumber':     '1',
-    'sortOrder':             'StartTimeNewest',  // newest listings first
-  }
-
-  // Optional seller country filter (for JP cards)
-  if (sellerCountry) {
-    params['itemFilter(2).name']  = 'LocatedIn'
-    params['itemFilter(2).value'] = sellerCountry
-  }
-
-  const url = 'https://svcs.ebay.com/services/search/FindingService/v1?' +
-    Object.entries(params).map(([k, v]) => `${k}=${encodeURIComponent(v)}`).join('&')
-
-  const ctrl = new AbortController()
-  const tid  = setTimeout(() => ctrl.abort(), timeoutMs)
-  let res: Response
-  try {
-    res = await fetch(url, { signal: ctrl.signal })
-  } catch {
-    return null
-  } finally {
-    clearTimeout(tid)
-  }
-
-  if (!res.ok) return null
-
-  let data: any
-  try {
-    data = await res.json()
-  } catch {
-    return null
-  }
-
-  // Navigate the heavily-nested Finding API JSON response
-  const items: any[] = data?.findCompletedItemsResponse?.[0]?.searchResult?.[0]?.item || []
-
-  // Extract price + end-time for each sold item
-  const parsed: Array<{ price: number; endMs: number }> = []
-  for (const item of items) {
-    const priceRaw = item?.sellingStatus?.[0]?.currentPrice?.[0]?.__value__
-    const endTimeRaw = item?.listingInfo?.[0]?.endTime?.[0]
-    const price = parseFloat(priceRaw || '0')
-    const endMs = endTimeRaw ? new Date(endTimeRaw).getTime() : 0
-    if (price > 0 && endMs > 0) parsed.push({ price, endMs })
-  }
-
-  if (!parsed.length) return null
-
-  const MS_7D  = 7  * 24 * 60 * 60 * 1000
-  const MS_30D = 30 * 24 * 60 * 60 * 1000
-
-  const cutoff7d  = now - MS_7D
-  const cutoff30d = now - MS_30D
-
-  return {
-    '7d':  computeStats(parsed.filter(x => x.endMs >= cutoff7d) .map(x => x.price)),
-    '30d': computeStats(parsed.filter(x => x.endMs >= cutoff30d).map(x => x.price)),
-    '90d': computeStats(parsed.map(x => x.price)),
-  }
-}
-
-// ─── fetch-ebay-sold proxy (Browse API — spot price for fallback chain) ───────
-async function callFetchEbaySold(
-  supabase: ReturnType<typeof getServiceClient>,
-  query: string,
-  sellerLocation?: string,  // e.g. 'JP'
-  country = 'eu'            // 'us' for JP cards (more JP-seller inventory on EBAY_US)
-): Promise<number | null> {
-  try {
-    const body: Record<string, unknown> = { query, country, limit: 20 };
-    if (sellerLocation) body.seller_location = sellerLocation;
-
-    const { data, error } = await supabase.functions.invoke('fetch-ebay-sold', { body });
-    if (error || !data) return null;
-
-    const price = data.median ?? data.avgPrice ?? null;
-    return price != null && price > 0 ? +Number(price).toFixed(2) : null;
-  } catch {
-    return null;
-  }
-}
 
 // TCG keyword map for eBay search queries.
 // IMPORTANT: keys must match the `tcg` column values in collection/watchlist/alerts
@@ -220,39 +88,30 @@ serve(async (_req) => {
   const POKEMONTCG_KEY = Deno.env.get('POKEMONTCG_API_KEY')
   const EUR_TO_USD = 1.087
 
-  let refreshed     = 0
-  let soldRefreshed = 0
+  let refreshed = 0
   const errors: any[] = []
 
   for (const { tcg, card_api_id, card_name, language } of cards.values()) {
-    // FIX: card_api_id IS already the full compound ID (e.g. "pokemon:tcgdex:sv3pt5-174:en").
-    // Do NOT prepend tcg again — that was creating doubled prefixes like "pokemon:pokemon:...".
     const cardId = card_api_id
-
-    // Extract source-local ID for fallback APIs (strip "tcg:source:" prefix)
-    // e.g. "mtg:scryfall:abc-uuid" → "abc-uuid"  |  "ygo:ygoprodeck:12345" → "12345"
     const sourceLocalId = card_api_id.split(':').slice(2).join(':')
-
     const isJP  = language === 'ja'
     const tcgKw = TCG_KEYWORD[tcg] || 'trading card'
 
-    // JP: append "japanese" keyword + use US marketplace (more JP-seller inventory)
     const ebayQuery     = isJP
       ? `${card_name || sourceLocalId} ${tcgKw} japanese`.trim()
       : `${card_name || sourceLocalId} ${tcgKw}`.trim()
-    const ebayCountry   = isJP ? 'us' : 'eu'
-    const ebaySellerLoc = isJP ? 'JP' : undefined
-    const ebayGlobalId  = isJP ? 'EBAY-US' : 'EBAY-IT'
 
-    // ── A) Spot price via existing fallback chain ──────────────────────────────
+    // ── A) Spot price via fallback chain ───────────────────────────────────
     const chain: Array<{ source: string; fetcher: () => Promise<{ price: number | null; raw: any }> }> = []
 
-    // PRIMARY: eBay Browse API (median of live fixed-price listings)
+    // PRIMARY: eBay Browse API via fetch-ebay-sold edge fn (se esiste)
+    // Se fetch-ebay-sold non è deployato, questa fonte fallisce silenziosamente
+    // e la catena usa le fonti TCG come fallback.
     chain.push({
       source: 'ebay_sold',
       fetcher: async () => {
-        const price = await callFetchEbaySold(supabase, ebayQuery, ebaySellerLoc, ebayCountry)
-        return { price, raw: { query: ebayQuery, country: ebayCountry, seller_location: ebaySellerLoc ?? 'any' } }
+        const price = await callFetchEbaySold(supabase, ebayQuery, isJP ? 'JP' : undefined, isJP ? 'us' : 'eu')
+        return { price, raw: { query: ebayQuery, country: isJP ? 'us' : 'eu', seller_location: isJP ? 'JP' : 'any' } }
       }
     })
 
@@ -333,51 +192,14 @@ serve(async (_req) => {
     const result = await tryPriceChain(supabase, chain, cardId)
     if (result.price != null) refreshed++
     else errors.push({ cardId, reason: 'all sources failed' })
-
-    // ── B) eBay sold timeframes via Finding API ────────────────────────────────
-    // One API call per card fetches 90 days of completed listings.
-    // We split the results client-side into 7d / 30d / 90d windows and save
-    // each as a separate card_prices row with timeframe set.
-    // Currency: EBAY-IT → EUR, EBAY-US → USD (stored as-is; frontend reads currency column).
-    if (EBAY_APP_ID) {
-      try {
-        const soldTf = await findEbaySold(ebayQuery, ebayGlobalId, ebaySellerLoc)
-        if (soldTf) {
-          const now      = new Date().toISOString()
-          const currency = isJP ? 'USD' : 'EUR'
-
-          const rows = Object.entries(soldTf)
-            .filter(([, s]) => (s as SoldStats).avg != null || (s as SoldStats).median != null)
-            .map(([tf, s]) => {
-              const st = s as SoldStats
-              return {
-                card_id:      cardId,
-                source:       'ebay_finding',
-                currency,
-                price_market: st.avg,       // avg is the "main" price (backward compatible)
-                price_median: st.median,
-                timeframe:    tf,
-                raw_response: { count: st.count, avg: st.avg, median: st.median, query: ebayQuery },
-                captured_at:  now,
-              }
-            })
-
-          if (rows.length > 0) {
-            await supabase.from('card_prices').insert(rows)
-            soldRefreshed++
-          }
-        }
-      } catch (_) { /* Finding API is best-effort; don't fail the whole card */ }
-    }
   }
 
   return new Response(JSON.stringify({
     ok: true,
     total_cards:   cards.size,
     refreshed,
-    sold_refreshed: soldRefreshed,
     failed:        errors.length,
     sample_errors: errors.slice(0, 5),
-    ebay_finding:  EBAY_APP_ID ? 'enabled' : 'disabled (EBAY_APP_ID not set)',
+    ebay_finding:  EBAY_APP_ID ? 'enabled (fetch-ebay-sold if deployed)' : 'disabled (EBAY_APP_ID not set)',
   }, null, 2), { headers: { 'Content-Type': 'application/json' } })
 })
