@@ -101,21 +101,11 @@ serve(async (_req) => {
       ? `${card_name || sourceLocalId} ${tcgKw} japanese`.trim()
       : `${card_name || sourceLocalId} ${tcgKw}`.trim()
 
-    // ── A) Spot price via fallback chain ───────────────────────────────────
+    // A) Spot price via fallback chain — solo fonti TCG (JustTCG, PokemonTCG.io, Scryfall, YGOPRODeck).
+    // Il ramo eBay (fetch-ebay-sold) è escluso: la funzione edge non è nel codebase e crea
+    // una dipendenza fragile. Le fonti TCG sono sufficienti per MVP e funzionano senza credential
+    // eBay aggiuntive (tranne JustTCG che usa la chiave già configurata).
     const chain: Array<{ source: string; fetcher: () => Promise<{ price: number | null; raw: any }> }> = []
-
-    // PRIMARY: eBay Browse API via fetch-ebay-sold edge fn (se esiste)
-    // Se fetch-ebay-sold non è deployato, questa fonte fallisce silenziosamente
-    // e la catena usa le fonti TCG come fallback.
-    chain.push({
-      source: 'ebay_sold',
-      fetcher: async () => {
-        const price = await callFetchEbaySold(supabase, ebayQuery, isJP ? 'JP' : undefined, isJP ? 'us' : 'eu')
-        return { price, raw: { query: ebayQuery, country: isJP ? 'us' : 'eu', seller_location: isJP ? 'JP' : 'any' } }
-      }
-    })
-
-    // FALLBACKS per TCG
     if (tcg === 'pokemon') {
       if (JUSTTCG_KEY) chain.push({
         source: 'justtcg',
