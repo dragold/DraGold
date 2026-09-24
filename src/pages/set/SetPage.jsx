@@ -306,11 +306,40 @@ export default function SetPage({ slug }) {
       : completionPct != null
         ? h('div', { style: styles.completionBox },
             h('div', { style: styles.completionLabel }, `${collectedCount} / ${d.cardCount} cards collected (${completionPct}%)`),
-            h('div', { style: styles.progressTrack }, h('div', { style: { ...styles.progressFill, width: completionPct + '%' } }))
+            h('div', { style: styles.progressTrack }, h('div', { style: { ...styles.progressFill, width: completionPct + '%' } })),
+            // Price coverage badge — quando i prezzi sono popolati, mostra che % del set ha prezzi
+            priceCards.length > 0 && priceCards.length < d.cards.length
+              ? h('div', { style: { ...styles.valueSub, color: '#fbbf24', fontWeight: 600, fontSize: 12, marginTop: 4 } },
+                  `Prices available for ${priceCards.length} of ${d.cards.length} cards (${priceCoveragePct}%)`
+                )
+              : null
           )
         : h('div', { style: styles.completionBox },
             h('div', { style: styles.completionLabel }, `${collectedCount} collected so far (showing first ${d.cardCount} of this large set)`)
           )
+
+  // Language tabs — switching lingua nel set page via ?lang= redirect.
+  // Le lingue disponibili vengono dai dati caricati (d.cards[].lang).
+  // Clicking una tab aggiorna l'URL e ricarica i dati — nessun nuovo
+  // stato React, nessun fetch separato, nessuna architettura routing nuova.
+  const availableLangs = [...new Set(d.cards.map(c => c.lang).filter(Boolean))].sort()
+  const switchLang = (lang) => {
+    if (!lang) return
+    const url = new URL(window.location.href)
+    url.searchParams.set('lang', lang)
+    window.location.href = url.toString()
+  }
+  const langTabs = availableLangs.length > 1 ? h('div', { style: styles.langTabs },
+    h('div', { style: styles.langTabsLabel }, 'Language'),
+    h('div', { style: styles.langTabsRow },
+      availableLangs.map(l => h('button', {
+        key: l,
+        type: 'button',
+        style: l === d.langUsed ? styles.langTabActive : styles.langTab,
+        onClick: () => switchLang(l),
+      }, l.toUpperCase()))
+    )
+  ) : null
 
   const filterRow = (isAuthed && !collectionLoading) ? h('div', { style: styles.filterRow }, [
     ['all', 'All'], ['collected', 'Collected'], ['missing', 'Missing'],
@@ -421,6 +450,75 @@ export default function SetPage({ slug }) {
         )
       ),
       completionSection,
+      // Value summary — aggregation of price data already available in d.cards.
+      // Uses only the prices present in the set; does not invent FMV, trend, or
+      // confidence. Handles mixed currencies by grouping per currency and showing
+      // the dominant one; if more than one currency present and both have meaningful
+      // totals, shows both with labels.
+      (() => {
+        const priceCards = d.cards.filter(c => c.price && typeof c.price.price_market === 'number' && isFinite(c.price.price_market))
+        const priceCoveragePct = d.cards.length > 0 ? Math.round((priceCards.length / d.cards.length) * 100) : 0
+        if (priceCards.length === 0) {
+          return h('div', { style: styles.valueBox },
+            h('div', { style: styles.valueLabel }, 'Value summary'),
+            h('div', { style: styles.valueUnavailable }, 'Price data not available for this set')
+          )
+        }
+        // Group by currency
+        const byCurrency = {}
+        for (const c of priceCards) {
+          const cur = c.price.currency || 'USD'
+          if (!byCurrency[cur]) byCurrency[cur] = { total: 0, collected: 0, count: 0, collectedCount: 0 }
+          byCurrency[cur].total += c.price.price_market
+          byCurrency[cur].count += 1
+          const qty = collectionMap.get(c.id) || 0
+          if (qty > 0) {
+            byCurrency[cur].collected += c.price.price_market * qty
+            byCurrency[cur].collectedCount += 1
+          }
+        }
+        const currencies = Object.keys(byCurrency)
+        const dominant = currencies[0]
+        const dom = byCurrency[dominant]
+        const showCurrency = currencies.length === 1
+          ? dominant
+          : currencies.length === 2 && byCurrency[currencies[1]].total < dom.total * 0.01
+            ? dominant
+            : dominant + ' / ' + currencies[1]
+        const fmt = (val, cur) => new Intl.NumberFormat('en-US', {
+          style: 'currency', currency: cur || 'USD',
+          minimumFractionDigits: 2, maximumFractionDigits: 2
+        }).format(val)
+        return h('div', { style: styles.valueBox },
+          h('div', { style: styles.valueLabel }, 'Value summary'),
+          // Coverage badge — shows what % of the set has price data
+          priceCoveragePct < 100
+            ? h('div', { style: { ...styles.valueSub, color: '#fbbf24', fontWeight: 600, fontSize: 12 } },
+                `Price data covers ${priceCoveragePct}% of this set (${priceCards.length} of ${d.cards.length} cards)`
+              )
+            : null,
+          h('div', { style: styles.valueRow },
+            h('div', { style: styles.valueItem },
+              h('div', { style: styles.valueKey }, 'Set total'),
+              h('div', { style: styles.valueVal }, fmt(dom.total, dominant))
+            ),
+            h('div', { style: styles.valueItem },
+              h('div', { style: styles.valueKey }, isAuthed ? 'Your collection' : 'In set'),
+              h('div', { style: styles.valueVal }, isAuthed
+                ? fmt(dom.collected, dominant) + (dom.collectedCount > 0
+                    ? ` (${dom.collectedCount} card${dom.collectedCount === 1 ? '' : 's'})` : '')
+                : `${priceCards.length} card${priceCards.length === 1 ? '' : 's'} with price`)
+            ),
+            isAuthed && dom.total > dom.collected && dom.collectedCount >= 0 ? h('div', { style: styles.valueItem },
+              h('div', { style: styles.valueKey }, 'To complete'),
+              h('div', { style: styles.valueVal }, fmt(dom.total - dom.collected, dominant))
+            ) : null
+          ),
+          h('div', { style: styles.valueSub },
+            `Based on ${priceCards.length} of ${d.cards.length} cards in this set`
+          )
+        )
+      })(),
       h('section', { style: styles.section },
         h('h2', { style: styles.h2 }, 'Cards in this set'),
         filterRow,
@@ -488,6 +586,21 @@ const styles = {
   priceTag: { fontSize: 11, fontWeight: 700, color: '#4ade80', marginTop: 2 },
   priceUnavailable: { fontSize: 10, color: '#555', marginTop: 2, fontStyle: 'italic' },
   variantTag: { color: '#7a7ae0', fontSize: 11, marginTop: 2 },
+  // Language tabs — set page language switching
+  langTabs: { display: 'flex', gap: 8, alignItems: 'center', marginBottom: 12 },
+  langTabsLabel: { fontSize: 11, fontWeight: 700, color: '#9aa0ff', letterSpacing: '.06em', textTransform: 'uppercase', marginRight: 8 },
+  langTabsRow: { display: 'flex', gap: 4 },
+  langTab: { background: 'transparent', color: '#9aa0ff', border: 'none', borderBottom: '2px solid transparent', padding: '4px 10px', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit', transition: 'color .15s ease, border-color .15s ease' },
+  langTabActive: { background: 'transparent', color: '#e7b75f', borderBottom: '2px solid #e7b75f', padding: '4px 10px', fontSize: 12, cursor: 'default', fontFamily: 'inherit', fontWeight: 700 },
+  // Value summary panel
+  valueBox: { background: '#0f0f18', border: '1px solid #23233a', borderRadius: 12, padding: 16, marginBottom: 8, display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'flex-start' },
+  valueLabel: { fontSize: 11, fontWeight: 700, color: '#9aa0ff', letterSpacing: '.06em', textTransform: 'uppercase', marginBottom: 2 },
+  valueRow: { display: 'flex', gap: 24, alignItems: 'baseline' },
+  valueItem: { display: 'flex', flexDirection: 'column', gap: 2 },
+  valueKey: { fontSize: 11, color: '#9aa0ff', textTransform: 'uppercase', letterSpacing: '.04em' },
+  valueVal: { fontSize: 20, fontWeight: 700, color: '#f4f4f8', fontFamily: 'Space Mono, monospace' },
+  valueUnavailable: { fontSize: 14, color: '#777', fontStyle: 'italic' },
+  valueSub: { fontSize: 11, color: '#777', marginTop: 2 },
   adjacentRow: { display: 'flex', gap: 16, flexWrap: 'wrap' },
   adjacentCard: { flex: '1 1 200px', textDecoration: 'none', color: 'inherit', background: '#0f0f18', border: '1px solid #23233a', borderRadius: 10, padding: 12 },
   muted: { color: '#777', fontSize: 13 },

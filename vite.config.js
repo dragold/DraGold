@@ -34,5 +34,18 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     sourcemap: false,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // Split WebGL stack from main bundle (819KB → 3 chunks separati)
+          'three-webgl': ['three', '@react-three/fiber', '@react-three/drei'],
+          // Split animation libraries from main bundle
+          'animation': ['gsap', '@gsap/react', 'lenis'],
+          // AtlasCanvas specific: già lazy-loaded, ma split ulteriore per la dependency tree
+          // Noto: AtlasCanvas è già lazy-loaded in HomePage.jsx, questo è solo per
+          // evitare che le sue dependencies finiscano nel vendor chunk generico
+        },
+      },
+    },
   },
 })
