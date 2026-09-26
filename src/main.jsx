@@ -5,6 +5,7 @@ import { AuthProvider } from './lib/auth.js'
 import { TCG_HUBS } from './lib/tcgConfig.js'
 import NightSky from './components/atmosphere/NightSky.jsx'
 import './styles.css'
+import { supabase, supabaseReady } from './supabase.js'
 
 // Global error boundary — catches React errors anywhere in the tree and renders
 // a graceful fallback instead of crashing the whole page. Placed OUTSIDE the
@@ -87,6 +88,19 @@ function HomePageStandalone() {
   })
 }
 
+// ── Fallback se Supabase non è configurato ───────────────────────────────
+// Se le env vars mancano (build senza credential), mostriamo un messaggio
+// invece di crashare con l'ErrorBoundary.
+function RootFallback() {
+  return h('div', { className: 'dg-root', style: { minHeight: '100svh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#05060B', color: '#fff', fontFamily: 'system-ui, sans-serif', padding: '2rem', textAlign: 'center' } },
+    h('div', null,
+      h('h1', { style: { fontSize: '1.5rem', marginBottom: '1rem' } }, 'DraGold'),
+      h('p', null, 'Il servizio è temporaneamente non disponibile.'),
+      h('p', { style: { color: '#888', marginTop: '0.5rem', fontSize: '0.9rem' } }, 'Torna alla home per riprovare.'),
+    ),
+  )
+}
+
 const RootView = isHome
   ? h(HomePageStandalone, null)
   : cardMatch ? h(CardPage, { slug: decodeURIComponent(cardMatch[1]) })
@@ -105,7 +119,9 @@ createRoot(document.getElementById('root')).render(
   h(StrictMode, null,
     h(AuthProvider, null,
       h(ErrorBoundary, null,
-        h(NightSky, null),
+        !supabaseReady
+          ? h(RootFallback, null)
+          : h(NightSky, null),
         h('div', { className: 'dg-root' },
           h(Suspense, { fallback: h('div', { style: { minHeight: '100svh', background: '#05060B' } }) }, RootView)
         ),

@@ -1,6 +1,9 @@
 // DraGold backend: Supabase client + auth + alerts helpers
 import { createClient } from '@supabase/supabase-js'
 
+// srcconfig/env.js — generato al build time con i valori reali delle env var.
+// Vite sostituisce i placeholder con i valori reali tramite define in vite.config.js.
+// Questo evita che la minificazione tronchi le stringhe lunghe (JWT).
 const URL = import.meta.env.VITE_SUPABASE_URL
 const KEY = import.meta.env.VITE_SUPABASE_ANON_KEY
 

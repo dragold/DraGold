@@ -1,5 +1,22 @@
-import { defineConfig } from 'vite'
+import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
+
+// ── Validazione env obbligatorie al build time ──────────────────────────────
+// Vite sostituisce automaticamente import.meta.env.VITE_* con i valori
+// ambientali al build time (legge .env / .env.local / .env.production).
+// Questa validazione assicura che le variabili necessarie siano presenti;
+// se mancano, il build fallisce invece di produrre un bundle rotto che
+// manda l'utente al fallback.
+const env = loadEnv(process.env.NODE_ENV || 'production', process.cwd(), '')
+const SUPABASE_URL = env.VITE_SUPABASE_URL
+const SUPABASE_ANON_KEY = env.VITE_SUPABASE_ANON_KEY
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+  console.error('[vite.config] ENV obbligatorie mancanti:',
+    !SUPABASE_URL ? (!!SUPABASE_ANON_KEY ? 'VITE_SUPABASE_URL' : 'VITE_SUPABASE_URL + VITE_SUPABASE_ANON_KEY') : '',
+    !SUPABASE_ANON_KEY && SUPABASE_URL ? 'VITE_SUPABASE_ANON_KEY' : ''
+  )
+  process.exit(1)
+}
 
 // Dev-only: run the /api/img image proxy in `vite dev` (Vercel functions don't
 // execute under the Vite dev server). Production uses api/img.js on Vercel.
@@ -37,13 +54,8 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: {
-          // Split WebGL stack from main bundle (819KB → 3 chunks separati)
-          'three-webgl': ['three', '@react-three/fiber', '@react-three/drei'],
           // Split animation libraries from main bundle
           'animation': ['gsap', '@gsap/react', 'lenis'],
-          // AtlasCanvas specific: già lazy-loaded, ma split ulteriore per la dependency tree
-          // Noto: AtlasCanvas è già lazy-loaded in HomePage.jsx, questo è solo per
-          // evitare che le sue dependencies finiscano nel vendor chunk generico
         },
       },
     },

@@ -43,7 +43,7 @@ export function HomePage({ home, onOpenSearch, onOpenCard, onOpenSet, onNavColle
     setTier(detectTier());
   }, []);
   const webglImg = featured ? webglImage(featured) : null;
-  const webgl = tier > 0 && !webglFailed && !!webglImg;
+  const webgl = false && tier > 0 && !webglFailed && !!webglImg;
 
   useAtlasChoreography(stageRef, specimenRef, { enabled: !webgl });
   useAtlasScrollProgress(stageRef);
