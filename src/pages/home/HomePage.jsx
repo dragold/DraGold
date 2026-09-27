@@ -322,6 +322,8 @@ export function HomePage({ home, onOpenSearch, onOpenCard, onOpenSet, onNavColle
   );
 }
 
+export default HomePage;
+
 /* ── helpers ──────────────────────────────────────────────────────── */
 
 function scrollToFirstStratum() {

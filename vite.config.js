@@ -1,12 +1,13 @@
-import { defineConfig } from 'vite'
+import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 
 // ── Validazione env obbligatorie al build time ──────────────────────────────
-// Vite espone le env var di Vercel come process.env durante il build.
-// Validiamo che le variabili necessarie siano presenti; se mancano,
-// il build fallisce invece di produrre un bundle rotto.
-const SUPABASE_URL = process.env.VITE_SUPABASE_URL
-const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY
+// loadEnv legge da .env / .env.local localmente. Su Vercel i file .env non
+// esistono ma le env VAR sono iniettate dal platform in process.env.
+// Usiamo loadEnv con fallback su process.env per coprire entrambi gli scenari.
+const env = loadEnv(process.env.NODE_ENV || 'production', process.cwd(), '')
+const SUPABASE_URL = env.VITE_SUPABASE_URL || process.env.VITE_SUPABASE_URL
+const SUPABASE_ANON_KEY = env.VITE_SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY
 if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
   console.error('[vite.config] ENV obbligatorie mancanti:',
     !SUPABASE_URL ? (!!SUPABASE_ANON_KEY ? 'VITE_SUPABASE_URL' : 'VITE_SUPABASE_URL + VITE_SUPABASE_ANON_KEY') : '',
