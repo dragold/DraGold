@@ -49,7 +49,10 @@ export default async function handler(req, res) {
   try {
     const upstream = await fetch(target.toString(), {
       signal: ac.signal,
-      headers: { Accept: "image/avif,image/webp,image/png,image/*" },
+      headers: {
+        Accept: "image/avif,image/webp,image/png,image/*",
+        "User-Agent": "DraGold/1.0 (+https://dragold.org)",
+      },
     });
     if (!upstream.ok) {
       res.status(502).json({ error: `upstream ${upstream.status}` });
