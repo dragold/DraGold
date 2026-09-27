@@ -13,6 +13,10 @@ export function webglImage(card) {
     const u = new URL(raw);
     // same-origin or already-CORS-ok hosts: use directly
     if (u.hostname.endsWith("supabase.co")) return raw;
+    // In dev mode the /api/img Edge Function is not available (only deployed
+    // on Vercel), so bypass the proxy and load directly. The browser may
+    // still block some origins via CORS — that's an acceptable dev tradeoff.
+    if (import.meta.env?.DEV) return raw;
   } catch {
     return null;
   }
