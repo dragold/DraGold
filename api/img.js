@@ -14,7 +14,12 @@ const ALLOWED_HOSTS = new Set([
   "assets.tcgdex.net",
   "tcgdex.net",
   "den-cards.pokellector.com",
-  "pimwkmwrduqkaydyvxqz.supabase.co", // our own storage (already CORS-ok, but harmless)
+  "pimwkmwrduqkaydyvxqz.supabase.co",
+  "cards.scryfall.io",       // Magic cards via Scryfall
+  "scryfall.io",             // Scryfall (also bare domain)
+  "images.ygoprodeck.com",   // Yu-Gi-Oh! cards via YGOProDeck
+  "ygoprodeck.com",          // YGOProDeck (also bare domain)
+  // Cho-Ni-Ya / Character-Illustrator images (when enabled)
 ]);
 
 const MAX_BYTES = 6 * 1024 * 1024;
