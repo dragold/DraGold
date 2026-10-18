@@ -111,7 +111,7 @@ if (!supabase || !slug) return null
   // source) perché limit(60) su tutte le fonti non garantirebbe di includere
   // le righe ebay_finding più recenti per ogni finestra se altre fonti
   // scrivono più spesso — stesso motivo per cui AssetView la tiene distinta.
-  const [{ data: prices }, { data: rarityRow }, { data: sameSet }, { data: soldRows }] = await Promise.all([
+  const [{ data: prices }, { data: rarityRow }, { data: sameSet }, { data: soldRows }, { data: marketObs }, { data: marketVal }] = await Promise.all([
 supabase
 .from('card_prices')
 .select('source, currency, price_market, price_low, price_high, price_median, captured_at, timeframe')
@@ -137,6 +137,23 @@ supabase
 .not('timeframe', 'is', null)
 .order('captured_at', { ascending: false })
 .limit(30),
+// DraGold Price Pulse: osservazioni giornaliere continuative TCGplayer (Pokémon / One Piece)
+(primary.tcg === 'pokemon' || primary.tcg === 'onepiece')
+  ? supabase
+      .from('market_observations')
+      .select('source, price, currency, price_eur, fx_rate, observed_at, sub_type, raw')
+      .eq('card_id', primary.id)
+      .order('observed_at', { ascending: true })
+      .limit(90)
+  : Promise.resolve({ data: [] }),
+// DraGold Fair Value: valutazione ponderata documentata
+(primary.tcg === 'pokemon' || primary.tcg === 'onepiece')
+  ? supabase
+      .from('market_valuations')
+      .select('estimated_value, observed_low, observed_median, observed_high, confidence, confidence_score, trend_7d_pct, trend_30d_pct')
+      .eq('card_id', primary.id)
+      .maybeSingle()
+  : Promise.resolve({ data: null }),
 ])
 
 const priceHistory = prices || []
@@ -175,5 +192,7 @@ return {
   priceHistory,
   soldByTimeframe,
   sameSetCards,
+  marketObservations: marketObs || [],
+  marketValuation: marketVal || null,
 }
   }

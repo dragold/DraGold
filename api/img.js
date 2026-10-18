@@ -19,6 +19,8 @@ const ALLOWED_HOSTS = new Set([
   "scryfall.io",             // Scryfall (also bare domain)
   "images.ygoprodeck.com",   // Yu-Gi-Oh! cards via YGOProDeck
   "ygoprodeck.com",          // YGOProDeck (also bare domain)
+  "www.onepiece-cardgame.com", // One Piece official card images
+  "en.onepiece-cardgame.com",  // One Piece official card images (EN)
   // Cho-Ni-Ya / Character-Illustrator images (when enabled)
 ]);
 
@@ -42,6 +44,12 @@ export default async function handler(req, res) {
   if (target.protocol !== "https:" || !ALLOWED_HOSTS.has(target.hostname)) {
     res.status(403).json({ error: "host not allowed" });
     return;
+  }
+  // Scryfall appends a cache-busting query string (?<timestamp>) that some
+  // origins reject when the request comes from Vercel's egress. Strip it — the
+  // image is identical without it and Scryfall answers the base URL happily.
+  if (target.hostname === "cards.scryfall.io" || target.hostname === "scryfall.io") {
+    target.search = "";
   }
 
   const ac = new AbortController();

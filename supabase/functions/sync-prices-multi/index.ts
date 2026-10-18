@@ -42,8 +42,8 @@ export async function handleRequest(req) {
 
   // Magic non implementato — escluso dal loop.
   const tcgs = tcgFilter
-    ? [tcgFilter]
-    : ['pokemon', 'onepiece', 'yugioh']
+    ? [tcgFilter === 'yugioh' ? 'ygo' : tcgFilter]
+    : ['pokemon', 'onepiece', 'ygo']
 
   let totalSynced = 0
   let totalSkipped = 0
@@ -52,8 +52,8 @@ export async function handleRequest(req) {
 
   for (const tcg of tcgs) {
     const { data: cards, error: cardsError } = await supabase
-      .from('canonical_cards')
-      .select('id, tcg, name, set_id, card_number')
+      .from('cards')
+      .select('id, tcg, name, lang, set_id, card_number, source_id')
       .eq('tcg', tcg)
       .order('id')
       .range(offset, offset + limit - 1)
@@ -87,7 +87,7 @@ export async function handleRequest(req) {
           priceData = await fetchPokemonPrice(card)
         } else if (tcg === 'onepiece') {
           priceData = await fetchOnePiecePrice(card)
-        } else if (tcg === 'yugioh') {
+        } else if (tcg === 'ygo' || tcg === 'yugioh') {
           priceData = await fetchYugiohPrice(card)
         } else {
           continue
@@ -157,16 +157,26 @@ export async function handleRequest(req) {
 }
 
 async function fetchPokemonPrice(card) {
-  const artifactId = `${card.set_id}-${card.card_number}`
+  // TCGdex API: https://api.tcgdex.net/v2/{lang}/cards/{sourceId}
+  // Il sourceId è il terzo segmento del card_id (dopo le prime due ':')
+  // Esempio: pokemon:tcgdex:xy12-12 -> sourceId = xy12-12
+  const parts = card.id.split(':')
+  if (parts.length < 3) {
+    console.log(`[sync-prices-multi] Card ID malformed: ${card.id}`)
+    return null
+  }
+  const sourceId = parts[2]
+  const lang = card.lang || 'en'
+  const url = `https://api.tcgdex.net/v2/${lang}/cards/${encodeURIComponent(sourceId)}`
 
   try {
     const response = await fetchWithRetry(
-      `https://api.tcgdex.com/v2/cards/${encodeURIComponent(artifactId)}`,
+      url,
       { headers: { 'Accept': 'application/json' } }
     )
 
     if (!response.ok) {
-      console.log(`[sync-prices-multi] TCGdex non trovato per ${artifactId}: ${response.status}`)
+      console.log(`[sync-prices-multi] TCGdex non trovato per ${sourceId}: ${response.status}`)
       return null
     }
 
@@ -195,12 +205,14 @@ async function fetchPokemonPrice(card) {
 
     return null
   } catch (err) {
-    console.error(`[sync-prices-multi] Error fetching TCGdex for ${artifactId}:`, err)
+    console.error(`[sync-prices-multi] Error fetching TCGdex for ${sourceId}:`, err)
     return null
   }
 }
 
 async function fetchOnePiecePrice(card) {
+  // optcg-api: https://api.optcgapi.com/cards/{cardId}
+  // Il cardId è set_id-card_number (es. OP01-001)
   const cardId = `${card.set_id}-${card.card_number}`
 
   try {
@@ -228,11 +240,19 @@ async function fetchOnePiecePrice(card) {
 }
 
 async function fetchYugiohPrice(card) {
-  const artifactId = `${card.set_id}-${card.card_number}`
+  // YGOPRODeck API per YGO: https://db.ygoprodeck.com/api/v7/cardinfo.php?id={sourceId}
+  // Per YGO il sourceId è il terzo segmento del card_id (es. ygo:ygoprodeck:52900379:en)
+  const parts = card.id.split(':')
+  if (parts.length < 3) {
+    console.log(`[sync-prices-multi] Card ID malformed: ${card.id}`)
+    return null
+  }
+  const sourceId = parts[2]
+  const url = `https://db.ygoprodeck.com/api/v7/cardinfo.php?id=${encodeURIComponent(sourceId)}`
 
   try {
     const response = await fetchWithRetry(
-      `https://api.tcgdex.com/v2/cards/${encodeURIComponent(artifactId)}`,
+      url,
       { headers: { 'Accept': 'application/json' } }
     )
 
@@ -240,19 +260,27 @@ async function fetchYugiohPrice(card) {
       return null
     }
 
-    const cardData = await response.json()
+    const data = await response.json()
+    const cardData = data?.data?.[0]
+    const p = cardData?.card_prices?.[0]
 
-    if (cardData.pricing?.cardmarket?.avg) {
-      return { market: cardData.pricing.cardmarket.avg, currency: 'EUR', source: 'tcgdex-cardmarket' }
+    if (p?.cardmarket_price) {
+      const price = parseFloat(p.cardmarket_price)
+      if (!isNaN(price) && price > 0) {
+        return { market: price, currency: 'EUR', source: 'ygoprodeck' }
+      }
     }
 
-    if (cardData.pricing?.tcgplayer?.normal?.marketPrice) {
-      return { market: cardData.pricing.tcgplayer.normal.marketPrice, currency: 'USD', source: 'tcgdex-tcgplayer' }
+    if (p?.tcgplayer_price) {
+      const price = parseFloat(p.tcgplayer_price)
+      if (!isNaN(price) && price > 0) {
+        return { market: price, currency: 'USD', source: 'ygoprodeck' }
+      }
     }
 
     return null
   } catch (err) {
-    console.error(`[sync-prices-multi] Error fetching TCGdex for YGO ${artifactId}:`, err)
+    console.error(`[sync-prices-multi] Error fetching YGOPRODeck for YGO ${sourceId}:`, err)
     return null
   }
 }

@@ -12,6 +12,7 @@
 // nuova pagina. Related Cards usa invece sameSetCards (query gia' esistente),
 // che punta a canonical group DIVERSI (stesso set, altra card).
 import { getCardPageData } from './cardPageData.js'
+import { PricePulseChart } from './PricePulseChart.jsx'
 import { addOrIncrementCollection, addToWatchlist, decrementOrRemoveCollection, supabase } from '../../supabase.js'
 import { buildSetSlug } from '../../lib/setSlug.js'
 import { getTcgHub } from '../../lib/tcgConfig.js'
@@ -415,6 +416,8 @@ const primary = state.data.primary
   const priceHistory = state.data.priceHistory
   const soldByTimeframe = state.data.soldByTimeframe || {}
   const sameSetCards = state.data.sameSetCards
+  const marketObservations = state.data.marketObservations || []
+  const marketValuation = state.data.marketValuation || null
 
 async function handleAddCollection() {
   if (!isAuthed) { window.location.href = '/login'; return }
@@ -792,6 +795,13 @@ return h('div', { style: styles.page },
                h('div', { style: styles.collectionBox }, collectionCta),
                ctaMsg ? h('p', { style: styles.muted }, ctaMsg) : null,
                h('div', { style: styles.priceBox }, priceBlock),
+                h(PricePulseChart, {
+                  key: `pulse-${selected.id}`,
+                  observations: marketObservations,
+                  valuation: marketValuation,
+                  tcg: primary.tcg,
+                  lang: selected.lang,
+                }),
                h('button', { type: 'button', style: styles.btnGhostSmall, onClick: handleAddWatchlist }, '+ Add to Watchlist')
                )
              ),

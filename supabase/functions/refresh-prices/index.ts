@@ -32,7 +32,9 @@ const TCG_KEYWORD: Record<string, string> = {
   pokemon: 'pokemon card',
   mtg:     'magic gathering card',
   ygo:     'yugioh card',
+  yugioh:  'yugioh card',
   op:      'one piece card tcg',
+  onepiece:'one piece card tcg',
 };
 
 serve(async (_req) => {
@@ -151,7 +153,7 @@ serve(async (_req) => {
       })
     }
 
-    if (tcg === 'ygo') {
+    if (tcg === 'ygo' || tcg === 'yugioh') {
       // YGOPRODeck: needs numeric ID only (e.g. "12345" from "ygo:ygoprodeck:12345")
       chain.push({
         source: 'ygoprodeck',
@@ -165,7 +167,7 @@ serve(async (_req) => {
       })
     }
 
-    if (tcg === 'op') {
+    if (tcg === 'op' || tcg === 'onepiece') {
       if (JUSTTCG_KEY) chain.push({
         source: 'justtcg',
         fetcher: async () => {
