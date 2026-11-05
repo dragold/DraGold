@@ -4,7 +4,8 @@
 //
 // Valuta in EUR. Una posizione senza `estimated_value` NON contribuisce ai
 // totali/breakdown ma finisce in `unvalued` col suo motivo. `pct` sempre su
-// `totalEur` (solo posizioni valutate).
+// `totalEur` (solo posizioni valutate). Graded slabs are kept in unvalued
+// with 'graded_not_covered' to prevent mispricing certified slabs with raw prices.
 
 function round2(n) {
   return Number.isFinite(n) ? Math.round((n + Number.EPSILON) * 100) / 100 : 0;
@@ -15,7 +16,7 @@ function pctOf(part, whole) {
 
 /**
  * @param {object} opts
- * @param {Array} opts.positions - righe collection: { id, card_api_id, tcg, set_name, set_id, language, quantity, ... }
+ * @param {Array} opts.positions - righe collection: { id, card_api_id, tcg, set_name, set_id, language, quantity, is_graded, ... }
  * @param {Array} opts.valuations - righe RPC: { input_card_id, resolved_card_id, estimated_value, confidence, trend_7d_pct, trend_30d_pct, n_observations, n_sources, observed_low, observed_high, unavailable_reason }
  * @returns {object}
  */
@@ -27,6 +28,10 @@ export function buildPortfolioValuation({ positions = [], valuations = [] } = {}
   const unvalued = [];  // { card_api_id, reason }
 
   for (const pos of positions) {
+    if (pos.is_graded) {
+      unvalued.push({ card_api_id: pos.card_api_id, reason: 'graded_not_covered' });
+      continue;
+    }
     const val = valByInput.get(pos.card_api_id) || null;
     const qty = pos.quantity || 1;
     const rawEst = val != null ? val.estimated_value : null;

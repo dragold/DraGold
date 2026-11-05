@@ -32,6 +32,8 @@ import { TCG_LIST, CARD_LANGS } from "../../DraGold.jsx";
 import { pickCardImage } from "../../components/shared/cardImage.js";
 import { groupByCanonical } from "../../lib/search.js";
 import { CardObject } from "../../components/shared/CardObject.jsx";
+import { idsForCard, ownedQty, computeSetProgress, filterByOwnership } from "../../lib/setChecklist.js";
+import { buildWantListRows, toCsv, downloadText, fileSlug } from "../../lib/collectionExport.js";
 
 const SET_CARD_FIELDS = "id,name,name_en,set_name,set_id,card_number,image_url,image_url_hi,lang,tcg,canonical_card_id,series_name,card_image_cache(cached_url,status)";
 
@@ -89,7 +91,8 @@ export function SetDetailPage({ setRef, setsMap, country, cur, eurRate, onOpen, 
   // threaded through — just gate the query on isAuthed to skip it for
   // anonymous visitors. Real data only: skipped entirely, not zeroed out,
   // when the user isn't signed in.
-  const [ownedIds, setOwnedIds] = useState(null);
+  const [qtyMap, setQtyMap] = useState(null);
+  const [filter, setFilter] = useState("all"); // 'all' | 'owned' | 'missing'
   // Fallback nome set (vedi commento in testa al file, blocco "gap cosmetico"):
   // usato solo quando arriviamo qui da una carta tcgdex non-EN/JA con set_name
   // nullo e setsMap non ha un logo/nome per quello set_id. Query aggiuntiva
@@ -160,14 +163,34 @@ export function SetDetailPage({ setRef, setsMap, country, cur, eurRate, onOpen, 
   useEffect(() => { load(); window.scrollTo({ top: 0, behavior: "auto" }); }, [load]);
 
   useEffect(() => {
-    if (!isAuthed || !supabaseReady || cards.length === 0) { setOwnedIds(null); return; }
+    if (!isAuthed || !supabaseReady || cards.length === 0) { setQtyMap(null); return; }
     let cancelled = false;
-    const ids = cards.map(c => c.id);
-    supabase.from("collection").select("card_api_id").in("card_api_id", ids)
-      .then(({ data }) => { if (!cancelled) setOwnedIds(new Set((data || []).map(r => r.card_api_id))); })
-      .catch(() => { if (!cancelled) setOwnedIds(null); });
+    const allIds = [...new Set(cards.flatMap(c => idsForCard(c)))];
+    supabase.from("collection").select("card_api_id, quantity").in("card_api_id", allIds)
+      .then(({ data }) => {
+        if (cancelled) return;
+        const m = new Map();
+        for (const r of (data || [])) {
+          if (r.card_api_id) m.set(r.card_api_id, Number(r.quantity) || 1);
+        }
+        setQtyMap(m);
+      })
+      .catch(() => { if (!cancelled) setQtyMap(null); });
     return () => { cancelled = true; };
   }, [isAuthed, cards]);
+
+  const progress = computeSetProgress(cards, qtyMap);
+  const visibleCards = filterByOwnership(cards, qtyMap, filter);
+  const ownedIds = qtyMap ? new Set(cards.filter(c => ownedQty(c, qtyMap) > 0).map(c => c.id)) : null;
+
+  const exportWantList = useCallback(() => {
+    const missing = filterByOwnership(cards, qtyMap, "missing");
+    if (!missing.length) return;
+    const rows = buildWantListRows(missing, { setName });
+    const csv = toCsv(rows);
+    const slug = fileSlug(setName);
+    downloadText(`${slug}-want-list.csv`, csv, "text/csv;charset=utf-8");
+  }, [cards, qtyMap, setName]);
 
   useEffect(() => {
     const onScroll = () => {
@@ -210,10 +233,10 @@ export function SetDetailPage({ setRef, setsMap, country, cur, eurRate, onOpen, 
           </div>
           {/* Completion ring — only when the user is signed in and we have
               real ownership rows for this set's cards; never a fake 0%. */}
-          {ownedIds && cards.length > 0 && (
-            <div className="set-completion-ring" style={{ '--pct': `${(ownedIds.size / cards.length) * 100}%` }}>
+          {qtyMap && cards.length > 0 && (
+            <div className="set-completion-ring" style={{ '--pct': `${progress.pct}%` }}>
               <div className="set-completion-ring-inner">
-                <span className="set-completion-n">{ownedIds.size}<small>/{cards.length}</small></span>
+                <span className="set-completion-n">{progress.owned}<small>/{cards.length}</small></span>
                 <span className="set-completion-k">Collected</span>
               </div>
             </div>
@@ -237,22 +260,46 @@ export function SetDetailPage({ setRef, setsMap, country, cur, eurRate, onOpen, 
         )}
       </div>
 
-      {/* The catalog comes first — this is what most visitors came for. */}
+      {/* The catalog & checklist controls */}
       {cards.length > 0 && (
-        <div className="sec-h" style={{ marginTop: 34 }}>
-          <span className="sec-h-t">All cards</span>
-          <span className="sec-h-line" />
+        <div className="sec-h" style={{ marginTop: 34, flexWrap: "wrap", gap: 10, alignItems: "center" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, flex: 1, minWidth: 180 }}>
+            <span className="sec-h-t">
+              {filter === "all" ? "All cards" : filter === "owned" ? "Collected cards" : "Missing cards"}
+            </span>
+            <span className="sec-h-line" />
+          </div>
+          {isAuthed && qtyMap && (
+            <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+              <div className="pf-tcg-chips" style={{ margin: 0 }}>
+                <button type="button" className={`pf-tcg-chip ${filter === "all" ? "on" : ""}`} onClick={() => setFilter("all")}>
+                  All ({cards.length})
+                </button>
+                <button type="button" className={`pf-tcg-chip ${filter === "owned" ? "on" : ""}`} onClick={() => setFilter("owned")}>
+                  Collected ({progress.owned})
+                </button>
+                <button type="button" className={`pf-tcg-chip ${filter === "missing" ? "on" : ""}`} onClick={() => setFilter("missing")}>
+                  Missing ({progress.missing})
+                </button>
+              </div>
+              {progress.missing > 0 && (
+                <button type="button" className="pf-export-btn" onClick={exportWantList} title="Export missing cards as CSV want list">
+                  <Icon name="doc" size={12} /> Want List
+                </button>
+              )}
+            </div>
+          )}
         </div>
       )}
 
       <div ref={gridReveal.ref} className={gridReveal.className} style={gridReveal.style}>
         <SearchResults
-          loading={loading} results={cards.slice(0, visibleCount)} priceMap={{}}
+          loading={loading} results={visibleCards.slice(0, visibleCount)} priceMap={{}}
           error={error} term={setName}
           country={country} cur={cur} eurRate={eurRate}
           onRetry={load} onOpen={onOpen} setsMap={setsMap}
-          hasMore={visibleCount < cards.length}
-          totalCount={cards.length}
+          hasMore={visibleCount < visibleCards.length}
+          totalCount={visibleCards.length}
           discoveryMode
         />
       </div>

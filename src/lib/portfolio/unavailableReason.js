@@ -9,11 +9,15 @@ const MESSAGES = {
   },
   set_not_covered: {
     title: 'Set not covered yet',
-    text: 'This set isn\'t in our valuation coverage yet. Coverage expands as we add more sets.',
+    text: "This set isn't in our valuation coverage yet. Coverage expands as we add more sets.",
   },
   no_data_yet: {
     title: 'Not enough market data',
     text: "We don't have enough recent market data for this card yet.",
+  },
+  graded_not_covered: {
+    title: 'Graded slab',
+    text: "Certified slabs require dedicated auction sold data. We never assign raw card estimates to graded slabs.",
   },
 };
 
@@ -22,7 +26,7 @@ export function explainUnavailable(reason) {
   return MESSAGES[reason] || MESSAGES.no_data_yet;
 }
 
-/** Raggruppa `unvalued` per motivo → [{ reason, title, text, cardIds }] */
+/** Raggruppa `unvalued` per motivo -> [{ reason, title, text, cardIds }] */
 export function groupUnvalued(unvalued = []) {
   const m = new Map();
   for (const u of unvalued) {

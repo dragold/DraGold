@@ -19,6 +19,8 @@ import { PortfolioConfidence } from "./PortfolioConfidence.jsx";
 import { PortfolioBreakdown } from "./PortfolioBreakdown.jsx";
 import { CollectionIntelligence } from "./CollectionIntelligence.jsx";
 import { UnvaluedSection } from "./UnvaluedSection.jsx";
+import { gradeBadge } from "../../lib/grading.js";
+import { buildCollectionRows, toCsv, toCollectionJson, downloadText } from "../../lib/collectionExport.js";
 import "./portfolio-valuation.css";
 
 // Formatter EUR-nativo per i numeri basati su market_valuations (che sono in EUR).
@@ -142,7 +144,11 @@ function PortfolioRow({ pos, priceInfo, valuation, cur, eurRate, fmt, isConfirm,
           )}
         </div>
         <div className="pf-meta">
-          {pos.condition && <span className="pf-cond">{pos.condition}</span>}
+          {pos.is_graded ? (
+            <span className="pf-cond pf-slab-pill">{gradeBadge(pos) || "GRADED"}</span>
+          ) : (
+            pos.condition && <span className="pf-cond">{pos.condition}</span>
+          )}
           {pos.set_name  && <span className="pf-set">{pos.set_name}</span>}
           {pos.lang && <span className="pf-lang">{String(pos.lang).toUpperCase()}</span>}
           {freshLabel && <span className={`pf-fresh ${freshClass}`}>{freshLabel}</span>}
@@ -323,6 +329,9 @@ function PortfolioGridCard({ pos, priceInfo, series, fmt, valuation, onOpen, onD
           </div>
         )}
         <span className="pfg-qty-badge">×{qty}</span>
+        {pos.is_graded && (
+          <span className="pfg-slab-badge">{gradeBadge(pos) || "GRADED"}</span>
+        )}
         <button type="button" className="pfg-qty-decrement" disabled={decrementBusy}
           onClick={(e) => { e.preventDefault(); e.stopPropagation(); onDecrement?.(); }}
           aria-label={`Remove one copy of ${pos.card_name || "this card"}`}>
@@ -581,6 +590,24 @@ export function PortfolioView({ isAuthed, onLogin, onExplore, cur, eurRate, onOp
     if (onOpenCard) onOpenCard(toCardObject(pos));
   }, [onOpenCard]);
 
+  const onExportCsv = useCallback(() => {
+    if (!positions.length) return;
+    const rows = buildCollectionRows(positions, portfolio.valuationByInput);
+    const csv = toCsv(rows);
+    const date = new Date().toISOString().slice(0, 10);
+    downloadText(`dragold-collection-${date}.csv`, csv, 'text/csv;charset=utf-8');
+    flash("Collection exported to CSV");
+  }, [positions, portfolio.valuationByInput, flash]);
+
+  const onExportJson = useCallback(() => {
+    if (!positions.length) return;
+    const rows = buildCollectionRows(positions, portfolio.valuationByInput);
+    const json = toCollectionJson(rows);
+    const date = new Date().toISOString().slice(0, 10);
+    downloadText(`dragold-collection-${date}.json`, json, 'application/json;charset=utf-8');
+    flash("Collection exported to JSON");
+  }, [positions, portfolio.valuationByInput, flash]);
+
   /* ── not authenticated ── */
   if (!isAuthed) return (
     <section className="view">
@@ -706,6 +733,16 @@ export function PortfolioView({ isAuthed, onLogin, onExplore, cur, eurRate, onOp
       <div className="pf-header">
         <div className="pf-header-top">
           <span className="pf-label">Estimated Market Value</span>
+          {positions.length > 0 && (
+            <div className="pf-export-btns" style={{ marginLeft: "auto" }}>
+              <button type="button" className="pf-export-btn" onClick={onExportCsv} title="Export collection as CSV">
+                <Icon name="doc" size={12} /> Export CSV
+              </button>
+              <button type="button" className="pf-export-btn" onClick={onExportJson} title="Export collection as JSON">
+                <Icon name="doc" size={12} /> JSON
+              </button>
+            </div>
+          )}
         </div>
         <div className="pf-total">{fmtEur(portfolio.totalEur)}</div>
 

@@ -26,6 +26,7 @@ import { getTcgHub } from '../../lib/tcgConfig.js'
 import { buildSetSlug } from '../../lib/setSlug.js'
 import { useAuth } from '../../lib/auth.js'
 import { supabase } from '../../supabase.js'
+import { buildWantListRows, toCsv, downloadText, fileSlug } from '../../lib/collectionExport.js'
 import { useEffect, useState, createElement as h } from 'react'
 
 // Solo un codice lingua plausibile (2-8 lettere/trattini, es. "ja", "zh-tw")
@@ -341,12 +342,30 @@ export default function SetPage({ slug }) {
     )
   ) : null
 
+  const exportWantList = () => {
+    const missing = d.cards.filter(c => !(collectionMap.get(c.id) || 0))
+    if (!missing.length) return
+    const rows = buildWantListRows(missing, { setName: d.setName })
+    const csv = toCsv(rows)
+    const slug = fileSlug(d.setName)
+    downloadText(`${slug}-want-list.csv`, csv, 'text/csv;charset=utf-8')
+  }
+
+  const missingCount = d.cards.length - collectedCount
+
   const filterRow = (isAuthed && !collectionLoading) ? h('div', { style: styles.filterRow }, [
-    ['all', 'All'], ['collected', 'Collected'], ['missing', 'Missing'],
-  ].map(([key, label]) => h('button', {
-    type: 'button', key, style: filter === key ? styles.filterBtnActive : styles.filterBtn,
-    onClick: () => setFilter(key),
-  }, label))) : null
+    ...[['all', 'All'], ['collected', 'Collected'], ['missing', 'Missing']].map(([key, label]) => h('button', {
+      type: 'button', key, style: filter === key ? styles.filterBtnActive : styles.filterBtn,
+      onClick: () => setFilter(key),
+    }, label)),
+    missingCount > 0 ? h('button', {
+      type: 'button',
+      key: 'export-want',
+      style: styles.exportWantBtn,
+      onClick: exportWantList,
+      title: 'Export missing cards as CSV checklist',
+    }, '📄 Export Want List') : null,
+  ]) : null
 
   const cardGrid = visibleCards.length
     ? h('div', { style: styles.grid }, visibleCards.map(c => {
@@ -576,6 +595,7 @@ const styles = {
   filterRow: { display: 'flex', gap: 8, marginBottom: 16 },
   filterBtn: { background: 'transparent', color: '#c0c0d0', border: '1px solid #2a2a3a', borderRadius: 20, padding: '4px 14px', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' },
   filterBtnActive: { background: '#4b3cff', color: '#fff', border: '1px solid #4b3cff', borderRadius: 20, padding: '4px 14px', fontSize: 12, cursor: 'default', fontFamily: 'inherit' },
+  exportWantBtn: { background: 'rgba(231,183,95,0.1)', color: '#e7b75f', border: '1px solid rgba(231,183,95,0.3)', borderRadius: 20, padding: '4px 12px', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit', marginLeft: 'auto' },
   grid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: 16 },
   cardTile: { textDecoration: 'none', color: 'inherit', display: 'block', borderRadius: 8 },
   cardImgWrap: { position: 'relative', marginBottom: 6 },

@@ -7,10 +7,12 @@ import { buildPricePulseSeries } from '../../lib/pricePulse.pure.js';
 
 export function PricePulseChart({ observations, valuation, tcg, lang }) {
   const [activePointIndex, setActivePointIndex] = useState(null);
+  const [range, setRange] = useState('all');
   const gradientId = useId();
 
-  // Verifica supporto TCG (attualmente abilitato e affidabile solo per Pokémon e One Piece)
-  const isSupportedTcg = tcg === 'pokemon' || tcg === 'onepiece';
+  // Verifica supporto TCG: Pokémon e One Piece hanno pipeline dedicate, per MTG e YGO mostriamo se ci sono osservazioni reali
+  const hasObs = Array.isArray(observations) && observations.length > 0;
+  const isSupportedTcg = tcg === 'pokemon' || tcg === 'onepiece' || hasObs;
   if (!isSupportedTcg) {
     return h('div', { style: styles.emptyBox },
       h('div', { style: styles.emptyTitle }, 'Price Pulse non disponibile per questo gioco'),
@@ -20,21 +22,46 @@ export function PricePulseChart({ observations, valuation, tcg, lang }) {
     );
   }
 
-  const series = buildPricePulseSeries(observations, { targetCurrency: 'EUR' });
+  // Costruisce la serie consentendo a partire da 2 punti di tracciare la linea
+  const fullSeries = buildPricePulseSeries(observations, { targetCurrency: 'EUR', minPoints: 2 });
 
-  // Se lo storico non soddisfa i requisiti minimi (almeno 5 date distinte valide)
-  if (!series.hasSufficientData) {
+  // Se lo storico ha meno di 2 date distinte valide
+  if (!fullSeries.hasSufficientData || !fullSeries.points || fullSeries.points.length < 2) {
     return h('div', { style: styles.emptyBox },
       h('div', { style: styles.emptyBadge }, '📊 In fase di accumulo'),
-      h('div', { style: styles.emptyTitle }, 'Storico prezzi insufficiente'),
+      h('div', { style: styles.emptyTitle }, 'Storico prezzi iniziale'),
       h('div', { style: styles.emptyText },
-        `Richieste almeno 5 osservazioni giornaliere distinte per tracciare il trend (rilevate: ${series.count ?? (observations?.length || 0)}). I dati continuativi vengono aggiornati quotidianamente.`
+        `Richieste almeno 2 osservazioni giornaliere distinte per tracciare il trend (rilevate: ${fullSeries.count ?? (observations?.length || 0)}). I dati continuativi vengono aggiornati quotidianamente.`
       )
     );
   }
 
-  const points = series.points;
-  const summary = series.summary;
+  const allPoints = fullSeries.points;
+  const RANGES = [
+    { key: '30d', label: '30D', days: 30 },
+    { key: '90d', label: '90D', days: 90 },
+    { key: 'all', label: 'ALL', days: null },
+  ];
+
+  let points = allPoints;
+  if (range !== 'all') {
+    const sel = RANGES.find(r => r.key === range);
+    if (sel?.days) {
+      const cutoff = Date.now() - sel.days * 24 * 3600 * 1000;
+      const filtered = allPoints.filter(p => p.timestamp >= cutoff);
+      if (filtered.length >= 2) points = filtered;
+    }
+  }
+
+  const isPreliminary = allPoints.length < 5;
+  const summary = fullSeries.summary || {
+    firstPrice: points[0].price,
+    lastPrice: points[points.length - 1].price,
+    minPrice: Math.min(...points.map(p => p.price)),
+    maxPrice: Math.max(...points.map(p => p.price)),
+    changePct: points[0].price > 0 ? ((points[points.length - 1].price - points[0].price) / points[0].price) * 100 : 0,
+    pointsCount: points.length,
+  };
   const activePoint = activePointIndex != null ? points[activePointIndex] : points[points.length - 1];
 
   // Dimensioni SVG responsive
@@ -103,7 +130,8 @@ export function PricePulseChart({ observations, valuation, tcg, lang }) {
       h('div', null,
         h('div', { style: styles.titleRow },
           h('span', { style: styles.title }, 'DraGold Price Pulse'),
-          h('span', { style: styles.badgeSource }, 'TCGplayer Market')
+          h('span', { style: styles.badgeSource }, 'TCGplayer Market'),
+          isPreliminary && h('span', { style: styles.badgePrelim }, '📈 Rilevazioni iniziali')
         ),
         h('div', { style: styles.subTitle },
           `Rilevazioni giornaliere continuative · Finish: ${points[0].subType}`
@@ -113,6 +141,14 @@ export function PricePulseChart({ observations, valuation, tcg, lang }) {
         h('div', { style: styles.headlinePrice }, formatEur(activePoint.price)),
         h('div', { style: { ...styles.trendBadge, color: trendColor } },
           `${trendSign}${summary.changePct.toFixed(1)}% (${summary.pointsCount} gg)`
+        ),
+        h('div', { style: styles.rangeRow },
+          RANGES.map(r => h('button', {
+            type: 'button',
+            key: r.key,
+            style: range === r.key ? styles.rangeBtnActive : styles.rangeBtn,
+            onClick: () => { setRange(r.key); setActivePointIndex(null); },
+          }, r.label))
         )
       )
     ),
@@ -189,6 +225,7 @@ export function PricePulseChart({ observations, valuation, tcg, lang }) {
           fill: 'none',
           stroke: '#818cf8',
           strokeWidth: '2.5',
+          strokeDasharray: isPreliminary ? '5 4' : undefined,
           strokeLinecap: 'round',
           strokeLinejoin: 'round',
         }),
@@ -306,6 +343,44 @@ const styles = {
     padding: '2px 7px',
     fontSize: 11,
     fontWeight: 500,
+  },
+  badgePrelim: {
+    background: 'rgba(231,183,95,0.12)',
+    color: '#e7b75f',
+    border: '1px solid rgba(231,183,95,0.35)',
+    borderRadius: 6,
+    padding: '2px 7px',
+    fontSize: 11,
+    fontWeight: 600,
+  },
+  rangeRow: {
+    display: 'flex',
+    gap: 6,
+    alignItems: 'center',
+    marginTop: 6,
+    justifyContent: 'flex-end',
+  },
+  rangeBtn: {
+    background: '#161624',
+    border: '1px solid #27273f',
+    color: '#a1a1aa',
+    borderRadius: 100,
+    padding: '2px 9px',
+    fontSize: 11,
+    fontFamily: "'Space Mono', monospace",
+    cursor: 'pointer',
+    transition: 'all 0.15s ease',
+  },
+  rangeBtnActive: {
+    background: '#e7b75f',
+    border: '1px solid #e7b75f',
+    color: '#1a1200',
+    borderRadius: 100,
+    padding: '2px 9px',
+    fontSize: 11,
+    fontWeight: 700,
+    fontFamily: "'Space Mono', monospace",
+    cursor: 'default',
   },
   subTitle: {
     fontSize: 12,
