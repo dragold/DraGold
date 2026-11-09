@@ -1,0 +1,4002 @@
+[
+  {
+    "id": "pokemon:ptcg:base1-1",
+    "source_id": "base1-1",
+    "name": "Alakazam",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base1"
+  },
+  {
+    "id": "pokemon:ptcg:base1-10",
+    "source_id": "base1-10",
+    "name": "Mewtwo",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base1"
+  },
+  {
+    "id": "pokemon:ptcg:base1-100",
+    "source_id": "base1-100",
+    "name": "Lightning Energy",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base1"
+  },
+  {
+    "id": "pokemon:ptcg:base1-101",
+    "source_id": "base1-101",
+    "name": "Psychic Energy",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base1"
+  },
+  {
+    "id": "pokemon:ptcg:base1-102",
+    "source_id": "base1-102",
+    "name": "Water Energy",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base1"
+  },
+  {
+    "id": "pokemon:ptcg:base1-11",
+    "source_id": "base1-11",
+    "name": "Nidoking",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base1"
+  },
+  {
+    "id": "pokemon:ptcg:base1-12",
+    "source_id": "base1-12",
+    "name": "Ninetales",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base1"
+  },
+  {
+    "id": "pokemon:ptcg:base1-13",
+    "source_id": "base1-13",
+    "name": "Poliwrath",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base1"
+  },
+  {
+    "id": "pokemon:ptcg:base1-14",
+    "source_id": "base1-14",
+    "name": "Raichu",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base1"
+  },
+  {
+    "id": "pokemon:ptcg:base1-15",
+    "source_id": "base1-15",
+    "name": "Venusaur",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base1"
+  },
+  {
+    "id": "pokemon:ptcg:base1-16",
+    "source_id": "base1-16",
+    "name": "Zapdos",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base1"
+  },
+  {
+    "id": "pokemon:ptcg:base1-17",
+    "source_id": "base1-17",
+    "name": "Beedrill",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base1"
+  },
+  {
+    "id": "pokemon:ptcg:base1-18",
+    "source_id": "base1-18",
+    "name": "Dragonair",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base1"
+  },
+  {
+    "id": "pokemon:ptcg:base1-19",
+    "source_id": "base1-19",
+    "name": "Dugtrio",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base1"
+  },
+  {
+    "id": "pokemon:ptcg:base1-2",
+    "source_id": "base1-2",
+    "name": "Blastoise",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base1"
+  },
+  {
+    "id": "pokemon:ptcg:base1-20",
+    "source_id": "base1-20",
+    "name": "Electabuzz",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base1"
+  },
+  {
+    "id": "pokemon:ptcg:base1-21",
+    "source_id": "base1-21",
+    "name": "Electrode",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base1"
+  },
+  {
+    "id": "pokemon:ptcg:base1-22",
+    "source_id": "base1-22",
+    "name": "Pidgeotto",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base1"
+  },
+  {
+    "id": "pokemon:ptcg:base1-23",
+    "source_id": "base1-23",
+    "name": "Arcanine",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base1"
+  },
+  {
+    "id": "pokemon:ptcg:base1-24",
+    "source_id": "base1-24",
+    "name": "Charmeleon",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base1"
+  },
+  {
+    "id": "pokemon:ptcg:base1-25",
+    "source_id": "base1-25",
+    "name": "Dewgong",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base1"
+  },
+  {
+    "id": "pokemon:ptcg:base1-26",
+    "source_id": "base1-26",
+    "name": "Dratini",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base1"
+  },
+  {
+    "id": "pokemon:ptcg:base1-27",
+    "source_id": "base1-27",
+    "name": "Farfetch'd",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base1"
+  },
+  {
+    "id": "pokemon:ptcg:base1-28",
+    "source_id": "base1-28",
+    "name": "Growlithe",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base1"
+  },
+  {
+    "id": "pokemon:ptcg:base1-29",
+    "source_id": "base1-29",
+    "name": "Haunter",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base1"
+  },
+  {
+    "id": "pokemon:ptcg:base1-3",
+    "source_id": "base1-3",
+    "name": "Chansey",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base1"
+  },
+  {
+    "id": "pokemon:ptcg:base1-30",
+    "source_id": "base1-30",
+    "name": "Ivysaur",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base1"
+  },
+  {
+    "id": "pokemon:ptcg:base1-31",
+    "source_id": "base1-31",
+    "name": "Jynx",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base1"
+  },
+  {
+    "id": "pokemon:ptcg:base1-32",
+    "source_id": "base1-32",
+    "name": "Kadabra",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base1"
+  },
+  {
+    "id": "pokemon:ptcg:base1-33",
+    "source_id": "base1-33",
+    "name": "Kakuna",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base1"
+  },
+  {
+    "id": "pokemon:ptcg:base1-34",
+    "source_id": "base1-34",
+    "name": "Machoke",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base1"
+  },
+  {
+    "id": "pokemon:ptcg:base1-35",
+    "source_id": "base1-35",
+    "name": "Magikarp",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base1"
+  },
+  {
+    "id": "pokemon:ptcg:base1-36",
+    "source_id": "base1-36",
+    "name": "Magmar",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base1"
+  },
+  {
+    "id": "pokemon:ptcg:base1-37",
+    "source_id": "base1-37",
+    "name": "Nidorino",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base1"
+  },
+  {
+    "id": "pokemon:ptcg:base1-38",
+    "source_id": "base1-38",
+    "name": "Poliwhirl",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base1"
+  },
+  {
+    "id": "pokemon:ptcg:base1-39",
+    "source_id": "base1-39",
+    "name": "Porygon",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base1"
+  },
+  {
+    "id": "pokemon:ptcg:base1-4",
+    "source_id": "base1-4",
+    "name": "Charizard",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base1"
+  },
+  {
+    "id": "pokemon:ptcg:base1-40",
+    "source_id": "base1-40",
+    "name": "Raticate",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base1"
+  },
+  {
+    "id": "pokemon:ptcg:base1-41",
+    "source_id": "base1-41",
+    "name": "Seel",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base1"
+  },
+  {
+    "id": "pokemon:ptcg:base1-42",
+    "source_id": "base1-42",
+    "name": "Wartortle",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base1"
+  },
+  {
+    "id": "pokemon:ptcg:base1-43",
+    "source_id": "base1-43",
+    "name": "Abra",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base1"
+  },
+  {
+    "id": "pokemon:ptcg:base1-44",
+    "source_id": "base1-44",
+    "name": "Bulbasaur",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base1"
+  },
+  {
+    "id": "pokemon:ptcg:base1-45",
+    "source_id": "base1-45",
+    "name": "Caterpie",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base1"
+  },
+  {
+    "id": "pokemon:ptcg:base1-46",
+    "source_id": "base1-46",
+    "name": "Charmander",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base1"
+  },
+  {
+    "id": "pokemon:ptcg:base1-47",
+    "source_id": "base1-47",
+    "name": "Diglett",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base1"
+  },
+  {
+    "id": "pokemon:ptcg:base1-48",
+    "source_id": "base1-48",
+    "name": "Doduo",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base1"
+  },
+  {
+    "id": "pokemon:ptcg:base1-49",
+    "source_id": "base1-49",
+    "name": "Drowzee",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base1"
+  },
+  {
+    "id": "pokemon:ptcg:base1-5",
+    "source_id": "base1-5",
+    "name": "Clefairy",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base1"
+  },
+  {
+    "id": "pokemon:ptcg:base1-50",
+    "source_id": "base1-50",
+    "name": "Gastly",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base1"
+  },
+  {
+    "id": "pokemon:ptcg:base1-51",
+    "source_id": "base1-51",
+    "name": "Koffing",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base1"
+  },
+  {
+    "id": "pokemon:ptcg:base1-52",
+    "source_id": "base1-52",
+    "name": "Machop",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base1"
+  },
+  {
+    "id": "pokemon:ptcg:base1-53",
+    "source_id": "base1-53",
+    "name": "Magnemite",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base1"
+  },
+  {
+    "id": "pokemon:ptcg:base1-54",
+    "source_id": "base1-54",
+    "name": "Metapod",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base1"
+  },
+  {
+    "id": "pokemon:ptcg:base1-55",
+    "source_id": "base1-55",
+    "name": "Nidoran ♂",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base1"
+  },
+  {
+    "id": "pokemon:ptcg:base1-56",
+    "source_id": "base1-56",
+    "name": "Onix",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base1"
+  },
+  {
+    "id": "pokemon:ptcg:base1-57",
+    "source_id": "base1-57",
+    "name": "Pidgey",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base1"
+  },
+  {
+    "id": "pokemon:ptcg:base1-58",
+    "source_id": "base1-58",
+    "name": "Pikachu",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base1"
+  },
+  {
+    "id": "pokemon:ptcg:base1-59",
+    "source_id": "base1-59",
+    "name": "Poliwag",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base1"
+  },
+  {
+    "id": "pokemon:ptcg:base1-6",
+    "source_id": "base1-6",
+    "name": "Gyarados",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base1"
+  },
+  {
+    "id": "pokemon:ptcg:base1-60",
+    "source_id": "base1-60",
+    "name": "Ponyta",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base1"
+  },
+  {
+    "id": "pokemon:ptcg:base1-61",
+    "source_id": "base1-61",
+    "name": "Rattata",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base1"
+  },
+  {
+    "id": "pokemon:ptcg:base1-62",
+    "source_id": "base1-62",
+    "name": "Sandshrew",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base1"
+  },
+  {
+    "id": "pokemon:ptcg:base1-63",
+    "source_id": "base1-63",
+    "name": "Squirtle",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base1"
+  },
+  {
+    "id": "pokemon:ptcg:base1-64",
+    "source_id": "base1-64",
+    "name": "Starmie",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base1"
+  },
+  {
+    "id": "pokemon:ptcg:base1-65",
+    "source_id": "base1-65",
+    "name": "Staryu",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base1"
+  },
+  {
+    "id": "pokemon:ptcg:base1-66",
+    "source_id": "base1-66",
+    "name": "Tangela",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base1"
+  },
+  {
+    "id": "pokemon:ptcg:base1-67",
+    "source_id": "base1-67",
+    "name": "Voltorb",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base1"
+  },
+  {
+    "id": "pokemon:ptcg:base1-68",
+    "source_id": "base1-68",
+    "name": "Vulpix",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base1"
+  },
+  {
+    "id": "pokemon:ptcg:base1-69",
+    "source_id": "base1-69",
+    "name": "Weedle",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base1"
+  },
+  {
+    "id": "pokemon:ptcg:base1-7",
+    "source_id": "base1-7",
+    "name": "Hitmonchan",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base1"
+  },
+  {
+    "id": "pokemon:ptcg:base1-70",
+    "source_id": "base1-70",
+    "name": "Clefairy Doll",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base1"
+  },
+  {
+    "id": "pokemon:ptcg:base1-71",
+    "source_id": "base1-71",
+    "name": "Computer Search",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base1"
+  },
+  {
+    "id": "pokemon:ptcg:base1-72",
+    "source_id": "base1-72",
+    "name": "Devolution Spray",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base1"
+  },
+  {
+    "id": "pokemon:ptcg:base1-73",
+    "source_id": "base1-73",
+    "name": "Impostor Professor Oak",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base1"
+  },
+  {
+    "id": "pokemon:ptcg:base1-74",
+    "source_id": "base1-74",
+    "name": "Item Finder",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base1"
+  },
+  {
+    "id": "pokemon:ptcg:base1-75",
+    "source_id": "base1-75",
+    "name": "Lass",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base1"
+  },
+  {
+    "id": "pokemon:ptcg:base1-76",
+    "source_id": "base1-76",
+    "name": "Pokémon Breeder",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base1"
+  },
+  {
+    "id": "pokemon:ptcg:base1-77",
+    "source_id": "base1-77",
+    "name": "Pokémon Trader",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base1"
+  },
+  {
+    "id": "pokemon:ptcg:base1-78",
+    "source_id": "base1-78",
+    "name": "Scoop Up",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base1"
+  },
+  {
+    "id": "pokemon:ptcg:base1-79",
+    "source_id": "base1-79",
+    "name": "Super Energy Removal",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base1"
+  },
+  {
+    "id": "pokemon:ptcg:base1-8",
+    "source_id": "base1-8",
+    "name": "Machamp",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base1"
+  },
+  {
+    "id": "pokemon:ptcg:base1-80",
+    "source_id": "base1-80",
+    "name": "Defender",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base1"
+  },
+  {
+    "id": "pokemon:ptcg:base1-81",
+    "source_id": "base1-81",
+    "name": "Energy Retrieval",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base1"
+  },
+  {
+    "id": "pokemon:ptcg:base1-82",
+    "source_id": "base1-82",
+    "name": "Full Heal",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base1"
+  },
+  {
+    "id": "pokemon:ptcg:base1-83",
+    "source_id": "base1-83",
+    "name": "Maintenance",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base1"
+  },
+  {
+    "id": "pokemon:ptcg:base1-84",
+    "source_id": "base1-84",
+    "name": "PlusPower",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base1"
+  },
+  {
+    "id": "pokemon:ptcg:base1-85",
+    "source_id": "base1-85",
+    "name": "Pokémon Center",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base1"
+  },
+  {
+    "id": "pokemon:ptcg:base1-86",
+    "source_id": "base1-86",
+    "name": "Pokémon Flute",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base1"
+  },
+  {
+    "id": "pokemon:ptcg:base1-87",
+    "source_id": "base1-87",
+    "name": "Pokédex",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base1"
+  },
+  {
+    "id": "pokemon:ptcg:base1-88",
+    "source_id": "base1-88",
+    "name": "Professor Oak",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base1"
+  },
+  {
+    "id": "pokemon:ptcg:base1-89",
+    "source_id": "base1-89",
+    "name": "Revive",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base1"
+  },
+  {
+    "id": "pokemon:ptcg:base1-9",
+    "source_id": "base1-9",
+    "name": "Magneton",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base1"
+  },
+  {
+    "id": "pokemon:ptcg:base1-90",
+    "source_id": "base1-90",
+    "name": "Super Potion",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base1"
+  },
+  {
+    "id": "pokemon:ptcg:base1-91",
+    "source_id": "base1-91",
+    "name": "Bill",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base1"
+  },
+  {
+    "id": "pokemon:ptcg:base1-92",
+    "source_id": "base1-92",
+    "name": "Energy Removal",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base1"
+  },
+  {
+    "id": "pokemon:ptcg:base1-93",
+    "source_id": "base1-93",
+    "name": "Gust of Wind",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base1"
+  },
+  {
+    "id": "pokemon:ptcg:base1-94",
+    "source_id": "base1-94",
+    "name": "Potion",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base1"
+  },
+  {
+    "id": "pokemon:ptcg:base1-95",
+    "source_id": "base1-95",
+    "name": "Switch",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base1"
+  },
+  {
+    "id": "pokemon:ptcg:base1-96",
+    "source_id": "base1-96",
+    "name": "Double Colorless Energy",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base1"
+  },
+  {
+    "id": "pokemon:ptcg:base1-97",
+    "source_id": "base1-97",
+    "name": "Fighting Energy",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base1"
+  },
+  {
+    "id": "pokemon:ptcg:base1-98",
+    "source_id": "base1-98",
+    "name": "Fire Energy",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base1"
+  },
+  {
+    "id": "pokemon:ptcg:base1-99",
+    "source_id": "base1-99",
+    "name": "Grass Energy",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base1"
+  },
+  {
+    "id": "pokemon:ptcg:base2-1",
+    "source_id": "base2-1",
+    "name": "Clefable",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base2"
+  },
+  {
+    "id": "pokemon:ptcg:base2-10",
+    "source_id": "base2-10",
+    "name": "Scyther",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base2"
+  },
+  {
+    "id": "pokemon:ptcg:base2-11",
+    "source_id": "base2-11",
+    "name": "Snorlax",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base2"
+  },
+  {
+    "id": "pokemon:ptcg:base2-12",
+    "source_id": "base2-12",
+    "name": "Vaporeon",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base2"
+  },
+  {
+    "id": "pokemon:ptcg:base2-13",
+    "source_id": "base2-13",
+    "name": "Venomoth",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base2"
+  },
+  {
+    "id": "pokemon:ptcg:base2-14",
+    "source_id": "base2-14",
+    "name": "Victreebel",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base2"
+  },
+  {
+    "id": "pokemon:ptcg:base2-15",
+    "source_id": "base2-15",
+    "name": "Vileplume",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base2"
+  },
+  {
+    "id": "pokemon:ptcg:base2-16",
+    "source_id": "base2-16",
+    "name": "Wigglytuff",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base2"
+  },
+  {
+    "id": "pokemon:ptcg:base2-17",
+    "source_id": "base2-17",
+    "name": "Clefable",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base2"
+  },
+  {
+    "id": "pokemon:ptcg:base2-18",
+    "source_id": "base2-18",
+    "name": "Electrode",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base2"
+  },
+  {
+    "id": "pokemon:ptcg:base2-19",
+    "source_id": "base2-19",
+    "name": "Flareon",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base2"
+  },
+  {
+    "id": "pokemon:ptcg:base2-2",
+    "source_id": "base2-2",
+    "name": "Electrode",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base2"
+  },
+  {
+    "id": "pokemon:ptcg:base2-20",
+    "source_id": "base2-20",
+    "name": "Jolteon",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base2"
+  },
+  {
+    "id": "pokemon:ptcg:base2-21",
+    "source_id": "base2-21",
+    "name": "Kangaskhan",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base2"
+  },
+  {
+    "id": "pokemon:ptcg:base2-22",
+    "source_id": "base2-22",
+    "name": "Mr. Mime",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base2"
+  },
+  {
+    "id": "pokemon:ptcg:base2-23",
+    "source_id": "base2-23",
+    "name": "Nidoqueen",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base2"
+  },
+  {
+    "id": "pokemon:ptcg:base2-24",
+    "source_id": "base2-24",
+    "name": "Pidgeot",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base2"
+  },
+  {
+    "id": "pokemon:ptcg:base2-25",
+    "source_id": "base2-25",
+    "name": "Pinsir",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base2"
+  },
+  {
+    "id": "pokemon:ptcg:base2-26",
+    "source_id": "base2-26",
+    "name": "Scyther",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base2"
+  },
+  {
+    "id": "pokemon:ptcg:base2-27",
+    "source_id": "base2-27",
+    "name": "Snorlax",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base2"
+  },
+  {
+    "id": "pokemon:ptcg:base2-28",
+    "source_id": "base2-28",
+    "name": "Vaporeon",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base2"
+  },
+  {
+    "id": "pokemon:ptcg:base2-29",
+    "source_id": "base2-29",
+    "name": "Venomoth",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base2"
+  },
+  {
+    "id": "pokemon:ptcg:base2-3",
+    "source_id": "base2-3",
+    "name": "Flareon",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base2"
+  },
+  {
+    "id": "pokemon:ptcg:base2-30",
+    "source_id": "base2-30",
+    "name": "Victreebel",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base2"
+  },
+  {
+    "id": "pokemon:ptcg:base2-31",
+    "source_id": "base2-31",
+    "name": "Vileplume",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base2"
+  },
+  {
+    "id": "pokemon:ptcg:base2-32",
+    "source_id": "base2-32",
+    "name": "Wigglytuff",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base2"
+  },
+  {
+    "id": "pokemon:ptcg:base2-33",
+    "source_id": "base2-33",
+    "name": "Butterfree",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base2"
+  },
+  {
+    "id": "pokemon:ptcg:base2-34",
+    "source_id": "base2-34",
+    "name": "Dodrio",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base2"
+  },
+  {
+    "id": "pokemon:ptcg:base2-35",
+    "source_id": "base2-35",
+    "name": "Exeggutor",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base2"
+  },
+  {
+    "id": "pokemon:ptcg:base2-36",
+    "source_id": "base2-36",
+    "name": "Fearow",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base2"
+  },
+  {
+    "id": "pokemon:ptcg:base2-37",
+    "source_id": "base2-37",
+    "name": "Gloom",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base2"
+  },
+  {
+    "id": "pokemon:ptcg:base2-38",
+    "source_id": "base2-38",
+    "name": "Lickitung",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base2"
+  },
+  {
+    "id": "pokemon:ptcg:base2-39",
+    "source_id": "base2-39",
+    "name": "Marowak",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base2"
+  },
+  {
+    "id": "pokemon:ptcg:base2-4",
+    "source_id": "base2-4",
+    "name": "Jolteon",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base2"
+  },
+  {
+    "id": "pokemon:ptcg:base2-40",
+    "source_id": "base2-40",
+    "name": "Nidorina",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base2"
+  },
+  {
+    "id": "pokemon:ptcg:base2-41",
+    "source_id": "base2-41",
+    "name": "Parasect",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base2"
+  },
+  {
+    "id": "pokemon:ptcg:base2-42",
+    "source_id": "base2-42",
+    "name": "Persian",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base2"
+  },
+  {
+    "id": "pokemon:ptcg:base2-43",
+    "source_id": "base2-43",
+    "name": "Primeape",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base2"
+  },
+  {
+    "id": "pokemon:ptcg:base2-44",
+    "source_id": "base2-44",
+    "name": "Rapidash",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base2"
+  },
+  {
+    "id": "pokemon:ptcg:base2-45",
+    "source_id": "base2-45",
+    "name": "Rhydon",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base2"
+  },
+  {
+    "id": "pokemon:ptcg:base2-46",
+    "source_id": "base2-46",
+    "name": "Seaking",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base2"
+  },
+  {
+    "id": "pokemon:ptcg:base2-47",
+    "source_id": "base2-47",
+    "name": "Tauros",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base2"
+  },
+  {
+    "id": "pokemon:ptcg:base2-48",
+    "source_id": "base2-48",
+    "name": "Weepinbell",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base2"
+  },
+  {
+    "id": "pokemon:ptcg:base2-49",
+    "source_id": "base2-49",
+    "name": "Bellsprout",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base2"
+  },
+  {
+    "id": "pokemon:ptcg:base2-5",
+    "source_id": "base2-5",
+    "name": "Kangaskhan",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base2"
+  },
+  {
+    "id": "pokemon:ptcg:base2-50",
+    "source_id": "base2-50",
+    "name": "Cubone",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base2"
+  },
+  {
+    "id": "pokemon:ptcg:base2-51",
+    "source_id": "base2-51",
+    "name": "Eevee",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base2"
+  },
+  {
+    "id": "pokemon:ptcg:base2-52",
+    "source_id": "base2-52",
+    "name": "Exeggcute",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base2"
+  },
+  {
+    "id": "pokemon:ptcg:base2-53",
+    "source_id": "base2-53",
+    "name": "Goldeen",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base2"
+  },
+  {
+    "id": "pokemon:ptcg:base2-54",
+    "source_id": "base2-54",
+    "name": "Jigglypuff",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base2"
+  },
+  {
+    "id": "pokemon:ptcg:base2-55",
+    "source_id": "base2-55",
+    "name": "Mankey",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base2"
+  },
+  {
+    "id": "pokemon:ptcg:base2-56",
+    "source_id": "base2-56",
+    "name": "Meowth",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base2"
+  },
+  {
+    "id": "pokemon:ptcg:base2-57",
+    "source_id": "base2-57",
+    "name": "Nidoran ♀",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base2"
+  },
+  {
+    "id": "pokemon:ptcg:base2-58",
+    "source_id": "base2-58",
+    "name": "Oddish",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base2"
+  },
+  {
+    "id": "pokemon:ptcg:base2-59",
+    "source_id": "base2-59",
+    "name": "Paras",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base2"
+  },
+  {
+    "id": "pokemon:ptcg:base2-6",
+    "source_id": "base2-6",
+    "name": "Mr. Mime",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base2"
+  },
+  {
+    "id": "pokemon:ptcg:base2-60",
+    "source_id": "base2-60",
+    "name": "Pikachu",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base2"
+  },
+  {
+    "id": "pokemon:ptcg:base2-61",
+    "source_id": "base2-61",
+    "name": "Rhyhorn",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base2"
+  },
+  {
+    "id": "pokemon:ptcg:base2-62",
+    "source_id": "base2-62",
+    "name": "Spearow",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base2"
+  },
+  {
+    "id": "pokemon:ptcg:base2-63",
+    "source_id": "base2-63",
+    "name": "Venonat",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base2"
+  },
+  {
+    "id": "pokemon:ptcg:base2-64",
+    "source_id": "base2-64",
+    "name": "Poké Ball",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base2"
+  },
+  {
+    "id": "pokemon:ptcg:base2-7",
+    "source_id": "base2-7",
+    "name": "Nidoqueen",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base2"
+  },
+  {
+    "id": "pokemon:ptcg:base2-8",
+    "source_id": "base2-8",
+    "name": "Pidgeot",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base2"
+  },
+  {
+    "id": "pokemon:ptcg:base2-9",
+    "source_id": "base2-9",
+    "name": "Pinsir",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base2"
+  },
+  {
+    "id": "pokemon:ptcg:base3-1",
+    "source_id": "base3-1",
+    "name": "Aerodactyl",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base3"
+  },
+  {
+    "id": "pokemon:ptcg:base3-10",
+    "source_id": "base3-10",
+    "name": "Lapras",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base3"
+  },
+  {
+    "id": "pokemon:ptcg:base3-11",
+    "source_id": "base3-11",
+    "name": "Magneton",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base3"
+  },
+  {
+    "id": "pokemon:ptcg:base3-12",
+    "source_id": "base3-12",
+    "name": "Moltres",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base3"
+  },
+  {
+    "id": "pokemon:ptcg:base3-13",
+    "source_id": "base3-13",
+    "name": "Muk",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base3"
+  },
+  {
+    "id": "pokemon:ptcg:base3-14",
+    "source_id": "base3-14",
+    "name": "Raichu",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base3"
+  },
+  {
+    "id": "pokemon:ptcg:base3-15",
+    "source_id": "base3-15",
+    "name": "Zapdos",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base3"
+  },
+  {
+    "id": "pokemon:ptcg:base3-16",
+    "source_id": "base3-16",
+    "name": "Aerodactyl",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base3"
+  },
+  {
+    "id": "pokemon:ptcg:base3-17",
+    "source_id": "base3-17",
+    "name": "Articuno",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base3"
+  },
+  {
+    "id": "pokemon:ptcg:base3-18",
+    "source_id": "base3-18",
+    "name": "Ditto",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base3"
+  },
+  {
+    "id": "pokemon:ptcg:base3-19",
+    "source_id": "base3-19",
+    "name": "Dragonite",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base3"
+  },
+  {
+    "id": "pokemon:ptcg:base3-2",
+    "source_id": "base3-2",
+    "name": "Articuno",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base3"
+  },
+  {
+    "id": "pokemon:ptcg:base3-20",
+    "source_id": "base3-20",
+    "name": "Gengar",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base3"
+  },
+  {
+    "id": "pokemon:ptcg:base3-21",
+    "source_id": "base3-21",
+    "name": "Haunter",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base3"
+  },
+  {
+    "id": "pokemon:ptcg:base3-22",
+    "source_id": "base3-22",
+    "name": "Hitmonlee",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base3"
+  },
+  {
+    "id": "pokemon:ptcg:base3-23",
+    "source_id": "base3-23",
+    "name": "Hypno",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base3"
+  },
+  {
+    "id": "pokemon:ptcg:base3-24",
+    "source_id": "base3-24",
+    "name": "Kabutops",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base3"
+  },
+  {
+    "id": "pokemon:ptcg:base3-25",
+    "source_id": "base3-25",
+    "name": "Lapras",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base3"
+  },
+  {
+    "id": "pokemon:ptcg:base3-26",
+    "source_id": "base3-26",
+    "name": "Magneton",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base3"
+  },
+  {
+    "id": "pokemon:ptcg:base3-27",
+    "source_id": "base3-27",
+    "name": "Moltres",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base3"
+  },
+  {
+    "id": "pokemon:ptcg:base3-28",
+    "source_id": "base3-28",
+    "name": "Muk",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base3"
+  },
+  {
+    "id": "pokemon:ptcg:base3-29",
+    "source_id": "base3-29",
+    "name": "Raichu",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base3"
+  },
+  {
+    "id": "pokemon:ptcg:base3-3",
+    "source_id": "base3-3",
+    "name": "Ditto",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base3"
+  },
+  {
+    "id": "pokemon:ptcg:base3-30",
+    "source_id": "base3-30",
+    "name": "Zapdos",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base3"
+  },
+  {
+    "id": "pokemon:ptcg:base3-31",
+    "source_id": "base3-31",
+    "name": "Arbok",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base3"
+  },
+  {
+    "id": "pokemon:ptcg:base3-32",
+    "source_id": "base3-32",
+    "name": "Cloyster",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base3"
+  },
+  {
+    "id": "pokemon:ptcg:base3-33",
+    "source_id": "base3-33",
+    "name": "Gastly",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base3"
+  },
+  {
+    "id": "pokemon:ptcg:base3-34",
+    "source_id": "base3-34",
+    "name": "Golbat",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base3"
+  },
+  {
+    "id": "pokemon:ptcg:base3-35",
+    "source_id": "base3-35",
+    "name": "Golduck",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base3"
+  },
+  {
+    "id": "pokemon:ptcg:base3-36",
+    "source_id": "base3-36",
+    "name": "Golem",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base3"
+  },
+  {
+    "id": "pokemon:ptcg:base3-37",
+    "source_id": "base3-37",
+    "name": "Graveler",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base3"
+  },
+  {
+    "id": "pokemon:ptcg:base3-38",
+    "source_id": "base3-38",
+    "name": "Kingler",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base3"
+  },
+  {
+    "id": "pokemon:ptcg:base3-39",
+    "source_id": "base3-39",
+    "name": "Magmar",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base3"
+  },
+  {
+    "id": "pokemon:ptcg:base3-4",
+    "source_id": "base3-4",
+    "name": "Dragonite",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base3"
+  },
+  {
+    "id": "pokemon:ptcg:base3-40",
+    "source_id": "base3-40",
+    "name": "Omastar",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base3"
+  },
+  {
+    "id": "pokemon:ptcg:base3-41",
+    "source_id": "base3-41",
+    "name": "Sandslash",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base3"
+  },
+  {
+    "id": "pokemon:ptcg:base3-42",
+    "source_id": "base3-42",
+    "name": "Seadra",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base3"
+  },
+  {
+    "id": "pokemon:ptcg:base3-43",
+    "source_id": "base3-43",
+    "name": "Slowbro",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base3"
+  },
+  {
+    "id": "pokemon:ptcg:base3-44",
+    "source_id": "base3-44",
+    "name": "Tentacruel",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base3"
+  },
+  {
+    "id": "pokemon:ptcg:base3-45",
+    "source_id": "base3-45",
+    "name": "Weezing",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base3"
+  },
+  {
+    "id": "pokemon:ptcg:base3-46",
+    "source_id": "base3-46",
+    "name": "Ekans",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base3"
+  },
+  {
+    "id": "pokemon:ptcg:base3-47",
+    "source_id": "base3-47",
+    "name": "Geodude",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base3"
+  },
+  {
+    "id": "pokemon:ptcg:base3-48",
+    "source_id": "base3-48",
+    "name": "Grimer",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base3"
+  },
+  {
+    "id": "pokemon:ptcg:base3-49",
+    "source_id": "base3-49",
+    "name": "Horsea",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base3"
+  },
+  {
+    "id": "pokemon:ptcg:base3-5",
+    "source_id": "base3-5",
+    "name": "Gengar",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base3"
+  },
+  {
+    "id": "pokemon:ptcg:base3-50",
+    "source_id": "base3-50",
+    "name": "Kabuto",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base3"
+  },
+  {
+    "id": "pokemon:ptcg:base3-51",
+    "source_id": "base3-51",
+    "name": "Krabby",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base3"
+  },
+  {
+    "id": "pokemon:ptcg:base3-52",
+    "source_id": "base3-52",
+    "name": "Omanyte",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base3"
+  },
+  {
+    "id": "pokemon:ptcg:base3-53",
+    "source_id": "base3-53",
+    "name": "Psyduck",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base3"
+  },
+  {
+    "id": "pokemon:ptcg:base3-54",
+    "source_id": "base3-54",
+    "name": "Shellder",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base3"
+  },
+  {
+    "id": "pokemon:ptcg:base3-55",
+    "source_id": "base3-55",
+    "name": "Slowpoke",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base3"
+  },
+  {
+    "id": "pokemon:ptcg:base3-56",
+    "source_id": "base3-56",
+    "name": "Tentacool",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base3"
+  },
+  {
+    "id": "pokemon:ptcg:base3-57",
+    "source_id": "base3-57",
+    "name": "Zubat",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base3"
+  },
+  {
+    "id": "pokemon:ptcg:base3-58",
+    "source_id": "base3-58",
+    "name": "Mr. Fuji",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base3"
+  },
+  {
+    "id": "pokemon:ptcg:base3-59",
+    "source_id": "base3-59",
+    "name": "Energy Search",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base3"
+  },
+  {
+    "id": "pokemon:ptcg:base3-6",
+    "source_id": "base3-6",
+    "name": "Haunter",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base3"
+  },
+  {
+    "id": "pokemon:ptcg:base3-60",
+    "source_id": "base3-60",
+    "name": "Gambler",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base3"
+  },
+  {
+    "id": "pokemon:ptcg:base3-61",
+    "source_id": "base3-61",
+    "name": "Recycle",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base3"
+  },
+  {
+    "id": "pokemon:ptcg:base3-62",
+    "source_id": "base3-62",
+    "name": "Mysterious Fossil",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base3"
+  },
+  {
+    "id": "pokemon:ptcg:base3-7",
+    "source_id": "base3-7",
+    "name": "Hitmonlee",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base3"
+  },
+  {
+    "id": "pokemon:ptcg:base3-8",
+    "source_id": "base3-8",
+    "name": "Hypno",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base3"
+  },
+  {
+    "id": "pokemon:ptcg:base3-9",
+    "source_id": "base3-9",
+    "name": "Kabutops",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base3"
+  },
+  {
+    "id": "pokemon:ptcg:base4-1",
+    "source_id": "base4-1",
+    "name": "Alakazam",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-10",
+    "source_id": "base4-10",
+    "name": "Mewtwo",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-100",
+    "source_id": "base4-100",
+    "name": "Weedle",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-101",
+    "source_id": "base4-101",
+    "name": "Computer Search",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-102",
+    "source_id": "base4-102",
+    "name": "Imposter Professor Oak",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-103",
+    "source_id": "base4-103",
+    "name": "Item Finder",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-104",
+    "source_id": "base4-104",
+    "name": "Lass",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-105",
+    "source_id": "base4-105",
+    "name": "Pokémon Breeder",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-106",
+    "source_id": "base4-106",
+    "name": "Pokémon Trader",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-107",
+    "source_id": "base4-107",
+    "name": "Scoop Up",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-108",
+    "source_id": "base4-108",
+    "name": "Super Energy Removal",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-109",
+    "source_id": "base4-109",
+    "name": "Defender",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-11",
+    "source_id": "base4-11",
+    "name": "Nidoking",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-110",
+    "source_id": "base4-110",
+    "name": "Energy Retrieval",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-111",
+    "source_id": "base4-111",
+    "name": "Full Heal",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-112",
+    "source_id": "base4-112",
+    "name": "Maintenance",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-113",
+    "source_id": "base4-113",
+    "name": "PlusPower",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-114",
+    "source_id": "base4-114",
+    "name": "Pokémon Center",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-115",
+    "source_id": "base4-115",
+    "name": "Pokédex",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-116",
+    "source_id": "base4-116",
+    "name": "Professor Oak",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-117",
+    "source_id": "base4-117",
+    "name": "Super Potion",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-118",
+    "source_id": "base4-118",
+    "name": "Bill",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-119",
+    "source_id": "base4-119",
+    "name": "Energy Removal",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-12",
+    "source_id": "base4-12",
+    "name": "Nidoqueen",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-120",
+    "source_id": "base4-120",
+    "name": "Gust of Wind",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-121",
+    "source_id": "base4-121",
+    "name": "Poké Ball",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-122",
+    "source_id": "base4-122",
+    "name": "Potion",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-123",
+    "source_id": "base4-123",
+    "name": "Switch",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-124",
+    "source_id": "base4-124",
+    "name": "Double Colorless Energy",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-125",
+    "source_id": "base4-125",
+    "name": "Fighting Energy",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-126",
+    "source_id": "base4-126",
+    "name": "Fire Energy",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-127",
+    "source_id": "base4-127",
+    "name": "Grass Energy",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-128",
+    "source_id": "base4-128",
+    "name": "Lightning Energy",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-129",
+    "source_id": "base4-129",
+    "name": "Psychic Energy",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-13",
+    "source_id": "base4-13",
+    "name": "Ninetales",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-130",
+    "source_id": "base4-130",
+    "name": "Water Energy",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-14",
+    "source_id": "base4-14",
+    "name": "Pidgeot",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-15",
+    "source_id": "base4-15",
+    "name": "Poliwrath",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-16",
+    "source_id": "base4-16",
+    "name": "Raichu",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-17",
+    "source_id": "base4-17",
+    "name": "Scyther",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-18",
+    "source_id": "base4-18",
+    "name": "Venusaur",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-19",
+    "source_id": "base4-19",
+    "name": "Wigglytuff",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-2",
+    "source_id": "base4-2",
+    "name": "Blastoise",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-20",
+    "source_id": "base4-20",
+    "name": "Zapdos",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-21",
+    "source_id": "base4-21",
+    "name": "Beedrill",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-22",
+    "source_id": "base4-22",
+    "name": "Dragonair",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-23",
+    "source_id": "base4-23",
+    "name": "Dugtrio",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-24",
+    "source_id": "base4-24",
+    "name": "Electabuzz",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-25",
+    "source_id": "base4-25",
+    "name": "Electrode",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-26",
+    "source_id": "base4-26",
+    "name": "Kangaskhan",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-27",
+    "source_id": "base4-27",
+    "name": "Mr. Mime",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-28",
+    "source_id": "base4-28",
+    "name": "Pidgeotto",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-29",
+    "source_id": "base4-29",
+    "name": "Pinsir",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-3",
+    "source_id": "base4-3",
+    "name": "Chansey",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-30",
+    "source_id": "base4-30",
+    "name": "Snorlax",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-31",
+    "source_id": "base4-31",
+    "name": "Venomoth",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-32",
+    "source_id": "base4-32",
+    "name": "Victreebel",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-33",
+    "source_id": "base4-33",
+    "name": "Arcanine",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-34",
+    "source_id": "base4-34",
+    "name": "Butterfree",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-35",
+    "source_id": "base4-35",
+    "name": "Charmeleon",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-36",
+    "source_id": "base4-36",
+    "name": "Dewgong",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-37",
+    "source_id": "base4-37",
+    "name": "Dodrio",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-38",
+    "source_id": "base4-38",
+    "name": "Dratini",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-39",
+    "source_id": "base4-39",
+    "name": "Exeggutor",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-4",
+    "source_id": "base4-4",
+    "name": "Charizard",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-40",
+    "source_id": "base4-40",
+    "name": "Farfetch'd",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-41",
+    "source_id": "base4-41",
+    "name": "Fearow",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-42",
+    "source_id": "base4-42",
+    "name": "Growlithe",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-43",
+    "source_id": "base4-43",
+    "name": "Haunter",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-44",
+    "source_id": "base4-44",
+    "name": "Ivysaur",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-45",
+    "source_id": "base4-45",
+    "name": "Jynx",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-46",
+    "source_id": "base4-46",
+    "name": "Kadabra",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-47",
+    "source_id": "base4-47",
+    "name": "Kakuna",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-48",
+    "source_id": "base4-48",
+    "name": "Lickitung",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-49",
+    "source_id": "base4-49",
+    "name": "Machoke",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-5",
+    "source_id": "base4-5",
+    "name": "Clefable",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-50",
+    "source_id": "base4-50",
+    "name": "Magikarp",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-51",
+    "source_id": "base4-51",
+    "name": "Magmar",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-52",
+    "source_id": "base4-52",
+    "name": "Marowak",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-53",
+    "source_id": "base4-53",
+    "name": "Nidorina",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-54",
+    "source_id": "base4-54",
+    "name": "Nidorino",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-55",
+    "source_id": "base4-55",
+    "name": "Parasect",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-56",
+    "source_id": "base4-56",
+    "name": "Persian",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-57",
+    "source_id": "base4-57",
+    "name": "Poliwhirl",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-58",
+    "source_id": "base4-58",
+    "name": "Raticate",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-59",
+    "source_id": "base4-59",
+    "name": "Rhydon",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-6",
+    "source_id": "base4-6",
+    "name": "Clefairy",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-60",
+    "source_id": "base4-60",
+    "name": "Seaking",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-61",
+    "source_id": "base4-61",
+    "name": "Seel",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-62",
+    "source_id": "base4-62",
+    "name": "Tauros",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-63",
+    "source_id": "base4-63",
+    "name": "Wartortle",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-64",
+    "source_id": "base4-64",
+    "name": "Weepinbell",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-65",
+    "source_id": "base4-65",
+    "name": "Abra",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-66",
+    "source_id": "base4-66",
+    "name": "Bellsprout",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-67",
+    "source_id": "base4-67",
+    "name": "Bulbasaur",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-68",
+    "source_id": "base4-68",
+    "name": "Caterpie",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-69",
+    "source_id": "base4-69",
+    "name": "Charmander",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-7",
+    "source_id": "base4-7",
+    "name": "Gyarados",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-70",
+    "source_id": "base4-70",
+    "name": "Cubone",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-71",
+    "source_id": "base4-71",
+    "name": "Diglett",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-72",
+    "source_id": "base4-72",
+    "name": "Doduo",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-73",
+    "source_id": "base4-73",
+    "name": "Drowzee",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-74",
+    "source_id": "base4-74",
+    "name": "Exeggcute",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-75",
+    "source_id": "base4-75",
+    "name": "Gastly",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-76",
+    "source_id": "base4-76",
+    "name": "Goldeen",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-77",
+    "source_id": "base4-77",
+    "name": "Jigglypuff",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-78",
+    "source_id": "base4-78",
+    "name": "Machop",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-79",
+    "source_id": "base4-79",
+    "name": "Magnemite",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-8",
+    "source_id": "base4-8",
+    "name": "Hitmonchan",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-80",
+    "source_id": "base4-80",
+    "name": "Meowth",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-81",
+    "source_id": "base4-81",
+    "name": "Metapod",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-82",
+    "source_id": "base4-82",
+    "name": "Nidoran ♀",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-83",
+    "source_id": "base4-83",
+    "name": "Nidoran ♂",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-84",
+    "source_id": "base4-84",
+    "name": "Onix",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-85",
+    "source_id": "base4-85",
+    "name": "Paras",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-86",
+    "source_id": "base4-86",
+    "name": "Pidgey",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-87",
+    "source_id": "base4-87",
+    "name": "Pikachu",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-88",
+    "source_id": "base4-88",
+    "name": "Poliwag",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-89",
+    "source_id": "base4-89",
+    "name": "Rattata",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-9",
+    "source_id": "base4-9",
+    "name": "Magneton",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-90",
+    "source_id": "base4-90",
+    "name": "Rhyhorn",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-91",
+    "source_id": "base4-91",
+    "name": "Sandshrew",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-92",
+    "source_id": "base4-92",
+    "name": "Spearow",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-93",
+    "source_id": "base4-93",
+    "name": "Squirtle",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-94",
+    "source_id": "base4-94",
+    "name": "Starmie",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-95",
+    "source_id": "base4-95",
+    "name": "Staryu",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-96",
+    "source_id": "base4-96",
+    "name": "Tangela",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-97",
+    "source_id": "base4-97",
+    "name": "Venonat",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-98",
+    "source_id": "base4-98",
+    "name": "Voltorb",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base4-99",
+    "source_id": "base4-99",
+    "name": "Vulpix",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base4"
+  },
+  {
+    "id": "pokemon:ptcg:base5-1",
+    "source_id": "base5-1",
+    "name": "Dark Alakazam",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base5"
+  },
+  {
+    "id": "pokemon:ptcg:base5-10",
+    "source_id": "base5-10",
+    "name": "Dark Machamp",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base5"
+  },
+  {
+    "id": "pokemon:ptcg:base5-11",
+    "source_id": "base5-11",
+    "name": "Dark Magneton",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base5"
+  },
+  {
+    "id": "pokemon:ptcg:base5-12",
+    "source_id": "base5-12",
+    "name": "Dark Slowbro",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base5"
+  },
+  {
+    "id": "pokemon:ptcg:base5-13",
+    "source_id": "base5-13",
+    "name": "Dark Vileplume",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base5"
+  },
+  {
+    "id": "pokemon:ptcg:base5-14",
+    "source_id": "base5-14",
+    "name": "Dark Weezing",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base5"
+  },
+  {
+    "id": "pokemon:ptcg:base5-15",
+    "source_id": "base5-15",
+    "name": "Here Comes Team Rocket!",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base5"
+  },
+  {
+    "id": "pokemon:ptcg:base5-16",
+    "source_id": "base5-16",
+    "name": "Rocket's Sneak Attack",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base5"
+  },
+  {
+    "id": "pokemon:ptcg:base5-17",
+    "source_id": "base5-17",
+    "name": "Rainbow Energy",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base5"
+  },
+  {
+    "id": "pokemon:ptcg:base5-18",
+    "source_id": "base5-18",
+    "name": "Dark Alakazam",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base5"
+  },
+  {
+    "id": "pokemon:ptcg:base5-19",
+    "source_id": "base5-19",
+    "name": "Dark Arbok",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base5"
+  },
+  {
+    "id": "pokemon:ptcg:base5-2",
+    "source_id": "base5-2",
+    "name": "Dark Arbok",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base5"
+  },
+  {
+    "id": "pokemon:ptcg:base5-20",
+    "source_id": "base5-20",
+    "name": "Dark Blastoise",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base5"
+  },
+  {
+    "id": "pokemon:ptcg:base5-21",
+    "source_id": "base5-21",
+    "name": "Dark Charizard",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base5"
+  },
+  {
+    "id": "pokemon:ptcg:base5-22",
+    "source_id": "base5-22",
+    "name": "Dark Dragonite",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base5"
+  },
+  {
+    "id": "pokemon:ptcg:base5-23",
+    "source_id": "base5-23",
+    "name": "Dark Dugtrio",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base5"
+  },
+  {
+    "id": "pokemon:ptcg:base5-24",
+    "source_id": "base5-24",
+    "name": "Dark Golbat",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base5"
+  },
+  {
+    "id": "pokemon:ptcg:base5-25",
+    "source_id": "base5-25",
+    "name": "Dark Gyarados",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base5"
+  },
+  {
+    "id": "pokemon:ptcg:base5-26",
+    "source_id": "base5-26",
+    "name": "Dark Hypno",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base5"
+  },
+  {
+    "id": "pokemon:ptcg:base5-27",
+    "source_id": "base5-27",
+    "name": "Dark Machamp",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base5"
+  },
+  {
+    "id": "pokemon:ptcg:base5-28",
+    "source_id": "base5-28",
+    "name": "Dark Magneton",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base5"
+  },
+  {
+    "id": "pokemon:ptcg:base5-29",
+    "source_id": "base5-29",
+    "name": "Dark Slowbro",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base5"
+  },
+  {
+    "id": "pokemon:ptcg:base5-3",
+    "source_id": "base5-3",
+    "name": "Dark Blastoise",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base5"
+  },
+  {
+    "id": "pokemon:ptcg:base5-30",
+    "source_id": "base5-30",
+    "name": "Dark Vileplume",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base5"
+  },
+  {
+    "id": "pokemon:ptcg:base5-31",
+    "source_id": "base5-31",
+    "name": "Dark Weezing",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base5"
+  },
+  {
+    "id": "pokemon:ptcg:base5-32",
+    "source_id": "base5-32",
+    "name": "Dark Charmeleon",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base5"
+  },
+  {
+    "id": "pokemon:ptcg:base5-33",
+    "source_id": "base5-33",
+    "name": "Dark Dragonair",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base5"
+  },
+  {
+    "id": "pokemon:ptcg:base5-34",
+    "source_id": "base5-34",
+    "name": "Dark Electrode",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base5"
+  },
+  {
+    "id": "pokemon:ptcg:base5-35",
+    "source_id": "base5-35",
+    "name": "Dark Flareon",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base5"
+  },
+  {
+    "id": "pokemon:ptcg:base5-36",
+    "source_id": "base5-36",
+    "name": "Dark Gloom",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base5"
+  },
+  {
+    "id": "pokemon:ptcg:base5-37",
+    "source_id": "base5-37",
+    "name": "Dark Golduck",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base5"
+  },
+  {
+    "id": "pokemon:ptcg:base5-38",
+    "source_id": "base5-38",
+    "name": "Dark Jolteon",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base5"
+  },
+  {
+    "id": "pokemon:ptcg:base5-39",
+    "source_id": "base5-39",
+    "name": "Dark Kadabra",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base5"
+  },
+  {
+    "id": "pokemon:ptcg:base5-4",
+    "source_id": "base5-4",
+    "name": "Dark Charizard",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base5"
+  },
+  {
+    "id": "pokemon:ptcg:base5-40",
+    "source_id": "base5-40",
+    "name": "Dark Machoke",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base5"
+  },
+  {
+    "id": "pokemon:ptcg:base5-41",
+    "source_id": "base5-41",
+    "name": "Dark Muk",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base5"
+  },
+  {
+    "id": "pokemon:ptcg:base5-42",
+    "source_id": "base5-42",
+    "name": "Dark Persian",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base5"
+  },
+  {
+    "id": "pokemon:ptcg:base5-43",
+    "source_id": "base5-43",
+    "name": "Dark Primeape",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base5"
+  },
+  {
+    "id": "pokemon:ptcg:base5-44",
+    "source_id": "base5-44",
+    "name": "Dark Rapidash",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base5"
+  },
+  {
+    "id": "pokemon:ptcg:base5-45",
+    "source_id": "base5-45",
+    "name": "Dark Vaporeon",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base5"
+  },
+  {
+    "id": "pokemon:ptcg:base5-46",
+    "source_id": "base5-46",
+    "name": "Dark Wartortle",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base5"
+  },
+  {
+    "id": "pokemon:ptcg:base5-47",
+    "source_id": "base5-47",
+    "name": "Magikarp",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base5"
+  },
+  {
+    "id": "pokemon:ptcg:base5-48",
+    "source_id": "base5-48",
+    "name": "Porygon",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base5"
+  },
+  {
+    "id": "pokemon:ptcg:base5-49",
+    "source_id": "base5-49",
+    "name": "Abra",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base5"
+  },
+  {
+    "id": "pokemon:ptcg:base5-5",
+    "source_id": "base5-5",
+    "name": "Dark Dragonite",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base5"
+  },
+  {
+    "id": "pokemon:ptcg:base5-50",
+    "source_id": "base5-50",
+    "name": "Charmander",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base5"
+  },
+  {
+    "id": "pokemon:ptcg:base5-51",
+    "source_id": "base5-51",
+    "name": "Dark Raticate",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base5"
+  },
+  {
+    "id": "pokemon:ptcg:base5-52",
+    "source_id": "base5-52",
+    "name": "Diglett",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base5"
+  },
+  {
+    "id": "pokemon:ptcg:base5-53",
+    "source_id": "base5-53",
+    "name": "Dratini",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base5"
+  },
+  {
+    "id": "pokemon:ptcg:base5-54",
+    "source_id": "base5-54",
+    "name": "Drowzee",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base5"
+  },
+  {
+    "id": "pokemon:ptcg:base5-55",
+    "source_id": "base5-55",
+    "name": "Eevee",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base5"
+  },
+  {
+    "id": "pokemon:ptcg:base5-56",
+    "source_id": "base5-56",
+    "name": "Ekans",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base5"
+  },
+  {
+    "id": "pokemon:ptcg:base5-57",
+    "source_id": "base5-57",
+    "name": "Grimer",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base5"
+  },
+  {
+    "id": "pokemon:ptcg:base5-58",
+    "source_id": "base5-58",
+    "name": "Koffing",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base5"
+  },
+  {
+    "id": "pokemon:ptcg:base5-59",
+    "source_id": "base5-59",
+    "name": "Machop",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base5"
+  },
+  {
+    "id": "pokemon:ptcg:base5-6",
+    "source_id": "base5-6",
+    "name": "Dark Dugtrio",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base5"
+  },
+  {
+    "id": "pokemon:ptcg:base5-60",
+    "source_id": "base5-60",
+    "name": "Magnemite",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base5"
+  },
+  {
+    "id": "pokemon:ptcg:base5-61",
+    "source_id": "base5-61",
+    "name": "Mankey",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base5"
+  },
+  {
+    "id": "pokemon:ptcg:base5-62",
+    "source_id": "base5-62",
+    "name": "Meowth",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base5"
+  },
+  {
+    "id": "pokemon:ptcg:base5-63",
+    "source_id": "base5-63",
+    "name": "Oddish",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base5"
+  },
+  {
+    "id": "pokemon:ptcg:base5-64",
+    "source_id": "base5-64",
+    "name": "Ponyta",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base5"
+  },
+  {
+    "id": "pokemon:ptcg:base5-65",
+    "source_id": "base5-65",
+    "name": "Psyduck",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base5"
+  },
+  {
+    "id": "pokemon:ptcg:base5-66",
+    "source_id": "base5-66",
+    "name": "Rattata",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base5"
+  },
+  {
+    "id": "pokemon:ptcg:base5-67",
+    "source_id": "base5-67",
+    "name": "Slowpoke",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base5"
+  },
+  {
+    "id": "pokemon:ptcg:base5-68",
+    "source_id": "base5-68",
+    "name": "Squirtle",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base5"
+  },
+  {
+    "id": "pokemon:ptcg:base5-69",
+    "source_id": "base5-69",
+    "name": "Voltorb",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base5"
+  },
+  {
+    "id": "pokemon:ptcg:base5-7",
+    "source_id": "base5-7",
+    "name": "Dark Golbat",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base5"
+  },
+  {
+    "id": "pokemon:ptcg:base5-70",
+    "source_id": "base5-70",
+    "name": "Zubat",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base5"
+  },
+  {
+    "id": "pokemon:ptcg:base5-71",
+    "source_id": "base5-71",
+    "name": "Here Comes Team Rocket!",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base5"
+  },
+  {
+    "id": "pokemon:ptcg:base5-72",
+    "source_id": "base5-72",
+    "name": "Rocket's Sneak Attack",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base5"
+  },
+  {
+    "id": "pokemon:ptcg:base5-73",
+    "source_id": "base5-73",
+    "name": "The Boss's Way",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base5"
+  },
+  {
+    "id": "pokemon:ptcg:base5-74",
+    "source_id": "base5-74",
+    "name": "Challenge!",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base5"
+  },
+  {
+    "id": "pokemon:ptcg:base5-75",
+    "source_id": "base5-75",
+    "name": "Digger",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base5"
+  },
+  {
+    "id": "pokemon:ptcg:base5-76",
+    "source_id": "base5-76",
+    "name": "Imposter Oak's Revenge",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base5"
+  },
+  {
+    "id": "pokemon:ptcg:base5-77",
+    "source_id": "base5-77",
+    "name": "Nightly Garbage Run",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base5"
+  },
+  {
+    "id": "pokemon:ptcg:base5-78",
+    "source_id": "base5-78",
+    "name": "Goop Gas Attack",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base5"
+  },
+  {
+    "id": "pokemon:ptcg:base5-79",
+    "source_id": "base5-79",
+    "name": "Sleep!",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base5"
+  },
+  {
+    "id": "pokemon:ptcg:base5-8",
+    "source_id": "base5-8",
+    "name": "Dark Gyarados",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base5"
+  },
+  {
+    "id": "pokemon:ptcg:base5-80",
+    "source_id": "base5-80",
+    "name": "Rainbow Energy",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base5"
+  },
+  {
+    "id": "pokemon:ptcg:base5-81",
+    "source_id": "base5-81",
+    "name": "Full Heal Energy",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base5"
+  },
+  {
+    "id": "pokemon:ptcg:base5-82",
+    "source_id": "base5-82",
+    "name": "Potion Energy",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base5"
+  },
+  {
+    "id": "pokemon:ptcg:base5-83",
+    "source_id": "base5-83",
+    "name": "Dark Raichu",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base5"
+  },
+  {
+    "id": "pokemon:ptcg:base5-9",
+    "source_id": "base5-9",
+    "name": "Dark Hypno",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base5"
+  },
+  {
+    "id": "pokemon:ptcg:base6-1",
+    "source_id": "base6-1",
+    "name": "Alakazam",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base6"
+  },
+  {
+    "id": "pokemon:ptcg:base6-10",
+    "source_id": "base6-10",
+    "name": "Flareon",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base6"
+  },
+  {
+    "id": "pokemon:ptcg:base6-100",
+    "source_id": "base6-100",
+    "name": "Full Heal Energy",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base6"
+  },
+  {
+    "id": "pokemon:ptcg:base6-101",
+    "source_id": "base6-101",
+    "name": "Potion Energy",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base6"
+  },
+  {
+    "id": "pokemon:ptcg:base6-102",
+    "source_id": "base6-102",
+    "name": "Pokémon Breeder",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base6"
+  },
+  {
+    "id": "pokemon:ptcg:base6-103",
+    "source_id": "base6-103",
+    "name": "Pokémon Trader",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base6"
+  },
+  {
+    "id": "pokemon:ptcg:base6-104",
+    "source_id": "base6-104",
+    "name": "Scoop Up",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base6"
+  },
+  {
+    "id": "pokemon:ptcg:base6-105",
+    "source_id": "base6-105",
+    "name": "The Boss's Way",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base6"
+  },
+  {
+    "id": "pokemon:ptcg:base6-106",
+    "source_id": "base6-106",
+    "name": "Challenge!",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base6"
+  },
+  {
+    "id": "pokemon:ptcg:base6-107",
+    "source_id": "base6-107",
+    "name": "Energy Retrieval",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base6"
+  },
+  {
+    "id": "pokemon:ptcg:base6-108",
+    "source_id": "base6-108",
+    "name": "Bill",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base6"
+  },
+  {
+    "id": "pokemon:ptcg:base6-109",
+    "source_id": "base6-109",
+    "name": "Mysterious Fossil",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base6"
+  },
+  {
+    "id": "pokemon:ptcg:base6-11",
+    "source_id": "base6-11",
+    "name": "Gengar",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base6"
+  },
+  {
+    "id": "pokemon:ptcg:base6-110",
+    "source_id": "base6-110",
+    "name": "Potion",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base6"
+  },
+  {
+    "id": "pokemon:ptcg:base6-12",
+    "source_id": "base6-12",
+    "name": "Gyarados",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base6"
+  },
+  {
+    "id": "pokemon:ptcg:base6-13",
+    "source_id": "base6-13",
+    "name": "Hitmonlee",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base6"
+  },
+  {
+    "id": "pokemon:ptcg:base6-14",
+    "source_id": "base6-14",
+    "name": "Jolteon",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base6"
+  },
+  {
+    "id": "pokemon:ptcg:base6-15",
+    "source_id": "base6-15",
+    "name": "Machamp",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base6"
+  },
+  {
+    "id": "pokemon:ptcg:base6-16",
+    "source_id": "base6-16",
+    "name": "Muk",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base6"
+  },
+  {
+    "id": "pokemon:ptcg:base6-17",
+    "source_id": "base6-17",
+    "name": "Ninetales",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base6"
+  },
+  {
+    "id": "pokemon:ptcg:base6-18",
+    "source_id": "base6-18",
+    "name": "Venusaur",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base6"
+  },
+  {
+    "id": "pokemon:ptcg:base6-19",
+    "source_id": "base6-19",
+    "name": "Zapdos",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base6"
+  },
+  {
+    "id": "pokemon:ptcg:base6-2",
+    "source_id": "base6-2",
+    "name": "Articuno",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base6"
+  },
+  {
+    "id": "pokemon:ptcg:base6-20",
+    "source_id": "base6-20",
+    "name": "Beedrill",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base6"
+  },
+  {
+    "id": "pokemon:ptcg:base6-21",
+    "source_id": "base6-21",
+    "name": "Butterfree",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base6"
+  },
+  {
+    "id": "pokemon:ptcg:base6-22",
+    "source_id": "base6-22",
+    "name": "Electrode",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base6"
+  },
+  {
+    "id": "pokemon:ptcg:base6-23",
+    "source_id": "base6-23",
+    "name": "Exeggutor",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base6"
+  },
+  {
+    "id": "pokemon:ptcg:base6-24",
+    "source_id": "base6-24",
+    "name": "Golem",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base6"
+  },
+  {
+    "id": "pokemon:ptcg:base6-25",
+    "source_id": "base6-25",
+    "name": "Hypno",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base6"
+  },
+  {
+    "id": "pokemon:ptcg:base6-26",
+    "source_id": "base6-26",
+    "name": "Jynx",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base6"
+  },
+  {
+    "id": "pokemon:ptcg:base6-27",
+    "source_id": "base6-27",
+    "name": "Kabutops",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base6"
+  },
+  {
+    "id": "pokemon:ptcg:base6-28",
+    "source_id": "base6-28",
+    "name": "Magneton",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base6"
+  },
+  {
+    "id": "pokemon:ptcg:base6-29",
+    "source_id": "base6-29",
+    "name": "Mewtwo",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base6"
+  },
+  {
+    "id": "pokemon:ptcg:base6-3",
+    "source_id": "base6-3",
+    "name": "Charizard",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base6"
+  },
+  {
+    "id": "pokemon:ptcg:base6-30",
+    "source_id": "base6-30",
+    "name": "Moltres",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base6"
+  },
+  {
+    "id": "pokemon:ptcg:base6-31",
+    "source_id": "base6-31",
+    "name": "Nidoking",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base6"
+  },
+  {
+    "id": "pokemon:ptcg:base6-32",
+    "source_id": "base6-32",
+    "name": "Nidoqueen",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base6"
+  },
+  {
+    "id": "pokemon:ptcg:base6-33",
+    "source_id": "base6-33",
+    "name": "Pidgeot",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base6"
+  },
+  {
+    "id": "pokemon:ptcg:base6-34",
+    "source_id": "base6-34",
+    "name": "Pidgeotto",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base6"
+  },
+  {
+    "id": "pokemon:ptcg:base6-35",
+    "source_id": "base6-35",
+    "name": "Rhydon",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base6"
+  },
+  {
+    "id": "pokemon:ptcg:base6-36",
+    "source_id": "base6-36",
+    "name": "Arcanine",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base6"
+  },
+  {
+    "id": "pokemon:ptcg:base6-37",
+    "source_id": "base6-37",
+    "name": "Charmeleon",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base6"
+  },
+  {
+    "id": "pokemon:ptcg:base6-38",
+    "source_id": "base6-38",
+    "name": "Dark Dragonair",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base6"
+  },
+  {
+    "id": "pokemon:ptcg:base6-39",
+    "source_id": "base6-39",
+    "name": "Dark Wartortle",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base6"
+  },
+  {
+    "id": "pokemon:ptcg:base6-4",
+    "source_id": "base6-4",
+    "name": "Dark Blastoise",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base6"
+  },
+  {
+    "id": "pokemon:ptcg:base6-40",
+    "source_id": "base6-40",
+    "name": "Dewgong",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base6"
+  },
+  {
+    "id": "pokemon:ptcg:base6-41",
+    "source_id": "base6-41",
+    "name": "Dodrio",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base6"
+  },
+  {
+    "id": "pokemon:ptcg:base6-42",
+    "source_id": "base6-42",
+    "name": "Fearow",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base6"
+  },
+  {
+    "id": "pokemon:ptcg:base6-43",
+    "source_id": "base6-43",
+    "name": "Golduck",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base6"
+  },
+  {
+    "id": "pokemon:ptcg:base6-44",
+    "source_id": "base6-44",
+    "name": "Graveler",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base6"
+  },
+  {
+    "id": "pokemon:ptcg:base6-45",
+    "source_id": "base6-45",
+    "name": "Growlithe",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base6"
+  },
+  {
+    "id": "pokemon:ptcg:base6-46",
+    "source_id": "base6-46",
+    "name": "Haunter",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base6"
+  },
+  {
+    "id": "pokemon:ptcg:base6-47",
+    "source_id": "base6-47",
+    "name": "Ivysaur",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base6"
+  },
+  {
+    "id": "pokemon:ptcg:base6-48",
+    "source_id": "base6-48",
+    "name": "Kabuto",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base6"
+  },
+  {
+    "id": "pokemon:ptcg:base6-49",
+    "source_id": "base6-49",
+    "name": "Kadabra",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base6"
+  },
+  {
+    "id": "pokemon:ptcg:base6-5",
+    "source_id": "base6-5",
+    "name": "Dark Dragonite",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base6"
+  },
+  {
+    "id": "pokemon:ptcg:base6-50",
+    "source_id": "base6-50",
+    "name": "Kakuna",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base6"
+  },
+  {
+    "id": "pokemon:ptcg:base6-51",
+    "source_id": "base6-51",
+    "name": "Machoke",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base6"
+  },
+  {
+    "id": "pokemon:ptcg:base6-52",
+    "source_id": "base6-52",
+    "name": "Magikarp",
+    "tcg": "pokemon",
+    "lang": "en",
+    "set_id": "base6"
+  }
+]
