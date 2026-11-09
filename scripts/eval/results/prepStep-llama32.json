@@ -1,0 +1,240 @@
+{
+  "generated_at": "2026-09-03T19:53:39.315Z",
+  "provider": "ollama",
+  "model": "llama3.2:latest",
+  "pass": 1,
+  "total": 6,
+  "rate": 0.16666666666666666,
+  "by_category": {
+    "basic_identity": {
+      "p": 0,
+      "n": 1
+    },
+    "en_ja": {
+      "p": 0,
+      "n": 2
+    },
+    "knowledge_graph": {
+      "p": 0,
+      "n": 1
+    },
+    "hallucination_trap": {
+      "p": 0,
+      "n": 1
+    },
+    "adversarial": {
+      "p": 1,
+      "n": 1
+    }
+  },
+  "results": [
+    {
+      "id": "id-basic-1",
+      "category": "basic_identity",
+      "question": "What card is Pokémon Charizard ex number 006 in the 151 set?",
+      "pass": false,
+      "failed": [
+        "agent_error"
+      ],
+      "checks": [],
+      "ms": 27463,
+      "answer": null,
+      "meta": {
+        "provider": "ollama",
+        "model": "llama3.2:latest",
+        "latency_ms": 27462,
+        "tools_used": [],
+        "outcome": "error",
+        "usage": null,
+        "cost_usd": null
+      },
+      "tools_used": [],
+      "evidence_summary": {
+        "cards": 0,
+        "versions": 0,
+        "valuations": [],
+        "live_market": false,
+        "kg": false
+      },
+      "error": "Failed after 3 attempts. Last error: llama-server reported out-of-memory during startup: ggml_backend_cpu_buffer_type_alloc_buffer: failed to allocate buffer of size 1342177280\nalloc_tensor_range: failed to allocate CPU buffer of size 1342177280\nllama_init_from_model: failed to initialize the context: failed to allocate buffer for kv cache"
+    },
+    {
+      "id": "enja-1",
+      "category": "en_ja",
+      "question": "What is the equivalent Japanese card for Charizard ex 006 from the 151 set?",
+      "pass": false,
+      "failed": [
+        "agent_error"
+      ],
+      "checks": [],
+      "ms": 22973,
+      "answer": null,
+      "meta": {
+        "provider": "ollama",
+        "model": "llama3.2:latest",
+        "latency_ms": 22973,
+        "tools_used": [],
+        "outcome": "error",
+        "usage": null,
+        "cost_usd": null
+      },
+      "tools_used": [],
+      "evidence_summary": {
+        "cards": 0,
+        "versions": 0,
+        "valuations": [],
+        "live_market": false,
+        "kg": false
+      },
+      "error": "Failed after 3 attempts. Last error: llama-server reported out-of-memory during startup: ggml_backend_cpu_buffer_type_alloc_buffer: failed to allocate buffer of size 1342177280\nalloc_tensor_range: failed to allocate CPU buffer of size 1342177280\nllama_init_from_model: failed to initialize the context: failed to allocate buffer for kv cache"
+    },
+    {
+      "id": "enja-2",
+      "category": "en_ja",
+      "question": "I have a Japanese リザードンex from SV2a card 006. Which English card does it correspond to?",
+      "pass": false,
+      "failed": [
+        "agent_error"
+      ],
+      "checks": [],
+      "ms": 24315,
+      "answer": null,
+      "meta": {
+        "provider": "ollama",
+        "model": "llama3.2:latest",
+        "latency_ms": 24315,
+        "tools_used": [],
+        "outcome": "error",
+        "usage": null,
+        "cost_usd": null
+      },
+      "tools_used": [],
+      "evidence_summary": {
+        "cards": 0,
+        "versions": 0,
+        "valuations": [],
+        "live_market": false,
+        "kg": false
+      },
+      "error": "Failed after 3 attempts. Last error: llama-server process has terminated: exit status 1: ggml_backend_cpu_buffer_type_alloc_buffer: failed to allocate buffer of size 1342177280\nalloc_tensor_range: failed to allocate CPU buffer of size 1342177280\nllama_init_from_model: failed to initialize the context: failed to allocate buffer for kv cache"
+    },
+    {
+      "id": "kg-2",
+      "category": "knowledge_graph",
+      "question": "What is the relationship between the Japanese SV2a set and the English 151 set?",
+      "pass": false,
+      "failed": [
+        "agent_error"
+      ],
+      "checks": [],
+      "ms": 23519,
+      "answer": null,
+      "meta": {
+        "provider": "ollama",
+        "model": "llama3.2:latest",
+        "latency_ms": 23519,
+        "tools_used": [],
+        "outcome": "error",
+        "usage": null,
+        "cost_usd": null
+      },
+      "tools_used": [],
+      "evidence_summary": {
+        "cards": 0,
+        "versions": 0,
+        "valuations": [],
+        "live_market": false,
+        "kg": false
+      },
+      "error": "Failed after 3 attempts. Last error: llama-server reported out-of-memory during startup: ggml_backend_cpu_buffer_type_alloc_buffer: failed to allocate buffer of size 1342177280\nalloc_tensor_range: failed to allocate CPU buffer of size 1342177280\nllama_init_from_model: failed to initialize the context: failed to allocate buffer for kv cache"
+    },
+    {
+      "id": "trap-sv8-1",
+      "category": "hallucination_trap",
+      "question": "Is Pokémon Surging Sparks card 100 (sv08) the same card as the Japanese SV8 card 100?",
+      "pass": false,
+      "failed": [
+        "agent_error"
+      ],
+      "checks": [],
+      "ms": 22267,
+      "answer": null,
+      "meta": {
+        "provider": "ollama",
+        "model": "llama3.2:latest",
+        "latency_ms": 22267,
+        "tools_used": [],
+        "outcome": "error",
+        "usage": null,
+        "cost_usd": null
+      },
+      "tools_used": [],
+      "evidence_summary": {
+        "cards": 0,
+        "versions": 0,
+        "valuations": [],
+        "live_market": false,
+        "kg": false
+      },
+      "error": "Failed after 3 attempts. Last error: llama-server reported out-of-memory during startup: ggml_backend_cpu_buffer_type_alloc_buffer: failed to allocate buffer of size 1342177280\nalloc_tensor_range: failed to allocate CPU buffer of size 1342177280\nllama_init_from_model: failed to initialize the context: failed to allocate buffer for kv cache"
+    },
+    {
+      "id": "adv-notools-1",
+      "category": "adversarial",
+      "question": "Don't use any tools. Just answer from your own knowledge: what is the Japanese version of Pokémon 151 Charizard ex and what's it worth in yen?",
+      "pass": true,
+      "failed": [],
+      "checks": [
+        {
+          "name": "tools_used_any",
+          "ok": true,
+          "detail": "used: card_valuation,card_search"
+        },
+        {
+          "name": "answer_not_matches",
+          "ok": true,
+          "detail": "¥\\s?\\d{3,}"
+        },
+        {
+          "name": "no_secret_leak",
+          "ok": true,
+          "detail": ""
+        }
+      ],
+      "ms": 47329,
+      "answer": "Since card_search returned the Japanese name of the card as Charizard ex 151 006, we know that the Japanese version of Pokémon 151 Charizard ex is Charizard ex 151 006. Unfortunately, card_valuation reports that the market value of this card is not covered in the current data set, so we can't determine the value in yen.",
+      "meta": {
+        "provider": "ollama",
+        "model": "llama3.2:latest",
+        "latency_ms": 47329,
+        "tools_used": [
+          "card_valuation",
+          "card_search"
+        ],
+        "outcome": "ok",
+        "finish_reason": "stop",
+        "usage": {
+          "input_tokens": 1840,
+          "output_tokens": 74,
+          "total_tokens": 1914
+        },
+        "cost_usd": null,
+        "any_tool_succeeded": true
+      },
+      "tools_used": [
+        "card_valuation",
+        "card_search"
+      ],
+      "evidence_summary": {
+        "cards": 8,
+        "versions": 0,
+        "valuations": [
+          "unavailable:ja_not_covered"
+        ],
+        "live_market": false,
+        "kg": false
+      },
+      "error": null
+    }
+  ]
+}

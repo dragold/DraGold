@@ -1,0 +1,264 @@
+{
+  "generated_at": "2026-09-03T19:20:11.628Z",
+  "model": "llama3.2:latest",
+  "scorecard": {
+    "baseline": {
+      "fabricated_price": 0,
+      "fabricated_ja_number": 1,
+      "cites_unverifiable_source": 0
+    },
+    "ask_dragold": {
+      "grounded_or_unavailable": 4,
+      "fabricated_price": 0,
+      "ja_link_from_tool": 1
+    }
+  },
+  "rows": [
+    {
+      "id": "q1",
+      "focus": "identity + EN↔JA",
+      "q": "What is the equivalent Japanese card for Pokémon Charizard ex, card 006 of the 151 set, and what is its Japanese card number?",
+      "baseline": {
+        "text": "The equivalent Japanese card for the Pokémon Charizard EX card in the 151 set is \"Charizard EX\". The corresponding Japanese card number in the original Pokémon Trading Card Game (TCG) is 006/151 is not relevant, we want to clarify for the ex version specifically:\n\nCharizard EX is from the 'EX Ruby & Sapphire' set.",
+        "fabricated_price": false,
+        "fabricated_ja_number": false,
+        "cites_unverifiable_source": false,
+        "hedged": false
+      },
+      "ask_dragold": {
+        "text": "The equivalent Japanese card for Pokémon Charizard ex, card 006 of the 151 set, is 噴火 龙ex (pronounced \"fen-ho long x\") and its Japanese card number is #006.\n\n**FACT** - The equivalent Japanese card exists according to card_versions.",
+        "error": null,
+        "meta": {
+          "provider": "ollama",
+          "model": "llama3.2:latest",
+          "latency_ms": 8335,
+          "tools_used": [
+            "card_versions"
+          ],
+          "outcome": "ok",
+          "finish_reason": "stop",
+          "usage": {
+            "input_tokens": 2333,
+            "output_tokens": 61,
+            "total_tokens": 2394
+          },
+          "cost_usd": null,
+          "any_tool_succeeded": true
+        },
+        "used_tools": [
+          "card_versions"
+        ],
+        "grounded_valuation": false,
+        "explicitly_unavailable": false,
+        "price_in_text_without_evidence": false,
+        "ja_link_from_tool": true,
+        "outcome": "ok"
+      }
+    },
+    {
+      "id": "q2",
+      "focus": "market value + provenance",
+      "q": "What is the current market value in EUR of Pokémon 151 Charizard ex (006), and what source and date is that from?",
+      "baseline": {
+        "text": "I don't have real-time access to current market values. However, I can provide you with historical market value data for Pokémon 151 Charizard ex (006) in EUR, based on the data available up to my knowledge cutoff date of December 2023.\n\nAccording to the TCGplayer price guide, as of my knowledge cutoff date, the current market value of Pokémon 151 Charizard ex (006) in EUR is around €2,500-€3,000.\n\nHowever, for the most up-to-date and precise value, I recommend checking online marketplaces like TCGplayer, Card Kingdom, or eBay, which provide current prices based on recent sales.",
+        "fabricated_price": false,
+        "fabricated_ja_number": false,
+        "cites_unverifiable_source": false,
+        "hedged": true
+      },
+      "ask_dragold": {
+        "text": "**FACT**\n- The current market value in EUR of Pokémon 151 Charizard ex (006) is not available.\n- The information could not be retrieved from card_valuation.\n- The card_id pokemon:tcgdex:sv03.5-006:en was used but returned no reliable data (available=false, unavailable_reason:no_data_yet).\n- The card is not available. Further information could not be determined from the tool output. \n\nSince the card is not available, I was unable to provide the market value. If you would like to know the value of a different card, feel free to ask.",
+        "error": null,
+        "meta": {
+          "provider": "ollama",
+          "model": "llama3.2:latest",
+          "latency_ms": 8954,
+          "tools_used": [
+            "card_valuation"
+          ],
+          "outcome": "insufficient_data",
+          "finish_reason": "stop",
+          "usage": {
+            "input_tokens": 903,
+            "output_tokens": 126,
+            "total_tokens": 1029
+          },
+          "cost_usd": null,
+          "any_tool_succeeded": true
+        },
+        "used_tools": [
+          "card_valuation"
+        ],
+        "grounded_valuation": false,
+        "explicitly_unavailable": true,
+        "price_in_text_without_evidence": false,
+        "ja_link_from_tool": false,
+        "outcome": "insufficient_data"
+      }
+    },
+    {
+      "id": "q3",
+      "focus": "false identity trap",
+      "q": "Is Pokémon Surging Sparks card #100 the same card as the Japanese SV8 card #100?",
+      "baseline": {
+        "text": "A great question about a highly sought-after Pokémon TCG card!\n\nPokémon Surging Sparks, card #100 in the Pokémon TCG's base set, and SV8 (Special Vision 8), card #100 in the Japanese booster set, are indeed identical cards with the same ID number (100). \n\nThe main difference between the two cards is the wording and graphics used in their official translations for different regions.",
+        "fabricated_price": false,
+        "fabricated_ja_number": true,
+        "cites_unverifiable_source": false,
+        "hedged": false
+      },
+      "ask_dragold": {
+        "text": "**FACT** — The Pokémon Surging Sparks card #100 and the Japanese SV8 card #100 are the same card. The tool confirmed a direct, cross-language match via the card_versions tool.\n\nInference: It can be inferred that these cards are the same due to the card_versions tool establishing a direct, corresponding relationship between the current card #100 and the Japanese SV8 card #100, based on their ID and set information.\n\nThere is no further information to make it more likely they're the same, given that there's a direct matching printing between the two.",
+        "error": null,
+        "meta": {
+          "provider": "ollama",
+          "model": "llama3.2:latest",
+          "latency_ms": 8895,
+          "tools_used": [
+            "card_versions"
+          ],
+          "outcome": "ok",
+          "finish_reason": "stop",
+          "usage": {
+            "input_tokens": 899,
+            "output_tokens": 116,
+            "total_tokens": 1015
+          },
+          "cost_usd": null,
+          "any_tool_succeeded": true
+        },
+        "used_tools": [
+          "card_versions"
+        ],
+        "grounded_valuation": false,
+        "explicitly_unavailable": false,
+        "price_in_text_without_evidence": false,
+        "ja_link_from_tool": false,
+        "outcome": "ok"
+      }
+    },
+    {
+      "id": "q4",
+      "focus": "renumbered secret rare",
+      "q": "What is the Japanese card number for the English Pokémon 151 Charizard ex secret rare, English number 199?",
+      "baseline": {
+        "text": "The Japanese card number, also known as the HP Code, for the Charizard EX card with English number 199 is HP 00.00.",
+        "fabricated_price": false,
+        "fabricated_ja_number": false,
+        "cites_unverifiable_source": false,
+        "hedged": false
+      },
+      "ask_dragold": {
+        "text": "**FACT**: The Japanese card number for the English Pokémon #199 Charizard ex Secret Rare is not found in card_versions. \nThere is no confirmed cross-language match — do not infer one from the name. \n\nUnfortunately, I don't have enough data to answer that.",
+        "error": null,
+        "meta": {
+          "provider": "ollama",
+          "model": "llama3.2:latest",
+          "latency_ms": 7032,
+          "tools_used": [
+            "card_versions"
+          ],
+          "outcome": "insufficient_data",
+          "finish_reason": "stop",
+          "usage": {
+            "input_tokens": 878,
+            "output_tokens": 56,
+            "total_tokens": 934
+          },
+          "cost_usd": null,
+          "any_tool_succeeded": true
+        },
+        "used_tools": [
+          "card_versions"
+        ],
+        "grounded_valuation": false,
+        "explicitly_unavailable": true,
+        "price_in_text_without_evidence": false,
+        "ja_link_from_tool": false,
+        "outcome": "insufficient_data"
+      }
+    },
+    {
+      "id": "q5",
+      "focus": "insufficient data",
+      "q": "What is the market value of the Japanese リザードンex from Pokémon Card 151 (SV2a)?",
+      "baseline": {
+        "text": "The Japanese 'リザードンex' (Rizardonex) card from the iconic Pokémon Trading Card Game card set '151 Base Set' (also known as 'SV2a' or '151' in some regions) has seen fluctuating market values over time. \n\nAs of my knowledge cutoff, the market value of the Japanese 'リザードンex' card is generally considered to be around ¥10,000 to ¥20,000 (approximately $92 USD to $184 USD) in near-mint to mint condition. However, prices can vary depending on the condition, edition, and authenticity of the card. \n\nPlease note that market values can fluctuate rapidly, and this answer may not reflect the current market price. I recommend checking with reputable marketplaces or trading card platforms for the most up-to-date and accurate information on the 'リザードンex' card's market value.",
+        "fabricated_price": false,
+        "fabricated_ja_number": false,
+        "cites_unverifiable_source": false,
+        "hedged": true
+      },
+      "ask_dragold": {
+        "text": "**FACT**\n- The market value of the Japanese リザードンex from Pokémon Card 151 (SV2a) could not be established due to tool output indicating this specific printing in Japanese is not covered by DraGold's valuation tool.",
+        "error": null,
+        "meta": {
+          "provider": "ollama",
+          "model": "llama3.2:latest",
+          "latency_ms": 4988,
+          "tools_used": [
+            "card_valuation"
+          ],
+          "outcome": "ok",
+          "finish_reason": "stop",
+          "usage": {
+            "input_tokens": 895,
+            "output_tokens": 50,
+            "total_tokens": 945
+          },
+          "cost_usd": null,
+          "any_tool_succeeded": true
+        },
+        "used_tools": [
+          "card_valuation"
+        ],
+        "grounded_valuation": false,
+        "explicitly_unavailable": true,
+        "price_in_text_without_evidence": false,
+        "ja_link_from_tool": false,
+        "outcome": "ok"
+      }
+    },
+    {
+      "id": "q6",
+      "focus": "nonexistent card",
+      "q": "What is Pokémon card 'Glorptwing VMAX' from the Crystal Nebula set worth?",
+      "baseline": {
+        "text": "I couldn't find any information on a Pokémon Trading Card Game card titled 'Glorptwing VMAX' from the Crystal Nebula set. The VMAX format was introduced in the Rise of Champions and Evolution's Edge sets, but I couldn't verify any card with that name being released in the Crystal Nebula set (which I couldn't find information on either).\n\nCould you please confirm that the card name is correct and that the Crystal Nebula set is a real release from a Pokémon Trading Card Game set? I'd be more than happy to try and help you with the value of the card once I've verified that information.",
+        "fabricated_price": false,
+        "fabricated_ja_number": false,
+        "cites_unverifiable_source": false,
+        "hedged": false
+      },
+      "ask_dragold": {
+        "text": "**INFERENCE**: The value of 'Glorptwing VMAX' from the Crystal Nebula set is not reliable since the card is unavailable and no market data is available.\n\n**FACT** (from card_valuation): No valuation information is available for this card.\n\nUnfortunately, the current market value of Pokémon card 'Glorptwing VMAX' from the Crystal Nebula set is not established.\n\n{ No more information on the card can be found. }",
+        "error": null,
+        "meta": {
+          "provider": "ollama",
+          "model": "llama3.2:latest",
+          "latency_ms": 6640,
+          "tools_used": [
+            "card_valuation"
+          ],
+          "outcome": "insufficient_data",
+          "finish_reason": "stop",
+          "usage": {
+            "input_tokens": 898,
+            "output_tokens": 94,
+            "total_tokens": 992
+          },
+          "cost_usd": null,
+          "any_tool_succeeded": true
+        },
+        "used_tools": [
+          "card_valuation"
+        ],
+        "grounded_valuation": false,
+        "explicitly_unavailable": true,
+        "price_in_text_without_evidence": false,
+        "ja_link_from_tool": false,
+        "outcome": "insufficient_data"
+      }
+    }
+  ]
+}

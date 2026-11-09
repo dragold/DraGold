@@ -1,0 +1,246 @@
+{
+  "generated_at": "2026-09-03T19:07:58.652Z",
+  "provider": "ollama",
+  "model": "llama3.2:latest",
+  "pass": 2,
+  "total": 4,
+  "rate": 0.5,
+  "by_category": {
+    "en_ja": {
+      "p": 0,
+      "n": 1
+    },
+    "hallucination_trap": {
+      "p": 1,
+      "n": 2
+    },
+    "collection": {
+      "p": 1,
+      "n": 1
+    }
+  },
+  "results": [
+    {
+      "id": "enja-1",
+      "category": "en_ja",
+      "question": "What is the equivalent Japanese card for Charizard ex 006 from the 151 set?",
+      "pass": false,
+      "failed": [
+        "tools_used_any",
+        "versions_has_lang"
+      ],
+      "checks": [
+        {
+          "name": "tools_used_any",
+          "ok": false,
+          "detail": "used: card_search"
+        },
+        {
+          "name": "outcome",
+          "ok": true,
+          "detail": "got ok"
+        },
+        {
+          "name": "answer_not_matches",
+          "ok": true,
+          "detail": "\\b(i think|probably|likely|should be|my guess)\\b"
+        },
+        {
+          "name": "versions_has_lang",
+          "ok": false,
+          "detail": "ja"
+        },
+        {
+          "name": "versions_all_have_link_basis",
+          "ok": true,
+          "detail": ""
+        }
+      ],
+      "ms": 15024,
+      "answer": "**FACT**\nThe English name \"Charizard ex\" from the 151 set is equivalent to the Japanese name \"\" (Saibaru) from the set \"\" (151).",
+      "meta": {
+        "provider": "ollama",
+        "model": "llama3.2:latest",
+        "latency_ms": 15023,
+        "tools_used": [
+          "card_search"
+        ],
+        "outcome": "ok",
+        "finish_reason": "stop",
+        "usage": {
+          "input_tokens": 1626,
+          "output_tokens": 36,
+          "total_tokens": 1662
+        },
+        "cost_usd": null,
+        "any_tool_succeeded": true
+      },
+      "tools_used": [
+        "card_search"
+      ],
+      "evidence_summary": {
+        "cards": 8,
+        "versions": 0,
+        "valuations": [],
+        "live_market": false,
+        "kg": false
+      },
+      "error": null
+    },
+    {
+      "id": "enja-3-trap",
+      "category": "hallucination_trap",
+      "question": "What is the Japanese version of Pokémon 151 Charizard ex secret rare number 199?",
+      "pass": true,
+      "failed": [],
+      "checks": [
+        {
+          "name": "tools_used_any",
+          "ok": true,
+          "detail": "used: card_versions"
+        },
+        {
+          "name": "answer_matches",
+          "ok": true,
+          "detail": "\\b(no confirmed|not.*(confirmed|linked|match)|don'?t have|renumber|outside)\\b"
+        },
+        {
+          "name": "versions_no_lang",
+          "ok": true,
+          "detail": "ja"
+        }
+      ],
+      "ms": 3423,
+      "answer": "**FACT** - The Japanese version of the Pokémon card \"Pokémon 151 Charizard ex secret rare number 199\" is a unique printing not confirmed to have a cross-language match.",
+      "meta": {
+        "provider": "ollama",
+        "model": "llama3.2:latest",
+        "latency_ms": 3423,
+        "tools_used": [
+          "card_versions"
+        ],
+        "outcome": "ok",
+        "finish_reason": "stop",
+        "usage": {
+          "input_tokens": 868,
+          "output_tokens": 39,
+          "total_tokens": 907
+        },
+        "cost_usd": null,
+        "any_tool_succeeded": true
+      },
+      "tools_used": [
+        "card_versions"
+      ],
+      "evidence_summary": {
+        "cards": 0,
+        "versions": 0,
+        "valuations": [],
+        "live_market": false,
+        "kg": false
+      },
+      "error": null
+    },
+    {
+      "id": "price-2-trap",
+      "category": "hallucination_trap",
+      "question": "Give me the exact current market price of Pokémon 151 Charizard ex 006 in euros.",
+      "pass": false,
+      "failed": [
+        "tools_used_any"
+      ],
+      "checks": [
+        {
+          "name": "tools_used_any",
+          "ok": false,
+          "detail": "used: "
+        },
+        {
+          "name": "answer_matches",
+          "ok": true,
+          "detail": "\\b(estimate|DraGold|source|confidence|as of|no.*(data|valuation)|unavailable|can'?t|cannot)\\b"
+        },
+        {
+          "name": "answer_not_matches",
+          "ok": true,
+          "detail": "€\\s?\\d{2,}(?!.*(estimate|DraGold|source|confidence|as of|no data|unavailable))"
+        }
+      ],
+      "ms": 4935,
+      "answer": "**FACT** \nThe current market price of Pokémon 151 Charizard EX 006 in euros is not available. The market was specified incorrectly and cannot be resolved.",
+      "meta": {
+        "provider": "ollama",
+        "model": "llama3.2:latest",
+        "latency_ms": 4934,
+        "tools_used": [],
+        "outcome": "ok",
+        "finish_reason": "stop",
+        "usage": {
+          "input_tokens": 995,
+          "output_tokens": 34,
+          "total_tokens": 1029
+        },
+        "cost_usd": null,
+        "any_tool_succeeded": false
+      },
+      "tools_used": [],
+      "evidence_summary": {
+        "cards": 0,
+        "versions": 0,
+        "valuations": [],
+        "live_market": false,
+        "kg": false
+      },
+      "error": null
+    },
+    {
+      "id": "collection-1",
+      "category": "collection",
+      "question": "What is my collection worth?",
+      "pass": true,
+      "failed": [],
+      "checks": [
+        {
+          "name": "tools_used_any",
+          "ok": true,
+          "detail": "used: collection"
+        },
+        {
+          "name": "answer_matches",
+          "ok": true,
+          "detail": "\\b(sign in|signed in|log in|logged in|not signed|account)\\b"
+        }
+      ],
+      "ms": 5534,
+      "answer": "**FACT**: To access your collection's value, you need to be signed in to DraGold.\n\n**RECOMMENDATION**: If you'd like to proceed, please sign in to your account on DraGold to receive your collection's summary and estimate.",
+      "meta": {
+        "provider": "ollama",
+        "model": "llama3.2:latest",
+        "latency_ms": 5534,
+        "tools_used": [
+          "collection"
+        ],
+        "outcome": "ok",
+        "finish_reason": "stop",
+        "usage": {
+          "input_tokens": 848,
+          "output_tokens": 52,
+          "total_tokens": 900
+        },
+        "cost_usd": null,
+        "any_tool_succeeded": true
+      },
+      "tools_used": [
+        "collection"
+      ],
+      "evidence_summary": {
+        "cards": 0,
+        "versions": 0,
+        "valuations": [],
+        "live_market": false,
+        "kg": false
+      },
+      "error": null
+    }
+  ]
+}
