@@ -14,3 +14,15 @@ scripts/image-audit/data/
 # Production local env
 .env.production.local
 .env.*.local
+
+# Temporary build and debug artifacts
+*.timestamp-*.mjs
+body.html
+headers.txt
+hp.js
+nul
+verifica.cjs
+verify-chunks.cjs
+verify-production-fix.cjs
+.project/
+supabase/.temp/
